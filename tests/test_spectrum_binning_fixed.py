@@ -2,11 +2,11 @@ import os
 import numpy as np
 import pytest
 from matchms import Spectrum
-from ms2deepscore.spectrum_binning_fixed import create_peak_list_fixe
-from ms2deepscore.spectrum_binning_fixed set_d_bins_fixed
+from ms2deepscore.spectrum_binning_fixed import create_peak_list_fixed
+from ms2deepscore.spectrum_binning_fixed import set_d_bins_fixed
 
 
-def test_create_peak_list_fixed()
+def test_create_peak_list_fixed():
     mz = np.array([10, 20, 21, 30, 40], dtype="float")
     intensities = np.array([1, 1, 1, 1, 0.5], dtype="float")
     spectrum = Spectrum(mz=mz, intensities=intensities)
