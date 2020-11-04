@@ -16,7 +16,7 @@ with open("README.md") as readme_file:
 setup(
     name="ms2deepscore",
     version=version["__version__"],
-    description="Tool to query MS/MS spectra against GNPS library data.",
+    description="Deep learning similarity measure for comparing MS/MS spectra.",
     long_description=readme,
     author="Netherlands eScience Center",
     author_email="f.huber@esciencecenter.nl",
