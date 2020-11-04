@@ -2,8 +2,10 @@ import os
 import numpy as np
 import pytest
 from matchms import Spectrum
+from ms2deepscore.spectrum_binning_fixed import bin_number_array_fixed
 from ms2deepscore.spectrum_binning_fixed import create_peak_list_fixed
 from ms2deepscore.spectrum_binning_fixed import set_d_bins_fixed
+from ms2deepscore.spectrum_binning_fixed import unique_peaks_fixed
 
 
 def test_create_peak_list_fixed():
