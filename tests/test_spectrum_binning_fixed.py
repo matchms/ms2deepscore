@@ -31,7 +31,7 @@ def test_unique_peaks_fixed():
     intensities = np.array([0, 0.5, 0.1, 0.2, 0.2, 0.4], dtype="float")
     spectrum = Spectrum(mz=mz, intensities=intensities)
 
-    class_values, unique_peaks = unique_peaks_fixed([spectrum, spectrum], d_bins, mz_min=10.0)
+    class_values, unique_peaks = unique_peaks_fixed([spectrum, spectrum], d_bins=0.09, mz_min=10.0)
     assert class_values == {0: 0, 111: 1, 112: 2, 222: 3, 333: 4}
     assert unique_peaks == [0, 111, 112, 222, 333]
 
@@ -41,4 +41,4 @@ def test_bin_number_array_fixed():
     intensities = np.array([1, 1, 1, 1, 0.5], dtype="float")
     spectrum = Spectrum(mz=mz, intensities=intensities)
     bins = bin_number_array_fixed(spectrum.peaks.mz, d_bins=0.1, mz_min=10.0)
-    assert bins == np.array([0, 100, 110, 200, 300])
+    assert np.all(bins == np.array([0, 100, 110, 200, 300]))
