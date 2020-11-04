@@ -1,16 +1,19 @@
 """ Functions to create binned vector from spectrum using fixed width bins.
 """
-def create_peak_list_fixed(spectrums, d_bins, mz_min=10.0, weight_power = 0.2):
+import numpy as np
+
+
+def create_peak_list_fixed(spectrums, class_values, d_bins, mz_min=10.0, weight_power = 0.2):
     """Create list of (binned) peaks."""
-    peak_list = []
+    peak_lists = []
 
     for spectrum in spectrums:
         doc = bin_number_array_fixed(spectrum.peaks.mz, d_bins, mz_min=mz_min)
         weights = spectrum.peaks.intensities ** weight_power
         doc_bow = [class_values[x] for x in doc]
-        peak_list.append(list(zip(doc_bow, weights)))
+        peak_lists.append(list(zip(doc_bow, weights)))
 
-    return peak_list
+    return peak_lists
 
 
 def unique_peaks_fixed(spectrums, d_bins, mz_min):
