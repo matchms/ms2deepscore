@@ -1,0 +1,39 @@
+*.py[cod]
+*.egg-info
+*.eggs
+.ipynb_checkpoints
+
+build
+dist
+.cache
+__pycache__
+
+htmlcov
+.coverage
+coverage.xml
+.pytest_cache
+pylint-report.txt
+xunit-result.xml
+.scannerwork/
+
+docs/_build
+docs/apidocs
+
+# ide
+.idea
+.eclipse
+.vscode
+
+# Mac
+.DS_Store
+config.py
+output/
+/data/
+models_trained/
+computed_results/
+notebooks/.ipynb_checkpoints/
+__pycache__/
+
+
+# conda build directory
+/_build
