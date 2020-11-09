@@ -36,9 +36,9 @@ def set_d_bins_linear(number, min_bin_size, mz_min=10.0, mz_max=1000.0):
 
 
 def bin_number_linear(mz, min_bin_size, d_bins, mz_min=10.0):
-    return (2*(mz - mz_min + min_bin_size)/d_bins + min_bin_size/d_bins - 0.5)**0.5 - min_bin_size/d_bins + 0.5
+    return (2*(mz - mz_min)/d_bins + (min_bin_size/d_bins + 0.5)**2)**0.5 - min_bin_size/d_bins - 0.5
 
 
 def bin_number_array_linear(mz, min_bin_size, d_bins, mz_min=10.0):
-    bin_numbers = (2*(mz - mz_min + min_bin_size)/d_bins + min_bin_size/d_bins - 0.5)**0.5 - min_bin_size/d_bins + 0.5
+    bin_numbers = (2*(mz - mz_min)/d_bins + (min_bin_size/d_bins + 0.5)**2)**0.5 - min_bin_size/d_bins - 0.5
     return bin_numbers.astype(int)
