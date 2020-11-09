@@ -9,7 +9,8 @@ class DataGenerator_all_inchikeys(Sequence):
     """Generates data for training a siamese Keras model
     """
     def __init__(self, list_IDs: list, batch_size: int = 32, num_turns: int = 1,
-                 dim: tuple = (10000,1), shuffle: bool = True, score_array: np.ndarray = None,
+                 dim: tuple = (10000,1), shuffle: bool = True, ignore_equal_pairs: bool = True,
+                 score_array: np.ndarray = None,
                  inchikeys_array: np.ndarray = None, inchikey_mapping: pd.DataFrame = None,
                  same_prob_bins: list = [(0, 0.5), (0.5, 1)],
                  augment_peak_removal: dict = {"max_removal": 0.2, "max_intensity": 0.2},
@@ -27,6 +28,8 @@ class DataGenerator_all_inchikeys(Sequence):
             Input vector dimension. Default=(10000,1)
         shuffle
             Set to True to shuffle IDs every epoch. Default=True
+        ignore_equal_pairs
+            Set to True to ignore pairs of two identical spectra. Default=True
         score_array
         inchikeys_array
         inchikey_mapping
@@ -43,6 +46,7 @@ class DataGenerator_all_inchikeys(Sequence):
         self.num_turns = num_turns #number of go's through all IDs
         self.list_IDs = list_IDs
         self.shuffle = shuffle
+        self.ignore_equal_pairs = ignore_equal_pairs
         self.on_epoch_end()
         assert score_array is not None, "needs score array"
         self.score_array = score_array
@@ -69,12 +73,25 @@ class DataGenerator_all_inchikeys(Sequence):
             ID1 = self.list_IDs[index]
             prob_bins = self.same_prob_bins[np.random.choice(np.arange(len(self.same_prob_bins)))]
 
-            idx = np.where((self.score_array[ID1, self.list_IDs] > prob_bins[0])
-                           & (self.score_array[ID1, self.list_IDs] <= prob_bins[1]))[0]
-            if len(idx) > 0:
-                ID2 = self.list_IDs[np.random.choice(idx)]
-            else:
-                ID2 = self.list_IDs[np.random.randint(0, len(self.list_IDs))]
+            extend_range = 0
+            while extend_range < 0.4:
+                idx = np.where((self.score_array[ID1, self.list_IDs] > prob_bins[0] - extend_range)
+                               & (self.score_array[ID1, self.list_IDs] <= prob_bins[1] + extend_range))[0]
+                if self.ignore_equal_pairs:
+                    idx = idx[idx != ID1]
+                if len(idx) > 0:
+                    ID2 = self.list_IDs[np.random.choice(idx)]
+                    break
+                extend_range += 0.1
+
+            if len(idx) == 0:
+                #print(f"No matching pair found for score within {(prob_bins[0]-extend_range):.2f} and {(prob_bins[1]+extend_range):.2f}")
+                #print(f"ID1: {ID1}")
+                second_highest_id = self.score_array[ID1, np.array([x for x in self.list_IDs if x != ID1])].argmax()
+                if second_highest_id > ID1:
+                    second_highest_id += 1
+                ID2 = self.list_IDs[second_highest_id]
+                #print(f"Picked ID2: {ID2}")
 
             list_IDs_temp.append((ID1, ID2))
 
@@ -130,3 +147,4 @@ class DataGenerator_all_inchikeys(Sequence):
             if np.isnan(y[i]):
                 y[i] = np.random.random(1)
         return X, y
+
