@@ -3,7 +3,8 @@
 import numpy as np
 
 
-def create_vectors_linear(spectrums, min_bin_size, d_bins, mz_min=10.0, weight_power = 0.2):
+def create_peak_list_linear(spectrums, class_values, 
+                            min_bin_size, d_bins, mz_min=10.0, weight_power = 0.2):
     """Create list of (binned) peaks."""
     peak_lists = []
 
@@ -40,5 +41,8 @@ def bin_number_linear(mz, min_bin_size, d_bins, mz_min=10.0):
 
 
 def bin_number_array_linear(mz, min_bin_size, d_bins, mz_min=10.0):
-    bin_numbers = (2*(mz - mz_min)/d_bins + (min_bin_size/d_bins + 0.5)**2)**0.5 - min_bin_size/d_bins - 0.5
+    if d_bins != 0.0:
+        bin_numbers = (2*(mz - mz_min)/d_bins + (min_bin_size/d_bins + 0.5)**2)**0.5 - min_bin_size/d_bins - 0.5
+    else:
+        bin_numbers = mz/min_bin_size - mz_min * min_bin_size
     return bin_numbers.astype(int)
