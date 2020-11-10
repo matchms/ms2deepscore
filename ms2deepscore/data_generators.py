@@ -8,7 +8,8 @@ from tensorflow.keras.utils import Sequence
 class DataGenerator_all_inchikeys(Sequence):
     """Generates data for training a siamese Keras model
     """
-    def __init__(self, list_IDs: list, batch_size: int = 32, num_turns: int = 1,
+    def __init__(self, spectrums_binned_dicts: list,
+                 list_IDs: list, batch_size: int = 32, num_turns: int = 1,
                  dim: tuple = (10000,1), shuffle: bool = True, ignore_equal_pairs: bool = True,
                  score_array: np.ndarray = None,
                  inchikeys_array: np.ndarray = None, inchikey_mapping: pd.DataFrame = None,
@@ -19,7 +20,10 @@ class DataGenerator_all_inchikeys(Sequence):
 
         Parameters
         ----------
+        spectrums_binned_dicts
+            List of dictionaries with the binned peak positions and intensities.
         list_IDs
+            List of IDs from the spectrums_binned_dicts list to use for training
         batch_size
             Number of pairs per batch. Default=32.
         num_turns
@@ -45,6 +49,7 @@ class DataGenerator_all_inchikeys(Sequence):
         self.batch_size = batch_size
         self.num_turns = num_turns #number of go's through all IDs
         self.list_IDs = list_IDs
+        self.spectrums_binned_dicts = spectrums_binned_dicts
         self.shuffle = shuffle
         self.ignore_equal_pairs = ignore_equal_pairs
         self.on_epoch_end()
@@ -139,9 +144,9 @@ class DataGenerator_all_inchikeys(Sequence):
             ID1 = np.random.choice(np.where(self.inchikeys_array == inchikey_1)[0])
             ID2 = np.random.choice(np.where(self.inchikeys_array == inchikey_2)[0])
 
-            ref_idx, ref_values = self.__data_augmentation(spectrums_binned_dicts[ID1])
+            ref_idx, ref_values = self.__data_augmentation(self.spectrums_binned_dicts[ID1])
             X[0][i, 0, ref_idx] = ref_values
-            query_idx, query_values = self.__data_augmentation(spectrums_binned_dicts[ID2])
+            query_idx, query_values = self.__data_augmentation(self.spectrums_binned_dicts[ID2])
             X[1][i, 0, query_idx] = query_values
             y[i] = self.score_array[IDs[0], IDs[1]]
             if np.isnan(y[i]):
