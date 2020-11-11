@@ -8,10 +8,10 @@ from tensorflow.keras.utils import Sequence
 class DataGenerator_all_inchikeys(Sequence):
     """Generates data for training a siamese Keras model
     """
-    def __init__(self, spectrums_binned_dicts: list,
-                 list_IDs: list, batch_size: int = 32, num_turns: int = 1,
+    def __init__(self, spectrums_binned_dicts: list, list_IDs: list,
+                 score_array: np.ndarray = None, batch_size: int = 32, num_turns: int = 1, 
+                 peak_scaling: float = 0.5,
                  dim: tuple = (10000,1), shuffle: bool = True, ignore_equal_pairs: bool = True,
-                 score_array: np.ndarray = None,
                  inchikeys_array: np.ndarray = None, inchikey_mapping: pd.DataFrame = None,
                  same_prob_bins: list = [(0, 0.5), (0.5, 1)],
                  augment_peak_removal: dict = {"max_removal": 0.2, "max_intensity": 0.2},
@@ -24,17 +24,20 @@ class DataGenerator_all_inchikeys(Sequence):
             List of dictionaries with the binned peak positions and intensities.
         list_IDs
             List of IDs from the spectrums_binned_dicts list to use for training
+        score_array
+            Array of reference similarity scores (=labels).
         batch_size
             Number of pairs per batch. Default=32.
         num_turns
             Number of pairs for each InChiKey during each epoch. Default=1
+        peak_scaling
+            Scale all peak intensities by power pf peak_scaling. Default is 0.5.
         dim
             Input vector dimension. Default=(10000,1)
         shuffle
             Set to True to shuffle IDs every epoch. Default=True
         ignore_equal_pairs
             Set to True to ignore pairs of two identical spectra. Default=True
-        score_array
         inchikeys_array
         inchikey_mapping
         same_prob_bins
@@ -45,16 +48,17 @@ class DataGenerator_all_inchikeys(Sequence):
             number within [0, 0.1].
 
         """
+        self.spectrums_binned_dicts = spectrums_binned_dicts
+        assert score_array is not None, "needs score array"
+        self.list_IDs = list_IDs
+        self.score_array = score_array
         self.dim = dim
         self.batch_size = batch_size
         self.num_turns = num_turns #number of go's through all IDs
-        self.list_IDs = list_IDs
-        self.spectrums_binned_dicts = spectrums_binned_dicts
+        self.peak_scaling = peak_scaling
         self.shuffle = shuffle
         self.ignore_equal_pairs = ignore_equal_pairs
         self.on_epoch_end()
-        assert score_array is not None, "needs score array"
-        self.score_array = score_array
         assert inchikey_mapping is not None, "needs inchikey mapping"
         self.inchikey_mapping = inchikey_mapping
         self.inchikeys_array = inchikeys_array
@@ -145,9 +149,9 @@ class DataGenerator_all_inchikeys(Sequence):
             ID2 = np.random.choice(np.where(self.inchikeys_array == inchikey_2)[0])
 
             ref_idx, ref_values = self.__data_augmentation(self.spectrums_binned_dicts[ID1])
-            X[0][i, 0, ref_idx] = ref_values
+            X[0][i, 0, ref_idx] = ref_values**self.peak_scaling
             query_idx, query_values = self.__data_augmentation(self.spectrums_binned_dicts[ID2])
-            X[1][i, 0, query_idx] = query_values
+            X[1][i, 0, query_idx] = query_values**self.peak_scaling
             y[i] = self.score_array[IDs[0], IDs[1]]
             if np.isnan(y[i]):
                 y[i] = np.random.random(1)
