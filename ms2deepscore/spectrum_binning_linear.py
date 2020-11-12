@@ -4,13 +4,13 @@ import numpy as np
 
 
 def create_peak_list_linear(spectrums, class_values, 
-                            min_bin_size, d_bins, mz_min=10.0, weight_power = 0.2):
+                            min_bin_size, d_bins, mz_min=10.0):
     """Create list of (binned) peaks."""
     peak_lists = []
 
     for spectrum in spectrums:
         doc = bin_number_array_linear(spectrum.peaks.mz, min_bin_size, d_bins, mz_min=mz_min)
-        weights = spectrum.peaks.intensities ** weight_power
+        weights = spectrum.peaks.intensities  # ** weight_power
         doc_bow = [class_values[x] for x in doc]
         peak_lists.append(list(zip(doc_bow, weights)))
 

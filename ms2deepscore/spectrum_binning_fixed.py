@@ -3,13 +3,13 @@
 import numpy as np
 
 
-def create_peak_list_fixed(spectrums, class_values, d_bins, mz_min=10.0, weight_power = 0.2):
+def create_peak_list_fixed(spectrums, class_values, d_bins, mz_min=10.0):
     """Create list of (binned) peaks."""
     peak_lists = []
 
     for spectrum in spectrums:
         doc = bin_number_array_fixed(spectrum.peaks.mz, d_bins, mz_min=mz_min)
-        weights = spectrum.peaks.intensities ** weight_power
+        weights = spectrum.peaks.intensities  # ** weight_power
         doc_bow = [class_values[x] for x in doc]
         peak_lists.append(list(zip(doc_bow, weights)))
 
