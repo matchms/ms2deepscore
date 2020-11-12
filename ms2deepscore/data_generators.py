@@ -9,7 +9,7 @@ class DataGenerator_all_inchikeys(Sequence):
     """Generates data for training a siamese Keras model
     """
     def __init__(self, spectrums_binned_dicts: list, list_IDs: list,
-                 score_array: np.ndarray = None, batch_size: int = 32, num_turns: int = 1, 
+                 score_array: np.ndarray = None, batch_size: int = 32, num_turns: int = 1,
                  peak_scaling: float = 0.5,
                  dim: tuple = (10000,1), shuffle: bool = True, ignore_equal_pairs: bool = True,
                  inchikeys_array: np.ndarray = None, inchikey_mapping: pd.DataFrame = None,
@@ -41,7 +41,10 @@ class DataGenerator_all_inchikeys(Sequence):
         inchikeys_array
         inchikey_mapping
         same_prob_bins
-        augment_peak_removal={"max_removal": 0.2, "max_intensity": 0.2},
+        augment_peak_removal
+            Dictionary with two parameters. max_removal specifies the maximum amount
+            of peaks to be removed (random fraction between 0 and max_removal), and
+            max_intensity specifying that only peaks < max_intensity will be removed.
         augment_intensity
             Change peak intensities by a random number between 0 and augment_intensity.
             Default=0.1, which means that intensities are multiplied by 1+- a random
@@ -135,7 +138,7 @@ class DataGenerator_all_inchikeys(Sequence):
 
 
     def __data_generation(self, list_IDs_temp):
-        """Generates data containing batch_size samples""" # X : (n_samples, *dim, n_channels)
+        """Generates data containing batch_size samples"""
         # Initialization
         X = [np.zeros((self.batch_size, 1, self.dim)) for i in range(2)]
         y = np.zeros((self.batch_size,))
@@ -149,11 +152,14 @@ class DataGenerator_all_inchikeys(Sequence):
             ID2 = np.random.choice(np.where(self.inchikeys_array == inchikey_2)[0])
 
             ref_idx, ref_values = self.__data_augmentation(self.spectrums_binned_dicts[ID1])
-            X[0][i, 0, ref_idx] = ref_values**self.peak_scaling
+            
+            # Add scaled weight to right bins
+            X[0][i, 0, ref_idx] = ref_values ** self.peak_scaling
             query_idx, query_values = self.__data_augmentation(self.spectrums_binned_dicts[ID2])
-            X[1][i, 0, query_idx] = query_values**self.peak_scaling
+            
+            # Add scaled weight to right bins
+            X[1][i, 0, query_idx] = query_values ** self.peak_scaling
             y[i] = self.score_array[IDs[0], IDs[1]]
             if np.isnan(y[i]):
                 y[i] = np.random.random(1)
         return X, y
-
