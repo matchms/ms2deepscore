@@ -19,7 +19,7 @@ def test_create_peak_list_fixed():
     assert peak_lists[0] == peak_lists[1], "lists should be the same for identical input"
     assert peak_lists[0] == [(0, 1.0), (1, 1.0),
                              (2, 1.0), (3, 1.0),
-                             (4, pytest.approx(0.707106781186, 1e-6))]
+                             (4, 0.5)]
 
 
 def test_set_d_bins_fixed():
