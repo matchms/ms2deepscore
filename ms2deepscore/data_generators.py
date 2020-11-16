@@ -163,3 +163,90 @@ class DataGenerator_all_inchikeys(Sequence):
             if np.isnan(y[i]):
                 y[i] = np.random.random(1)
         return X, y
+
+
+# TODO: add symmetric nature of matrix to save factor 2
+class DataGeneratorAllvsAll(Sequence):
+    """Generates data for inference step (all-vs-all)"""
+    def __init__(self, spectrums_binned_dicts, list_IDs, batch_size=32, dim=10000,
+                 peak_scaling: float = 0.5,inchikey_mapping=None, inchikeys_array=None):
+        """Generates data for prediction with a siamese Keras model
+
+        Parameters
+        ----------
+        spectrums_binned_dicts
+            List of dictionaries with the binned peak positions and intensities.
+        list_IDs
+            List of IDs from the spectrums_binned_dicts list to use for training
+        batch_size
+            Number of pairs per batch. Default=32.
+        dim
+            Input vector dimension. Default=(10000,1)
+        peak_scaling
+            Scale all peak intensities by power pf peak_scaling. Default is 0.5.
+        inchikeys_array
+        inchikey_mapping
+        """
+        self.spectrums_binned_dicts = spectrums_binned_dicts
+        self.list_IDs = list_IDs
+        self.batch_size = batch_size
+        self.dim = dim
+        self.peak_scaling = peak_scaling
+        self.on_epoch_end()
+        self.ID1 = 0
+        self.ID2 = 0
+        self.num_spectra = len(self.list_IDs)
+        assert inchikey_mapping is not None, "needs inchikey mapping"
+        self.inchikey_mapping = inchikey_mapping
+        self.inchikeys_array = inchikeys_array
+
+    def __len__(self):
+        """Denotes the number of batches per epoch"""
+        return int(np.ceil(self.num_spectra / self.batch_size) * self.num_spectra)
+
+    def __getitem__(self, index):
+        """Generate one batch of data"""
+        # Go through all x-y combinations
+        pairs_list = []
+        for i in range(self.batch_size):
+            pairs_list.append((self.list_IDs[self.ID1], self.list_IDs[self.ID2]))
+            self.ID2 += 1
+            if self.ID2 >= self.num_spectra:
+                self.ID2 = 0
+                self.ID1 += 1
+                if self.ID1 >= self.num_spectra:
+                    self.ID1 = 0
+                    print("job done...")
+                break
+
+        # Generate data
+        X = self.__data_generation(pairs_list)
+
+        return X
+
+    def on_epoch_end(self):
+        """Updates indexes after each epoch"""
+        self.ID1 = 0
+        self.ID2 = 0
+
+    def __data_generation(self, pairs_list):
+        """Generates data containing batch_size samples"""
+        # Initialization
+        X = [np.zeros((len(pairs_list), self.dim)) for i in range(2)]
+
+        ID1 = pairs_list[0][0]
+        inchikey_1 = self.inchikey_mapping.loc[ID1]["inchikey"]
+        ID1_all = np.where(self.inchikeys_array == inchikey_1)[0][0]
+
+        idx = np.array([x for x in spectrums_binned_dicts[ID1_all].keys()])
+        X[0][:, idx] = np.array([x for x in spectrums_binned_dicts[ID1_all].values()]) ** self.peak_scaling
+
+        # Generate data
+        for i, IDs in enumerate(pairs_list):
+            # Create binned spectrum vecotors and get similarity value
+            inchikey_2 = self.inchikey_mapping.loc[IDs[1]]["inchikey"]
+            ID2_all = np.where(self.inchikeys_array == inchikey_2)[0][0]
+            idx = np.array([x for x in spectrums_binned_dicts[ID2_all].keys()])
+            X[1][i, idx] = np.array([x for x in spectrums_binned_dicts[ID2_all].values()]) ** self.peak_scaling
+
+        return X
