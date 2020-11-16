@@ -14,7 +14,7 @@ def test_create_peak_list_fixed():
     spectrum = Spectrum(mz=mz, intensities=intensities)
     class_values  = {0:0, 10:1, 11:2, 20:3, 30:4}
     peak_lists = create_peak_list_fixed([spectrum, spectrum],
-                                       class_values, d_bins=1, mz_min=10.0, weight_power = 0.5)
+                                       class_values, d_bins=1, mz_min=10.0)
 
     assert peak_lists[0] == peak_lists[1], "lists should be the same for identical input"
     assert peak_lists[0] == [(0, 1.0), (1, 1.0),
