@@ -53,8 +53,9 @@ class DataGenerator_all_inchikeys(Sequence):
         """
         self.spectrums_binned_dicts = spectrums_binned_dicts
         assert score_array is not None, "needs score array"
-        self.list_IDs = list_IDs
         self.score_array = score_array
+        self.score_array[np.isnan(score_array)] = 0
+        self.list_IDs = list_IDs
         self.dim = dim
         self.batch_size = batch_size
         self.num_turns = num_turns #number of go's through all IDs
@@ -65,7 +66,6 @@ class DataGenerator_all_inchikeys(Sequence):
         assert inchikey_mapping is not None, "needs inchikey mapping"
         self.inchikey_mapping = inchikey_mapping
         self.inchikeys_array = inchikeys_array
-        self.score_array[np.isnan(score_array)] = 0
         self.same_prob_bins = same_prob_bins
         self.augment_peak_removal = augment_peak_removal
         self.augment_intensity = augment_intensity
@@ -140,7 +140,7 @@ class DataGenerator_all_inchikeys(Sequence):
     def __data_generation(self, list_IDs_temp):
         """Generates data containing batch_size samples"""
         # Initialization
-        X = [np.zeros((self.batch_size, 1, self.dim)) for i in range(2)]
+        X = [np.zeros((self.batch_size, self.dim)) for i in range(2)]
         y = np.zeros((self.batch_size,))
 
         # Generate data
@@ -152,13 +152,13 @@ class DataGenerator_all_inchikeys(Sequence):
             ID2 = np.random.choice(np.where(self.inchikeys_array == inchikey_2)[0])
 
             ref_idx, ref_values = self.__data_augmentation(self.spectrums_binned_dicts[ID1])
-            
+
             # Add scaled weight to right bins
-            X[0][i, 0, ref_idx] = ref_values ** self.peak_scaling
+            X[0][i, ref_idx] = ref_values ** self.peak_scaling
             query_idx, query_values = self.__data_augmentation(self.spectrums_binned_dicts[ID2])
-            
+
             # Add scaled weight to right bins
-            X[1][i, 0, query_idx] = query_values ** self.peak_scaling
+            X[1][i, query_idx] = query_values ** self.peak_scaling
             y[i] = self.score_array[IDs[0], IDs[1]]
             if np.isnan(y[i]):
                 y[i] = np.random.random(1)
