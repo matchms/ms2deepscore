@@ -22,7 +22,7 @@ class DataGeneratorAllInchikeys(Sequence):
                  augment_intensity: float = 0.1):
         """Generates data for training a siamese Keras model.
         This generator will provide training data by picking each training InchiKey
-        listed in *list_IDs* num_turns times in every epoch. It will then randomly
+        listed in *training_ids* num_turns times in every epoch. It will then randomly
         pick one the spectra corresponding to this InchiKey (if multiple) and pair it
         with a randomly chosen other spectrum that corresponds to a reference score
         as defined in same_prob_bins.
