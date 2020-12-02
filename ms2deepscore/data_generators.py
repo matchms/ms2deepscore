@@ -132,12 +132,12 @@ class DataGeneratorAllInchikeys(Sequence):
         if self.shuffle == True:
             np.random.shuffle(self.indexes)
 
-    def __exclude_nans(self):
+    def __exclude_nans(self, inchikey_ids):
         """Find nans in labels and return list of IDs to be excluded."""
         find_nans = np.where(np.isnan(self.y_true))[0]
         if find_nans.shape[0] > 0:
             print(f"{find_nans.shape[0]} nans among {len(self.y_true)} labels will be excluded.")
-        return find_nans
+        return [x for x in inchikey_ids if x not in list(find_nans)]
 
     def __find_match_in_range(self, inchikey_id1, target_score_range, max_range=0.4):
         """Randomly pick ID for a pair with inchikey_id1 that has a score in
@@ -219,7 +219,11 @@ class DataGeneratorAllInchikeys(Sequence):
 
 
 class DataGenerator_all(Sequence):
-    """Generates data for training a siamese Keras model
+    """Generates data for training a siamese Keras model.
+    
+    This generator will provide training data by picking each training spectrum
+    listed in *list_IDs* num_turns times in every epoch and pairing it with a randomly chosen
+    other spectrum that corresponds to a reference score as defined in same_prob_bins.
     """
     def __init__(self, spectrums_binned: list, list_IDs: list, list_score_IDs: list,
                  score_array: np.ndarray = None, batch_size: int = 32, num_turns: int = 1,
@@ -230,9 +234,6 @@ class DataGenerator_all(Sequence):
                  augment_peak_removal: dict = {"max_removal": 0.2, "max_intensity": 0.2},
                  augment_intensity: float = 0.1):
         """Generates data for training a siamese Keras model.
-        This generator will provide training data by picking each training spectrum
-        listed in *list_IDs* num_turns times in every epoch and pairing it with a randomly chosen
-        other spectrum that corresponds to a reference score as defined in same_prob_bins.
 
         Parameters
         ----------
