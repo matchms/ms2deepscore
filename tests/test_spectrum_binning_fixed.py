@@ -1,4 +1,3 @@
-import os
 import numpy as np
 import pytest
 from matchms import Spectrum
@@ -25,6 +24,7 @@ def test_create_peak_list_fixed():
 def test_set_d_bins_fixed():
     d_bins = set_d_bins_fixed(1000, mz_min=10.0, mz_max=100.0)
     assert d_bins == 0.09, "Expected different result (0.09)."
+
 
 def test_unique_peaks_fixed():
     mz = np.array([10, 20, 20.01, 20.1, 30, 40], dtype="float")

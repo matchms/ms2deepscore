@@ -20,10 +20,10 @@ class DataGeneratorAllInchikeys(Sequence):
     """
     def __init__(self, spectrums_binned: List[dict], score_array: np.ndarray,
                  inchikey_ids: list, inchikey_score_mapping: np.ndarray,
-                 inchikeys_all: np.ndarray,
+                 inchikeys_all: np.ndarray, dim: int,
                  batch_size: int = 32, num_turns: int = 1,
                  peak_scaling: float = 0.5,
-                 dim: tuple = (10000,1), shuffle: bool = True, ignore_equal_pairs: bool = True,
+                 shuffle: bool = True, ignore_equal_pairs: bool = True,
                  same_prob_bins: list = [(0, 0.5), (0.5, 1)],
                  augment_peak_removal_max: float = 0.2,
                  augment_peak_removal_intensity: float = 0.2,
@@ -46,14 +46,14 @@ class DataGeneratorAllInchikeys(Sequence):
             in scores_array.
         inchikeys_all
             Array of all inchikeys. Must be in the same order as spectrums_binned.
+        dim
+            Input vector dimension.
         batch_size
             Number of pairs per batch. Default=32.
         num_turns
             Number of pairs for each InChiKey during each epoch. Default=1
         peak_scaling
             Scale all peak intensities by power pf peak_scaling. Default is 0.5.
-        dim
-            Input vector dimension. Default=(10000,1)
         shuffle
             Set to True to shuffle IDs every epoch. Default=True
         ignore_equal_pairs
@@ -83,7 +83,7 @@ class DataGeneratorAllInchikeys(Sequence):
             "inchikeys_all and spectrums_binned must have the same dimension."
         self.spectrums_binned = spectrums_binned
         self.score_array = score_array
-        self.score_array[np.isnan(y_true)] = 0
+        #self.score_array[np.isnan(score_array)] = 0
         self.inchikey_ids = self.__exclude_nans(inchikey_ids)
         self.inchikey_score_mapping = inchikey_score_mapping
         self.inchikeys_all = inchikeys_all
@@ -95,7 +95,8 @@ class DataGeneratorAllInchikeys(Sequence):
         self.ignore_equal_pairs = ignore_equal_pairs
         self.on_epoch_end()
         self.same_prob_bins = same_prob_bins
-        self.augment_peak_removal = augment_peak_removal
+        self.augment_peak_removal_max = augment_peak_removal_max
+        self.augment_peak_removal_intensity = augment_peak_removal_intensity
         self.augment_intensity = augment_intensity
 
     def __len__(self):
@@ -112,12 +113,12 @@ class DataGeneratorAllInchikeys(Sequence):
         # Select subset of IDs
         # TODO: Filter out function: select_batch_ids
         this_batch_ids = []
-        for index in indexes:
+        for index in indexes_inchkeys:
             inchikey_id1 = self.inchikey_ids[index]
 
             # Randomly pick the desired target score range and pick matching ID
             target_score_range = self.same_prob_bins[np.random.choice(np.arange(len(self.same_prob_bins)))]
-            inchikey_id2 = __find_match_in_range(self, inchikey_id1, target_score_range
+            inchikey_id2 = self.__find_match_in_range(inchikey_id1, target_score_range)
 
             this_batch_ids.append((inchikey_id1, inchikey_id2))
 
@@ -134,7 +135,7 @@ class DataGeneratorAllInchikeys(Sequence):
 
     def __exclude_nans(self, inchikey_ids):
         """Find nans in labels and return list of IDs to be excluded."""
-        find_nans = np.where(np.isnan(self.y_true))[0]
+        find_nans = np.where(np.isnan(self.score_array))[0]
         if find_nans.shape[0] > 0:
             print(f"{find_nans.shape[0]} nans among {len(self.y_true)} labels will be excluded.")
         return [x for x in inchikey_ids if x not in list(find_nans)]
@@ -154,9 +155,10 @@ class DataGeneratorAllInchikeys(Sequence):
         """
         # Part 1 - find match within range (or expand range iteratively)
         extend_range = 0
+        low, high = target_score_range
         while extend_range < max_range:
-            idx = np.where((self.score_array[inchikey_id1, self.inchikey_ids] > prob_bins[0] - extend_range)
-                           & (self.score_array[inchikey_id1, self.inchikey_ids] <= prob_bins[1] + extend_range))[0]
+            idx = np.where((self.score_array[inchikey_id1, self.inchikey_ids] > low - extend_range)
+                           & (self.score_array[inchikey_id1, self.inchikey_ids] <= high + extend_range))[0]
             if self.ignore_equal_pairs:
                 idx = idx[idx != inchikey_id1]
             if len(idx) > 0:
@@ -181,9 +183,9 @@ class DataGeneratorAllInchikeys(Sequence):
         spectrum_binned
             Dictionary with the binned peak positions and intensities.
         """
-        idx = np.array([x for x in document_dict.keys()])
-        values = np.array([x for x in document_dict.values()])
-        if self.augment_peak_removal:
+        idx = np.array([x for x in spectrum_binned.keys()])
+        values = np.array([x for x in spectrum_binned.values()])
+        if self.augment_peak_removal_max or self.augment_peak_removal_intensity:
             # TODO: Factor out function with documentation + example?
             indices_select = np.where(values < self.augment_peak_removal_max)[0]
             removal_part = np.random.random(1) * self.augment_peak_removal_max
@@ -304,7 +306,7 @@ class DataGenerator_all(Sequence):
             prob_bins = self.same_prob_bins[np.random.choice(np.arange(len(self.same_prob_bins)))]
             inchikey1 = self.inchikeys_all[ID1]
             #ID1_score = int(self.inchikey_score_mapping[self.inchikey_score_mapping == inchikey1].index[0])
-            ID1_score = np.where(self.inchikey_score_mapping == inchikey1)][0][0]
+            ID1_score = np.where(self.inchikey_score_mapping == inchikey1)[0][0]
 
             extend_range = 0
             while extend_range < 0.4:
@@ -346,10 +348,10 @@ class DataGenerator_all(Sequence):
         if self.shuffle == True:
             np.random.shuffle(self.indexes)
 
-    def __data_augmentation(self, document_dict):
+    def __data_augmentation(self, spectrum_binned):
         """Data augmentation."""
-        idx = np.array([x for x in document_dict.keys()])
-        values = np.array([x for x in document_dict.values()])
+        idx = np.array([x for x in spectrum_binned.keys()])
+        values = np.array([x for x in spectrum_binned.values()])
         if self.augment_peak_removal:
             indices_select = np.where(values < self.augment_peak_removal["max_intensity"])[0]
             removal_part = np.random.random(1) * self.augment_peak_removal["max_removal"]
