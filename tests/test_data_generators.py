@@ -4,8 +4,7 @@ import numpy as np
 import pytest
 from matchms import Spectrum
 from ms2deepscore.data_generators import DataGeneratorAllInchikeys
-path_root = os.path.join(os.path.dirname(__file__), "..")
-path_tests = os.path.join(path_root, "tests")
+path_tests  = os.path.dirname(__file__)
 
 
 def create_test_data():
