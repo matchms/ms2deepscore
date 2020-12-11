@@ -145,7 +145,7 @@ class DataGeneratorAllInchikeys(Sequence):
         target_score_range. When no such score exists, iteratively widen the range
         in steps of 0.1 until a max of max_range. If still no match is found take
         a random ID.
-        
+
         Parameters
         ----------
         inchikey_id1
@@ -177,13 +177,13 @@ class DataGeneratorAllInchikeys(Sequence):
 
     def __data_augmentation(self, spectrum_binned):
         """Data augmentation.
-        
+
         Parameters
         ----------
         spectrum_binned
             Dictionary with the binned peak positions and intensities.
         """
-        idx = np.array([x for x in spectrum_binned.keys()])
+        idx = np.array([int(x) for x in spectrum_binned.keys()])
         values = np.array([x for x in spectrum_binned.values()])
         if self.augment_peak_removal_max or self.augment_peak_removal_intensity:
             # TODO: Factor out function with documentation + example?
@@ -222,13 +222,14 @@ class DataGeneratorAllInchikeys(Sequence):
 
 class DataGenerator_all(Sequence):
     """Generates data for training a siamese Keras model.
-    
+
     This generator will provide training data by picking each training spectrum
-    listed in *list_IDs* num_turns times in every epoch and pairing it with a randomly chosen
+    listed in *spectrum_IDs* num_turns times in every epoch and pairing it with a randomly chosen
     other spectrum that corresponds to a reference score as defined in same_prob_bins.
     """
-    def __init__(self, spectrums_binned: list, list_IDs: list, list_score_IDs: list,
-                 score_array: np.ndarray = None, batch_size: int = 32, num_turns: int = 1,
+    def __init__(self, spectrums_binned: list, score_array: np.ndarray,
+                 spectrum_IDs: list, list_score_IDs: list,
+                 batch_size: int = 32, num_turns: int = 1,
                  peak_scaling: float = 0.5,
                  dim: tuple = (10000,1), shuffle: bool = True, ignore_equal_pairs: bool = True,
                  inchikeys_all: np.ndarray = None, inchikey_score_mapping: pd.DataFrame = None,
@@ -241,7 +242,7 @@ class DataGenerator_all(Sequence):
         ----------
         spectrums_binned
             List of dictionaries with the binned peak positions and intensities.
-        list_IDs
+        spectrum_IDs
             List of IDs from the spectrums_binned list to use for training
         score_array
             Array of reference similarity scores (=labels).
@@ -274,7 +275,7 @@ class DataGenerator_all(Sequence):
         assert score_array is not None, "needs score array"
         self.score_array = score_array
         self.score_array[np.isnan(score_array)] = 0
-        self.list_IDs = list_IDs
+        self.spectrum_IDs = spectrum_IDs
         self.list_score_IDs = list_score_IDs
         self.dim = dim
         self.batch_size = batch_size
@@ -292,7 +293,7 @@ class DataGenerator_all(Sequence):
 
     def __len__(self):
         """Denotes the number of batches per epoch"""
-        return int(self.num_turns) * int(np.floor(len(self.list_IDs) / self.batch_size))
+        return int(self.num_turns) * int(np.floor(len(self.spectrum_IDs) / self.batch_size))
 
     def __getitem__(self, index):
         """Generate one batch of data"""
@@ -300,9 +301,9 @@ class DataGenerator_all(Sequence):
         indexes = self.indexes[index*self.batch_size:(index+1)*self.batch_size]
 
         # Select subset of IDs
-        list_IDs_temp = []
+        spectrum_IDs_temp = []
         for index in indexes:
-            ID1 = self.list_IDs[index]
+            ID1 = self.spectrum_IDs[index]
             prob_bins = self.same_prob_bins[np.random.choice(np.arange(len(self.same_prob_bins)))]
             inchikey1 = self.inchikeys_all[ID1]
             #ID1_score = int(self.inchikey_score_mapping[self.inchikey_score_mapping == inchikey1].index[0])
@@ -335,16 +336,16 @@ class DataGenerator_all(Sequence):
                 ID2 = np.random.choice([x for x in idx2 if x != ID1])
             else:
                 ID2 = np.random.choice(idx2)
-            list_IDs_temp.append((ID1, ID2, ID1_score, ID2_score))
+            spectrum_IDs_temp.append((ID1, ID2, ID1_score, ID2_score))
 
         # Generate data
-        X, y = self.__data_generation(list_IDs_temp)
+        X, y = self.__data_generation(spectrum_IDs_temp)
 
         return X, y
 
     def on_epoch_end(self):
         """Updates indexes after each epoch"""
-        self.indexes = np.tile(np.arange(len(self.list_IDs)), int(self.num_turns))
+        self.indexes = np.tile(np.arange(len(self.spectrum_IDs)), int(self.num_turns))
         if self.shuffle == True:
             np.random.shuffle(self.indexes)
 
@@ -367,14 +368,14 @@ class DataGenerator_all(Sequence):
         return idx, values
 
 
-    def __data_generation(self, list_IDs_temp):
+    def __data_generation(self, spectrum_IDs_temp):
         """Generates data containing batch_size samples"""
         # Initialization
         X = [np.zeros((self.batch_size, self.dim)) for i in range(2)]
         y = np.zeros((self.batch_size,))
 
         # Generate data
-        for i, IDs in enumerate(list_IDs_temp):
+        for i, IDs in enumerate(spectrum_IDs_temp):
             ID1, ID2, ID1_score, ID2_score = IDs
             ref_idx, ref_values = self.__data_augmentation(self.spectrums_binned[ID1])
 
@@ -393,7 +394,7 @@ class DataGenerator_all(Sequence):
 # TODO: add symmetric nature of matrix to save factor 2
 class DataGeneratorAllvsAll(Sequence):
     """Generates data for inference step (all-vs-all)"""
-    def __init__(self, spectrums_binned, list_IDs, batch_size=32, dim=10000,
+    def __init__(self, spectrums_binned, spectrum_IDs, batch_size=32, dim=10000,
                  peak_scaling: float = 0.5,inchikey_score_mapping=None, inchikeys_all=None):
         """Generates data for prediction with a siamese Keras model
 
@@ -401,7 +402,7 @@ class DataGeneratorAllvsAll(Sequence):
         ----------
         spectrums_binned
             List of dictionaries with the binned peak positions and intensities.
-        list_IDs
+        spectrum_IDs
             List of IDs from the spectrums_binned list to use for training
         batch_size
             Number of pairs per batch. Default=32.
@@ -413,14 +414,14 @@ class DataGeneratorAllvsAll(Sequence):
         inchikey_score_mapping
         """
         self.spectrums_binned = spectrums_binned
-        self.list_IDs = list_IDs
+        self.spectrum_IDs = spectrum_IDs
         self.batch_size = batch_size
         self.dim = dim
         self.peak_scaling = peak_scaling
         self.on_epoch_end()
         self.ID1 = 0
         self.ID2 = 0
-        self.num_spectra = len(self.list_IDs)
+        self.num_spectra = len(self.spectrum_IDs)
         assert inchikey_score_mapping is not None, "needs inchikey mapping"
         self.inchikey_score_mapping = inchikey_score_mapping
         self.inchikeys_all = inchikeys_all
@@ -434,7 +435,7 @@ class DataGeneratorAllvsAll(Sequence):
         # Go through all x-y combinations
         pairs_list = []
         for i in range(self.batch_size):
-            pairs_list.append((self.list_IDs[self.ID1], self.list_IDs[self.ID2]))
+            pairs_list.append((self.spectrum_IDs[self.ID1], self.spectrum_IDs[self.ID2]))
             self.ID2 += 1
             if self.ID2 >= self.num_spectra:
                 self.ID2 = 0
