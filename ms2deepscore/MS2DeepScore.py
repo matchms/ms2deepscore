@@ -53,7 +53,7 @@ class MS2DeepScore:
         spectrums_binned = create_peak_list_fixed(spectrums, self.known_bins,
                                                   self.d_bins, mz_min=self.mz_min)
         self.spectrums_binned = [create_peak_dict(spec) for spec in tqdm(spectrums_binned,
-                                                                         disable=self.(not progress_bar))]
+                                                                         disable=(not progress_bar))]
 
     def set_training_parameters(self, **settings):
         """Set parameter defaults"""
