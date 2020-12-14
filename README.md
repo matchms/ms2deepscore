@@ -1,3 +1,5 @@
+![GitHub](https://img.shields.io/github/license/matchms/ms2deepscore) ![GitHub Workflow Status](https://img.shields.io/github/workflow/status/matchms/ms2deepscore/CI%20Build)
+
 # ms2deepscore
 Deep learning similarity measure for comparing MS/MS spectra with respect to their chemical similarity
 
