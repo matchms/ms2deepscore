@@ -66,7 +66,7 @@ class MS2DeepScore:
             same_prob_bins=[(0, 0.5), (0.5, 1)],
             augment_peak_removal_max= 0.3,
             augment_peak_removal_intensity=0.2,
-            augment_intensity=0.4)
+            augment_intensity=0.4,
         )
 
         # Set default parameters or replace by **settings input
