@@ -31,7 +31,8 @@ setup(
         "matchms",
         "numpy",
         "pandas",
-        "tensorflow"
+        "tensorflow",
+        "tqdm",
     ],
     extras_require={"dev": ["bump2version",
                             "isort>=4.2.5,<5",
