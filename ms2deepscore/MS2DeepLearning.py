@@ -59,7 +59,7 @@ class MS2DeepScore:
             peak_scaling=0.5,
             ignore_equal_pairs=True,
             shuffle=True,
-            same_prob_bins=same_prob_bins,
+            same_prob_bins=[(0, 0.5), (0.5, 1)],
             augment_peak_removal_max= 0.3,
             augment_peak_removal_intensity=0.2,
             augment_intensity=0.4)
