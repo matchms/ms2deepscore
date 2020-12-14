@@ -33,14 +33,13 @@ class DataGeneratorAllInchikeys(Sequence):
         Parameters
         ----------
         spectrums_binned
-            TODO: Make this less nested and clearer what I should exactly pass.
             List of dictionaries with the binned peak positions and intensities.
         score_array
             2D-array of reference similarity scores (=labels).
             Must be symmetric (score_array[i,j] == score_array[j,i]) and in the
             same order as inchikey_score_mapping.
         inchikey_ids
-            List of IDs from unique_inchikeys to use for training.
+            List of IDs from inchikey_score_mapping to use for training.
         inchikey_score_mapping
             Array of all unique inchikeys. Must be in the same order as the scores
             in scores_array.
@@ -101,8 +100,7 @@ class DataGeneratorAllInchikeys(Sequence):
 
     def __len__(self):
         """Denotes the number of batches per epoch"""
-        # TODO: this means we don't see all data every epoch, because the last half-empty batch
-        #  is omitted. I guess that is expected behavior? --> Yes, with the shuffling in each epoch that seem OK to me (and makes the code easier).
+        # last half-empty batch is omitted (should be OK with shuffling in each epoch).
         return int(self.num_turns) * int(np.floor(len(self.inchikey_ids) / self.batch_size))
 
     def __getitem__(self, index):
