@@ -119,4 +119,4 @@ def test_DataGeneratorAllSpectrums_input_error():
                                     augment_peak_removal_intensity=0.0,
                                     augment_intensity=0.0)
     assert "inchikeys_all and spectrums_binned must have the same dimension." in str(msg.value), \
-        "Expected different expection to be raised"
+        "Expected different exception to be raised"
