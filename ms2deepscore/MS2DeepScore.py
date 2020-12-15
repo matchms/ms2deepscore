@@ -31,7 +31,7 @@ class MS2DeepScore:
         self.peak_to_position = None
         self.known_bins = None
         self.model = None
-        self.training_args = None
+        self.generator_args = None
         self.spectrums_binned = None
 
     def create_binned_spectrums(self, spectrums: list, progress_bar=True):
@@ -57,8 +57,39 @@ class MS2DeepScore:
         self.spectrums_binned = [create_peak_dict(spec) for spec in tqdm(spectrums_binned,
                                                                          disable=(not progress_bar))]
 
-    def set_training_parameters(self, **settings):
-        """Set parameter defaults"""
+    def set_generator_parameters(self, **settings):
+        """Set parameter for data generator. Use below listed defaults unless other
+        input is provided.
+        
+        Parameters
+        ----------
+        batch_size
+            Number of pairs per batch. Default=32.
+        num_turns
+            Number of pairs for each InChiKey during each epoch. Default=1
+        peak_scaling
+            Scale all peak intensities by power pf peak_scaling. Default is 0.5.
+        shuffle
+            Set to True to shuffle IDs every epoch. Default=True
+        ignore_equal_pairs
+            Set to True to ignore pairs of two identical spectra. Default=True
+        same_prob_bins
+            List of tuples that define ranges of the true label to be trained with
+            equal frequencies. Default is set to [(0, 0.5), (0.5, 1)], which means
+            that pairs with scores <=0.5 will be picked as often as pairs with scores
+            > 0.5.
+        augment_peak_removal_max
+            Maximum fraction of peaks (if intensity < below augment_peak_removal_intensity)
+            to be removed randomly. Default is set to 0.2, which means that between
+            0 and 20% of all peaks with intensities < augment_peak_removal_intensity
+            will be removed.
+        augment_peak_removal_intensity
+            Specifying that only peaks with intensities < max_intensity will be removed.
+        augment_intensity
+            Change peak intensities by a random number between 0 and augment_intensity.
+            Default=0.1, which means that intensities are multiplied by 1+- a random
+            number within [0, 0.1].
+        """
         defaults = dict(
             batch_size=25,
             num_turns=1,
@@ -78,4 +109,11 @@ class MS2DeepScore:
                                                                               settings[key]))
             else:
                 settings[key] = defaults[key]
-        self.training_args = settings
+        assert 0.0 <= settings["augment_peak_removal_max"] <= 1.0, "Expected value within [0,1]"
+        assert 0.0 <= settings["augment_peak_removal_intensity"] <= 1.0, "Expected value within [0,1]"
+        self.generator_args = settings
+
+    def create_ms2ds_model(self, embedding_size=400):
+        """Create siamese network."""
+        #TODO: implement model here --> self.model
+        pass
