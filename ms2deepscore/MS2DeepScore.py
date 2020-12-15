@@ -1,6 +1,8 @@
 from tqdm import tqdm
+from ms2deepscore.spectrum_binning_fixed import create_peak_list_fixed
 from ms2deepscore.spectrum_binning_fixed import set_d_bins_fixed
 from ms2deepscore.spectrum_binning_fixed import unique_peaks_fixed
+from ms2deepscore.utils import create_peak_dict
 
 
 class MS2DeepScore:
@@ -50,7 +52,7 @@ class MS2DeepScore:
         self.known_bins = known_bins
 
         print("Convert spectrums to binned spectrums...")
-        spectrums_binned = create_peak_list_fixed(spectrums, self.known_bins,
+        spectrums_binned = create_peak_list_fixed(spectrums, self.peak_to_position,
                                                   self.d_bins, mz_min=self.mz_min)
         self.spectrums_binned = [create_peak_dict(spec) for spec in tqdm(spectrums_binned,
                                                                          disable=(not progress_bar))]
