@@ -48,6 +48,7 @@ def test_MS2DeepScoreData_create_binned_spectrums_missing_inchikey():
                           intensities=np.array([0.4, 0.2, 0.1]),
                           metadata={})
 
+    ms2ds_data.create_binned_spectrums([spectrum_1, spectrum_2])
     assert np.all(ms2ds_data.inchikeys_all == np.array(["test_inchikey_01", None])), \
         "Expected different inchikeys in array."
 
