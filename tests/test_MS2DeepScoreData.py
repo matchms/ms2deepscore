@@ -38,6 +38,20 @@ def test_MS2DeepScoreData_create_binned_spectrums():
         "Expected different inchikeys in array."
 
 
+def test_MS2DeepScoreData_create_binned_spectrums_missing_inchikey():
+    """Test if create binned spectrums method works with missing inchikey."""
+    ms2ds_data = MS2DeepScoreData(100, mz_min=0.0, mz_max=100.0)
+    spectrum_1 = Spectrum(mz=np.array([10, 50, 100.]),
+                          intensities=np.array([0.7, 0.2, 0.1]),
+                          metadata={'inchikey': "test_inchikey_01"})
+    spectrum_2 = Spectrum(mz=np.array([10, 40, 90.]),
+                          intensities=np.array([0.4, 0.2, 0.1]),
+                          metadata={})
+
+    assert np.all(ms2ds_data.inchikeys_all == np.array(["test_inchikey_01", None])), \
+        "Expected different inchikeys in array."
+
+
 def test_MS2DeepScoreData_set_generator_parameters():
     """Test if set_generator_parameters methods works well."""
     ms2ds_data = MS2DeepScoreData(100, mz_min=0.0, mz_max=100.0)
