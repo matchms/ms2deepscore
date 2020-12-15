@@ -36,13 +36,13 @@ def test_MS2DeepScore_create_binned_spectrums():
     assert ms2ds_model.spectrums_binned[0] == {0: 0.7, 2: 0.2, 4: 0.1}, "Expected differnt binned spectrum."
 
 
-def test_MS2DeepScore_set_training_parameters():
-    """Test if set_training_parameters methods works well."""
+def test_MS2DeepScore_set_generator_parameters():
+    """Test if set_generator_parameters methods works well."""
     ms2ds_model = MS2DeepScore(100, mz_min=0.0, mz_max=100.0)
-    assert ms2ds_model.training_args is None, "Settings should not yet be set."
+    assert ms2ds_model.generator_args is None, "Settings should not yet be set."
 
     ms2ds_model.set_training_parameters(batch_size=20, shuffle=False)
-    training_args = ms2ds_model.training_args
-    assert training_args["batch_size"] == 20, "Expected different setting."
-    assert training_args["shuffle"] == False, "Expected different setting."
-    assert training_args["augment_peak_removal_intensity"] == 0.2, "Expected different setting."
+    generator_args = ms2ds_model.generator_args
+    assert generator_args["batch_size"] == 20, "Expected different setting."
+    assert generator_args["shuffle"] == False, "Expected different setting."
+    assert generator_args["augment_peak_removal_intensity"] == 0.2, "Expected different setting."
