@@ -1,3 +1,4 @@
+import numpy as np
 from tqdm import tqdm
 from ms2deepscore.spectrum_binning_fixed import create_peak_list_fixed
 from ms2deepscore.spectrum_binning_fixed import set_d_bins_fixed
@@ -32,10 +33,11 @@ class MS2DeepScoreData:
         self.known_bins = None
         self.generator_args = None
         self.spectrums_binned = None
+        self.inchikeys_all = None
 
     def create_binned_spectrums(self, spectrums: list, progress_bar=True):
         """Create 'vocabulary' of bins that have peaks in spectrums.
-        Derive binned spectrums from spectrums.   
+        Derive binned spectrums from spectrums.
 
         Parameters
         ----------
@@ -55,11 +57,27 @@ class MS2DeepScoreData:
                                                   self.d_bins, mz_min=self.mz_min)
         self.spectrums_binned = [create_peak_dict(spec) for spec in tqdm(spectrums_binned,
                                                                          disable=(not progress_bar))]
+        # Collect inchikeys
+        self._collect_inchikeys(spectrums)
+
+    def _collect_inchikeys(self, spectrums):
+        """Read inchikeys from spectrums and create inchkeys array.
+
+        Parameters
+        ----------
+        spectrums
+            List of spectrums.
+        """
+        inchikeys_list = []
+        for s in spectrums:
+            inchikeys_list.append(s.get("inchikey"))
+
+        self.inchikeys_all = np.array(inchikeys_list)
 
     def set_generator_parameters(self, **settings):
         """Set parameter for data generator. Use below listed defaults unless other
         input is provided.
-        
+
         Parameters
         ----------
         batch_size
@@ -111,8 +129,3 @@ class MS2DeepScoreData:
         assert 0.0 <= settings["augment_peak_removal_max"] <= 1.0, "Expected value within [0,1]"
         assert 0.0 <= settings["augment_peak_removal_intensity"] <= 1.0, "Expected value within [0,1]"
         self.generator_args = settings
-
-    def create_ms2ds_model(self, embedding_size=400):
-        """Create siamese network."""
-        #TODO: implement model here --> self.model
-        pass
