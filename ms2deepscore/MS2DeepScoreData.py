@@ -5,8 +5,8 @@ from ms2deepscore.spectrum_binning_fixed import unique_peaks_fixed
 from ms2deepscore.utils import create_peak_dict
 
 
-class MS2DeepScore:
-    """Create MS2DeepScore model.
+class MS2DeepScoreData:
+    """Create MS2DeepScore binned spectrum data and keep track of parameters.
 
     TODO: add description --> here: fixed bins!
     """
@@ -30,7 +30,6 @@ class MS2DeepScore:
         self.d_bins = set_d_bins_fixed(number_of_bins, mz_min=mz_min, mz_max=mz_max)
         self.peak_to_position = None
         self.known_bins = None
-        self.model = None
         self.generator_args = None
         self.spectrums_binned = None
 
@@ -91,7 +90,7 @@ class MS2DeepScore:
             number within [0, 0.1].
         """
         defaults = dict(
-            batch_size=25,
+            batch_size=32,
             num_turns=1,
             peak_scaling=0.5,
             ignore_equal_pairs=True,
