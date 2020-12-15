@@ -31,7 +31,7 @@ class MS2DeepScoreData:
         self.d_bins = set_d_bins_fixed(number_of_bins, mz_min=mz_min, mz_max=mz_max)
         self.peak_to_position = None
         self.known_bins = None
-        self.generator_args = None
+        self.generator_args = {}
         self.spectrums_binned = None
         self.inchikeys_all = None
 
@@ -122,8 +122,12 @@ class MS2DeepScoreData:
         # Set default parameters or replace by **settings input
         for key in defaults:
             if key in settings:
-                print("The value of {} is set from {} (default) to {}".format(key, defaults[key],
+                print("The value for {} is set from {} (default) to {}".format(key, defaults[key],
                                                                               settings[key]))
+            elif key in self.generator_args and self.generator_args[key] != defaults[key]:
+                print("Previously set value for {} of {} is reset to default ({})".format(key, self.generator_args[key],
+                                                                                          defaults[key]))
+                settings[key] = defaults[key]
             else:
                 settings[key] = defaults[key]
         assert 0.0 <= settings["augment_peak_removal_max"] <= 1.0, "Expected value within [0,1]"

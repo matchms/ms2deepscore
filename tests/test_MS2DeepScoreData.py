@@ -55,10 +55,17 @@ def test_MS2DeepScoreData_create_binned_spectrums_missing_inchikey():
 def test_MS2DeepScoreData_set_generator_parameters():
     """Test if set_generator_parameters methods works well."""
     ms2ds_data = MS2DeepScoreData(100, mz_min=0.0, mz_max=100.0)
-    assert ms2ds_data.generator_args is None, "Settings should not yet be set."
+    assert ms2ds_data.generator_args == {}, "Settings should not yet be set."
 
+    # Pass new setting (rest will be set to default)
     ms2ds_data.set_generator_parameters(batch_size=20, shuffle=False)
     generator_args = ms2ds_data.generator_args
     assert generator_args["batch_size"] == 20, "Expected different setting."
     assert generator_args["shuffle"] == False, "Expected different setting."
     assert generator_args["augment_peak_removal_intensity"] == 0.2, "Expected different setting."
+    
+    # Adapt settings a 2nd time
+    ms2ds_data.set_generator_parameters(batch_size=10)
+    generator_args = ms2ds_data.generator_args
+    assert generator_args["batch_size"] == 10, "Expected different setting."
+    assert generator_args["shuffle"] == True, "Expected different setting."
