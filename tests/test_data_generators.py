@@ -28,7 +28,6 @@ def test_DataGeneratorAllInchikeys():
     # Define other parameters
     batch_size = 10
     num_turns = 1
-    peak_scaling = 0.5
     dimension = 101
     same_prob_bins = [(0, 0.5), (0.5, 1)]
 
@@ -38,7 +37,7 @@ def test_DataGeneratorAllInchikeys():
     test_generator = DataGeneratorAllInchikeys(spectrums_binned, score_array, inchikey_ids,
                                                inchikey_score_mapping, inchikeys_all,
                                                dim=dimension, batch_size=batch_size,
-                                               num_turns=num_turns, peak_scaling=peak_scaling,
+                                               num_turns=num_turns,
                                                shuffle=True, ignore_equal_pairs=True,
                                                same_prob_bins=same_prob_bins,
                                                augment_peak_removal_max=0.0,
@@ -58,7 +57,6 @@ def test_DataGeneratorAllSpectrums():
     # Define other parameters
     batch_size = 10
     num_turns = 1
-    peak_scaling = 0.5
     dimension = 101
     same_prob_bins = [(0, 0.5), (0.5, 1)]
 
@@ -68,7 +66,7 @@ def test_DataGeneratorAllSpectrums():
     test_generator = DataGeneratorAllSpectrums(spectrums_binned, score_array, spectrum_ids,
                                                inchikey_score_mapping, inchikeys_all,
                                                dim=dimension, batch_size=batch_size,
-                                               num_turns=num_turns, peak_scaling=peak_scaling,
+                                               num_turns=num_turns,
                                                shuffle=True, ignore_equal_pairs=True,
                                                same_prob_bins=same_prob_bins,
                                                augment_peak_removal_max=0.0,
@@ -87,7 +85,6 @@ def test_DataGeneratorAllSpectrums_input_error():
     # Define other parameters
     batch_size = 10
     num_turns = 1
-    peak_scaling = 0.5
     dimension = 101
     same_prob_bins = [(0, 0.5), (0.5, 1)]
 
@@ -98,7 +95,7 @@ def test_DataGeneratorAllSpectrums_input_error():
         _ = DataGeneratorAllSpectrums(spectrums_binned, score_array[:-2, :-2], spectrum_ids,
                                     inchikey_score_mapping, inchikeys_all,
                                     dim=dimension, batch_size=batch_size,
-                                    num_turns=num_turns, peak_scaling=peak_scaling,
+                                    num_turns=num_turns,
                                     shuffle=True, ignore_equal_pairs=True,
                                     same_prob_bins=same_prob_bins,
                                     augment_peak_removal_max=0.0,
@@ -112,7 +109,7 @@ def test_DataGeneratorAllSpectrums_input_error():
         _ = DataGeneratorAllSpectrums(spectrums_binned[:-2], score_array, spectrum_ids,
                                     inchikey_score_mapping, inchikeys_all,
                                     dim=dimension, batch_size=batch_size,
-                                    num_turns=num_turns, peak_scaling=peak_scaling,
+                                    num_turns=num_turns,
                                     shuffle=True, ignore_equal_pairs=True,
                                     same_prob_bins=same_prob_bins,
                                     augment_peak_removal_max=0.0,

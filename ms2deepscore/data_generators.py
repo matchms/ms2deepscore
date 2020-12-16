@@ -22,7 +22,6 @@ class DataGeneratorAllInchikeys(Sequence):
                  inchikey_ids: list, inchikey_score_mapping: np.ndarray,
                  inchikeys_all: np.ndarray, dim: int,
                  batch_size: int = 32, num_turns: int = 1,
-                 peak_scaling: float = 0.5,
                  shuffle: bool = True, ignore_equal_pairs: bool = True,
                  same_prob_bins: list = [(0, 0.5), (0.5, 1)],
                  augment_peak_removal_max: float = 0.2,
@@ -52,8 +51,6 @@ class DataGeneratorAllInchikeys(Sequence):
             Number of pairs per batch. Default=32.
         num_turns
             Number of pairs for each InChiKey during each epoch. Default=1
-        peak_scaling
-            Scale all peak intensities by power pf peak_scaling. Default is 0.5.
         shuffle
             Set to True to shuffle IDs every epoch. Default=True
         ignore_equal_pairs
@@ -90,7 +87,6 @@ class DataGeneratorAllInchikeys(Sequence):
         self.dim = dim
         self.batch_size = batch_size
         self.num_turns = num_turns
-        self.peak_scaling = peak_scaling
         self.shuffle = shuffle
         self.ignore_equal_pairs = ignore_equal_pairs
         self.on_epoch_end()
@@ -213,7 +209,7 @@ class DataGeneratorAllInchikeys(Sequence):
                 inchikey = self.inchikey_score_mapping[inchikey_id]
                 spectrum_id = np.random.choice(np.where(self.inchikeys_all == inchikey)[0])
                 idx, values = self.__data_augmentation(self.spectrums_binned[spectrum_id])
-                X[i_pair][i_batch, idx] = values ** self.peak_scaling
+                X[i_pair][i_batch, idx] = values
 
             y[i_batch] = self.score_array[pair[0], pair[1]]
 
@@ -231,7 +227,6 @@ class DataGeneratorAllSpectrums(Sequence):
                  spectrum_ids: list, inchikey_score_mapping: np.ndarray,
                  inchikeys_all: np.ndarray, dim: int,
                  batch_size: int = 32, num_turns: int = 1,
-                 peak_scaling: float = 0.5,
                  shuffle: bool = True, ignore_equal_pairs: bool = True,
                  same_prob_bins: list = [(0, 0.5), (0.5, 1)],
                  augment_peak_removal_max: float = 0.2,
@@ -260,9 +255,7 @@ class DataGeneratorAllSpectrums(Sequence):
         batch_size
             Number of pairs per batch. Default=32.
         num_turns
-            Number of pairs for each InChiKey during each epoch. Default=1
-        peak_scaling
-            Scale all peak intensities by power pf peak_scaling. Default is 0.5.
+            Number of pairs for each InChiKey during each epoch. Default=1.
         shuffle
             Set to True to shuffle IDs every epoch. Default=True
         ignore_equal_pairs
@@ -300,7 +293,6 @@ class DataGeneratorAllSpectrums(Sequence):
         self.dim = dim
         self.batch_size = batch_size
         self.num_turns = num_turns
-        self.peak_scaling = peak_scaling
         self.shuffle = shuffle
         self.ignore_equal_pairs = ignore_equal_pairs
         self.on_epoch_end()
@@ -425,7 +417,7 @@ class DataGeneratorAllSpectrums(Sequence):
         for i_batch, pair in enumerate(spectrum_inchikey_ids_batch):
             for i_pair, spectrum_inchikey_id in enumerate(pair):
                 idx, values = self.__data_augmentation(self.spectrums_binned[spectrum_inchikey_id[0]])
-                X[i_pair][i_batch, idx] = values ** self.peak_scaling
+                X[i_pair][i_batch, idx] = values
 
             y[i_batch] = self.score_array[pair[0][1], pair[1][1]]
 
