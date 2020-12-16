@@ -87,7 +87,7 @@ class MS2DeepScoreData:
                                                                      peak_scaling=self.peak_scaling)
         spectrums_binned_dicts = []
         for i, spec in enumerate(tqdm(spectrums_binned, disable=(not progress_bar))):
-            assert 100*missing_fractions[i] >= self.allowed_missing_percentage, \
+            assert 100*missing_fractions[i] <= self.allowed_missing_percentage, \
                 f"{100*missing_fractions[i]:.2f} of weighted spectrum is unknown to the model."
             spectrums_binned_dicts.append(create_peak_dict(spec))
         return spectrums_binned_dicts
