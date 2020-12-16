@@ -12,7 +12,8 @@ class MS2DeepScoreData:
     TODO: add description --> here: fixed bins!
     """
     def __init__(self, number_of_bins: int,
-                 mz_max: float = 1000.0, mz_min: float = 10.0):
+                 mz_max: float = 1000.0, mz_min: float = 10.0,
+                 peak_scaling: float = 0.5, allowed_missing_percentage: float = 0.0):
         """
 
         Parameters
@@ -21,23 +22,32 @@ class MS2DeepScoreData:
             Number if bins to represent spectrum.
         mz_max
             Upper bound of m/z to include in binned spectrum. Default is 1000.0.
-        mz_max
+        mz_min
             Lower bound of m/z to include in binned spectrum. Default is 10.0.
+        peak_scaling
+            Scale all peak intensities by power pf peak_scaling. Default is 0.5.
+        allowed_missing_percentage:
+            Set the maximum allowed percentage of the spectrum that may be unknown
+            from the input model. This is measured as percentage of the weighted, unknown
+            binned peaks compared to all peaks of the spectrum. Default is 0, which
+            means no unknown binned peaks are allowed.
         """
         self.number_of_bins = number_of_bins
         assert mz_max > mz_min, "mz_max must be > mz>min"
         self.mz_max = mz_max
         self.mz_min = mz_min
         self.d_bins = set_d_bins_fixed(number_of_bins, mz_min=mz_min, mz_max=mz_max)
+        self.peak_scaling = peak_scaling
+        self.allowed_missing_percentage = allowed_missing_percentage
         self.peak_to_position = None
         self.known_bins = None
         self.generator_args = {}
         self.spectrums_binned = None
         self.inchikeys_all = None
 
-    def create_binned_spectrums(self, spectrums: list, progress_bar=True):
+    def collect_binned_spectrums(self, spectrums: list, progress_bar=True):
         """Create 'vocabulary' of bins that have peaks in spectrums.
-        Derive binned spectrums from spectrums.
+        Derive binned spectrums from spectrums and store them.
 
         Parameters
         ----------
@@ -53,12 +63,34 @@ class MS2DeepScoreData:
         self.known_bins = known_bins
 
         print("Convert spectrums to binned spectrums...")
-        spectrums_binned = create_peak_list_fixed(spectrums, self.peak_to_position,
-                                                  self.d_bins, mz_min=self.mz_min)
-        self.spectrums_binned = [create_peak_dict(spec) for spec in tqdm(spectrums_binned,
-                                                                         disable=(not progress_bar))]
+        self.spectrums_binned = self.create_binned_spectrums(spectrums, progress_bar)
+
         # Collect inchikeys
         self._collect_inchikeys(spectrums)
+
+    def create_binned_spectrums(self, input_spectrums: list, progress_bar=True):
+        """Create binned spectrums from input spectrums.
+
+        Parameters
+        ----------
+        input_spectrums
+            List of spectrums.
+        progress_bar
+            Show progress bar if set to True. Default is True.
+
+        Returns: List[dict]
+            List of binned spectrums created from input_spectrums.
+        """
+        spectrums_binned, missing_fractions = create_peak_list_fixed(input_spectrums,
+                                                                     self.peak_to_position,
+                                                                     self.d_bins, mz_min=self.mz_min,
+                                                                     peak_scaling=self.peak_scaling)
+        spectrums_binned_dicts = []
+        for i, spec in enumerate(tqdm(spectrums_binned, disable=(not progress_bar))):
+            assert 100*missing_fractions[i] >= self.allowed_missing_percentage, \
+                f"{100*missing_fractions[i]:.2f} of weighted spectrum is unknown to the model."
+            spectrums_binned_dicts.append(create_peak_dict(spec))
+        return spectrums_binned_dicts
 
     def _collect_inchikeys(self, spectrums):
         """Read inchikeys from spectrums and create inchkeys array.
@@ -78,14 +110,14 @@ class MS2DeepScoreData:
         """Set parameter for data generator. Use below listed defaults unless other
         input is provided.
 
+        TODO: Move this part to the generator (not sure)
+
         Parameters
         ----------
         batch_size
             Number of pairs per batch. Default=32.
         num_turns
             Number of pairs for each InChiKey during each epoch. Default=1
-        peak_scaling
-            Scale all peak intensities by power pf peak_scaling. Default is 0.5.
         shuffle
             Set to True to shuffle IDs every epoch. Default=True
         ignore_equal_pairs
@@ -110,7 +142,6 @@ class MS2DeepScoreData:
         defaults = dict(
             batch_size=32,
             num_turns=1,
-            peak_scaling=0.5,
             ignore_equal_pairs=True,
             shuffle=True,
             same_prob_bins=[(0, 0.5), (0.5, 1)],
