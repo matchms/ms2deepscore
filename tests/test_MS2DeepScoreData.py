@@ -103,10 +103,12 @@ def test_MS2DeepScoreData_create_binned_spectrums():
     ms2ds_data.collect_binned_spectrums([spectrum_1, spectrum_2])
     assert ms2ds_data.known_bins == [10, 20, 30, 40, 50, 90, 100], "Expected different known bins."
 
-    spectrum_3 = Spectrum(mz=np.array([10, 20, 30, 80.]),
+    spectrum_3 = Spectrum(mz=np.array([10, 20, 30, 50.]),
                       intensities=np.array([0.4, 0.5, 0.2, 1.0]),
                       metadata={'inchikey': "test_inchikey_03"})
-    spectrum_binned = ms2ds_data.create_binned_spectrum([spectrum_3])
+    spectrum_binned = ms2ds_data.create_binned_spectrums([spectrum_3])
+    assert spectrum_binned[0] == {0: 0.4, 1: 0.5, 2: 0.2, 4: 1.0}, \
+        "Expected different binned spectrum"
 
 
 def test_MS2DeepScoreData_create_binned_spectrums_missing_fraction():
