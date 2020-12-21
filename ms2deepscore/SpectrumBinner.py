@@ -1,6 +1,7 @@
 from typing import List
 import numpy as np
 from tqdm import tqdm
+from matchms.typing import SpectrumType
 from ms2deepscore.spectrum_binning_fixed import create_peak_list_fixed
 from ms2deepscore.spectrum_binning_fixed import set_d_bins_fixed
 from ms2deepscore.spectrum_binning_fixed import unique_peaks_fixed
@@ -46,7 +47,7 @@ class SpectrumBinner:
         self.spectrums_binned = None
         self.inchikeys_all = None
 
-    def collect_binned_spectrums(self, spectrums: List[Spectrum], progress_bar=True):
+    def collect_binned_spectrums(self, spectrums: List[SpectrumType], progress_bar=True):
         """Transforms the input *spectrums* into binned spectrums as needed for
         MS2DeepScore.
         
@@ -69,12 +70,12 @@ class SpectrumBinner:
         self.known_bins = known_bins
 
         print("Convert spectrums to binned spectrums...")
-        self.spectrums_binned = self._create_binned_spectrums(spectrums, progress_bar)
+        self.spectrums_binned = self.create_binned_spectrums(spectrums, progress_bar)
 
         # Collect inchikeys
         self._collect_inchikeys(spectrums)
 
-    def _create_binned_spectrums(self, input_spectrums: List[Spectrum],
+    def create_binned_spectrums(self, input_spectrums: List[SpectrumType],
                                  progress_bar=True) -> List[dict]:
         """Create binned spectrums from input spectrums.
 
