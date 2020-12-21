@@ -1,28 +1,28 @@
 import numpy as np
 import pytest
 from matchms import Spectrum
-from ms2deepscore import MS2DeepScoreData
+from ms2deepscore import SpectrumBinner
 
 
-def test_MS2DeepScoreData():
+def test_SpectrumBinner():
     """Test if default initalization works"""
-    ms2ds_data = MS2DeepScoreData(100)
+    ms2ds_data = SpectrumBinner(100)
     assert ms2ds_data.mz_max == 1000.0, "Expected different default value."
     assert ms2ds_data.mz_min == 10.0, "Expected different default value."
     assert ms2ds_data.d_bins == 9.9, "Expected different calculated bin size."
 
 
-def test_MS2DeepScoreData_set_min_max():
+def test_SpectrumBinner_set_min_max():
     """Test if other limits work well"""
-    ms2ds_data = MS2DeepScoreData(100, mz_min=0.0, mz_max=100.0)
+    ms2ds_data = SpectrumBinner(100, mz_min=0.0, mz_max=100.0)
     assert ms2ds_data.mz_max == 100.0, "Expected different default value."
     assert ms2ds_data.mz_min == 0.0, "Expected different default value."
     assert ms2ds_data.d_bins == 1.0, "Expected different calculated bin size."
 
 
-def test_MS2DeepScoreData_collect_binned_spectrums():
+def test_SpectrumBinner_collect_binned_spectrums():
     """Test if collect binned spectrums method works."""
-    ms2ds_data = MS2DeepScoreData(100, mz_min=0.0, mz_max=100.0, peak_scaling=1.0)
+    ms2ds_data = SpectrumBinner(100, mz_min=0.0, mz_max=100.0, peak_scaling=1.0)
     spectrum_1 = Spectrum(mz=np.array([10, 50, 100.]),
                           intensities=np.array([0.7, 0.2, 0.1]),
                           metadata={'inchikey': "test_inchikey_01"})
@@ -38,9 +38,9 @@ def test_MS2DeepScoreData_collect_binned_spectrums():
         "Expected different inchikeys in array."
 
 
-def test_MS2DeepScoreData_collect_binned_spectrums_peak_scaling():
+def test_SpectrumBinner_collect_binned_spectrums_peak_scaling():
     """Test if collect binned spectrums method works with different peak_scaling."""
-    ms2ds_data = MS2DeepScoreData(100, mz_min=0.0, mz_max=100.0, peak_scaling=0.0)
+    ms2ds_data = SpectrumBinner(100, mz_min=0.0, mz_max=100.0, peak_scaling=0.0)
     spectrum_1 = Spectrum(mz=np.array([10, 50, 100.]),
                           intensities=np.array([0.7, 0.2, 0.1]),
                           metadata={'inchikey': "test_inchikey_01"})
@@ -56,9 +56,9 @@ def test_MS2DeepScoreData_collect_binned_spectrums_peak_scaling():
         "Expected different inchikeys in array."
 
 
-def test_MS2DeepScoreData_collect_binned_spectrums_missing_inchikey():
+def test_SpectrumBinner_collect_binned_spectrums_missing_inchikey():
     """Test if create binned spectrums method works with missing inchikey."""
-    ms2ds_data = MS2DeepScoreData(100, mz_min=0.0, mz_max=100.0)
+    ms2ds_data = SpectrumBinner(100, mz_min=0.0, mz_max=100.0)
     spectrum_1 = Spectrum(mz=np.array([10, 50, 100.]),
                           intensities=np.array([0.7, 0.2, 0.1]),
                           metadata={'inchikey': "test_inchikey_01"})
@@ -71,9 +71,9 @@ def test_MS2DeepScoreData_collect_binned_spectrums_missing_inchikey():
         "Expected different inchikeys in array."
 
 
-def test_MS2DeepScoreData_set_generator_parameters():
+def test_SpectrumBinner_set_generator_parameters():
     """Test if set_generator_parameters methods works well."""
-    ms2ds_data = MS2DeepScoreData(100, mz_min=0.0, mz_max=100.0)
+    ms2ds_data = SpectrumBinner(100, mz_min=0.0, mz_max=100.0)
     assert ms2ds_data.generator_args == {}, "Settings should not yet be set."
 
     # Pass new setting (rest will be set to default)
@@ -90,9 +90,9 @@ def test_MS2DeepScoreData_set_generator_parameters():
     assert generator_args["shuffle"] == True, "Expected different setting."
 
 
-def test_MS2DeepScoreData_create_binned_spectrums():
+def test_SpectrumBinner_create_binned_spectrums():
     """Test if creating binned spectrums method works."""
-    ms2ds_data = MS2DeepScoreData(100, mz_min=0.0, mz_max=100.0, peak_scaling=1.0)
+    ms2ds_data = SpectrumBinner(100, mz_min=0.0, mz_max=100.0, peak_scaling=1.0)
     spectrum_1 = Spectrum(mz=np.array([10, 20, 50, 100.]),
                           intensities=np.array([0.7, 0.6, 0.2, 0.1]),
                           metadata={'inchikey': "test_inchikey_01"})
@@ -111,9 +111,9 @@ def test_MS2DeepScoreData_create_binned_spectrums():
         "Expected different binned spectrum"
 
 
-def test_MS2DeepScoreData_create_binned_spectrums_missing_fraction():
+def test_SpectrumBinner_create_binned_spectrums_missing_fraction():
     """Test if creating binned spectrums method works if peaks are unknown."""
-    ms2ds_data = MS2DeepScoreData(100, mz_min=0.0, mz_max=100.0, peak_scaling=1.0)
+    ms2ds_data = SpectrumBinner(100, mz_min=0.0, mz_max=100.0, peak_scaling=1.0)
     spectrum_1 = Spectrum(mz=np.array([10, 20, 50, 100.]),
                           intensities=np.array([0.7, 0.6, 0.2, 0.1]),
                           metadata={'inchikey': "test_inchikey_01"})

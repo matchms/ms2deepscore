@@ -1,3 +1,4 @@
+from typing import List
 import numpy as np
 from tqdm import tqdm
 from ms2deepscore.spectrum_binning_fixed import create_peak_list_fixed
@@ -6,8 +7,8 @@ from ms2deepscore.spectrum_binning_fixed import unique_peaks_fixed
 from ms2deepscore.utils import create_peak_dict
 
 
-class MS2DeepScoreData:
-    """Create MS2DeepScore binned spectrum data and keep track of parameters.
+class SpectrumBinner:
+    """Create binned spectrum data and keep track of parameters.
 
     TODO: add description --> here: fixed bins!
     """
@@ -45,9 +46,14 @@ class MS2DeepScoreData:
         self.spectrums_binned = None
         self.inchikeys_all = None
 
-    def collect_binned_spectrums(self, spectrums: list, progress_bar=True):
-        """Create 'vocabulary' of bins that have peaks in spectrums.
-        Derive binned spectrums from spectrums and store them.
+    def collect_binned_spectrums(self, spectrums: List[Spectrum], progress_bar=True):
+        """Transforms the input *spectrums* into binned spectrums as needed for
+        MS2DeepScore.
+        
+        Includes creating a 'vocabulary' of bins that have peaks in spectrums,
+        which is stored in SpectrumBinner.known_bins. 
+        Creates binned spectrums from input spectrums and stores them in
+        SpectrumBinner.spectrums_binned.
 
         Parameters
         ----------
@@ -63,12 +69,13 @@ class MS2DeepScoreData:
         self.known_bins = known_bins
 
         print("Convert spectrums to binned spectrums...")
-        self.spectrums_binned = self.create_binned_spectrums(spectrums, progress_bar)
+        self.spectrums_binned = self._create_binned_spectrums(spectrums, progress_bar)
 
         # Collect inchikeys
         self._collect_inchikeys(spectrums)
 
-    def create_binned_spectrums(self, input_spectrums: list, progress_bar=True):
+    def _create_binned_spectrums(self, input_spectrums: List[Spectrum],
+                                 progress_bar=True) -> List[dict]:
         """Create binned spectrums from input spectrums.
 
         Parameters
