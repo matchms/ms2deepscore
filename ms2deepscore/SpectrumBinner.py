@@ -21,7 +21,7 @@ class SpectrumBinner:
         Parameters
         ----------
         number_of_bins
-            Number if bins to represent spectrum.
+            Number of bins to represent spectrum.
         mz_max
             Upper bound of m/z to include in binned spectrum. Default is 1000.0.
         mz_min
@@ -50,9 +50,9 @@ class SpectrumBinner:
     def collect_binned_spectrums(self, spectrums: List[SpectrumType], progress_bar=True):
         """Transforms the input *spectrums* into binned spectrums as needed for
         MS2DeepScore.
-        
+
         Includes creating a 'vocabulary' of bins that have peaks in spectrums,
-        which is stored in SpectrumBinner.known_bins. 
+        which is stored in SpectrumBinner.known_bins.
         Creates binned spectrums from input spectrums and stores them in
         SpectrumBinner.spectrums_binned.
 
