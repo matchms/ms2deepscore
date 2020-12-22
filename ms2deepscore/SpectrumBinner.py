@@ -12,7 +12,7 @@ from ms2deepscore.utils import create_peak_dict
 class SpectrumBinner:
     """Create binned spectrum data and keep track of parameters.
 
-    Converts input spectrums into a :class:`~ms2deepscore.BinnedSpectrum` objects.
+    Converts input spectrums into :class:`~ms2deepscore.BinnedSpectrum` objects.
     Binning is here done using a fixed bin width defined by the *number_of_bins*
     as well as the range set by *mz_min* and *mz_max*.
     """
@@ -48,7 +48,7 @@ class SpectrumBinner:
         self.known_bins = None
         self.spectrums_binned = None
 
-    def collect_binned_spectrums(self, spectrums: List[SpectrumType], progress_bar=True):
+    def fit_transform(self, spectrums: List[SpectrumType], progress_bar=True):
         """Transforms the input *spectrums* into binned spectrums as needed for
         MS2DeepScore.
 
@@ -71,10 +71,10 @@ class SpectrumBinner:
         self.known_bins = known_bins
 
         print("Convert spectrums to binned spectrums...")
-        self.spectrums_binned = self.create_binned_spectrums(spectrums, progress_bar)
+        return self.transform(spectrums, progress_bar)
 
-    def create_binned_spectrums(self, input_spectrums: List[SpectrumType],
-                                 progress_bar=True) -> List[BinnedSpectrum]:
+    def transform(self, input_spectrums: List[SpectrumType],
+                  progress_bar=True) -> List[BinnedSpectrum]:
         """Create binned spectrums from input spectrums.
 
         Parameters
