@@ -3,17 +3,43 @@
 import numpy as np
 
 
-def create_peak_list_fixed(spectrums, class_values, d_bins, mz_min=10.0):
-    """Create list of (binned) peaks."""
+def create_peak_list_fixed(spectrums, peaks_vocab, d_bins, mz_min=10.0, peak_scaling=0.5):
+    """Create list of (binned) peaks.
+    
+    Parameters
+    ----------
+    spectrums
+        List of spectrums. 
+    peaks_vocab
+        Dictionary of all known peak bins.
+    d_bins
+        Bin width.
+    mz_min
+        Lower bound of m/z to include in binned spectrum. Default is 10.0.
+    peak_scaling
+        Scale all peak intensities by power pf peak_scaling. Default is 0.5.
+    """
     peak_lists = []
+    missing_fractions = []
 
     for spectrum in spectrums:
         doc = bin_number_array_fixed(spectrum.peaks.mz, d_bins, mz_min=mz_min)
-        weights = spectrum.peaks.intensities  # ** weight_power
-        doc_bow = [class_values[x] for x in doc]
-        peak_lists.append(list(zip(doc_bow, weights)))
+        weights = spectrum.peaks.intensities ** peak_scaling                
+        
+        # Find binned peaks present in peaks_vocab
+        idx_in_vocab = [i for i, x in enumerate(doc) if x in peaks_vocab.keys()]
+        idx_not_in_vocab = [i for i in np.arange(len(doc)) if i not in idx_in_vocab]
+    
+        doc_bow = [peaks_vocab[doc[i]] for i in idx_in_vocab]
 
-    return peak_lists
+        # TODO add missing weighted part!?!?
+        peak_lists.append(list(zip(doc_bow, weights[idx_in_vocab])))
+        if len(idx_in_vocab) == 0:
+            missing_fractions.append(1.0)
+        else:
+            missing_fractions.append(np.sum(weights[idx_not_in_vocab])/np.sum(weights))
+        
+    return peak_lists, missing_fractions
 
 
 def unique_peaks_fixed(spectrums, d_bins, mz_min):
