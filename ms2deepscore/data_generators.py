@@ -71,7 +71,7 @@ class DataGeneratorAllSpectrums(Sequence):
         self.score_array = score_array
         #self.score_array[np.isnan(score_array)] = 0
         self.spectrum_ids = spectrum_ids
-        self.inchikey_ids = self.__exclude_nans(np.arange(score_array.shape[0]))
+        self.inchikey_ids = self._exclude_nans(np.arange(score_array.shape[0]))
         self.inchikey_score_mapping = inchikey_score_mapping
         self.inchikeys_all = np.array([x.get("inchikey") for x in spectrums_binned])
         # TODO: add check if all inchikeys are present (should fail for missing ones)
@@ -173,7 +173,7 @@ class DataGeneratorAllSpectrums(Sequence):
         if self.settings["shuffle"] == True:
             np.random.shuffle(self.indexes)
 
-    def __exclude_nans(self, inchikey_ids):
+    def _exclude_nans(self, inchikey_ids):
         """Find nans in labels and return list of IDs to be excluded."""
         find_nans = np.where(np.isnan(self.score_array))[0]
         if find_nans.shape[0] > 0:
@@ -216,7 +216,7 @@ class DataGeneratorAllSpectrums(Sequence):
 
         return inchikey_id2
 
-    def __data_augmentation(self, spectrum_binned):
+    def _data_augmentation(self, spectrum_binned):
         """Data augmentation.
 
         Parameters
@@ -251,7 +251,7 @@ class DataGeneratorAllSpectrums(Sequence):
         # Generate data
         for i_batch, pair in enumerate(spectrum_inchikey_ids_batch):
             for i_pair, spectrum_inchikey_id in enumerate(pair):
-                idx, values = self.__data_augmentation(self.spectrums_binned[spectrum_inchikey_id[0]].peaks)
+                idx, values = self._data_augmentation(self.spectrums_binned[spectrum_inchikey_id[0]].peaks)
                 X[i_pair][i_batch, idx] = values
 
             y[i_batch] = self.score_array[pair[0][1], pair[1][1]]
@@ -259,7 +259,7 @@ class DataGeneratorAllSpectrums(Sequence):
         return X, y
 
 
-class DataGeneratorAllInchikeys(Sequence):
+class DataGeneratorAllInchikeys(DataGeneratorAllSpectrums):
     """Generates data for training a siamese Keras model
 
     This generator will provide training data by picking each training InchiKey
@@ -270,13 +270,7 @@ class DataGeneratorAllInchikeys(Sequence):
     """
     def __init__(self, spectrums_binned: List[BinnedSpectrum], score_array: np.ndarray,
                  inchikey_ids: list, inchikey_score_mapping: np.ndarray,
-                 inchikeys_all: np.ndarray, dim: int,
-                 batch_size: int = 32, num_turns: int = 1,
-                 shuffle: bool = True, ignore_equal_pairs: bool = True,
-                 same_prob_bins: list = [(0, 0.5), (0.5, 1)],
-                 augment_removal_max: float = 0.2,
-                 augment_removal_intensity: float = 0.2,
-                 augment_intensity: float = 0.1):
+                 inchikeys_all: np.ndarray, dim: int, **settings):
         """Generates data for training a siamese Keras model.
 
         Parameters
@@ -330,39 +324,33 @@ class DataGeneratorAllInchikeys(Sequence):
         self.spectrums_binned = spectrums_binned
         self.score_array = score_array
         #self.score_array[np.isnan(score_array)] = 0
-        self.inchikey_ids = self.__exclude_nans(inchikey_ids)
+        self.inchikey_ids = self._exclude_nans(inchikey_ids)
         self.inchikey_score_mapping = inchikey_score_mapping
         self.inchikeys_all = inchikeys_all
         self.dim = dim
-        self.batch_size = batch_size
-        self.num_turns = num_turns
-        self.shuffle = shuffle
-        self.ignore_equal_pairs = ignore_equal_pairs
+        self._set_generator_parameters(**settings)
         self.on_epoch_end()
-        self.same_prob_bins = same_prob_bins
-        self.augment_removal_max = augment_removal_max
-        self.augment_removal_intensity = augment_removal_intensity
-        self.augment_intensity = augment_intensity
 
     def __len__(self):
         """Denotes the number of batches per epoch"""
         # TODO: this means we don't see all data every epoch, because the last half-empty batch
         #  is omitted. I guess that is expected behavior? --> Yes, with the shuffling in each epoch that seem OK to me (and makes the code easier).
-        return int(self.num_turns) * int(np.floor(len(self.inchikey_ids) / self.batch_size))
+        return int(self.settings["num_turns"]) * int(np.floor(len(self.inchikey_ids) / self.settings["batch_size"]))
 
     def __getitem__(self, index):
         """Generate one batch of data"""
         # Go through all indexes
-        indexes_inchkeys = self.indexes[index*self.batch_size:(index+1)*self.batch_size]
+        indexes_inchkeys = self.indexes[index*self.settings["batch_size"]:(index+1)*self.settings["batch_size"]]
 
         # Select subset of IDs
         # TODO: Filter out function: select_batch_ids
         inchikey_ids_batch = []
+        same_prob_bins = self.settings["same_prob_bins"]
         for index in indexes_inchkeys:
             inchikey_id1 = self.inchikey_ids[index]
 
             # Randomly pick the desired target score range and pick matching ID
-            target_score_range = self.same_prob_bins[np.random.choice(np.arange(len(self.same_prob_bins)))]
+            target_score_range = same_prob_bins[np.random.choice(np.arange(len(same_prob_bins)))]
             inchikey_id2 = self.__find_match_in_range(inchikey_id1, target_score_range)
 
             inchikey_ids_batch.append((inchikey_id1, inchikey_id2))
@@ -374,16 +362,9 @@ class DataGeneratorAllInchikeys(Sequence):
 
     def on_epoch_end(self):
         """Updates indexes after each epoch"""
-        self.indexes = np.tile(np.arange(len(self.inchikey_ids)), int(self.num_turns))
-        if self.shuffle == True:
+        self.indexes = np.tile(np.arange(len(self.inchikey_ids)), int(self.settings["num_turns"]))
+        if self.settings["shuffle"] == True:
             np.random.shuffle(self.indexes)
-
-    def __exclude_nans(self, inchikey_ids):
-        """Find nans in labels and return list of IDs to be excluded."""
-        find_nans = np.where(np.isnan(self.score_array))[0]
-        if find_nans.shape[0] > 0:
-            print(f"{find_nans.shape[0]} nans among {len(self.y_true)} labels will be excluded.")
-        return [x for x in inchikey_ids if x not in list(find_nans)]
 
     def __find_match_in_range(self, inchikey_id1, target_score_range, max_range=0.4):
         """Randomly pick ID for a pair with inchikey_id1 that has a score in
@@ -404,7 +385,7 @@ class DataGeneratorAllInchikeys(Sequence):
         while extend_range < max_range:
             idx = np.where((self.score_array[inchikey_id1, self.inchikey_ids] > low - extend_range)
                            & (self.score_array[inchikey_id1, self.inchikey_ids] <= high + extend_range))[0]
-            if self.ignore_equal_pairs:
+            if self.settings["ignore_equal_pairs"]:
                 idx = idx[idx != inchikey_id1]
             if len(idx) > 0:
                 inchikey_id2 = self.inchikey_ids[np.random.choice(idx)]
@@ -420,44 +401,18 @@ class DataGeneratorAllInchikeys(Sequence):
 
         return inchikey_id2
 
-    def __data_augmentation(self, spectrum_binned):
-        """Data augmentation.
-
-        Parameters
-        ----------
-        spectrum_binned
-            Dictionary with the binned peak positions and intensities.
-        """
-        idx = np.array([int(x) for x in spectrum_binned.keys()])
-        values = np.array([x for x in spectrum_binned.values()])
-        if self.augment_removal_max or self.augment_removal_intensity:
-            # TODO: Factor out function with documentation + example?
-            indices_select = np.where(values < self.augment_removal_max)[0]
-            removal_part = np.random.random(1) * self.augment_removal_max
-            indices_select = np.random.choice(indices_select,
-                                              int(np.ceil((1 - removal_part)*len(indices_select))))
-            indices = np.concatenate((indices_select,
-                                      np.where(values >= self.augment_removal_intensity)[0]))
-            if len(indices) > 0:
-                idx = idx[indices]
-                values = values[indices]
-        if self.augment_intensity:
-            # TODO: Factor out function with documentation + example?
-            values = (1 - self.augment_intensity * 2 * (np.random.random(values.shape) - 0.5)) * values
-        return idx, values
-
     def __data_generation(self, inchikey_ids_batch):
         """Generates data containing batch_size samples"""
         # Initialization
-        X = [np.zeros((self.batch_size, self.dim)) for i in range(2)]
-        y = np.zeros((self.batch_size,))
+        X = [np.zeros((self.settings["batch_size"], self.dim)) for i in range(2)]
+        y = np.zeros((self.settings["batch_size"],))
 
         # Generate data
         for i_batch, pair in enumerate(inchikey_ids_batch):
             for i_pair, inchikey_id in enumerate(pair):
                 inchikey = self.inchikey_score_mapping[inchikey_id]
                 spectrum_id = np.random.choice(np.where(self.inchikeys_all == inchikey)[0])
-                idx, values = self.__data_augmentation(self.spectrums_binned[spectrum_id].peaks)
+                idx, values = self._data_augmentation(self.spectrums_binned[spectrum_id].peaks)
                 X[i_pair][i_batch, idx] = values
 
             y[i_batch] = self.score_array[pair[0], pair[1]]

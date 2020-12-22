@@ -32,9 +32,7 @@ def test_DataGeneratorAllInchikeys():
 
     # Define other parameters
     batch_size = 10
-    num_turns = 1
     dimension = 101
-    same_prob_bins = [(0, 0.5), (0.5, 1)]
 
     inchikey_ids = np.arange(0,80)
 
@@ -42,9 +40,6 @@ def test_DataGeneratorAllInchikeys():
     test_generator = DataGeneratorAllInchikeys(spectrums_binned, score_array, inchikey_ids,
                                                inchikey_score_mapping, inchikeys_all,
                                                dim=dimension, batch_size=batch_size,
-                                               num_turns=num_turns,
-                                               shuffle=True, ignore_equal_pairs=True,
-                                               same_prob_bins=same_prob_bins,
                                                augment_removal_max=0.0,
                                                augment_removal_intensity=0.0,
                                                augment_intensity=0.0)
@@ -77,6 +72,7 @@ def test_DataGeneratorAllSpectrums():
     assert A[0].shape == A[1].shape == (10, 101), "Expected different data shape"
     assert B.shape[0] == 10, "Expected different label shape."
 
+
 def test_DataGeneratorAllSpectrums_input_error():
     """Test if expected error is raised for incorrect input formats"""
     # Get test data
@@ -98,4 +94,3 @@ def test_DataGeneratorAllSpectrums_input_error():
                                     augment_intensity=0.0)
     assert 'Expected score_array of size 100x100.' in str(msg.value), \
         "Expected different expection to be raised"
-
