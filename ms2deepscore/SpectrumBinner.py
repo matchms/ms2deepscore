@@ -45,7 +45,6 @@ class SpectrumBinner:
         self.peak_to_position = None
         self.known_bins = None
         self.spectrums_binned = None
-        self.inchikeys_all = None
 
     def collect_binned_spectrums(self, spectrums: List[SpectrumType], progress_bar=True):
         """Transforms the input *spectrums* into binned spectrums as needed for
