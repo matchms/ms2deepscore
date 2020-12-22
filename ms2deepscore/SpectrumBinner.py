@@ -94,6 +94,7 @@ class SpectrumBinner:
         for i, peak_list in enumerate(tqdm(peak_lists, disable=(not progress_bar))):
             assert 100*missing_fractions[i] <= self.allowed_missing_percentage, \
                 f"{100*missing_fractions[i]:.2f} of weighted spectrum is unknown to the model."
-            spectrums_binned.append(BinnedSpectrum(binned_peaks=create_peak_dict(peak_list),
-                                                   metadata={"inchikey": input_spectrums[i].get("inchikey")}))
+            spectrum = BinnedSpectrum(binned_peaks=create_peak_dict(peak_list),
+                                      metadata={"inchikey": input_spectrums[i].get("inchikey")})
+            spectrums_binned.append(spectrum)
         return spectrums_binned

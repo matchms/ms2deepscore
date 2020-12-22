@@ -33,8 +33,10 @@ def test_SpectrumBinner_collect_binned_spectrums():
     ms2ds_data.collect_binned_spectrums([spectrum_1, spectrum_2])
     assert ms2ds_data.known_bins == [10, 40, 50, 90, 100], "Expected different known bins."
     assert len(ms2ds_data.spectrums_binned) == 2, "Expected 2 binned spectrums."
-    assert ms2ds_data.spectrums_binned[0].peaks == {0: 0.7, 2: 0.2, 4: 0.1}, "Expected different binned spectrum."
-    assert ms2ds_data.spectrums_binned[0].peaks == "test_inchikey_01", "Expected different inchikeys."
+    assert ms2ds_data.spectrums_binned[0].peaks == {0: 0.7, 2: 0.2, 4: 0.1}, \
+        "Expected different binned spectrum."
+    assert ms2ds_data.spectrums_binned[0].get("inchikey") == "test_inchikey_01", \
+        "Expected different inchikeys."
 
 
 def test_SpectrumBinner_collect_binned_spectrums_peak_scaling():
@@ -50,8 +52,10 @@ def test_SpectrumBinner_collect_binned_spectrums_peak_scaling():
     ms2ds_data.collect_binned_spectrums([spectrum_1, spectrum_2])
     assert ms2ds_data.known_bins == [10, 40, 50, 90, 100], "Expected different known bins."
     assert len(ms2ds_data.spectrums_binned) == 2, "Expected 2 binned spectrums."
-    assert ms2ds_data.spectrums_binned[0].peaks == {0: 1.0, 2: 1.0, 4: 1.0}, "Expected different binned spectrum."
-    assert ms2ds_data.spectrums_binned[0].peaks == "test_inchikey_01", "Expected different inchikeys."
+    assert ms2ds_data.spectrums_binned[0].peaks == {0: 1.0, 2: 1.0, 4: 1.0}, \
+        "Expected different binned spectrum."
+    assert ms2ds_data.spectrums_binned[0].get("inchikey") == "test_inchikey_01", \
+        "Expected different inchikeys."
 
 
 def test_SpectrumBinner_create_binned_spectrums():
@@ -71,7 +75,7 @@ def test_SpectrumBinner_create_binned_spectrums():
                       intensities=np.array([0.4, 0.5, 0.2, 1.0]),
                       metadata={'inchikey': "test_inchikey_03"})
     spectrum_binned = ms2ds_data.create_binned_spectrums([spectrum_3])
-    assert spectrum_binned[0] == {0: 0.4, 1: 0.5, 2: 0.2, 4: 1.0}, \
+    assert spectrum_binned[0].peaks == {0: 0.4, 1: 0.5, 2: 0.2, 4: 1.0}, \
         "Expected different binned spectrum"
 
 
