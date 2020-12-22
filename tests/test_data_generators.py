@@ -3,6 +3,7 @@ import json
 import numpy as np
 import pytest
 from matchms import Spectrum
+from ms2deepscore import BinnedSpectrum
 from ms2deepscore.data_generators import DataGeneratorAllInchikeys
 from ms2deepscore.data_generators import DataGeneratorAllSpectrums
 path_tests  = os.path.dirname(__file__)
@@ -11,10 +12,14 @@ path_tests  = os.path.dirname(__file__)
 def create_test_data():
     spectrums_binned_file = os.path.join(path_tests, "testdata_spectrums_binned.json")
     with open(spectrums_binned_file, "r") as read_file:
-        spectrums_binned = json.load(read_file)
+        peaks_dicts = json.load(read_file)
+    inchikeys_array = np.load(os.path.join(path_tests, "testdata_inchikeys.npy"))
+    spectrums_binned = []
+    for i, peaks_dict in enumerate(peaks_dicts):
+        spectrums_binned.append(BinnedSpectrum(binned_peaks=peaks_dict,
+                                               metadata={"inchikey": inchikeys_array[i]}))
 
     score_array = np.load(os.path.join(path_tests, "testdata_tanimoto_scores.npy"))
-    inchikeys_array = np.load(os.path.join(path_tests, "testdata_inchikeys.npy"))
     inchikey_score_mapping = np.load(os.path.join(path_tests, "testdata_inchikey_score_mapping.npy"),
                                      allow_pickle=True)
     return spectrums_binned, score_array, inchikey_score_mapping, inchikeys_array
@@ -40,8 +45,8 @@ def test_DataGeneratorAllInchikeys():
                                                num_turns=num_turns,
                                                shuffle=True, ignore_equal_pairs=True,
                                                same_prob_bins=same_prob_bins,
-                                               augment_peak_removal_max=0.0,
-                                               augment_peak_removal_intensity=0.0,
+                                               augment_removal_max=0.0,
+                                               augment_removal_intensity=0.0,
                                                augment_intensity=0.0)
 
     A, B = test_generator.__getitem__(0)
@@ -56,21 +61,16 @@ def test_DataGeneratorAllSpectrums():
 
     # Define other parameters
     batch_size = 10
-    num_turns = 1
     dimension = 101
-    same_prob_bins = [(0, 0.5), (0.5, 1)]
 
     spectrum_ids = np.arange(0,150)
 
     # Create generator
-    test_generator = DataGeneratorAllSpectrums(spectrums_binned, score_array, spectrum_ids,
-                                               inchikey_score_mapping, inchikeys_all,
+    test_generator = DataGeneratorAllSpectrums(spectrums_binned, spectrum_ids, score_array,
+                                               inchikey_score_mapping,
                                                dim=dimension, batch_size=batch_size,
-                                               num_turns=num_turns,
-                                               shuffle=True, ignore_equal_pairs=True,
-                                               same_prob_bins=same_prob_bins,
-                                               augment_peak_removal_max=0.0,
-                                               augment_peak_removal_intensity=0.0,
+                                               augment_removal_max=0.0,
+                                               augment_removal_intensity=0.0,
                                                augment_intensity=0.0)
 
     A, B = test_generator.__getitem__(0)
@@ -84,36 +84,18 @@ def test_DataGeneratorAllSpectrums_input_error():
 
     # Define other parameters
     batch_size = 10
-    num_turns = 1
     dimension = 101
-    same_prob_bins = [(0, 0.5), (0.5, 1)]
 
     spectrum_ids = np.arange(0,150)
 
     # Create generator --> wrong score array size
     with pytest.raises(AssertionError) as msg:
-        _ = DataGeneratorAllSpectrums(spectrums_binned, score_array[:-2, :-2], spectrum_ids,
-                                    inchikey_score_mapping, inchikeys_all,
+        _ = DataGeneratorAllSpectrums(spectrums_binned, spectrum_ids, score_array[:-2, :-2],
+                                    inchikey_score_mapping,
                                     dim=dimension, batch_size=batch_size,
-                                    num_turns=num_turns,
-                                    shuffle=True, ignore_equal_pairs=True,
-                                    same_prob_bins=same_prob_bins,
-                                    augment_peak_removal_max=0.0,
-                                    augment_peak_removal_intensity=0.0,
+                                    augment_removal_max=0.0,
+                                    augment_removal_intensity=0.0,
                                     augment_intensity=0.0)
     assert 'Expected score_array of size 100x100.' in str(msg.value), \
         "Expected different expection to be raised"
 
-    # Create generator --> wrong score array size
-    with pytest.raises(AssertionError) as msg:
-        _ = DataGeneratorAllSpectrums(spectrums_binned[:-2], score_array, spectrum_ids,
-                                    inchikey_score_mapping, inchikeys_all,
-                                    dim=dimension, batch_size=batch_size,
-                                    num_turns=num_turns,
-                                    shuffle=True, ignore_equal_pairs=True,
-                                    same_prob_bins=same_prob_bins,
-                                    augment_peak_removal_max=0.0,
-                                    augment_peak_removal_intensity=0.0,
-                                    augment_intensity=0.0)
-    assert "inchikeys_all and spectrums_binned must have the same dimension." in str(msg.value), \
-        "Expected different exception to be raised"
