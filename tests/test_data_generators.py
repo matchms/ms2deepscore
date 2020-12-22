@@ -28,7 +28,7 @@ def create_test_data():
 def test_DataGeneratorAllInchikeys():
     """Basic first test for DataGeneratorAllInchikeys"""
     # Get test data
-    spectrums_binned, score_array, inchikey_score_mapping, = create_test_data()
+    spectrums_binned, score_array, inchikey_score_mapping = create_test_data()
 
     # Define other parameters
     batch_size = 10
@@ -52,7 +52,7 @@ def test_DataGeneratorAllInchikeys():
 def test_DataGeneratorAllSpectrums():
     """Basic first test for DataGeneratorAllSpectrums"""
     # Get test data
-    spectrums_binned, score_array, inchikey_score_mapping, inchikeys_all = create_test_data()
+    spectrums_binned, score_array, inchikey_score_mapping = create_test_data()
 
     # Define other parameters
     batch_size = 10
@@ -76,7 +76,7 @@ def test_DataGeneratorAllSpectrums():
 def test_DataGeneratorAllSpectrums_input_error():
     """Test if expected error is raised for incorrect input formats"""
     # Get test data
-    spectrums_binned, score_array, inchikey_score_mapping, inchikeys_all = create_test_data()
+    spectrums_binned, score_array, inchikey_score_mapping = create_test_data()
 
     # Define other parameters
     batch_size = 10
