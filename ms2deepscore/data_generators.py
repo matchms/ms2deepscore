@@ -270,7 +270,7 @@ class DataGeneratorAllInchikeys(DataGeneratorAllSpectrums):
     """
     def __init__(self, spectrums_binned: List[BinnedSpectrum], score_array: np.ndarray,
                  inchikey_ids: list, inchikey_score_mapping: np.ndarray,
-                 inchikeys_all: np.ndarray, dim: int, **settings):
+                 dim: int, **settings):
         """Generates data for training a siamese Keras model.
 
         Parameters
@@ -286,10 +286,10 @@ class DataGeneratorAllInchikeys(DataGeneratorAllSpectrums):
         inchikey_score_mapping
             Array of all unique inchikeys. Must be in the same order as the scores
             in scores_array.
-        inchikeys_all
-            Array of all inchikeys. Must be in the same order as spectrums_binned.
         dim
             Input vector dimension.
+
+        As part of **settings, defaults for the following parameters can be set:
         batch_size
             Number of pairs per batch. Default=32.
         num_turns
@@ -298,7 +298,6 @@ class DataGeneratorAllInchikeys(DataGeneratorAllSpectrums):
             Set to True to shuffle IDs every epoch. Default=True
         ignore_equal_pairs
             Set to True to ignore pairs of two identical spectra. Default=True
-
         same_prob_bins
             List of tuples that define ranges of the true label to be trained with
             equal frequencies. Default is set to [(0, 0.5), (0.5, 1)], which means
@@ -319,15 +318,14 @@ class DataGeneratorAllInchikeys(DataGeneratorAllSpectrums):
         """
         assert score_array.shape[0] == score_array.shape[1] == len(inchikey_score_mapping), \
             f"Expected score_array of size {len(inchikey_score_mapping)}x{len(inchikey_score_mapping)}."
-        assert len(inchikeys_all) == len(spectrums_binned), \
-            "inchikeys_all and spectrums_binned must have the same dimension."
         self.spectrums_binned = spectrums_binned
         self.score_array = score_array
-        #self.score_array[np.isnan(score_array)] = 0
         self.inchikey_ids = self._exclude_nans(inchikey_ids)
         self.inchikey_score_mapping = inchikey_score_mapping
-        self.inchikeys_all = inchikeys_all
+        self.inchikeys_all = np.array([x.get("inchikey") for x in spectrums_binned])
+        # TODO: add check if all inchikeys are present (should fail for missing ones)
         self.dim = dim
+
         self._set_generator_parameters(**settings)
         self.on_epoch_end()
 

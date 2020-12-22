@@ -22,13 +22,13 @@ def create_test_data():
     score_array = np.load(os.path.join(path_tests, "testdata_tanimoto_scores.npy"))
     inchikey_score_mapping = np.load(os.path.join(path_tests, "testdata_inchikey_score_mapping.npy"),
                                      allow_pickle=True)
-    return spectrums_binned, score_array, inchikey_score_mapping, inchikeys_array
+    return spectrums_binned, score_array, inchikey_score_mapping
 
 
 def test_DataGeneratorAllInchikeys():
     """Basic first test for DataGeneratorAllInchikeys"""
     # Get test data
-    spectrums_binned, score_array, inchikey_score_mapping, inchikeys_all = create_test_data()
+    spectrums_binned, score_array, inchikey_score_mapping, = create_test_data()
 
     # Define other parameters
     batch_size = 10
@@ -38,7 +38,7 @@ def test_DataGeneratorAllInchikeys():
 
     # Create generator
     test_generator = DataGeneratorAllInchikeys(spectrums_binned, score_array, inchikey_ids,
-                                               inchikey_score_mapping, inchikeys_all,
+                                               inchikey_score_mapping,
                                                dim=dimension, batch_size=batch_size,
                                                augment_removal_max=0.0,
                                                augment_removal_intensity=0.0,
