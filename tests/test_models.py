@@ -24,7 +24,7 @@ def get_test_generator():
 
 def test_siamese_model():
     test_generator = get_test_generator()
-    model = SiameseModel(input_shape=101, base_dims=(400, 400, 400), embedding_dim=400,
+    model = SiameseModel(input_dim=101, base_dims=(200, 200, 200), embedding_dim=200,
                          dropout_rate=0.2)
     model.compile(loss='mse', optimizer=keras.optimizers.Adam(lr=0.001))
     model.summary()

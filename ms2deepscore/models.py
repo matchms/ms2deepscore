@@ -3,19 +3,19 @@ from typing import Tuple
 from tensorflow import keras
 
 
-def create_base_model(input_shape: int,
-                      dims: Tuple[int, int, int] = (600, 500, 500),
-                      embedding_dim: int = 400,
-                      dropout_rate: float = 0.25):
+def get_base_model(input_shape: int,
+                   dims: Tuple[int, int, int] = (600, 500, 500),
+                   embedding_dim: int = 400,
+                   dropout_rate: float = 0.25):
     model_input = keras.layers.Input(shape=input_shape, name='base_input')
     embedding = keras.layers.Dense(dims[0], activation='relu', name='dense1')(model_input)
-    # embedding = keras.layers.BatchNormalization()(embedding)
+    embedding = keras.layers.BatchNormalization()(embedding)
     embedding = keras.layers.Dropout(dropout_rate)(embedding)
     embedding = keras.layers.Dense(dims[1], activation='relu', name='dense2')(embedding)
-    # embedding = keras.layers.BatchNormalization()(embedding)
+    embedding = keras.layers.BatchNormalization()(embedding)
     embedding = keras.layers.Dropout(dropout_rate)(embedding)
     embedding = keras.layers.Dense(dims[2], activation='relu', name='dense3')(embedding)
-    # embedding = keras.layers.BatchNormalization()(embedding)
+    embedding = keras.layers.BatchNormalization()(embedding)
     embedding = keras.layers.Dropout(dropout_rate)(embedding)
     embedding = keras.layers.Dense(embedding_dim, activation='relu', name='embedding')(embedding)
     return keras.Model(model_input, embedding, name='head')
@@ -23,16 +23,16 @@ def create_base_model(input_shape: int,
 
 class SiameseModel:
     def __init__(self,
-                 input_shape: int,
+                 input_dim: int,
                  base_dims: Tuple[int, int, int] = (600, 500, 500),
                  embedding_dim: int = 400,
                  dropout_rate: float = 0.5):
-        self.base = create_base_model(input_shape=input_shape,
-                                      dims=base_dims,
-                                      embedding_dim=embedding_dim,
-                                      dropout_rate=dropout_rate)
-        input_a = keras.layers.Input(shape=(1, input_shape), name="input_a")
-        input_b = keras.layers.Input(shape=(1, input_shape), name="input_b")
+        self.base = get_base_model(input_shape=input_dim,
+                                   dims=base_dims,
+                                   embedding_dim=embedding_dim,
+                                   dropout_rate=dropout_rate)
+        input_a = keras.layers.Input(shape=input_dim, name="input_a")
+        input_b = keras.layers.Input(shape=input_dim, name="input_b")
         embedding_a = self.base(input_a)
         embedding_b = self.base(input_b)
         cosine_similarity = keras.layers.Dot(axes=(1, 1),
