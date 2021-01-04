@@ -18,7 +18,7 @@ def get_base_model(input_shape: int,
     embedding = keras.layers.BatchNormalization()(embedding)
     embedding = keras.layers.Dropout(dropout_rate)(embedding)
     embedding = keras.layers.Dense(embedding_dim, activation='relu', name='embedding')(embedding)
-    return keras.Model(model_input, embedding, name='head')
+    return keras.Model(model_input, embedding, name='base')
 
 
 class SiameseModel:
