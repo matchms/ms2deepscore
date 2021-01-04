@@ -48,10 +48,6 @@ class SiameseModel:
         self.model.fit(*args, **kwargs)
 
     def load_weights(self, checkpoint_path):
-        """
-        Load siamese model weights.
-        :param checkpoint_path: Path to the checkpoint file.
-        """
         self.model.load_weights(checkpoint_path)
 
     def summary(self):

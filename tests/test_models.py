@@ -30,5 +30,5 @@ def test_siamese_model():
     model.summary()
     x, y = zip(*test_generator)
     model.fit(x=x, y=y,
-              validation_data=test_generator,
+              validation_data=(x, y),
               epochs=2)
