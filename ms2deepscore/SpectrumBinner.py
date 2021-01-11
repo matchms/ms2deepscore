@@ -38,7 +38,7 @@ class SpectrumBinner:
             means no unknown binned peaks are allowed.
         """
         self.number_of_bins = number_of_bins
-        assert mz_max > mz_min, "mz_max must be > mz>min"
+        assert mz_max > mz_min, "mz_max must be > mz_min"
         self.mz_max = mz_max
         self.mz_min = mz_min
         self.d_bins = set_d_bins_fixed(number_of_bins, mz_min=mz_min, mz_max=mz_max)
