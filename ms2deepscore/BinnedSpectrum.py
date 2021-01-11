@@ -1,6 +1,15 @@
 class BinnedSpectrum:
     """Binned spectrum for use with MS2DeepScore."""
     def __init__(self, binned_peaks: dict, metadata: dict):
+        """
+
+        Parameters
+        ----------
+        binned_peaks
+            Dictionary of binned peaks (format is {"peak ID":  weight})
+        metadata
+            Dictionary containing spectrum metadata.
+        """
         self.binned_peaks = binned_peaks
         self._metadata = metadata
 

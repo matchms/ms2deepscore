@@ -12,7 +12,7 @@ def test_BinnedSpectrum():
     binned_spectrum = BinnedSpectrum(binned_peaks=peaks,
                                      metadata=metadata)
     assert binned_spectrum.binned_peaks["20"] == 0.05
-    assert list(binned_spectrum.peaks.keys()) == ['20', '21', '25', '30', '100']
+    assert list(binned_spectrum.binned_peaks.keys()) == ['20', '21', '25', '30', '100']
     assert binned_spectrum.get("inchikey") == "test"
     assert binned_spectrum.get("smiles") is None
 
