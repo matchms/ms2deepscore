@@ -33,7 +33,7 @@ def test_SpectrumBinner_fit_transform():
     spectrums_binned = ms2ds_binner.fit_transform([spectrum_1, spectrum_2])
     assert ms2ds_binner.known_bins == [10, 40, 50, 90, 100], "Expected different known bins."
     assert len(spectrums_binned) == 2, "Expected 2 binned spectrums."
-    assert spectrums_binned[0].peaks == {0: 0.7, 2: 0.2, 4: 0.1}, \
+    assert spectrums_binned[0].binned_peaks == {0: 0.7, 2: 0.2, 4: 0.1}, \
         "Expected different binned spectrum."
     assert spectrums_binned[0].get("inchikey") == "test_inchikey_01", \
         "Expected different inchikeys."
@@ -52,7 +52,7 @@ def test_SpectrumBinner_fit_transform_peak_scaling():
     spectrums_binned = ms2ds_binner.fit_transform([spectrum_1, spectrum_2])
     assert ms2ds_binner.known_bins == [10, 40, 50, 90, 100], "Expected different known bins."
     assert len(spectrums_binned) == 2, "Expected 2 binned spectrums."
-    assert spectrums_binned[0].peaks == {0: 1.0, 2: 1.0, 4: 1.0}, \
+    assert spectrums_binned[0].binned_peaks == {0: 1.0, 2: 1.0, 4: 1.0}, \
         "Expected different binned spectrum."
     assert spectrums_binned[0].get("inchikey") == "test_inchikey_01", \
         "Expected different inchikeys."
@@ -75,7 +75,7 @@ def test_SpectrumBinner_transform():
                       intensities=np.array([0.4, 0.5, 0.2, 1.0]),
                       metadata={'inchikey': "test_inchikey_03"})
     spectrum_binned = ms2ds_binner.transform([spectrum_3])
-    assert spectrum_binned[0].peaks == {0: 0.4, 1: 0.5, 2: 0.2, 4: 1.0}, \
+    assert spectrum_binned[0].binned_peaks == {0: 0.4, 1: 0.5, 2: 0.2, 4: 1.0}, \
         "Expected different binned spectrum"
 
 

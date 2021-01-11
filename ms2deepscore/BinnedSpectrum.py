@@ -6,7 +6,7 @@ class BinnedSpectrum:
 
     def __eq__(self, other):
         return \
-            self.peaks == other.peaks and \
+            self.binned_peaks == other.binned_peaks and \
             self.metadata == other.metadata
 
     def get(self, key: str, default=None):
