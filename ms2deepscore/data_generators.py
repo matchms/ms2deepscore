@@ -251,7 +251,7 @@ class DataGeneratorAllSpectrums(Sequence):
         # Generate data
         for i_batch, pair in enumerate(spectrum_inchikey_ids_batch):
             for i_pair, spectrum_inchikey_id in enumerate(pair):
-                idx, values = self._data_augmentation(self.spectrums_binned[spectrum_inchikey_id[0]].peaks)
+                idx, values = self._data_augmentation(self.spectrums_binned[spectrum_inchikey_id[0]].binned_peaks)
                 X[i_pair][i_batch, idx] = values
 
             y[i_batch] = self.score_array[pair[0][1], pair[1][1]]
@@ -410,7 +410,7 @@ class DataGeneratorAllInchikeys(DataGeneratorAllSpectrums):
             for i_pair, inchikey_id in enumerate(pair):
                 inchikey = self.inchikey_score_mapping[inchikey_id]
                 spectrum_id = np.random.choice(np.where(self.inchikeys_all == inchikey)[0])
-                idx, values = self._data_augmentation(self.spectrums_binned[spectrum_id].peaks)
+                idx, values = self._data_augmentation(self.spectrums_binned[spectrum_id].binned_peaks)
                 X[i_pair][i_batch, idx] = values
 
             y[i_batch] = self.score_array[pair[0], pair[1]]
