@@ -24,8 +24,7 @@ def load_process_spectrums():
         s = require_minimum_number_of_peaks(s, n_required=5)
         return s
 
-    #module_root = os.path.join(os.path.dirname(__file__), "..")
-    module_root = 'C:\\OneDrive - Netherlands eScience Center\\Project_Wageningen_iOMEGA\\ms2deepscore\\'
+    module_root = os.path.join(os.path.dirname(__file__), "..")
     spectrums_file = os.path.join(module_root, "integration-test", "pesticides.mgf")
 
     # apply my filters to the data
