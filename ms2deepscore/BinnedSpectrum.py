@@ -1,7 +1,7 @@
 class BinnedSpectrum:
     """Binned spectrum for use with MS2DeepScore."""
     def __init__(self, binned_peaks: dict, metadata: dict):
-        self.peaks = binned_peaks
+        self.binned_peaks = binned_peaks
         self._metadata = metadata
 
     def __eq__(self, other):
