@@ -2,11 +2,11 @@ import os
 import numpy as np
 import pandas as pd
 import pytest
+from tensorflow import keras
 from matchms import calculate_scores
-
 from matchms.importing import load_from_mgf
-
 from matchms import Spectrum
+
 from ms2deepscore import SpectrumBinner
 from ms2deepscore.data_generators import DataGeneratorAllSpectrums
 from ms2deepscore.models import SiameseModel
