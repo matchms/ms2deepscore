@@ -67,18 +67,20 @@ class DataGeneratorAllSpectrums(Sequence):
         """
         assert score_array.shape[0] == score_array.shape[1] == len(inchikey_score_mapping), \
             f"Expected score_array of size {len(inchikey_score_mapping)}x{len(inchikey_score_mapping)}."
+
+        # Set all other settings to input (or otherwise to defaults):
+        self._set_generator_parameters(**settings)
+
         self.spectrums_binned = spectrums_binned
         self.score_array = score_array
         #self.score_array[np.isnan(score_array)] = 0
         self.spectrum_ids = spectrum_ids
         self.inchikey_ids = self._exclude_nans(np.arange(score_array.shape[0]))
+        assert isinstance(inchikey_score_mapping, np.ndarray), "Expect inchikey_score_mapping to be numpy array."
         self.inchikey_score_mapping = inchikey_score_mapping
         self.inchikeys_all = np.array([x.get("inchikey") for x in spectrums_binned])
         # TODO: add check if all inchikeys are present (should fail for missing ones)
         self.dim = dim
-
-        # Set all other settings to input (or otherwise to defaults):
-        self._set_generator_parameters(**settings)
 
         self.on_epoch_end()
 
@@ -139,7 +141,7 @@ class DataGeneratorAllSpectrums(Sequence):
         """Denotes the number of batches per epoch"""
         # TODO: this means we don't see all data every epoch, because the last half-empty batch
         #  is omitted. I guess that is expected behavior? --> Yes, with the shuffling in each epoch that seem OK to me (and makes the code easier).
-        return int(self.num_turns) * int(np.floor(len(self.spectrum_ids) / self.settings["batch_size"]))
+        return int(self.settings["num_turns"]) * int(np.floor(len(self.spectrum_ids) / self.settings["batch_size"]))
 
     def __getitem__(self, index):
         """Generate one batch of data"""
@@ -197,7 +199,6 @@ class DataGeneratorAllSpectrums(Sequence):
         extend_range = 0
         low, high = target_score_range
         while extend_range < max_range:
-            print(inchikey_id1)
             idx = np.where((self.score_array[inchikey_id1, self.inchikey_ids] > low - extend_range)
                            & (self.score_array[inchikey_id1, self.inchikey_ids] <= high + extend_range))[0]
             if self.settings["ignore_equal_pairs"]:
