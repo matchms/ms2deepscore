@@ -28,7 +28,6 @@ def test_siamese_model():
                          dropout_rate=0.2)
     model.compile(loss='mse', optimizer=keras.optimizers.Adam(lr=0.001))
     model.summary()
-    x, y = zip(*test_generator)
-    model.fit(x=x, y=y,
-              validation_data=(x, y),
+    model.fit(test_generator,
+              validation_data=test_generator,
               epochs=2)
