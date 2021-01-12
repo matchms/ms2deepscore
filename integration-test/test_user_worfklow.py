@@ -9,6 +9,7 @@ from matchms.importing import load_from_mgf
 from matchms import Spectrum
 from ms2deepscore import SpectrumBinner
 from ms2deepscore.data_generators import DataGeneratorAllSpectrums
+from ms2deepscore.models import SiameseModel
 
 
 def load_process_spectrums():
@@ -27,7 +28,7 @@ def get_reference_scores():
 
 
 def test_user_workflow():
-    """Test if a typical user workflow."""
+    """Test a typical user workflow."""
 
     # Load and process spectrums
     spectrums = load_process_spectrums()
@@ -58,7 +59,6 @@ def test_user_workflow():
                          dropout_rate=0.2)
     model.compile(loss='mse', optimizer=keras.optimizers.Adam(lr=0.001))
     model.summary()
-    #x, y = zip(*test_generator)
     model.fit(test_generator,
               validation_data=test_generator,
               epochs=2)
