@@ -29,3 +29,7 @@ def test_siamese_model():
     model.fit(test_generator,
               validation_data=test_generator,
               epochs=2)
+    assert len(model.model.layers) == 4, "Expected different number of layers"
+    assert len(model.model.layers[2].layers) == len(model.base.layers) == 11, \
+        "Expected different number of layers"
+    assert model.model.input_shape == [(None, 101), (None, 101)], "Expected different input shape"
