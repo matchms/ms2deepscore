@@ -33,3 +33,11 @@ def test_siamese_model():
     assert len(model.model.layers[2].layers) == len(model.base.layers) == 11, \
         "Expected different number of layers"
     assert model.model.input_shape == [(None, 101), (None, 101)], "Expected different input shape"
+
+    # Test base model inference
+    X, y = test_generator.__getitem__(0)
+    embeddings = model.base.predict(X[0])
+    assert isinstance(embeddings, np.ndarray), "Expected numpy array"
+    assert embeddings.shape[0] == test_generator.batch_size == 32, "Expected different batch size"
+    assert embeddings.shape[1] == model.base.output_shape[1] == 200, \
+        "Expected different embedding size"
