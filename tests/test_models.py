@@ -15,11 +15,9 @@ def get_test_generator():
     inchikey_ids = list(np.arange(0, 80))
 
     # Create generator
-    test_generator = DataGeneratorAllInchikeys(spectrums_binned, score_array, inchikey_ids,
-                                               inchikey_score_mapping,
-                                               dim=dimension,
-                                               same_prob_bins=same_prob_bins)
-    return test_generator
+    return DataGeneratorAllInchikeys(spectrums_binned, score_array, inchikey_ids,
+                                     inchikey_score_mapping,
+                                     dim=dimension, same_prob_bins=same_prob_bins)
 
 
 def test_siamese_model():
@@ -33,12 +31,15 @@ def test_siamese_model():
               validation_data=test_generator,
               epochs=2)
     assert len(model.model.layers) == 4, "Expected different number of layers"
-    assert len(model.model.layers[2].layers) == 11, "Expected different number of layers"
+    assert len(model.model.layers[2].layers) == len(model.base.layers) == 11, \
+        "Expected different number of layers"
     assert model.model.input_shape == [(None, 101), (None, 101)], "Expected different input shape"
 
-    # Test base model ("encoder")
+    # Test base model inference
     X, y = test_generator.__getitem__(0)
     embeddings = model.base.predict(X[0])
     assert isinstance(embeddings, np.ndarray), "Expected numpy array"
-    assert embeddings.shape[0] == test_generator.settings["batch_size"] == 32, "Expected different batch size"
-    assert embeddings.shape[1] == model.base.output_shape[1] == 200, "Expected different embedding size"
+    assert embeddings.shape[0] == test_generator.settings["batch_size"] == 32, \
+        "Expected different batch size"
+    assert embeddings.shape[1] == model.base.output_shape[1] == 200, \
+        "Expected different embedding size"
