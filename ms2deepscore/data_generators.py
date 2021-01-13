@@ -12,7 +12,6 @@ np.random.seed(42)
 
 class DataGeneratorAllSpectrums(Sequence):
     """Generates data for training a siamese Keras model
-
     This generator will provide training data by picking each training spectrum
     listed in *spectrum_ids* num_turns times in every epoch and pairing it with a randomly chosen
     other spectrum that corresponds to a reference score as defined in same_prob_bins.
@@ -21,7 +20,6 @@ class DataGeneratorAllSpectrums(Sequence):
                  score_array: np.ndarray, inchikey_score_mapping: np.ndarray,
                  dim: int, **settings):
         """Generates data for training a siamese Keras model.
-
         Parameters
         ----------
         spectrums_binned
@@ -37,7 +35,6 @@ class DataGeneratorAllSpectrums(Sequence):
             in scores_array.
         dim
             Input vector dimension.
-
         As part of **settings, defaults for the following parameters can be set:
         batch_size
             Number of pairs per batch. Default=32.
@@ -63,29 +60,29 @@ class DataGeneratorAllSpectrums(Sequence):
             Change peak intensities by a random number between 0 and augment_intensity.
             Default=0.1, which means that intensities are multiplied by 1+- a random
             number within [0, 0.1].
-
         """
         assert score_array.shape[0] == score_array.shape[1] == len(inchikey_score_mapping), \
             f"Expected score_array of size {len(inchikey_score_mapping)}x{len(inchikey_score_mapping)}."
+
+        # Set all other settings to input (or otherwise to defaults):
+        self._set_generator_parameters(**settings)
+
         self.spectrums_binned = spectrums_binned
         self.score_array = score_array
         #self.score_array[np.isnan(score_array)] = 0
         self.spectrum_ids = spectrum_ids
         self.inchikey_ids = self._exclude_nans(np.arange(score_array.shape[0]))
+        assert isinstance(inchikey_score_mapping, np.ndarray), "Expect inchikey_score_mapping to be numpy array."
         self.inchikey_score_mapping = inchikey_score_mapping
         self.inchikeys_all = np.array([x.get("inchikey") for x in spectrums_binned])
         # TODO: add check if all inchikeys are present (should fail for missing ones)
         self.dim = dim
-
-        # Set all other settings to input (or otherwise to defaults):
-        self._set_generator_parameters(**settings)
 
         self.on_epoch_end()
 
     def _set_generator_parameters(self, **settings):
         """Set parameter for data generator. Use below listed defaults unless other
         input is provided.
-
         Parameters
         ----------
         batch_size
@@ -139,7 +136,7 @@ class DataGeneratorAllSpectrums(Sequence):
         """Denotes the number of batches per epoch"""
         # TODO: this means we don't see all data every epoch, because the last half-empty batch
         #  is omitted. I guess that is expected behavior? --> Yes, with the shuffling in each epoch that seem OK to me (and makes the code easier).
-        return int(self.num_turns) * int(np.floor(len(self.spectrum_ids) / self.settings["batch_size"]))
+        return int(self.settings["num_turns"]) * int(np.floor(len(self.spectrum_ids) / self.settings["batch_size"]))
 
     def __getitem__(self, index):
         """Generate one batch of data"""
@@ -185,7 +182,6 @@ class DataGeneratorAllSpectrums(Sequence):
         target_score_range. When no such score exists, iteratively widen the range
         in steps of 0.1 until a max of max_range. If still no match is found take
         a random ID.
-
         Parameters
         ----------
         inchikey_id1
@@ -197,7 +193,6 @@ class DataGeneratorAllSpectrums(Sequence):
         extend_range = 0
         low, high = target_score_range
         while extend_range < max_range:
-            print(inchikey_id1)
             idx = np.where((self.score_array[inchikey_id1, self.inchikey_ids] > low - extend_range)
                            & (self.score_array[inchikey_id1, self.inchikey_ids] <= high + extend_range))[0]
             if self.settings["ignore_equal_pairs"]:
@@ -218,7 +213,6 @@ class DataGeneratorAllSpectrums(Sequence):
 
     def _data_augmentation(self, spectrum_binned):
         """Data augmentation.
-
         Parameters
         ----------
         spectrum_binned
@@ -261,7 +255,6 @@ class DataGeneratorAllSpectrums(Sequence):
 
 class DataGeneratorAllInchikeys(DataGeneratorAllSpectrums):
     """Generates data for training a siamese Keras model
-
     This generator will provide training data by picking each training InchiKey
     listed in *inchikey_ids* num_turns times in every epoch. It will then randomly
     pick one the spectra corresponding to this InchiKey (if multiple) and pair it
@@ -272,7 +265,6 @@ class DataGeneratorAllInchikeys(DataGeneratorAllSpectrums):
                  inchikey_ids: list, inchikey_score_mapping: np.ndarray,
                  dim: int, **settings):
         """Generates data for training a siamese Keras model.
-
         Parameters
         ----------
         spectrums_binned
@@ -288,7 +280,6 @@ class DataGeneratorAllInchikeys(DataGeneratorAllSpectrums):
             in scores_array.
         dim
             Input vector dimension.
-
         As part of **settings, defaults for the following parameters can be set:
         batch_size
             Number of pairs per batch. Default=32.
@@ -314,7 +305,6 @@ class DataGeneratorAllInchikeys(DataGeneratorAllSpectrums):
             Change peak intensities by a random number between 0 and augment_intensity.
             Default=0.1, which means that intensities are multiplied by 1+- a random
             number within [0, 0.1].
-
         """
         assert score_array.shape[0] == score_array.shape[1] == len(inchikey_score_mapping), \
             f"Expected score_array of size {len(inchikey_score_mapping)}x{len(inchikey_score_mapping)}."
@@ -369,7 +359,6 @@ class DataGeneratorAllInchikeys(DataGeneratorAllSpectrums):
         target_score_range. When no such score exists, iteratively widen the range
         in steps of 0.1 until a max of max_range. If still no match is found take
         a random ID.
-
         Parameters
         ----------
         inchikey_id1
