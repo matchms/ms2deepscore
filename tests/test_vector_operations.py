@@ -1,5 +1,4 @@
 import os
-import gensim
 import numpy
 import pytest
 from matchms import Spectrum
