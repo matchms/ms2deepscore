@@ -63,7 +63,7 @@ def test_user_workflow():
     model.fit(test_generator,
               validation_data=test_generator,
               epochs=2)
-    assert len(model.model.layers[2].layers) == len(model.base.layers) == 1, \
+    assert len(model.model.layers[2].layers) == len(model.base.layers) == 11, \
         "Expected different number of layers"
 
     # or: load model
