@@ -316,6 +316,7 @@ class DataGeneratorAllInchikeys(DataGeneratorAllSpectrums):
         self.spectrums_binned = spectrums_binned
         self.score_array = score_array
         self.inchikey_ids = self._exclude_nans(inchikey_ids)
+        assert isinstance(inchikey_score_mapping, np.ndarray), "Expect inchikey_score_mapping to be numpy array."
         self.inchikey_score_mapping = inchikey_score_mapping
         self.inchikeys_all = np.array([x.get("inchikey") for x in spectrums_binned])
         # TODO: add check if all inchikeys are present (should fail for missing ones)
