@@ -28,20 +28,21 @@ def get_reference_scores():
 
 
 def test_user_workflow():
-    """Test a typical user workflow."""
+    """Test a typical user workflow from a mgf file to MS2DeepScore similarities."""
 
-    # Load and process spectrums
+    # Load processed spectrums and reference scores (Tanimoto scores)
     spectrums = load_process_spectrums()
+    score_array, inchikey_mapping = get_reference_scores()
+    # quick checks:
     assert spectrums[1].get("inchikey") == 'BBXXLROWFHWFQY-UHFFFAOYSA-N', \
         "Expected different metadata/spectrum"
+    assert score_array.shape == (45, 45), "Expected different shape for score array"
 
     # Create binned spectrums
     ms2ds_binner = SpectrumBinner(1000, mz_min=10.0, mz_max=1000.0, peak_scaling=0.5)
     spectrums_binned = ms2ds_binner.fit_transform(spectrums)
-
+    assert ms2ds_binner.d_bins == 0.99, "Expected differnt bin size"
     assert len(ms2ds_binner.known_bins) == 543, "Expected differnt number of known binned peaks"
-
-    score_array, inchikey_mapping = get_reference_scores()
 
     # train model
     dimension = len(ms2ds_binner.known_bins)
@@ -54,7 +55,7 @@ def test_user_workflow():
                                                dim=dimension,
                                                same_prob_bins=same_prob_bins)
 
-    # Create Siamese model
+    # Create (and train) a Siamese model
     model = SiameseModel(input_dim=dimension, base_dims=(200, 200, 200), embedding_dim=200,
                          dropout_rate=0.2)
     model.compile(loss='mse', optimizer=keras.optimizers.Adam(lr=0.001))
@@ -62,7 +63,8 @@ def test_user_workflow():
     model.fit(test_generator,
               validation_data=test_generator,
               epochs=2)
-
+    assert len(model.model.layers[2].layers) == len(model.base.layers) == 1, \
+        "Expected different number of layers"
 
     # or: load model
 
