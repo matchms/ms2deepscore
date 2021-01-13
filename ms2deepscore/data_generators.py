@@ -83,6 +83,7 @@ class DataGeneratorAllSpectrums(Sequence):
     def _set_generator_parameters(self, **settings):
         """Set parameter for data generator. Use below listed defaults unless other
         input is provided.
+
         Parameters
         ----------
         batch_size
@@ -308,6 +309,10 @@ class DataGeneratorAllInchikeys(DataGeneratorAllSpectrums):
         """
         assert score_array.shape[0] == score_array.shape[1] == len(inchikey_score_mapping), \
             f"Expected score_array of size {len(inchikey_score_mapping)}x{len(inchikey_score_mapping)}."
+
+        # Set all other settings to input (or otherwise to defaults):
+        self._set_generator_parameters(**settings)
+
         self.spectrums_binned = spectrums_binned
         self.score_array = score_array
         self.inchikey_ids = self._exclude_nans(inchikey_ids)
@@ -318,6 +323,59 @@ class DataGeneratorAllInchikeys(DataGeneratorAllSpectrums):
 
         self._set_generator_parameters(**settings)
         self.on_epoch_end()
+
+    def _set_generator_parameters(self, **settings):
+        """Set parameter for data generator. Use below listed defaults unless other
+        input is provided.
+
+        Parameters
+        ----------
+        batch_size
+            Number of pairs per batch. Default=32.
+        num_turns
+            Number of pairs for each InChiKey during each epoch. Default=1
+        shuffle
+            Set to True to shuffle IDs every epoch. Default=True
+        ignore_equal_pairs
+            Set to True to ignore pairs of two identical spectra. Default=True
+        same_prob_bins
+            List of tuples that define ranges of the true label to be trained with
+            equal frequencies. Default is set to [(0, 0.5), (0.5, 1)], which means
+            that pairs with scores <=0.5 will be picked as often as pairs with scores
+            > 0.5.
+        augment_removal_max
+            Maximum fraction of peaks (if intensity < below augment_removal_intensity)
+            to be removed randomly. Default is set to 0.2, which means that between
+            0 and 20% of all peaks with intensities < augment_removal_intensity
+            will be removed.
+        augment_removal_intensity
+            Specifying that only peaks with intensities < max_intensity will be removed.
+        augment_intensity
+            Change peak intensities by a random number between 0 and augment_intensity.
+            Default=0.1, which means that intensities are multiplied by 1+- a random
+            number within [0, 0.1].
+        """
+        defaults = dict(
+            batch_size=32,
+            num_turns=1,
+            ignore_equal_pairs=True,
+            shuffle=True,
+            same_prob_bins=[(0, 0.5), (0.5, 1)],
+            augment_removal_max= 0.3,
+            augment_removal_intensity=0.2,
+            augment_intensity=0.4,
+        )
+
+        # Set default parameters or replace by **settings input
+        for key in defaults:
+            if key in settings:
+                print("The value for {} is set from {} (default) to {}".format(key, defaults[key],
+                                                                              settings[key]))
+            else:
+                settings[key] = defaults[key]
+        assert 0.0 <= settings["augment_removal_max"] <= 1.0, "Expected value within [0,1]"
+        assert 0.0 <= settings["augment_removal_intensity"] <= 1.0, "Expected value within [0,1]"
+        self.settings = settings
 
     def __len__(self):
         """Denotes the number of batches per epoch"""
