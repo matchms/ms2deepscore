@@ -48,6 +48,8 @@ def test_DataGeneratorAllInchikeys():
     A, B = test_generator.__getitem__(0)
     assert A[0].shape == A[1].shape == (10, 101), "Expected different data shape"
     assert B.shape[0] == 10, "Expected different label shape."
+    assert test_generator.settings["num_turns"] == 1, "Expected different default."
+    assert test_generator.settings["augment_intensity"] == 0.0, "Expected changed value."
 
 
 def test_DataGeneratorAllSpectrums():
@@ -73,6 +75,8 @@ def test_DataGeneratorAllSpectrums():
     A, B = test_generator.__getitem__(0)
     assert A[0].shape == A[1].shape == (10, 101), "Expected different data shape"
     assert B.shape[0] == 10, "Expected different label shape."
+    assert test_generator.settings["num_turns"] == 1, "Expected different default."
+    assert test_generator.settings["augment_intensity"] == 0.0, "Expected changed value."
 
 
 def test_DataGeneratorAllSpectrums_asymmetric_label_input():

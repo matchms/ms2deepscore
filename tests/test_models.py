@@ -39,7 +39,7 @@ def test_siamese_model():
     X, y = test_generator.__getitem__(0)
     embeddings = model.base.predict(X[0])
     assert isinstance(embeddings, np.ndarray), "Expected numpy array"
-    assert embeddings.shape[0] == test_generator.settings['batch_size'] == 32,\
+    assert embeddings.shape[0] == test_generator.settings["batch_size"] == 32, \
         "Expected different batch size"
     assert embeddings.shape[1] == model.base.output_shape[1] == 200, \
         "Expected different embedding size"
