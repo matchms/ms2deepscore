@@ -238,14 +238,14 @@ class DataGeneratorAllSpectrums(Sequence):
             values = (1 - self.settings["augment_intensity"] * 2 * (np.random.random(values.shape) - 0.5)) * values
         return idx, values
 
-    def __data_generation(self, spectrum_inchikey_ids_batch):
+    def __data_generation(self, spectrum_inchikeys_batch):
         """Generates data containing batch_size samples"""
         # Initialization
         X = [np.zeros((self.settings["batch_size"], self.dim)) for i in range(2)]
         y = np.zeros((self.settings["batch_size"],))
 
         # Generate data
-        for i_batch, pair in enumerate(spectrum_inchikey_ids_batch):
+        for i_batch, pair in enumerate(spectrum_inchikeys_batch):
             for i_pair, spectrum_inchikey in enumerate(pair):
                 idx, values = self._data_augmentation(self.spectrums_binned[spectrum_inchikey[0]].binned_peaks)
                 X[i_pair][i_batch, idx] = values
