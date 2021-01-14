@@ -168,7 +168,7 @@ class DataGeneratorAllSpectrums(Sequence):
 
     @staticmethod
     def _exclude_nans_from_labels(labels_df: pd.DataFrame):
-        """Exclude nans in tanimoto score labels, exclude columns and rows if there is any NaN
+        """Exclude nans in labels_df, exclude columns and rows if there is any NaN
         value"""
         clean_df = labels_df.dropna(axis='rows')  # drop rows with any NaN
         clean_df = clean_df[clean_df.index]  # drop corresponding columns
@@ -258,7 +258,7 @@ class DataGeneratorAllSpectrums(Sequence):
 class DataGeneratorAllInchikeys(DataGeneratorAllSpectrums):
     """Generates data for training a siamese Keras model
     This generator will provide training data by picking each training InchiKey
-    listed in *inchikeys* num_turns times in every epoch. It will then randomly
+    listed in *selected_inchikeys* num_turns times in every epoch. It will then randomly
     pick one the spectra corresponding to this InchiKey (if multiple) and pair it
     with a randomly chosen other spectrum that corresponds to a reference score
     as defined in same_prob_bins.
