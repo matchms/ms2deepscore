@@ -2,6 +2,7 @@ import os
 import numpy
 import pytest
 from ms2deepscore import MS2DeepScore
+from ms2deepscore.models import SiameseModel
 from tests.test_data_generators import create_test_data
 from tests.test_models import get_test_generator
 
