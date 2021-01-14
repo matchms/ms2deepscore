@@ -3,7 +3,6 @@ import os
 
 import numpy as np
 import pandas as pd
-import pytest
 
 from ms2deepscore import BinnedSpectrum
 from ms2deepscore.data_generators import DataGeneratorAllInchikeys
@@ -21,8 +20,8 @@ def create_test_data():
         spectrums_binned.append(BinnedSpectrum(binned_peaks=peaks_dict,
                                                metadata={"inchikey": inchikeys_array[i]}))
 
-    tanimoto_scores_df = pd.read_csv(os.path.join(path_tests, 'resources/testdata_tanimoto_scores.csv'),
-                                                index_col=0)
+    tanimoto_scores_df = pd.read_csv(os.path.join(path_tests, 'testdata_tanimoto_scores.csv'),
+                                     index_col=0)
     return spectrums_binned, tanimoto_scores_df
 
 
