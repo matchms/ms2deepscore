@@ -18,8 +18,7 @@ class DataGeneratorAllSpectrums(Sequence):
     other spectrum that corresponds to a reference score as defined in same_prob_bins.
     """
     def __init__(self, spectrums_binned: List[BinnedSpectrum], spectrum_ids: list,
-                 score_array: np.ndarray, inchikey_score_mapping: np.ndarray,
-                 dim: int, **settings):
+                 labels_df: pd.DataFrame, dim: int, **settings):
         """Generates data for training a siamese Keras model.
 
         Parameters
@@ -28,13 +27,11 @@ class DataGeneratorAllSpectrums(Sequence):
             List of BinnedSpectrum objects with the binned peak positions and intensities.
         spectrum_ids
             List of IDs from spectrums_binned to use for training.
-        score_array
-            2D-array of reference similarity scores (=labels).
-            Must be symmetric (score_array[i,j] == score_array[j,i]) and in the
-            same order as inchikey_score_mapping.
-        inchikey_score_mapping
-            Array of all unique inchikeys. Must be in the same order as the scores
-            in scores_array.
+        labels_df
+            Pandas DataFrame with reference similarity scores (=labels) for compounds identified
+            by inchikeys. Columns and index should be inchikeys, the value in a row x column
+            depicting the similarity score for that pair. Must be symmetric
+            (labels_df[i,j] == labels_df[j,i]) and column names should be identical to the index.
         dim
             Input vector dimension.
 
@@ -65,14 +62,9 @@ class DataGeneratorAllSpectrums(Sequence):
             number within [0, 0.1].
 
         """
-        assert score_array.shape[0] == score_array.shape[1] == len(inchikey_score_mapping), \
-            f"Expected score_array of size {len(inchikey_score_mapping)}x{len(inchikey_score_mapping)}."
         self.spectrums_binned = spectrums_binned
-        self.score_array = score_array
-        #self.score_array[np.isnan(score_array)] = 0
         self.spectrum_ids = spectrum_ids
-        self.inchikey_ids = self._exclude_nans(np.arange(score_array.shape[0]))
-        self.inchikey_score_mapping = inchikey_score_mapping
+        self.labels_df = self._exclude_nans_from_labels(labels_df)
         self.inchikeys_all = np.array([x.get("inchikey") for x in spectrums_binned])
         # TODO: add check if all inchikeys are present (should fail for missing ones)
         self.dim = dim
@@ -148,22 +140,21 @@ class DataGeneratorAllSpectrums(Sequence):
 
         # Select subset of IDs
         # TODO: Filter out function: select_batch_ids
-        spectrum_inchikey_ids_batch = []
+        spectrum_inchikeys_batch = []
         same_prob_bins = self.settings["same_prob_bins"]
         for index in indexes_spectrums:
             spectrum_id1 = self.spectrum_ids[index]
-            inchikey_id1 = np.where(self.inchikey_score_mapping == self.inchikeys_all[spectrum_id1])[0]
+            inchikey1 = self.inchikeys_all[spectrum_id1]
 
             # Randomly pick the desired target score range and pick matching ID
             target_score_range = same_prob_bins[np.random.choice(np.arange(len(same_prob_bins)))]
-            inchikey_id2 = self.__find_match_in_range(inchikey_id1, target_score_range)
-            inchikey2 = self.inchikey_score_mapping[inchikey_id2]
+            inchikey2 = self._find_match_in_range(inchikey1, target_score_range)
             spectrum_id2 = np.random.choice(np.where(self.inchikeys_all == inchikey2)[0])
 
-            spectrum_inchikey_ids_batch.append([(spectrum_id1, inchikey_id1), (spectrum_id2, inchikey_id2)])
+            spectrum_inchikeys_batch.append([(spectrum_id1, inchikey1), (spectrum_id2, inchikey2)])
 
         # Generate data
-        X, y = self.__data_generation(spectrum_inchikey_ids_batch)
+        X, y = self.__data_generation(spectrum_inchikeys_batch)
 
         return X, y
 
@@ -173,14 +164,18 @@ class DataGeneratorAllSpectrums(Sequence):
         if self.settings["shuffle"] == True:
             np.random.shuffle(self.indexes)
 
-    def _exclude_nans(self, inchikey_ids):
-        """Find nans in labels and return list of IDs to be excluded."""
-        find_nans = np.where(np.isnan(self.score_array))[0]
-        if find_nans.shape[0] > 0:
-            print(f"{find_nans.shape[0]} nans among {len(self.y_true)} labels will be excluded.")
-        return [x for x in inchikey_ids if x not in list(find_nans)]
+    @staticmethod
+    def _exclude_nans_from_labels(labels_df: pd.DataFrame):
+        """Exclude nans in tanimoto score labels, exclude columns and rows if there is any NaN
+        value"""
+        clean_df = labels_df.dropna(axis='rows')  # drop rows with any NaN
+        clean_df = clean_df[clean_df.index]  # drop corresponding columns
+        n_dropped = len(labels_df) - len(clean_df)
+        if n_dropped > 0:
+            print(f"{n_dropped} nans among {len(labels_df)} labels will be excluded.")
+        return clean_df
 
-    def __find_match_in_range(self, inchikey_id1, target_score_range, max_range=0.4):
+    def _find_match_in_range(self, inchikey1, target_score_range, max_range=0.4):
         """Randomly pick ID for a pair with inchikey_id1 that has a score in
         target_score_range. When no such score exists, iteratively widen the range
         in steps of 0.1 until a max of max_range. If still no match is found take
@@ -188,33 +183,35 @@ class DataGeneratorAllSpectrums(Sequence):
 
         Parameters
         ----------
-        inchikey_id1
-            ID of inchikey to be paired up with another compound within target_score_range.
+        inchikey1
+            Inchikey to be paired up with another compound within target_score_range.
         target_score_range
             lower and upper bound of label (score) to find an ID of.
         """
         # Part 1 - find match within range (or expand range iteratively)
         extend_range = 0
         low, high = target_score_range
+        inchikey2 = None
         while extend_range < max_range:
-            print(inchikey_id1)
-            idx = np.where((self.score_array[inchikey_id1, self.inchikey_ids] > low - extend_range)
-                           & (self.score_array[inchikey_id1, self.inchikey_ids] <= high + extend_range))[0]
+            print(inchikey1)
+            matching_inchikeys = self.labels_df.index[
+                (self.labels_df[inchikey1] > low - extend_range)
+                & (self.labels_df[inchikey1] <= high + extend_range)]
             if self.settings["ignore_equal_pairs"]:
-                idx = idx[idx != inchikey_id1]
-            if len(idx) > 0:
-                inchikey_id2 = self.inchikey_ids[np.random.choice(idx)]
+                matching_inchikeys = matching_inchikeys[matching_inchikeys != inchikey1]
+            if len(matching_inchikeys) > 0:
+                inchikey2 = np.random.choice(matching_inchikeys)
                 break
             extend_range += 0.1
 
-        # Part 2 - if still no match is found take the 2nd-highest score ID
-        if len(idx) == 0:
-            second_highest_id = self.score_array[inchikey_id1, np.array([x for x in self.inchikey_ids if x != inchikey_id1])].argmax()
-            if second_highest_id > inchikey_id1:
-                second_highest_id += 1
-            inchikey_id2 = self.inchikey_ids[second_highest_id]
+        # Part 2 - if still no match is found take the inchikey that has highest similarity score
+        # with inchikey1
+        # TODO: Why are we taking the highest score here? Shouldn't we take the one that is closest
+        #  to the center of the bin?
+        if not inchikey2:
+            inchikey2 = self.labels_df[inchikey1][self.labels_df.index != inchikey1].idxmax()
 
-        return inchikey_id2
+        return inchikey2
 
     def _data_augmentation(self, spectrum_binned):
         """Data augmentation.
@@ -250,11 +247,11 @@ class DataGeneratorAllSpectrums(Sequence):
 
         # Generate data
         for i_batch, pair in enumerate(spectrum_inchikey_ids_batch):
-            for i_pair, spectrum_inchikey_id in enumerate(pair):
-                idx, values = self._data_augmentation(self.spectrums_binned[spectrum_inchikey_id[0]].binned_peaks)
+            for i_pair, spectrum_inchikey in enumerate(pair):
+                idx, values = self._data_augmentation(self.spectrums_binned[spectrum_inchikey[0]].binned_peaks)
                 X[i_pair][i_batch, idx] = values
 
-            y[i_batch] = self.score_array[pair[0][1], pair[1][1]]
+            y[i_batch] = self.labels_df[pair[0][1]][pair[1][1]]
 
         return X, y
 
@@ -263,29 +260,26 @@ class DataGeneratorAllInchikeys(DataGeneratorAllSpectrums):
     """Generates data for training a siamese Keras model
 
     This generator will provide training data by picking each training InchiKey
-    listed in *inchikey_ids* num_turns times in every epoch. It will then randomly
+    listed in *inchikeys* num_turns times in every epoch. It will then randomly
     pick one the spectra corresponding to this InchiKey (if multiple) and pair it
     with a randomly chosen other spectrum that corresponds to a reference score
     as defined in same_prob_bins.
     """
-    def __init__(self, spectrums_binned: List[BinnedSpectrum], score_array: np.ndarray,
-                 inchikey_ids: list, inchikey_score_mapping: np.ndarray,
-                 dim: int, **settings):
+    def __init__(self, spectrums_binned: List[BinnedSpectrum], selected_inchikeys: list,
+                 labels_df: pd.DataFrame, dim: int, **settings):
         """Generates data for training a siamese Keras model.
 
         Parameters
         ----------
         spectrums_binned
             List of BinnedSpectrum objects with the binned peak positions and intensities.
-        score_array
-            2D-array of reference similarity scores (=labels).
-            Must be symmetric (score_array[i,j] == score_array[j,i]) and in the
-            same order as inchikey_score_mapping.
-        inchikey_ids
-            List of IDs from unique_inchikeys to use for training.
-        inchikey_score_mapping
-            Array of all unique inchikeys. Must be in the same order as the scores
-            in scores_array.
+        labels_df
+            Pandas DataFrame with reference similarity scores (=labels) for compounds identified
+            by inchikeys. Columns and index should be inchikeys, the value in a row x column
+            depicting the similarity score for that pair. Must be symmetric
+            (labels_df[i,j] == labels_df[j,i]) and column names should be identical to the index.
+        selected_inchikeys
+            List of inchikeys to use for training.
         dim
             Input vector dimension.
 
@@ -316,12 +310,10 @@ class DataGeneratorAllInchikeys(DataGeneratorAllSpectrums):
             number within [0, 0.1].
 
         """
-        assert score_array.shape[0] == score_array.shape[1] == len(inchikey_score_mapping), \
-            f"Expected score_array of size {len(inchikey_score_mapping)}x{len(inchikey_score_mapping)}."
         self.spectrums_binned = spectrums_binned
-        self.score_array = score_array
-        self.inchikey_ids = self._exclude_nans(inchikey_ids)
-        self.inchikey_score_mapping = inchikey_score_mapping
+        # TODO: use inchikeys to select labels
+        self.labels_df = self._exclude_nans_from_labels(labels_df)
+        self.labels_df = self._data_selection(labels_df, selected_inchikeys)
         self.inchikeys_all = np.array([x.get("inchikey") for x in spectrums_binned])
         # TODO: add check if all inchikeys are present (should fail for missing ones)
         self.dim = dim
@@ -333,71 +325,43 @@ class DataGeneratorAllInchikeys(DataGeneratorAllSpectrums):
         """Denotes the number of batches per epoch"""
         # TODO: this means we don't see all data every epoch, because the last half-empty batch
         #  is omitted. I guess that is expected behavior? --> Yes, with the shuffling in each epoch that seem OK to me (and makes the code easier).
-        return int(self.settings["num_turns"]) * int(np.floor(len(self.inchikey_ids) / self.settings["batch_size"]))
+        return int(self.settings["num_turns"]) * int(np.floor(len(self.labels_df) / self.settings[
+            "batch_size"]))
 
     def __getitem__(self, index):
         """Generate one batch of data"""
         # Go through all indexes
-        indexes_inchkeys = self.indexes[index*self.settings["batch_size"]:(index+1)*self.settings["batch_size"]]
+        indexes_inchikeys = self.indexes[index*self.settings["batch_size"]:(index+1)*self.settings["batch_size"]]
 
         # Select subset of IDs
         # TODO: Filter out function: select_batch_ids
-        inchikey_ids_batch = []
+        inchikeys_batch = []
         same_prob_bins = self.settings["same_prob_bins"]
-        for index in indexes_inchkeys:
-            inchikey_id1 = self.inchikey_ids[index]
-
+        for index in indexes_inchikeys:
+            inchikey1 = self.labels_df.index[index]
             # Randomly pick the desired target score range and pick matching ID
             target_score_range = same_prob_bins[np.random.choice(np.arange(len(same_prob_bins)))]
-            inchikey_id2 = self.__find_match_in_range(inchikey_id1, target_score_range)
+            inchikey2 = self._find_match_in_range(inchikey1, target_score_range)
 
-            inchikey_ids_batch.append((inchikey_id1, inchikey_id2))
+            inchikeys_batch.append((inchikey1, inchikey2))
 
         # Generate data
-        X, y = self.__data_generation(inchikey_ids_batch)
+        X, y = self.__data_generation(inchikeys_batch)
 
         return X, y
 
+    @staticmethod
+    def _data_selection(labels_df, selected_inchikeys):
+        """
+        Select labeled data to generate from based on `selected_inchikeys`
+        """
+        return labels_df.loc[selected_inchikeys, selected_inchikeys]
+
     def on_epoch_end(self):
         """Updates indexes after each epoch"""
-        self.indexes = np.tile(np.arange(len(self.inchikey_ids)), int(self.settings["num_turns"]))
+        self.indexes = np.tile(np.arange(len(self.labels_df)), int(self.settings["num_turns"]))
         if self.settings["shuffle"] == True:
             np.random.shuffle(self.indexes)
-
-    def __find_match_in_range(self, inchikey_id1, target_score_range, max_range=0.4):
-        """Randomly pick ID for a pair with inchikey_id1 that has a score in
-        target_score_range. When no such score exists, iteratively widen the range
-        in steps of 0.1 until a max of max_range. If still no match is found take
-        a random ID.
-
-        Parameters
-        ----------
-        inchikey_id1
-            ID of inchikey to be paired up with another compound within target_score_range.
-        target_score_range
-            lower and upper bound of label (score) to find an ID of.
-        """
-        # Part 1 - find match within range (or expand range iteratively)
-        extend_range = 0
-        low, high = target_score_range
-        while extend_range < max_range:
-            idx = np.where((self.score_array[inchikey_id1, self.inchikey_ids] > low - extend_range)
-                           & (self.score_array[inchikey_id1, self.inchikey_ids] <= high + extend_range))[0]
-            if self.settings["ignore_equal_pairs"]:
-                idx = idx[idx != inchikey_id1]
-            if len(idx) > 0:
-                inchikey_id2 = self.inchikey_ids[np.random.choice(idx)]
-                break
-            extend_range += 0.1
-
-        # Part 2 - if still no match is found take the 2nd-highest score ID
-        if len(idx) == 0:
-            second_highest_id = self.score_array[inchikey_id1, np.array([x for x in self.inchikey_ids if x != inchikey_id1])].argmax()
-            if second_highest_id > inchikey_id1:
-                second_highest_id += 1
-            inchikey_id2 = self.inchikey_ids[second_highest_id]
-
-        return inchikey_id2
 
     def __data_generation(self, inchikey_ids_batch):
         """Generates data containing batch_size samples"""
@@ -407,12 +371,11 @@ class DataGeneratorAllInchikeys(DataGeneratorAllSpectrums):
 
         # Generate data
         for i_batch, pair in enumerate(inchikey_ids_batch):
-            for i_pair, inchikey_id in enumerate(pair):
-                inchikey = self.inchikey_score_mapping[inchikey_id]
+            for i_pair, inchikey in enumerate(pair):
                 spectrum_id = np.random.choice(np.where(self.inchikeys_all == inchikey)[0])
                 idx, values = self._data_augmentation(self.spectrums_binned[spectrum_id].binned_peaks)
                 X[i_pair][i_batch, idx] = values
 
-            y[i_batch] = self.score_array[pair[0], pair[1]]
+            y[i_batch] = self.labels_df[pair[0]][pair[1]]
 
         return X, y
