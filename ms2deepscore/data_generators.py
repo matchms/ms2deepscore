@@ -11,13 +11,13 @@ np.random.seed(42)
 
 
 class DataGeneratorBase(Sequence):
-    def __init__(self, spectrums_binned: List[BinnedSpectrum],
+    def __init__(self, binned_spectrums: List[BinnedSpectrum],
                  labels_df: pd.DataFrame, dim: int, **settings):
         """Base for data generator generating data for a siamese model.
 
         Parameters
         ----------
-        spectrums_binned
+        binned_spectrums
             List of BinnedSpectrum objects with the binned peak positions and intensities.
         labels_df
             Pandas DataFrame with reference similarity scores (=labels) for compounds identified
@@ -57,9 +57,9 @@ class DataGeneratorBase(Sequence):
 
         # Set all other settings to input (or otherwise to defaults):
         self._set_generator_parameters(**settings)
-        self.spectrums_binned = spectrums_binned
+        self.binned_spectrums = binned_spectrums
         self.labels_df = self._exclude_nans_from_labels(labels_df)
-        self.inchikeys_all = np.array([x.get("inchikey") for x in spectrums_binned])
+        self.inchikeys_all = np.array([x.get("inchikey") for x in binned_spectrums])
         # TODO: add check if all inchikeys are present (should fail for missing ones)
         self.dim = dim
 
@@ -200,15 +200,15 @@ class DataGeneratorAllSpectrums(DataGeneratorBase):
     listed in *spectrum_ids* num_turns times in every epoch and pairing it with a randomly chosen
     other spectrum that corresponds to a reference score as defined in same_prob_bins.
     """
-    def __init__(self, spectrums_binned: List[BinnedSpectrum], spectrum_ids: list,
+    def __init__(self, binned_spectrums: List[BinnedSpectrum], spectrum_ids: list,
                  labels_df: pd.DataFrame, dim: int, **settings):
         """Generates data for training a siamese Keras model.
         Parameters
         ----------
-        spectrums_binned
+        binned_spectrums
             List of BinnedSpectrum objects with the binned peak positions and intensities.
         spectrum_ids
-            List of IDs from spectrums_binned to use for training.
+            List of IDs from binned_spectrums to use for training.
         labels_df
             Pandas DataFrame with reference similarity scores (=labels) for compounds identified
             by inchikeys. Columns and index should be inchikeys, the value in a row x column
@@ -242,7 +242,7 @@ class DataGeneratorAllSpectrums(DataGeneratorBase):
             Default=0.1, which means that intensities are multiplied by 1+- a random
             number within [0, 0.1].
         """
-        super().__init__(spectrums_binned, labels_df, dim, **settings)
+        super().__init__(binned_spectrums, labels_df, dim, **settings)
         self.spectrum_ids = spectrum_ids
         self.on_epoch_end()
 
@@ -303,7 +303,7 @@ class DataGeneratorAllSpectrums(DataGeneratorBase):
         # Generate data
         for i_batch, pair in enumerate(spectrum_inchikey_ids_batch):
             for i_pair, spectrum_inchikey in enumerate(pair):
-                idx, values = self._data_augmentation(self.spectrums_binned[spectrum_inchikey[0]].binned_peaks)
+                idx, values = self._data_augmentation(self.binned_spectrums[spectrum_inchikey[0]].binned_peaks)
                 X[i_pair][i_batch, idx] = values
 
             y[i_batch] = self.labels_df[pair[0][1]][pair[1][1]]
@@ -319,12 +319,12 @@ class DataGeneratorAllInchikeys(DataGeneratorBase):
     with a randomly chosen other spectrum that corresponds to a reference score
     as defined in same_prob_bins.
     """
-    def __init__(self, spectrums_binned: List[BinnedSpectrum], selected_inchikeys: list,
+    def __init__(self, binned_spectrums: List[BinnedSpectrum], selected_inchikeys: list,
                  labels_df: pd.DataFrame, dim: int, **settings):
         """Generates data for training a siamese Keras model.
         Parameters
         ----------
-        spectrums_binned
+        binned_spectrums
             List of BinnedSpectrum objects with the binned peak positions and intensities.
         labels_df
             Pandas DataFrame with reference similarity scores (=labels) for compounds identified
@@ -361,7 +361,7 @@ class DataGeneratorAllInchikeys(DataGeneratorBase):
             Default=0.1, which means that intensities are multiplied by 1+- a random
             number within [0, 0.1].
         """
-        super().__init__(spectrums_binned, labels_df, dim, **settings)
+        super().__init__(binned_spectrums, labels_df, dim, **settings)
         self.labels_df = self._data_selection(labels_df, selected_inchikeys)
         self.on_epoch_end()
 
@@ -417,7 +417,7 @@ class DataGeneratorAllInchikeys(DataGeneratorBase):
         for i_batch, pair in enumerate(inchikey_ids_batch):
             for i_pair, inchikey in enumerate(pair):
                 spectrum_id = np.random.choice(np.where(self.inchikeys_all == inchikey)[0])
-                idx, values = self._data_augmentation(self.spectrums_binned[spectrum_id].binned_peaks)
+                idx, values = self._data_augmentation(self.binned_spectrums[spectrum_id].binned_peaks)
                 X[i_pair][i_batch, idx] = values
 
             y[i_batch] = self.labels_df[pair[0]][pair[1]]
