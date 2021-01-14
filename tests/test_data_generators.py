@@ -1,26 +1,29 @@
-import os
 import json
+import os
+from pathlib import Path
+
 import numpy as np
 import pytest
-from matchms import Spectrum
+
 from ms2deepscore import BinnedSpectrum
 from ms2deepscore.data_generators import DataGeneratorAllInchikeys
 from ms2deepscore.data_generators import DataGeneratorAllSpectrums
-path_tests  = os.path.dirname(__file__)
+
+TEST_RESOURCES_PATH = Path(__file__).parent / 'resources'
 
 
 def create_test_data():
-    spectrums_binned_file = os.path.join(path_tests, "testdata_spectrums_binned.json")
+    spectrums_binned_file = TEST_RESOURCES_PATH / "testdata_spectrums_binned.json"
     with open(spectrums_binned_file, "r") as read_file:
         peaks_dicts = json.load(read_file)
-    inchikeys_array = np.load(os.path.join(path_tests, "testdata_inchikeys.npy"))
+    inchikeys_array = np.load(TEST_RESOURCES_PATH / "testdata_inchikeys.npy")
     spectrums_binned = []
     for i, peaks_dict in enumerate(peaks_dicts):
         spectrums_binned.append(BinnedSpectrum(binned_peaks=peaks_dict,
                                                metadata={"inchikey": inchikeys_array[i]}))
 
-    score_array = np.load(os.path.join(path_tests, "testdata_tanimoto_scores.npy"))
-    inchikey_score_mapping = np.load(os.path.join(path_tests, "testdata_inchikey_score_mapping.npy"),
+    score_array = np.load(TEST_RESOURCES_PATH / "testdata_tanimoto_scores.npy")
+    inchikey_score_mapping = np.load(TEST_RESOURCES_PATH / "testdata_inchikey_score_mapping.npy",
                                      allow_pickle=True)
     return spectrums_binned, score_array, inchikey_score_mapping
 
