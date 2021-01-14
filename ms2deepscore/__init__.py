@@ -1,6 +1,7 @@
 import logging
 from .__version__ import __version__
 from .BinnedSpectrum import BinnedSpectrum
+from .MS2DeepScore import MS2DeepScore
 from .SpectrumBinner import SpectrumBinner
 
 
@@ -10,5 +11,6 @@ __author__ = "Netherlands eScience Center"
 __all__ = [
     "__version__",
     "BinnedSpectrum",
+    "MS2DeepScore",
     "SpectrumBinner",
 ]
