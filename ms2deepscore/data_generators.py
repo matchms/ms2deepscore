@@ -211,7 +211,7 @@ class DataGeneratorBase(Sequence):
     def _get_spectrum_with_inchikey(self, inchikey: str) -> BinnedSpectrum:
         """
         Get a random spectrum matching the `inchikey` argument. NB: A compound (identified by an
-        in inchikey) can have multiple measured spectrums in a binned spectrum dataset.
+        inchikey) can have multiple measured spectrums in a binned spectrum dataset.
         """
         matching_spectrums = [spectrum for spectrum in self.binned_spectrums
                               if spectrum.get('inchikey') == inchikey]
