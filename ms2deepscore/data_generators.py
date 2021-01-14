@@ -62,6 +62,8 @@ class DataGeneratorAllSpectrums(Sequence):
             number within [0, 0.1].
 
         """
+        self._validate_labels(labels_df)
+
         self.spectrums_binned = spectrums_binned
         self.spectrum_ids = spectrum_ids
         self.labels_df = self._exclude_nans_from_labels(labels_df)
@@ -73,6 +75,11 @@ class DataGeneratorAllSpectrums(Sequence):
         self._set_generator_parameters(**settings)
 
         self.on_epoch_end()
+
+    @staticmethod
+    def _validate_labels(labels_df: pd.DataFrame):
+        if set(labels_df.index) != set(labels_df.columns):
+            raise ValueError(f'index and columns of labels_df are not identical')
 
     def _set_generator_parameters(self, **settings):
         """Set parameter for data generator. Use below listed defaults unless other
@@ -310,6 +317,7 @@ class DataGeneratorAllInchikeys(DataGeneratorAllSpectrums):
             number within [0, 0.1].
 
         """
+        self._validate_labels(labels_df)
         self.spectrums_binned = spectrums_binned
         # TODO: use inchikeys to select labels
         self.labels_df = self._exclude_nans_from_labels(labels_df)

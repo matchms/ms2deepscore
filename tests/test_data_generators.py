@@ -3,6 +3,7 @@ import os
 
 import numpy as np
 import pandas as pd
+import pytest
 
 from ms2deepscore import BinnedSpectrum
 from ms2deepscore.data_generators import DataGeneratorAllInchikeys
@@ -73,3 +74,14 @@ def test_DataGeneratorAllSpectrums():
     assert A[0].shape == A[1].shape == (10, 101), "Expected different data shape"
     assert B.shape[0] == 10, "Expected different label shape."
 
+
+def test_DataGeneratorAllSpectrums_asymmetric_label_input():
+    # Create generator
+    spectrums_binned, tanimoto_scores_df = create_test_data()
+    spectrum_ids = list(range(150))
+    asymmetric_labels_df = tanimoto_scores_df.iloc[:, 2:]
+    with pytest.raises(ValueError):
+        test_generator = DataGeneratorAllSpectrums(spectrums_binned=spectrums_binned,
+                                                   spectrum_ids=spectrum_ids,
+                                                   labels_df=asymmetric_labels_df,
+                                                   dim=101)
