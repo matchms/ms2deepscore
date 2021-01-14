@@ -8,15 +8,16 @@ from tests.test_data_generators import create_test_data
 
 def get_test_generator():
     # Get test data
-    spectrums_binned, score_array, inchikey_score_mapping, inchikeys_all = create_test_data()
+    spectrums_binned, tanimoto_scores_df = create_test_data()
 
     dimension = 101
     same_prob_bins = [(0, 0.5), (0.5, 1)]
-    inchikey_ids = list(np.arange(0, 80))
+    selected_inchikeys = tanimoto_scores_df.index[:80]
 
     # Create generator
-    return DataGeneratorAllInchikeys(spectrums_binned, score_array, inchikey_ids,
-                                     inchikey_score_mapping, inchikeys_all,
+    return DataGeneratorAllInchikeys(spectrums_binned=spectrums_binned,
+                                     selected_inchikeys=selected_inchikeys,
+                                     labels_df=tanimoto_scores_df,
                                      dim=dimension, same_prob_bins=same_prob_bins)
 
 
@@ -38,6 +39,7 @@ def test_siamese_model():
     X, y = test_generator.__getitem__(0)
     embeddings = model.base.predict(X[0])
     assert isinstance(embeddings, np.ndarray), "Expected numpy array"
-    assert embeddings.shape[0] == test_generator.batch_size == 32, "Expected different batch size"
+    assert embeddings.shape[0] == test_generator.settings['batch_size'] == 32,\
+        "Expected different batch size"
     assert embeddings.shape[1] == model.base.output_shape[1] == 200, \
         "Expected different embedding size"
