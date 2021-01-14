@@ -10,6 +10,7 @@ from matchms import Spectrum
 from ms2deepscore import SpectrumBinner
 from ms2deepscore.data_generators import DataGeneratorAllSpectrums
 from ms2deepscore.models import SiameseModel
+from ms2deepscore import MS2DeepScore
 
 
 def load_process_spectrums():
@@ -40,7 +41,7 @@ def test_user_workflow():
 
     # Create binned spectrums
     ms2ds_binner = SpectrumBinner(1000, mz_min=10.0, mz_max=1000.0, peak_scaling=0.5)
-    spectrums_binned = ms2ds_binner.fit_transform(spectrums)
+    binned_spectrums = ms2ds_binner.fit_transform(spectrums)
     assert ms2ds_binner.d_bins == 0.99, "Expected differnt bin size"
     assert len(ms2ds_binner.known_bins) == 543, "Expected differnt number of known binned peaks"
 
@@ -50,7 +51,7 @@ def test_user_workflow():
     spectrum_ids = list(np.arange(0, len(spectrums)))
 
     # Create generator
-    test_generator = DataGeneratorAllSpectrums(spectrums_binned, spectrum_ids, score_array,
+    test_generator = DataGeneratorAllSpectrums(binned_spectrums, spectrum_ids, score_array,
                                                inchikey_mapping,
                                                dim=dimension,
                                                same_prob_bins=same_prob_bins)
@@ -68,4 +69,13 @@ def test_user_workflow():
 
     # or: load model
 
-    # calculate similarities
+    # calculate similarities (pair)
+    similarity_measure = MS2DeepScore(model)
+    score = similarity_measure.pair(binned_spectrums[0], binned_spectrums[1])
+    assert 0 < score < 1, "Expected score > 0 and < 1"
+    assert isinstance(score, float), "Expected score to be float"
+
+    # calculate similarities (matrix)
+    scores = similarity_measure.matrix(binned_spectrums[:10], binned_spectrums[:10])
+    assert scores.shape == (10, 10), "Expected different score array shape"
+    assert np.allclose([scores[i, i] for i in range(10)], 1.0), "Expected diagonal values to be approx 1.0"
