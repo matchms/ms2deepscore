@@ -1,7 +1,6 @@
 """ Data generators for training/inference with siamese Keras model.
 """
-
-from typing import List, Tuple, Iterator
+from typing import List, Iterator, NamedTuple
 
 import numpy as np
 import pandas as pd
@@ -11,6 +10,14 @@ from ms2deepscore import BinnedSpectrum
 
 # Set random seed for reproducibility
 np.random.seed(42)
+
+
+class SpectrumPair(NamedTuple):
+    """
+    Represents a pair of binned spectrums
+    """
+    spectrum1: BinnedSpectrum
+    spectrum2: BinnedSpectrum
 
 
 class DataGeneratorBase(Sequence):
@@ -210,7 +217,7 @@ class DataGeneratorBase(Sequence):
                               if spectrum.get('inchikey') == inchikey]
         return np.random.choice(matching_spectrums)
 
-    def __data_generation(self, spectrum_pairs: Iterator[Tuple[BinnedSpectrum, BinnedSpectrum]]):
+    def __data_generation(self, spectrum_pairs: Iterator[SpectrumPair]):
         """Generates data containing batch_size samples"""
         # Initialization
         X = [np.zeros((self.settings["batch_size"], self.dim)) for i in range(2)]
@@ -225,8 +232,7 @@ class DataGeneratorBase(Sequence):
 
         return X, y
 
-    def _spectrum_pair_generator(self, batch_index: int
-                                 ) -> Iterator[Tuple[BinnedSpectrum, BinnedSpectrum]]:
+    def _spectrum_pair_generator(self, batch_index: int) -> Iterator[SpectrumPair]:
         """
         Generator of spectrum pairs within a batch, inheriting classes should implement this.
         """
@@ -291,8 +297,7 @@ class DataGeneratorAllSpectrums(DataGeneratorBase):
         #  is omitted. I guess that is expected behavior? --> Yes, with the shuffling in each epoch that seem OK to me (and makes the code easier).
         return int(self.settings["num_turns"]) * int(np.floor(len(self.spectrum_ids) / self.settings["batch_size"]))
 
-    def _spectrum_pair_generator(self, batch_index: int
-                                  ) -> Iterator[Tuple[BinnedSpectrum, BinnedSpectrum]]:
+    def _spectrum_pair_generator(self, batch_index: int) -> Iterator[SpectrumPair]:
         """
         Generate spectrum pairs for batch. For each 'source' spectrum, get the inchikey and
         find an inchikey in the desired target score range. Then randomly get a spectrums for
@@ -309,7 +314,7 @@ class DataGeneratorAllSpectrums(DataGeneratorBase):
             target_score_range = same_prob_bins[np.random.choice(np.arange(len(same_prob_bins)))]
             inchikey2 = self._find_match_in_range(inchikey1, target_score_range)
             spectrum2 = self._get_spectrum_with_inchikey(inchikey2)
-            yield spectrum1, spectrum2
+            yield SpectrumPair(spectrum1, spectrum2)
 
     def on_epoch_end(self):
         """Updates indexes after each epoch"""
@@ -390,8 +395,7 @@ class DataGeneratorAllInchikeys(DataGeneratorBase):
         return int(self.settings["num_turns"]) * int(np.floor(len(self.labels_df) / self.settings[
             "batch_size"]))
 
-    def _spectrum_pair_generator(self, batch_index: int
-                                 ) -> Iterator[Tuple[BinnedSpectrum, BinnedSpectrum]]:
+    def _spectrum_pair_generator(self, batch_index: int) -> Iterator[SpectrumPair]:
         """
         Generate spectrum pairs for batch. For each 'source' inchikey pick an inchikey in the
         desired target score range. Then randomly get spectrums for this pair of inchikeys.
@@ -408,7 +412,7 @@ class DataGeneratorAllInchikeys(DataGeneratorBase):
             inchikey2 = self._find_match_in_range(inchikey1, target_score_range)
             spectrum1 = self._get_spectrum_with_inchikey(inchikey1)
             spectrum2 = self._get_spectrum_with_inchikey(inchikey2)
-            yield spectrum1, spectrum2
+            yield SpectrumPair(spectrum1, spectrum2)
 
     @staticmethod
     def _data_selection(labels_df, selected_inchikeys):
