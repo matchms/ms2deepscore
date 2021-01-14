@@ -59,7 +59,6 @@ class DataGeneratorBase(Sequence):
         self._set_generator_parameters(**settings)
         self.binned_spectrums = binned_spectrums
         self.labels_df = self._exclude_nans_from_labels(labels_df)
-        self.inchikeys_all = np.array([x.get("inchikey") for x in binned_spectrums])
         # TODO: add check if all inchikeys are present (should fail for missing ones)
         self.dim = dim
 
@@ -193,6 +192,11 @@ class DataGeneratorBase(Sequence):
             values = (1 - self.settings["augment_intensity"] * 2 * (np.random.random(values.shape) - 0.5)) * values
         return idx, values
 
+    def _get_spectrum_with_inchikey(self, inchikey) -> BinnedSpectrum:
+        matching_spectrums = [spectrum for spectrum in self.binned_spectrums
+                              if spectrum.get('inchikey') == inchikey]
+        return np.random.choice(matching_spectrums)
+
 
 class DataGeneratorAllSpectrums(DataGeneratorBase):
     """Generates data for training a siamese Keras model
@@ -262,15 +266,14 @@ class DataGeneratorAllSpectrums(DataGeneratorBase):
         spectrum_inchikeys_batch = []
         same_prob_bins = self.settings["same_prob_bins"]
         for index in indexes_spectrums:
-            spectrum_id1 = self.spectrum_ids[index]
-            inchikey1 = self.inchikeys_all[spectrum_id1]
+            spectrum1 = self.binned_spectrums[self.spectrum_ids[index]]
+            inchikey1 = spectrum1.get('inchikey')
 
             # Randomly pick the desired target score range and pick matching ID
             target_score_range = same_prob_bins[np.random.choice(np.arange(len(same_prob_bins)))]
             inchikey2 = self._find_match_in_range(inchikey1, target_score_range)
-            spectrum_id2 = np.random.choice(np.where(self.inchikeys_all == inchikey2)[0])
-
-            spectrum_inchikeys_batch.append([(spectrum_id1, inchikey1), (spectrum_id2, inchikey2)])
+            spectrum2 = self._get_spectrum_with_inchikey(inchikey2)
+            spectrum_inchikeys_batch.append([(spectrum1, inchikey1), (spectrum2, inchikey2)])
 
         # Generate data
         X, y = self.__data_generation(spectrum_inchikeys_batch)
@@ -303,7 +306,7 @@ class DataGeneratorAllSpectrums(DataGeneratorBase):
         # Generate data
         for i_batch, pair in enumerate(spectrum_inchikey_ids_batch):
             for i_pair, spectrum_inchikey in enumerate(pair):
-                idx, values = self._data_augmentation(self.binned_spectrums[spectrum_inchikey[0]].binned_peaks)
+                idx, values = self._data_augmentation(spectrum_inchikey[0].binned_peaks)
                 X[i_pair][i_batch, idx] = values
 
             y[i_batch] = self.labels_df[pair[0][1]][pair[1][1]]
@@ -416,8 +419,8 @@ class DataGeneratorAllInchikeys(DataGeneratorBase):
         # Generate data
         for i_batch, pair in enumerate(inchikey_ids_batch):
             for i_pair, inchikey in enumerate(pair):
-                spectrum_id = np.random.choice(np.where(self.inchikeys_all == inchikey)[0])
-                idx, values = self._data_augmentation(self.binned_spectrums[spectrum_id].binned_peaks)
+                spectrum = self._get_spectrum_with_inchikey(inchikey)
+                idx, values = self._data_augmentation(spectrum.binned_peaks)
                 X[i_pair][i_batch, idx] = values
 
             y[i_batch] = self.labels_df[pair[0]][pair[1]]
