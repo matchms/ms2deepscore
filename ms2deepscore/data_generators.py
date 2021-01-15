@@ -208,15 +208,6 @@ class DataGeneratorBase(Sequence):
             values = (1 - self.settings["augment_intensity"] * 2 * (np.random.random(values.shape) - 0.5)) * values
         return idx, values
 
-    def _get_spectrum_with_inchikey(self, inchikey: str) -> BinnedSpectrum:
-        """
-        Get a random spectrum matching the `inchikey` argument. NB: A compound (identified by an
-        in inchikey) can have multiple measured spectrums in a binned spectrum dataset.
-        """
-        matching_spectrums = [spectrum for spectrum in self.binned_spectrums
-                              if spectrum.get('inchikey') == inchikey]
-        return np.random.choice(matching_spectrums)
-
     def __data_generation(self, spectrum_pairs: Iterator[SpectrumPair]):
         """Generates data containing batch_size samples"""
         # Initialization
@@ -316,6 +307,16 @@ class DataGeneratorAllSpectrums(DataGeneratorBase):
             inchikey2 = self._find_match_in_range(inchikey1, target_score_range)
             spectrum2 = self._get_spectrum_with_inchikey(inchikey2)
             yield SpectrumPair(spectrum1, spectrum2)
+
+    def _get_spectrum_with_inchikey(self, inchikey: str) -> BinnedSpectrum:
+        """
+        Get a random spectrum matching the `inchikey` argument. NB: A compound (identified by an
+        in inchikey) can have multiple measured spectrums in a binned spectrum dataset.
+        Only spectrums within the selection (spectrum_ids) are allowed to be used.
+        """
+        matching_spectrums = [spectrum for spectrum in self.binned_spectrums[self.spectrum_ids]
+                              if spectrum.get('inchikey') == inchikey]
+        return np.random.choice(matching_spectrums)
 
     def on_epoch_end(self):
         """Updates indexes after each epoch"""
@@ -425,6 +426,15 @@ class DataGeneratorAllInchikeys(DataGeneratorBase):
             spectrum1 = self._get_spectrum_with_inchikey(inchikey1)
             spectrum2 = self._get_spectrum_with_inchikey(inchikey2)
             yield SpectrumPair(spectrum1, spectrum2)
+
+    def _get_spectrum_with_inchikey(self, inchikey: str) -> BinnedSpectrum:
+        """
+        Get a random spectrum matching the `inchikey` argument. NB: A compound (identified by an
+        in inchikey) can have multiple measured spectrums in a binned spectrum dataset.
+        """
+        matching_spectrums = [spectrum for spectrum in self.binned_spectrums
+                              if spectrum.get('inchikey') == inchikey]
+        return np.random.choice(matching_spectrums)
 
     @staticmethod
     def _data_selection(labels_df, selected_inchikeys):
