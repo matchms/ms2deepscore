@@ -1,6 +1,8 @@
 import os
 import numpy
 import pytest
+from tensorflow import keras
+
 from ms2deepscore import MS2DeepScore
 from ms2deepscore.models import SiameseModel
 from tests.test_data_generators import create_test_data
