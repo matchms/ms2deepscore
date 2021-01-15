@@ -314,8 +314,8 @@ class DataGeneratorAllSpectrums(DataGeneratorBase):
         in inchikey) can have multiple measured spectrums in a binned spectrum dataset.
         Only spectrums within the selection (spectrum_ids) are allowed to be used.
         """
-        matching_spectrums = [spectrum for spectrum in self.binned_spectrums[self.spectrum_ids]
-                              if spectrum.get('inchikey') == inchikey]
+        matching_spectrums = [self.binned_spectrums[i] for i in self.spectrum_ids
+                              if self.binned_spectrums[i].get('inchikey') == inchikey]
         return np.random.choice(matching_spectrums)
 
     def on_epoch_end(self):
