@@ -2,9 +2,10 @@ from typing import List
 from typing import Union
 import numpy as np
 from matchms.similarity.BaseSimilarity import BaseSimilarity
+from tqdm import tqdm
+
 from ms2deepscore.vector_operations import cosine_similarity
 from ms2deepscore.vector_operations import cosine_similarity_matrix
-from tqdm import tqdm
 from ms2deepscore import BinnedSpectrum
 from ms2deepscore import SpectrumBinner
 from ms2deepscore.models import SiameseModel
@@ -22,14 +23,21 @@ class MS2DeepScore(BaseSimilarity):
 
     .. code-block:: python
 
-        from matchms import calculate_scores
-        from ms2deepscore import SpectrumBinner
-        from ms2deepscore import SiameseModel
+        from matchms import calculate_scores()
+        from matchms.importing import load_from_json
+        from ms2deepscore import MS2DeepScore
+        from ms2deepscore.models import load_ms2ds_model
 
-        # reference_spectrums & query_spectrums loaded from files using https://matchms.readthedocs.io/en/latest/api/matchms.importing.load_from_mgf.html
-        ms2ds_binner = SpectrumBinner(1000, mz_min=10.0, mz_max=1000.0, peak_scaling=0.5)
-        references = ms2ds_binner.fit_transform(reference_spectrums)
-        ...
+        references = load_from_json("abc.json")
+        queries = load_from_json("xyz.json")
+
+        model = ... TODO: implement such a function
+        binned_references = model.spectrum_binner.transform(references)
+        binned_queries = model.spectrum_binner.transform(queries)
+
+        similarity_measure = MS2DeepScore(model)
+        scores = calculate_scores(binned_references, binned_queries)
+
 
     """
     def __init__(self, model, progress_bar: bool = False):
