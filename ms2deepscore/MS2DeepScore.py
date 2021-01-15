@@ -65,7 +65,6 @@ class MS2DeepScore(BaseSimilarity):
         """Creates input vector for model.base based on binned peaks and intensities"""
         X = np.zeros((1, self.input_vector_dim))
 
-        # Create vector
         idx = np.array([int(x) for x in binned_spectrum.binned_peaks.keys()])
         values = np.array([x for x in binned_spectrum.binned_peaks.values()])
         X[0, idx] = values
