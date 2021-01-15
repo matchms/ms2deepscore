@@ -289,6 +289,7 @@ class DataGeneratorAllSpectrums(DataGeneratorBase):
         """
         super().__init__(binned_spectrums, labels_df, dim, **settings)
         self.spectrum_ids = spectrum_ids
+        self.labels_df = self._exclude_not_selected_inchikeys()
         self.on_epoch_end()
 
     def __len__(self):
@@ -331,6 +332,17 @@ class DataGeneratorAllSpectrums(DataGeneratorBase):
         n_dropped = len(labels_df) - len(clean_df)
         if n_dropped > 0:
             print(f"{n_dropped} nans among {len(labels_df)} labels will be excluded.")
+        return clean_df
+
+    def _exclude_not_selected_inchikeys(self):
+        """Exclude InChIKeys which are not present in the spectrums selected through
+        spectrum_ids."""
+        inchikeys_in_selection = {self.binned_spectrums[i].get("inchikey") for i in self.spectrum_ids}
+        clean_df = self.labels_df.loc[self.labels_df.index.isin(inchikeys_in_selection),
+                                      self.labels_df.columns.isin(inchikeys_in_selection)]
+        n_dropped = len(self.labels_df) - len(clean_df)
+        if n_dropped > 0:
+            print(f"{len(clean_df)} out of {len(self.labels_df)} InChIKeys found in selected spectrums.")
         return clean_df
 
 
