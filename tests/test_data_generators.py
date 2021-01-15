@@ -79,6 +79,36 @@ def test_DataGeneratorAllSpectrums():
     assert test_generator.settings["augment_intensity"] == 0.0, "Expected changed value."
 
 
+def test_DataGeneratorAllSpectrums():
+    """Test if non-selected InChIKeys are correctly removed"""
+    # Get test data
+    binned_spectrums, tanimoto_scores_df = create_test_data()
+
+    # Define other parameters
+    batch_size = 10
+    dimension = 101
+    spectrum_ids = list(range(10))
+
+    # Create generator
+    test_generator = DataGeneratorAllSpectrums(binned_spectrums=binned_spectrums,
+                                               spectrum_ids=spectrum_ids,
+                                               labels_df=tanimoto_scores_df,
+                                               dim=dimension, batch_size=batch_size,
+                                               augment_removal_max=0.0,
+                                               augment_removal_intensity=0.0,
+                                               augment_intensity=0.0)
+
+    assert test_generator.labels_df.shape == (5, 5), "Expected different reduced shape of labels"
+    expected_inchikeys = ['CXVGEDCSTKKODG-UHFFFAOYSA-N',
+                          'JGCSKOVQDXEQHI-UHFFFAOYSA-N',
+                          'ZBAMSLOMNLECFR-IEAZIUSSSA-N',
+                          'JFFHVIUZNPTGGR-WJLGXSQGSA-N',
+                          'VCBNPTWPJQLHQN-NYAJDEOCSA-N'].sort()
+    found_inchikeys = test_generator.labels_df.columns.to_list().sort()
+    assert found_inchikeys == expected_inchikeys, \
+        "Expected different InChIKeys to remain in labels_df"
+
+
 def test_DataGeneratorAllSpectrums_asymmetric_label_input():
     # Create generator
     binned_spectrums, tanimoto_scores_df = create_test_data()
