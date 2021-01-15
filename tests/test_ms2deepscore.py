@@ -1,5 +1,5 @@
 import os
-import numpy
+import numpy as np
 import pytest
 from tensorflow import keras
 
