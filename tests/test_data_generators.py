@@ -1,5 +1,6 @@
 import json
 import os
+from pathlib import Path
 
 import numpy as np
 import pandas as pd
@@ -9,19 +10,19 @@ from ms2deepscore import BinnedSpectrum
 from ms2deepscore.data_generators import DataGeneratorAllInchikeys
 from ms2deepscore.data_generators import DataGeneratorAllSpectrums
 
-path_tests  = os.path.dirname(__file__)
+TEST_RESOURCES_PATH = Path(__file__).parent / 'resources'
 
 def create_test_data():
-    spectrums_binned_file = os.path.join(path_tests, "testdata_spectrums_binned.json")
+    spectrums_binned_file = TEST_RESOURCES_PATH / "testdata_spectrums_binned.json"
     with open(spectrums_binned_file, "r") as read_file:
         peaks_dicts = json.load(read_file)
-    inchikeys_array = np.load(os.path.join(path_tests, "testdata_inchikeys.npy"))
+    inchikeys_array = np.load(TEST_RESOURCES_PATH / "testdata_inchikeys.npy")
     spectrums_binned = []
     for i, peaks_dict in enumerate(peaks_dicts):
         spectrums_binned.append(BinnedSpectrum(binned_peaks=peaks_dict,
                                                metadata={"inchikey": inchikeys_array[i]}))
 
-    tanimoto_scores_df = pd.read_csv(os.path.join(path_tests, 'testdata_tanimoto_scores.csv'),
+    tanimoto_scores_df = pd.read_csv(TEST_RESOURCES_PATH / 'testdata_tanimoto_scores.csv',
                                      index_col=0)
     return spectrums_binned, tanimoto_scores_df
 
