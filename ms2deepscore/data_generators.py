@@ -286,14 +286,14 @@ class DataGeneratorAllSpectrums(DataGeneratorBase):
             np.random.shuffle(self.indexes)
 
     @staticmethod
-    def _exclude_nans_from_labels(labels_df: pd.DataFrame):
-        """Exclude nans in labels_df, exclude columns and rows if there is any NaN
+    def _exclude_nans_from_labels(reference_scores_df: pd.DataFrame):
+        """Exclude nans in reference_scores_df, exclude columns and rows if there is any NaN
         value"""
-        clean_df = labels_df.dropna(axis='rows')  # drop rows with any NaN
+        clean_df = reference_scores_df.dropna(axis='rows')  # drop rows with any NaN
         clean_df = clean_df[clean_df.index]  # drop corresponding columns
-        n_dropped = len(labels_df) - len(clean_df)
+        n_dropped = len(reference_scores_df) - len(clean_df)
         if n_dropped > 0:
-            print(f"{n_dropped} nans among {len(labels_df)} labels will be excluded.")
+            print(f"{n_dropped} nans among {len(reference_scores_df)} labels will be excluded.")
         return clean_df
 
     def __data_generation(self, spectrum_inchikey_ids_batch):
@@ -308,7 +308,7 @@ class DataGeneratorAllSpectrums(DataGeneratorBase):
                 idx, values = self._data_augmentation(self.spectrums_binned[spectrum_inchikey[0]].binned_peaks)
                 X[i_pair][i_batch, idx] = values
 
-            y[i_batch] = self.labels_df[pair[0][1]][pair[1][1]]
+            y[i_batch] = self.reference_scores_df[pair[0][1]][pair[1][1]]
 
         return X, y
 
@@ -322,17 +322,17 @@ class DataGeneratorAllInchikeys(DataGeneratorBase):
     as defined in same_prob_bins.
     """
     def __init__(self, spectrums_binned: List[BinnedSpectrum], selected_inchikeys: list,
-                 labels_df: pd.DataFrame, dim: int, **settings):
+                 reference_scores_df: pd.DataFrame, dim: int, **settings):
         """Generates data for training a siamese Keras model.
         Parameters
         ----------
         spectrums_binned
             List of BinnedSpectrum objects with the binned peak positions and intensities.
-        labels_df
+        reference_scores_df
             Pandas DataFrame with reference similarity scores (=labels) for compounds identified
             by inchikeys. Columns and index should be inchikeys, the value in a row x column
             depicting the similarity score for that pair. Must be symmetric
-            (labels_df[i,j] == labels_df[j,i]) and column names should be identical to the index.
+            (reference_scores_df[i,j] == reference_scores_df[j,i]) and column names should be identical to the index.
         selected_inchikeys
             List of inchikeys to use for training.
         dim
@@ -363,8 +363,8 @@ class DataGeneratorAllInchikeys(DataGeneratorBase):
             Default=0.1, which means that intensities are multiplied by 1+- a random
             number within [0, 0.1].
         """
-        super().__init__(spectrums_binned, labels_df, dim, **settings)
-        self.labels_df = self._data_selection(labels_df, selected_inchikeys)
+        super().__init__(spectrums_binned, reference_scores_df, dim, **settings)
+        self.reference_scores_df = self._data_selection(reference_scores_df, selected_inchikeys)
         self.on_epoch_end()
 
     def __len__(self):
