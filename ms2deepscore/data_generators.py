@@ -286,7 +286,7 @@ class DataGeneratorAllSpectrums(DataGeneratorBase):
             number within [0, 0.1].
         """
         super().__init__(binned_spectrums, labels_df, dim, **settings)
-        self.labels_df = self._exclude_not_selected_inchikeys()
+        self.labels_df = self._exclude_not_selected_inchikeys(self.labels_df)
         self.on_epoch_end()
 
     def __len__(self):
@@ -321,7 +321,7 @@ class DataGeneratorAllSpectrums(DataGeneratorBase):
             np.random.shuffle(self.indexes)
 
     @staticmethod
-    def _exclude_nans_from_labels(labels_df: pd.DataFrame):
+    def _exclude_nans_from_labels(labels_df: pd.DataFrame) -> pd.DataFrame:
         """Exclude nans in labels_df, exclude columns and rows if there is any NaN
         value"""
         clean_df = labels_df.dropna(axis='rows')  # drop rows with any NaN
@@ -331,11 +331,12 @@ class DataGeneratorAllSpectrums(DataGeneratorBase):
             print(f"{n_dropped} nans among {len(labels_df)} labels will be excluded.")
         return clean_df
 
-    def _exclude_not_selected_inchikeys(self):
-        """Exclude InChIKeys which are not present in the given binned_spectrums."""
+    def _exclude_not_selected_inchikeys(self, labels_df: pd.DataFrame) -> pd.DataFrame:
+        """Exclude rows and columns of labels_df for all InChIKeys which are not
+        present in the binned_spectrums."""
         inchikeys_in_selection = {s.get("inchikey") for s in self.binned_spectrums}
-        clean_df = self.labels_df.loc[self.labels_df.index.isin(inchikeys_in_selection),
-                                      self.labels_df.columns.isin(inchikeys_in_selection)]
+        clean_df = labels_df.loc[labels_df.index.isin(inchikeys_in_selection),
+                                 labels_df.columns.isin(inchikeys_in_selection)]
         n_dropped = len(self.labels_df) - len(clean_df)
         if n_dropped > 0:
             print(f"{len(clean_df)} out of {len(self.labels_df)} InChIKeys found in selected spectrums.")

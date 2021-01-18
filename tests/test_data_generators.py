@@ -105,7 +105,7 @@ def test_DataGeneratorAllSpectrums_no_inchikey_leaking():
     assert found_inchikeys == expected_inchikeys, \
         "Expected different InChIKeys to remain in labels_df"
 
-    # Test if ibkt exoected labels are returned by generator
+    # Test if the expected labels are returned by generator
     expected_labels = np.array([0.09285714, 0.11022727, 0.15672306, 0.15920916, 0.19264588,
                                 0.20079523, 0.20326679, 0.21044304, 0.24236453, 0.25663717,
                                 0.27233429, 0.27994122, 0.29661684, 0.41184669, 0.53772684])
