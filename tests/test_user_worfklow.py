@@ -12,7 +12,7 @@ from ms2deepscore.data_generators import DataGeneratorAllSpectrums
 from ms2deepscore.models import SiameseModel
 from ms2deepscore import MS2DeepScore
 
-TEST_RESOURCES_PATH = Path(__file__).parent / 'resources
+TEST_RESOURCES_PATH = Path(__file__).parent / 'resources'
 
 
 def load_process_spectrums():
@@ -28,6 +28,7 @@ def get_reference_scores():
     return tanimoto_scores.values, tanimoto_scores.columns.to_numpy()
 
 
+@pytest.mark.integtest
 def test_user_workflow():
     """Test a typical user workflow from a mgf file to MS2DeepScore similarities."""
 
