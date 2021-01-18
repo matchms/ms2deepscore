@@ -95,7 +95,7 @@ def test_cosine_similarity_matrix_input_cloned(numba_compiled):
                                               [2, 0, 2, 2]])), "Expected unchanged input."
 
 
-def test_differnt_input_vector_lengths():
+def test_different_input_vector_lengths():
     """Test if correct error is raised."""
     vector1 = numpy.array([0, 0, 0, 0])
     vector2 = numpy.array([1, 1, 1, 1, 1])

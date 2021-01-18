@@ -36,7 +36,7 @@ class MS2DeepScore(BaseSimilarity):
         binned_queries = model.spectrum_binner.transform(queries)
 
         similarity_measure = MS2DeepScore(model)
-        scores = calculate_scores(binned_references, binned_queries)
+        scores = calculate_scores(binned_references, binned_queries, similarity_measure)
 
 
     """
