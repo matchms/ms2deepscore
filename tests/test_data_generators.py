@@ -40,7 +40,7 @@ def test_DataGeneratorAllInchikeys():
     # Create generator
     test_generator = DataGeneratorAllInchikeys(spectrums_binned=spectrums_binned,
                                                selected_inchikeys=selected_inchikeys,
-                                               labels_df=tanimoto_scores_df,
+                                               reference_scores_df=tanimoto_scores_df,
                                                dim=dimension, batch_size=batch_size,
                                                augment_removal_max=0.0,
                                                augment_removal_intensity=0.0,
@@ -67,7 +67,7 @@ def test_DataGeneratorAllSpectrums():
     # Create generator
     test_generator = DataGeneratorAllSpectrums(spectrums_binned=spectrums_binned,
                                                spectrum_ids=spectrum_ids,
-                                               labels_df=tanimoto_scores_df,
+                                               reference_scores_df=tanimoto_scores_df,
                                                dim=dimension, batch_size=batch_size,
                                                augment_removal_max=0.0,
                                                augment_removal_intensity=0.0,
@@ -84,9 +84,9 @@ def test_DataGeneratorAllSpectrums_asymmetric_label_input():
     # Create generator
     spectrums_binned, tanimoto_scores_df = create_test_data()
     spectrum_ids = list(range(150))
-    asymmetric_labels_df = tanimoto_scores_df.iloc[:, 2:]
+    asymmetric_scores_df = tanimoto_scores_df.iloc[:, 2:]
     with pytest.raises(ValueError):
         test_generator = DataGeneratorAllSpectrums(spectrums_binned=spectrums_binned,
                                                    spectrum_ids=spectrum_ids,
-                                                   labels_df=asymmetric_labels_df,
+                                                   reference_scores_df=asymmetric_scores_df,
                                                    dim=101)
