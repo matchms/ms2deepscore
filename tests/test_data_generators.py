@@ -61,11 +61,8 @@ def test_DataGeneratorAllSpectrums():
     batch_size = 10
     dimension = 101
 
-    spectrum_ids = list(range(150))
-
     # Create generator
-    test_generator = DataGeneratorAllSpectrums(binned_spectrums=binned_spectrums,
-                                               spectrum_ids=spectrum_ids,
+    test_generator = DataGeneratorAllSpectrums(binned_spectrums=binned_spectrums[:150],
                                                labels_df=tanimoto_scores_df,
                                                dim=dimension, batch_size=batch_size,
                                                augment_removal_max=0.0,
@@ -87,11 +84,9 @@ def test_DataGeneratorAllSpectrums_no_inchikey_leaking():
     # Define other parameters
     batch_size = 10
     dimension = 101
-    spectrum_ids = list(range(11))
 
     # Create generator
-    test_generator = DataGeneratorAllSpectrums(binned_spectrums=binned_spectrums,
-                                               spectrum_ids=spectrum_ids,
+    test_generator = DataGeneratorAllSpectrums(binned_spectrums=binned_spectrums[:11],
                                                labels_df=tanimoto_scores_df,
                                                dim=dimension, batch_size=batch_size,
                                                augment_removal_max=0.0,
@@ -123,39 +118,11 @@ def test_DataGeneratorAllSpectrums_no_inchikey_leaking():
     assert np.all(present_in_expected_labels), "Got unexpected labels from generator"
 
 
-def test_DataGeneratorAllSpectrums_no_spectrum_leaking():
-    """Test if only selected spectra are used."""
-    # Get test data
-    binned_spectrums_full, tanimoto_scores_df = create_test_data()
-    empty_binned_spectrum = BinnedSpectrum({}, metadata={})
-    binned_spectrums = binned_spectrums_full[:11]
-    binned_spectrums += 100 * [empty_binned_spectrum]  # add empty spectra outside the range of spectrum_ids
-
-    # Define other parameters
-    batch_size = 10
-    dimension = 101
-    spectrum_ids = list(range(11))
-
-    # Create generator
-    test_generator = DataGeneratorAllSpectrums(binned_spectrums=binned_spectrums,
-                                               spectrum_ids=spectrum_ids,
-                                               labels_df=tanimoto_scores_df,
-                                               dim=dimension, batch_size=batch_size,
-                                               augment_removal_max=0.0,
-                                               augment_removal_intensity=0.0,
-                                               augment_intensity=0.0)
-    for _ in range(10):  # do some sampling
-        input_vectors, labels = test_generator.__getitem__(0)
-        assert np.all(np.array([x.mean() for x in input_vectors]) > 0), "Expected non-empty input vectors."
-
-
 def test_DataGeneratorAllSpectrums_asymmetric_label_input():
     # Create generator
     binned_spectrums, tanimoto_scores_df = create_test_data()
-    spectrum_ids = list(range(150))
     asymmetric_labels_df = tanimoto_scores_df.iloc[:, 2:]
     with pytest.raises(ValueError):
         test_generator = DataGeneratorAllSpectrums(binned_spectrums=binned_spectrums,
-                                                   spectrum_ids=spectrum_ids,
                                                    labels_df=asymmetric_labels_df,
                                                    dim=101)
