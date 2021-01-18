@@ -208,6 +208,15 @@ class DataGeneratorBase(Sequence):
             values = (1 - self.settings["augment_intensity"] * 2 * (np.random.random(values.shape) - 0.5)) * values
         return idx, values
 
+    def _get_spectrum_with_inchikey(self, inchikey: str) -> BinnedSpectrum:
+        """
+        Get a random spectrum matching the `inchikey` argument. NB: A compound (identified by an
+        in inchikey) can have multiple measured spectrums in a binned spectrum dataset.
+        """
+        matching_spectrums = [spectrum for spectrum in self.binned_spectrums
+                              if spectrum.get('inchikey') == inchikey]
+        return np.random.choice(matching_spectrums)
+
     def __data_generation(self, spectrum_pairs: Iterator[SpectrumPair]):
         """Generates data containing batch_size samples"""
         # Initialization
@@ -233,18 +242,16 @@ class DataGeneratorBase(Sequence):
 class DataGeneratorAllSpectrums(DataGeneratorBase):
     """Generates data for training a siamese Keras model
     This generator will provide training data by picking each training spectrum
-    listed in *spectrum_ids* num_turns times in every epoch and pairing it with a randomly chosen
+    in binned_spectrums num_turns times in every epoch and pairing it with a randomly chosen
     other spectrum that corresponds to a reference score as defined in same_prob_bins.
     """
-    def __init__(self, binned_spectrums: List[BinnedSpectrum], spectrum_ids: list,
+    def __init__(self, binned_spectrums: List[BinnedSpectrum],
                  labels_df: pd.DataFrame, dim: int, **settings):
         """Generates data for training a siamese Keras model.
         Parameters
         ----------
         binned_spectrums
             List of BinnedSpectrum objects with the binned peak positions and intensities.
-        spectrum_ids
-            List of IDs from binned_spectrums to use for training.
         labels_df
             Pandas DataFrame with reference similarity scores (=labels) for compounds identified
             by inchikeys. Columns and index should be inchikeys, the value in a row x column
@@ -279,7 +286,6 @@ class DataGeneratorAllSpectrums(DataGeneratorBase):
             number within [0, 0.1].
         """
         super().__init__(binned_spectrums, labels_df, dim, **settings)
-        self.spectrum_ids = spectrum_ids
         self.labels_df = self._exclude_not_selected_inchikeys()
         self.on_epoch_end()
 
@@ -287,7 +293,7 @@ class DataGeneratorAllSpectrums(DataGeneratorBase):
         """Denotes the number of batches per epoch"""
         # TODO: this means we don't see all data every epoch, because the last half-empty batch
         #  is omitted. I guess that is expected behavior? --> Yes, with the shuffling in each epoch that seem OK to me (and makes the code easier).
-        return int(self.settings["num_turns"]) * int(np.floor(len(self.spectrum_ids) / self.settings["batch_size"]))
+        return int(self.settings["num_turns"]) * int(np.floor(len(self.binned_spectrums) / self.settings["batch_size"]))
 
     def _spectrum_pair_generator(self, batch_index: int) -> Iterator[SpectrumPair]:
         """
@@ -299,7 +305,7 @@ class DataGeneratorAllSpectrums(DataGeneratorBase):
         batch_size = self.settings["batch_size"]
         indexes = self.indexes[batch_index*batch_size:(batch_index+1)*batch_size]
         for index in indexes:
-            spectrum1 = self.binned_spectrums[self.spectrum_ids[index]]
+            spectrum1 = self.binned_spectrums[index]
             inchikey1 = spectrum1.get('inchikey')
 
             # Randomly pick the desired target score range and pick matching ID
@@ -308,19 +314,9 @@ class DataGeneratorAllSpectrums(DataGeneratorBase):
             spectrum2 = self._get_spectrum_with_inchikey(inchikey2)
             yield SpectrumPair(spectrum1, spectrum2)
 
-    def _get_spectrum_with_inchikey(self, inchikey: str) -> BinnedSpectrum:
-        """
-        Get a random spectrum matching the `inchikey` argument. NB: A compound (identified by an
-        in inchikey) can have multiple measured spectrums in a binned spectrum dataset.
-        Only spectrums within the selection (spectrum_ids) are allowed to be used.
-        """
-        matching_spectrums = [self.binned_spectrums[i] for i in self.spectrum_ids
-                              if self.binned_spectrums[i].get('inchikey') == inchikey]
-        return np.random.choice(matching_spectrums)
-
     def on_epoch_end(self):
         """Updates indexes after each epoch"""
-        self.indexes = np.tile(np.arange(len(self.spectrum_ids)), int(self.settings["num_turns"]))
+        self.indexes = np.tile(np.arange(len(self.binned_spectrums)), int(self.settings["num_turns"]))
         if self.settings["shuffle"] == True:
             np.random.shuffle(self.indexes)
 
@@ -336,9 +332,8 @@ class DataGeneratorAllSpectrums(DataGeneratorBase):
         return clean_df
 
     def _exclude_not_selected_inchikeys(self):
-        """Exclude InChIKeys which are not present in the spectrums selected through
-        spectrum_ids."""
-        inchikeys_in_selection = {self.binned_spectrums[i].get("inchikey") for i in self.spectrum_ids}
+        """Exclude InChIKeys which are not present in the given binned_spectrums."""
+        inchikeys_in_selection = {s.get("inchikey") for s in self.binned_spectrums}
         clean_df = self.labels_df.loc[self.labels_df.index.isin(inchikeys_in_selection),
                                       self.labels_df.columns.isin(inchikeys_in_selection)]
         n_dropped = len(self.labels_df) - len(clean_df)
@@ -426,15 +421,6 @@ class DataGeneratorAllInchikeys(DataGeneratorBase):
             spectrum1 = self._get_spectrum_with_inchikey(inchikey1)
             spectrum2 = self._get_spectrum_with_inchikey(inchikey2)
             yield SpectrumPair(spectrum1, spectrum2)
-
-    def _get_spectrum_with_inchikey(self, inchikey: str) -> BinnedSpectrum:
-        """
-        Get a random spectrum matching the `inchikey` argument. NB: A compound (identified by an
-        in inchikey) can have multiple measured spectrums in a binned spectrum dataset.
-        """
-        matching_spectrums = [spectrum for spectrum in self.binned_spectrums
-                              if spectrum.get('inchikey') == inchikey]
-        return np.random.choice(matching_spectrums)
 
     @staticmethod
     def _data_selection(labels_df, selected_inchikeys):
