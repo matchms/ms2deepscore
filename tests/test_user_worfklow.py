@@ -1,4 +1,4 @@
-import os
+from pathlib import Path
 import numpy as np
 import pandas as pd
 import pytest
@@ -12,18 +12,18 @@ from ms2deepscore.data_generators import DataGeneratorAllSpectrums
 from ms2deepscore.models import SiameseModel
 from ms2deepscore import MS2DeepScore
 
+TEST_RESOURCES_PATH = Path(__file__).parent / 'resources
+
 
 def load_process_spectrums():
     """Load processed spectrums from mgf file. For processing itself see matchms
     documentation."""
-    module_root = os.path.join(os.path.dirname(__file__), "..")
-    spectrums_file = os.path.join(module_root, "integration-test", "pesticides_processed.mgf")
+    spectrums_file = TEST_RESOURCES_PATH / "pesticides_processed.mgf"
     return list(load_from_mgf(spectrums_file))
 
 
 def get_reference_scores():
-    module_root = os.path.join(os.path.dirname(__file__), "..")
-    score_file = os.path.join(module_root, "integration-test", "pesticides_tanimoto_scores.json")
+    score_file = TEST_RESOURCES_PATH / "pesticides_tanimoto_scores.json"
     tanimoto_scores = pd.read_json(score_file)
     return tanimoto_scores.values, tanimoto_scores.columns.to_numpy()
 
