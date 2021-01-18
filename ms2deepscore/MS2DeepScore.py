@@ -48,10 +48,6 @@ class MS2DeepScore(BaseSimilarity):
         model:
             Expected input is a SiameseModel that has been trained on
             the desired set of spectra.
-        intensity_weighting_power:
-            Spectrum vectors are a weighted sum of the word vectors. The given
-            word intensities will be raised to the given power.
-            The default is 0, which means that no weighing will be done.
         progress_bar:
             Set to True to monitor the embedding creating with a progress bar.
             Default is False.

@@ -19,13 +19,13 @@ def load_process_spectrums():
     """Load processed spectrums from mgf file. For processing itself see matchms
     documentation."""
     spectrums_file = TEST_RESOURCES_PATH / "pesticides_processed.mgf"
-    return list(load_from_mgf(spectrums_file))
+    return list(load_from_mgf(spectrums_file.as_posix()))
 
 
 def get_reference_scores():
     score_file = TEST_RESOURCES_PATH / "pesticides_tanimoto_scores.json"
-    tanimoto_scores = pd.read_json(score_file)
-    return tanimoto_scores.values, tanimoto_scores.columns.to_numpy()
+    tanimoto_scores_df = pd.read_json(score_file)
+    return tanimoto_scores_df
 
 
 @pytest.mark.integtest
@@ -34,11 +34,11 @@ def test_user_workflow():
 
     # Load processed spectrums and reference scores (Tanimoto scores)
     spectrums = load_process_spectrums()
-    score_array, inchikey_mapping = get_reference_scores()
+    tanimoto_scores_df = get_reference_scores()
     # quick checks:
     assert spectrums[1].get("inchikey") == 'BBXXLROWFHWFQY-UHFFFAOYSA-N', \
         "Expected different metadata/spectrum"
-    assert score_array.shape == (45, 45), "Expected different shape for score array"
+    assert tanimoto_scores_df.shape == (45, 45), "Expected different shape for score array"
 
     # Create binned spectrums
     ms2ds_binner = SpectrumBinner(1000, mz_min=10.0, mz_max=1000.0, peak_scaling=0.5)
@@ -52,8 +52,7 @@ def test_user_workflow():
     spectrum_ids = list(np.arange(0, len(spectrums)))
 
     # Create generator
-    test_generator = DataGeneratorAllSpectrums(binned_spectrums, spectrum_ids, score_array,
-                                               inchikey_mapping,
+    test_generator = DataGeneratorAllSpectrums(binned_spectrums, spectrum_ids, tanimoto_scores_df,
                                                dim=dimension,
                                                same_prob_bins=same_prob_bins)
 

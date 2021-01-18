@@ -21,7 +21,7 @@ def test_MS2DeepScore():
               validation_data=test_generator,
               epochs=2)
 
-    binned_spectrums, _, _ = create_test_data()
+    binned_spectrums, _ = create_test_data()
     similarity_measure = MS2DeepScore(model)
 
     # Test vector creation
