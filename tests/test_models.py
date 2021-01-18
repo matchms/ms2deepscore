@@ -17,7 +17,7 @@ def get_test_generator():
     # Create generator
     return DataGeneratorAllInchikeys(spectrums_binned=spectrums_binned,
                                      selected_inchikeys=selected_inchikeys,
-                                     labels_df=tanimoto_scores_df,
+                                     reference_scores_df=tanimoto_scores_df,
                                      dim=dimension, same_prob_bins=same_prob_bins)
 
 
