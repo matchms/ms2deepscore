@@ -9,9 +9,9 @@ from tests.test_data_generators import create_test_data
 from tests.test_models import get_test_generator
 
 
-def test_MS2DeepScore():
-    """first drafted test
-    TODO: switch to pretrained model to make scores reproducible.
+def get_test_ms2_deep_score_instance():
+    """Test basic scoring using MS2DeepScore.
+    TODO: adapt once model loading/saving is implemented properly!
     """
     test_generator = get_test_generator()
     model = SiameseModel(input_dim=101, base_dims=(200, 200, 200),
@@ -23,19 +23,34 @@ def test_MS2DeepScore():
 
     binned_spectrums, _ = create_test_data()
     similarity_measure = MS2DeepScore(model)
+    return binned_spectrums, similarity_measure
 
-    # Test vector creation
+
+def test_MS2DeepScore_vector_creation():
+    """Test vector creation.
+    """
+    binned_spectrums, similarity_measure = get_test_ms2_deep_score_instance()
     input_vectors = similarity_measure._create_input_vectors(binned_spectrums[0])
     assert input_vectors.shape == (1, 101), "Expected different vector shape"
     assert isinstance(input_vectors, np.ndarray), "Expected vector to be numpy array"
     assert input_vectors[0, 38] == 1, "Expected different entries"
 
-    # calculate similarities (pair)
+
+def test_MS2DeepScore_score_pair():
+    """Test score calculation using *.pair* method.
+    TODO: switch to pretrained model once possible
+    """
+    binned_spectrums, similarity_measure = get_test_ms2_deep_score_instance()
     score = similarity_measure.pair(binned_spectrums[0], binned_spectrums[1])
     assert 0 < score < 1, "Expected score > 0 and < 1"
     assert isinstance(score, float), "Expected score to be float"
 
-    # calculate similarities (matrix)
+
+def test_MS2DeepScore_score_matrix():
+    """Test score calculation using *.matrix* method.
+    TODO: switch to pretrained model once possible
+    """
+    binned_spectrums, similarity_measure = get_test_ms2_deep_score_instance()
     scores = similarity_measure.matrix(binned_spectrums[:5], binned_spectrums[:5])
     assert scores.shape == (5, 5), "Expected different score array shape"
     assert np.allclose([scores[i, i] for i in range(5)], 1.0), "Expected diagonal values to be approx 1.0"
