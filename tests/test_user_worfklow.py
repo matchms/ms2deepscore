@@ -67,7 +67,7 @@ def test_user_workflow():
     # TODO: once properly implemented: replace model training by loadding a pretrained model
 
     # calculate similarities (pair)
-    similarity_measure = MS2DeepScore(model)
+    similarity_measure = MS2DeepScore(model, ms2ds_binner)
     score = similarity_measure.pair(spectrums[0], spectrums[1])
     assert 0 < score < 1, "Expected score > 0 and < 1"
     assert isinstance(score, float), "Expected score to be float"
