@@ -8,14 +8,14 @@ from tests.test_data_generators import create_test_data
 
 def get_test_generator():
     # Get test data
-    spectrums_binned, tanimoto_scores_df = create_test_data()
+    binned_spectrums, tanimoto_scores_df = create_test_data()
 
     dimension = 101
     same_prob_bins = [(0, 0.5), (0.5, 1)]
     selected_inchikeys = tanimoto_scores_df.index[:80]
 
     # Create generator
-    return DataGeneratorAllInchikeys(spectrums_binned=spectrums_binned,
+    return DataGeneratorAllInchikeys(binned_spectrums=binned_spectrums,
                                      selected_inchikeys=selected_inchikeys,
                                      reference_scores_df=tanimoto_scores_df,
                                      dim=dimension, same_prob_bins=same_prob_bins)
