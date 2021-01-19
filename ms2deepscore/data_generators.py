@@ -247,7 +247,7 @@ class DataGeneratorAllSpectrums(DataGeneratorBase):
     other spectrum that corresponds to a reference score as defined in same_prob_bins.
     """
     def __init__(self, binned_spectrums: List[BinnedSpectrum],
-                 labels_df: pd.DataFrame, dim: int, **settings):
+                 reference_scores_df: pd.DataFrame, dim: int, **settings):
         """Generates data for training a siamese Keras model.
         Parameters
         ----------
@@ -288,7 +288,7 @@ class DataGeneratorAllSpectrums(DataGeneratorBase):
             number within [0, 0.1].
         """
         super().__init__(binned_spectrums, reference_scores_df, dim, **settings)
-        self.labels_df = self._exclude_not_selected_inchikeys(self.labels_df)
+        self.reference_scores_df = self._exclude_not_selected_inchikeys(self.reference_scores_df)
         self.on_epoch_end()
 
     def __len__(self):
@@ -333,15 +333,15 @@ class DataGeneratorAllSpectrums(DataGeneratorBase):
             print(f"{n_dropped} nans among {len(reference_scores_df)} labels will be excluded.")
         return clean_df
 
-    def _exclude_not_selected_inchikeys(self, labels_df: pd.DataFrame) -> pd.DataFrame:
-        """Exclude rows and columns of labels_df for all InChIKeys which are not
+    def _exclude_not_selected_inchikeys(self, reference_scores_df: pd.DataFrame) -> pd.DataFrame:
+        """Exclude rows and columns of reference_scores_df for all InChIKeys which are not
         present in the binned_spectrums."""
         inchikeys_in_selection = {s.get("inchikey") for s in self.binned_spectrums}
-        clean_df = labels_df.loc[labels_df.index.isin(inchikeys_in_selection),
-                                 labels_df.columns.isin(inchikeys_in_selection)]
-        n_dropped = len(self.labels_df) - len(clean_df)
+        clean_df = reference_scores_df.loc[reference_scores_df.index.isin(inchikeys_in_selection),
+                                 reference_scores_df.columns.isin(inchikeys_in_selection)]
+        n_dropped = len(self.reference_scores_df) - len(clean_df)
         if n_dropped > 0:
-            print(f"{len(clean_df)} out of {len(self.labels_df)} InChIKeys found in selected spectrums.")
+            print(f"{len(clean_df)} out of {len(self.reference_scores_df)} InChIKeys found in selected spectrums.")
         return clean_df
 
 

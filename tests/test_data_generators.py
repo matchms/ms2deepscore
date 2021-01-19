@@ -88,23 +88,23 @@ def test_DataGeneratorAllSpectrums_no_inchikey_leaking():
 
     # Create generator
     test_generator = DataGeneratorAllSpectrums(binned_spectrums=binned_spectrums[:11],
-                                               labels_df=tanimoto_scores_df,
+                                               reference_scores_df=tanimoto_scores_df,
                                                dim=dimension, batch_size=batch_size,
                                                augment_removal_max=0.0,
                                                augment_removal_intensity=0.0,
                                                augment_intensity=0.0)
 
-    assert test_generator.labels_df.shape == (6, 6), "Expected different reduced shape of labels"
+    assert test_generator.reference_scores_df.shape == (6, 6), "Expected different reduced shape of labels"
     expected_inchikeys = ['AAWZDTNXLSGCEK-TUNDHVGDSA-N',
                           'CXVGEDCSTKKODG-UHFFFAOYSA-N',
                           'JFFHVIUZNPTGGR-WJLGXSQGSA-N',
                           'JGCSKOVQDXEQHI-UHFFFAOYSA-N',
                           'VCBNPTWPJQLHQN-NYAJDEOCSA-N',
                           'ZBAMSLOMNLECFR-IEAZIUSSSA-N']
-    found_inchikeys = test_generator.labels_df.columns.to_list()
+    found_inchikeys = test_generator.reference_scores_df.columns.to_list()
     found_inchikeys.sort()
     assert found_inchikeys == expected_inchikeys, \
-        "Expected different InChIKeys to remain in labels_df"
+        "Expected different InChIKeys to remain in reference_scores_df"
 
     # Test if the expected labels are returned by generator
     expected_labels = np.array([0.09285714, 0.11022727, 0.15672306, 0.15920916, 0.19264588,
