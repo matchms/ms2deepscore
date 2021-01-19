@@ -13,24 +13,24 @@ from ms2deepscore.data_generators import DataGeneratorAllSpectrums
 TEST_RESOURCES_PATH = Path(__file__).parent / 'resources'
 
 def create_test_data():
-    spectrums_binned_file = TEST_RESOURCES_PATH / "testdata_spectrums_binned.json"
-    with open(spectrums_binned_file, "r") as read_file:
+    binned_spectrums_file = TEST_RESOURCES_PATH / "testdata_spectrums_binned.json"
+    with open(binned_spectrums_file, "r") as read_file:
         peaks_dicts = json.load(read_file)
     inchikeys_array = np.load(TEST_RESOURCES_PATH / "testdata_inchikeys.npy")
-    spectrums_binned = []
+    binned_spectrums = []
     for i, peaks_dict in enumerate(peaks_dicts):
-        spectrums_binned.append(BinnedSpectrum(binned_peaks=peaks_dict,
+        binned_spectrums.append(BinnedSpectrum(binned_peaks=peaks_dict,
                                                metadata={"inchikey": inchikeys_array[i]}))
 
     tanimoto_scores_df = pd.read_csv(TEST_RESOURCES_PATH / 'testdata_tanimoto_scores.csv',
                                      index_col=0)
-    return spectrums_binned, tanimoto_scores_df
+    return binned_spectrums, tanimoto_scores_df
 
 
 def test_DataGeneratorAllInchikeys():
     """Basic first test for DataGeneratorAllInchikeys"""
     # Get test data
-    spectrums_binned, tanimoto_scores_df = create_test_data()
+    binned_spectrums, tanimoto_scores_df = create_test_data()
 
     # Define other parameters
     batch_size = 10
@@ -38,7 +38,7 @@ def test_DataGeneratorAllInchikeys():
 
     selected_inchikeys = tanimoto_scores_df.index[:80]
     # Create generator
-    test_generator = DataGeneratorAllInchikeys(spectrums_binned=spectrums_binned,
+    test_generator = DataGeneratorAllInchikeys(binned_spectrums=binned_spectrums,
                                                selected_inchikeys=selected_inchikeys,
                                                reference_scores_df=tanimoto_scores_df,
                                                dim=dimension, batch_size=batch_size,
@@ -56,7 +56,7 @@ def test_DataGeneratorAllInchikeys():
 def test_DataGeneratorAllSpectrums():
     """Basic first test for DataGeneratorAllSpectrums"""
     # Get test data
-    spectrums_binned, tanimoto_scores_df = create_test_data()
+    binned_spectrums, tanimoto_scores_df = create_test_data()
 
     # Define other parameters
     batch_size = 10
@@ -65,7 +65,7 @@ def test_DataGeneratorAllSpectrums():
     spectrum_ids = list(range(150))
 
     # Create generator
-    test_generator = DataGeneratorAllSpectrums(spectrums_binned=spectrums_binned,
+    test_generator = DataGeneratorAllSpectrums(binned_spectrums=binned_spectrums,
                                                spectrum_ids=spectrum_ids,
                                                reference_scores_df=tanimoto_scores_df,
                                                dim=dimension, batch_size=batch_size,
@@ -82,11 +82,11 @@ def test_DataGeneratorAllSpectrums():
 
 def test_DataGeneratorAllSpectrums_asymmetric_label_input():
     # Create generator
-    spectrums_binned, tanimoto_scores_df = create_test_data()
+    binned_spectrums, tanimoto_scores_df = create_test_data()
     spectrum_ids = list(range(150))
     asymmetric_scores_df = tanimoto_scores_df.iloc[:, 2:]
     with pytest.raises(ValueError):
-        test_generator = DataGeneratorAllSpectrums(spectrums_binned=spectrums_binned,
+        test_generator = DataGeneratorAllSpectrums(binned_spectrums=binned_spectrums,
                                                    spectrum_ids=spectrum_ids,
                                                    reference_scores_df=asymmetric_scores_df,
                                                    dim=101)

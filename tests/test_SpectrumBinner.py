@@ -30,12 +30,12 @@ def test_SpectrumBinner_fit_transform():
                           intensities=np.array([0.4, 0.2, 0.1]),
                           metadata={'inchikey': "test_inchikey_02"})
 
-    spectrums_binned = ms2ds_binner.fit_transform([spectrum_1, spectrum_2])
+    binned_spectrums = ms2ds_binner.fit_transform([spectrum_1, spectrum_2])
     assert ms2ds_binner.known_bins == [10, 40, 50, 90, 100], "Expected different known bins."
-    assert len(spectrums_binned) == 2, "Expected 2 binned spectrums."
-    assert spectrums_binned[0].binned_peaks == {0: 0.7, 2: 0.2, 4: 0.1}, \
+    assert len(binned_spectrums) == 2, "Expected 2 binned spectrums."
+    assert binned_spectrums[0].binned_peaks == {0: 0.7, 2: 0.2, 4: 0.1}, \
         "Expected different binned spectrum."
-    assert spectrums_binned[0].get("inchikey") == "test_inchikey_01", \
+    assert binned_spectrums[0].get("inchikey") == "test_inchikey_01", \
         "Expected different inchikeys."
 
 
@@ -49,12 +49,12 @@ def test_SpectrumBinner_fit_transform_peak_scaling():
                           intensities=np.array([0.4, 0.2, 0.1]),
                           metadata={'inchikey': "test_inchikey_02"})
 
-    spectrums_binned = ms2ds_binner.fit_transform([spectrum_1, spectrum_2])
+    binned_spectrums = ms2ds_binner.fit_transform([spectrum_1, spectrum_2])
     assert ms2ds_binner.known_bins == [10, 40, 50, 90, 100], "Expected different known bins."
-    assert len(spectrums_binned) == 2, "Expected 2 binned spectrums."
-    assert spectrums_binned[0].binned_peaks == {0: 1.0, 2: 1.0, 4: 1.0}, \
+    assert len(binned_spectrums) == 2, "Expected 2 binned spectrums."
+    assert binned_spectrums[0].binned_peaks == {0: 1.0, 2: 1.0, 4: 1.0}, \
         "Expected different binned spectrum."
-    assert spectrums_binned[0].get("inchikey") == "test_inchikey_01", \
+    assert binned_spectrums[0].get("inchikey") == "test_inchikey_01", \
         "Expected different inchikeys."
 
 
@@ -68,7 +68,7 @@ def test_SpectrumBinner_transform():
                           intensities=np.array([0.4, 0.5, 0.2, 0.1]),
                           metadata={'inchikey': "test_inchikey_02"})
 
-    spectrums_binned = ms2ds_binner.fit_transform([spectrum_1, spectrum_2])
+    binned_spectrums = ms2ds_binner.fit_transform([spectrum_1, spectrum_2])
     assert ms2ds_binner.known_bins == [10, 20, 30, 40, 50, 90, 100], "Expected different known bins."
 
     spectrum_3 = Spectrum(mz=np.array([10, 20, 30, 50.]),
@@ -89,7 +89,7 @@ def test_SpectrumBinner_transform_missing_fraction():
                           intensities=np.array([0.4, 0.5, 0.2, 0.1]),
                           metadata={'inchikey': "test_inchikey_02"})
 
-    spectrums_binned = ms2ds_binner.fit_transform([spectrum_1, spectrum_2])
+    binned_spectrums = ms2ds_binner.fit_transform([spectrum_1, spectrum_2])
     assert ms2ds_binner.known_bins == [10, 20, 30, 40, 50, 90, 100], "Expected different known bins."
 
     spectrum_3 = Spectrum(mz=np.array([10, 20, 30, 80.]),
