@@ -15,7 +15,7 @@ from ms2deepscore import MS2DeepScore
 TEST_RESOURCES_PATH = Path(__file__).parent / 'resources'
 
 
-def load_process_spectrums():
+def load_processed_spectrums():
     """Load processed spectrums from mgf file. For processing itself see matchms
     documentation."""
     spectrums_file = TEST_RESOURCES_PATH / "pesticides_processed.mgf"
@@ -33,7 +33,7 @@ def test_user_workflow():
     """Test a typical user workflow from a mgf file to MS2DeepScore similarities."""
 
     # Load processed spectrums and reference scores (Tanimoto scores)
-    spectrums = load_process_spectrums()
+    spectrums = load_processed_spectrums()
     tanimoto_scores_df = get_reference_scores()
     # quick checks:
     assert spectrums[1].get("inchikey") == 'BBXXLROWFHWFQY-UHFFFAOYSA-N', \
@@ -64,10 +64,8 @@ def test_user_workflow():
     model.fit(test_generator,
               validation_data=test_generator,
               epochs=2)
-    assert len(model.model.layers[2].layers) == len(model.base.layers) == 11, \
-        "Expected different number of layers"
 
-    # or: load model
+    # TODO: once properly implemented: replace model training by loadding a pretrained model
 
     # calculate similarities (pair)
     similarity_measure = MS2DeepScore(model)
