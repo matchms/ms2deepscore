@@ -243,18 +243,16 @@ class DataGeneratorBase(Sequence):
 class DataGeneratorAllSpectrums(DataGeneratorBase):
     """Generates data for training a siamese Keras model
     This generator will provide training data by picking each training spectrum
-    listed in *spectrum_ids* num_turns times in every epoch and pairing it with a randomly chosen
+    in binned_spectrums num_turns times in every epoch and pairing it with a randomly chosen
     other spectrum that corresponds to a reference score as defined in same_prob_bins.
     """
-    def __init__(self, binned_spectrums: List[BinnedSpectrum], spectrum_ids: list,
+    def __init__(self, binned_spectrums: List[BinnedSpectrum],
                  reference_scores_df: pd.DataFrame, dim: int, **settings):
         """Generates data for training a siamese Keras model.
         Parameters
         ----------
         binned_spectrums
             List of BinnedSpectrum objects with the binned peak positions and intensities.
-        spectrum_ids
-            List of IDs from binned_spectrums to use for training.
         reference_scores_df
             Pandas DataFrame with reference similarity scores (=labels) for compounds identified
             by inchikeys. Columns and index should be inchikeys, the value in a row x column
@@ -290,14 +288,14 @@ class DataGeneratorAllSpectrums(DataGeneratorBase):
             number within [0, 0.1].
         """
         super().__init__(binned_spectrums, reference_scores_df, dim, **settings)
-        self.spectrum_ids = spectrum_ids
+        self.reference_scores_df = self._exclude_not_selected_inchikeys(self.reference_scores_df)
         self.on_epoch_end()
 
     def __len__(self):
         """Denotes the number of batches per epoch"""
         # TODO: this means we don't see all data every epoch, because the last half-empty batch
         #  is omitted. I guess that is expected behavior? --> Yes, with the shuffling in each epoch that seem OK to me (and makes the code easier).
-        return int(self.settings["num_turns"]) * int(np.floor(len(self.spectrum_ids) / self.settings["batch_size"]))
+        return int(self.settings["num_turns"]) * int(np.floor(len(self.binned_spectrums) / self.settings["batch_size"]))
 
     def _spectrum_pair_generator(self, batch_index: int) -> Iterator[SpectrumPair]:
         """
@@ -309,7 +307,7 @@ class DataGeneratorAllSpectrums(DataGeneratorBase):
         batch_size = self.settings["batch_size"]
         indexes = self.indexes[batch_index*batch_size:(batch_index+1)*batch_size]
         for index in indexes:
-            spectrum1 = self.binned_spectrums[self.spectrum_ids[index]]
+            spectrum1 = self.binned_spectrums[index]
             inchikey1 = spectrum1.get('inchikey')
 
             # Randomly pick the desired target score range and pick matching ID
@@ -320,7 +318,7 @@ class DataGeneratorAllSpectrums(DataGeneratorBase):
 
     def on_epoch_end(self):
         """Updates indexes after each epoch"""
-        self.indexes = np.tile(np.arange(len(self.spectrum_ids)), int(self.settings["num_turns"]))
+        self.indexes = np.tile(np.arange(len(self.binned_spectrums)), int(self.settings["num_turns"]))
         if self.settings["shuffle"] == True:
             np.random.shuffle(self.indexes)
 
@@ -333,6 +331,17 @@ class DataGeneratorAllSpectrums(DataGeneratorBase):
         n_dropped = len(reference_scores_df) - len(clean_df)
         if n_dropped > 0:
             print(f"{n_dropped} nans among {len(reference_scores_df)} labels will be excluded.")
+        return clean_df
+
+    def _exclude_not_selected_inchikeys(self, reference_scores_df: pd.DataFrame) -> pd.DataFrame:
+        """Exclude rows and columns of reference_scores_df for all InChIKeys which are not
+        present in the binned_spectrums."""
+        inchikeys_in_selection = {s.get("inchikey") for s in self.binned_spectrums}
+        clean_df = reference_scores_df.loc[reference_scores_df.index.isin(inchikeys_in_selection),
+                                 reference_scores_df.columns.isin(inchikeys_in_selection)]
+        n_dropped = len(self.reference_scores_df) - len(clean_df)
+        if n_dropped > 0:
+            print(f"{len(clean_df)} out of {len(self.reference_scores_df)} InChIKeys found in selected spectrums.")
         return clean_df
 
 
