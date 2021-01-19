@@ -10,21 +10,15 @@ from ms2deepscore import BinnedSpectrum
 np.random.seed(42)
 
 
-class DataGeneratorAllSpectrums(Sequence):
-    """Generates data for training a siamese Keras model
-    This generator will provide training data by picking each training spectrum
-    listed in *spectrum_ids* num_turns times in every epoch and pairing it with a randomly chosen
-    other spectrum that corresponds to a reference score as defined in same_prob_bins.
-    """
-    def __init__(self, spectrums_binned: List[BinnedSpectrum], spectrum_ids: list,
+class DataGeneratorBase(Sequence):
+    def __init__(self, spectrums_binned: List[BinnedSpectrum],
                  reference_scores_df: pd.DataFrame, dim: int, **settings):
-        """Generates data for training a siamese Keras model.
+        """Base for data generator generating data for a siamese model.
+
         Parameters
         ----------
         spectrums_binned
             List of BinnedSpectrum objects with the binned peak positions and intensities.
-        spectrum_ids
-            List of IDs from spectrums_binned to use for training.
         reference_scores_df
             Pandas DataFrame with reference similarity scores (=labels) for compounds identified
             by inchikeys. Columns and index should be inchikeys, the value in a row x column
@@ -33,6 +27,7 @@ class DataGeneratorAllSpectrums(Sequence):
             identical to the index.
         dim
             Input vector dimension.
+
         As part of **settings, defaults for the following parameters can be set:
         batch_size
             Number of pairs per batch. Default=32.
@@ -64,13 +59,10 @@ class DataGeneratorAllSpectrums(Sequence):
         # Set all other settings to input (or otherwise to defaults):
         self._set_generator_parameters(**settings)
         self.spectrums_binned = spectrums_binned
-        self.spectrum_ids = spectrum_ids
         self.reference_scores_df = self._exclude_nans_from_labels(reference_scores_df)
         self.inchikeys_all = np.array([x.get("inchikey") for x in spectrums_binned])
         # TODO: add check if all inchikeys are present (should fail for missing ones)
         self.dim = dim
-
-        self.on_epoch_end()
 
     @staticmethod
     def _validate_labels(reference_scores_df: pd.DataFrame):
@@ -129,43 +121,6 @@ class DataGeneratorAllSpectrums(Sequence):
         assert 0.0 <= settings["augment_removal_max"] <= 1.0, "Expected value within [0,1]"
         assert 0.0 <= settings["augment_removal_intensity"] <= 1.0, "Expected value within [0,1]"
         self.settings = settings
-
-    def __len__(self):
-        """Denotes the number of batches per epoch"""
-        # TODO: this means we don't see all data every epoch, because the last half-empty batch
-        #  is omitted. I guess that is expected behavior? --> Yes, with the shuffling in each epoch that seem OK to me (and makes the code easier).
-        return int(self.settings["num_turns"]) * int(np.floor(len(self.spectrum_ids) / self.settings["batch_size"]))
-
-    def __getitem__(self, index):
-        """Generate one batch of data"""
-        # Go through all indexes
-        indexes_spectrums = self.indexes[index*self.settings["batch_size"]:(index+1)*self.settings["batch_size"]]
-
-        # Select subset of IDs
-        # TODO: Filter out function: select_batch_ids
-        spectrum_inchikeys_batch = []
-        same_prob_bins = self.settings["same_prob_bins"]
-        for index in indexes_spectrums:
-            spectrum_id1 = self.spectrum_ids[index]
-            inchikey1 = self.inchikeys_all[spectrum_id1]
-
-            # Randomly pick the desired target score range and pick matching ID
-            target_score_range = same_prob_bins[np.random.choice(np.arange(len(same_prob_bins)))]
-            inchikey2 = self._find_match_in_range(inchikey1, target_score_range)
-            spectrum_id2 = np.random.choice(np.where(self.inchikeys_all == inchikey2)[0])
-
-            spectrum_inchikeys_batch.append([(spectrum_id1, inchikey1), (spectrum_id2, inchikey2)])
-
-        # Generate data
-        X, y = self.__data_generation(spectrum_inchikeys_batch)
-
-        return X, y
-
-    def on_epoch_end(self):
-        """Updates indexes after each epoch"""
-        self.indexes = np.tile(np.arange(len(self.spectrum_ids)), int(self.settings["num_turns"]))
-        if self.settings["shuffle"] == True:
-            np.random.shuffle(self.indexes)
 
     @staticmethod
     def _exclude_nans_from_labels(reference_scores_df: pd.DataFrame):
@@ -239,14 +194,116 @@ class DataGeneratorAllSpectrums(Sequence):
             values = (1 - self.settings["augment_intensity"] * 2 * (np.random.random(values.shape) - 0.5)) * values
         return idx, values
 
-    def __data_generation(self, spectrum_inchikeys_batch):
+
+class DataGeneratorAllSpectrums(DataGeneratorBase):
+    """Generates data for training a siamese Keras model
+    This generator will provide training data by picking each training spectrum
+    listed in *spectrum_ids* num_turns times in every epoch and pairing it with a randomly chosen
+    other spectrum that corresponds to a reference score as defined in same_prob_bins.
+    """
+    def __init__(self, spectrums_binned: List[BinnedSpectrum], spectrum_ids: list,
+                 reference_scores_df: pd.DataFrame, dim: int, **settings):
+        """Generates data for training a siamese Keras model.
+        Parameters
+        ----------
+        spectrums_binned
+            List of BinnedSpectrum objects with the binned peak positions and intensities.
+        spectrum_ids
+            List of IDs from spectrums_binned to use for training.
+        reference_scores_df
+            Pandas DataFrame with reference similarity scores (=labels) for compounds identified
+            by inchikeys. Columns and index should be inchikeys, the value in a row x column
+            depicting the similarity score for that pair. Must be symmetric
+            (reference_scores_df[i,j] == reference_scores_df[j,i]) and column names should be
+            identical to the index.
+        dim
+            Input vector dimension.
+        As part of **settings, defaults for the following parameters can be set:
+        batch_size
+            Number of pairs per batch. Default=32.
+        num_turns
+            Number of pairs for each InChiKey during each epoch. Default=1.
+        shuffle
+            Set to True to shuffle IDs every epoch. Default=True
+        ignore_equal_pairs
+            Set to True to ignore pairs of two identical spectra. Default=True
+        same_prob_bins
+            List of tuples that define ranges of the true label to be trained with
+            equal frequencies. Default is set to [(0, 0.5), (0.5, 1)], which means
+            that pairs with scores <=0.5 will be picked as often as pairs with scores
+            > 0.5.
+        augment_removal_max
+            Maximum fraction of peaks (if intensity < below augment_removal_intensity)
+            to be removed randomly. Default is set to 0.2, which means that between
+            0 and 20% of all peaks with intensities < augment_removal_intensity
+            will be removed.
+        augment_removal_intensity
+            Specifying that only peaks with intensities < max_intensity will be removed.
+        augment_intensity
+            Change peak intensities by a random number between 0 and augment_intensity.
+            Default=0.1, which means that intensities are multiplied by 1+- a random
+            number within [0, 0.1].
+        """
+        super().__init__(spectrums_binned, reference_scores_df, dim, **settings)
+        self.spectrum_ids = spectrum_ids
+        self.on_epoch_end()
+
+    def __len__(self):
+        """Denotes the number of batches per epoch"""
+        # TODO: this means we don't see all data every epoch, because the last half-empty batch
+        #  is omitted. I guess that is expected behavior? --> Yes, with the shuffling in each epoch that seem OK to me (and makes the code easier).
+        return int(self.settings["num_turns"]) * int(np.floor(len(self.spectrum_ids) / self.settings["batch_size"]))
+
+    def __getitem__(self, index):
+        """Generate one batch of data"""
+        # Go through all indexes
+        indexes_spectrums = self.indexes[index*self.settings["batch_size"]:(index+1)*self.settings["batch_size"]]
+
+        # Select subset of IDs
+        # TODO: Filter out function: select_batch_ids
+        spectrum_inchikeys_batch = []
+        same_prob_bins = self.settings["same_prob_bins"]
+        for index in indexes_spectrums:
+            spectrum_id1 = self.spectrum_ids[index]
+            inchikey1 = self.inchikeys_all[spectrum_id1]
+
+            # Randomly pick the desired target score range and pick matching ID
+            target_score_range = same_prob_bins[np.random.choice(np.arange(len(same_prob_bins)))]
+            inchikey2 = self._find_match_in_range(inchikey1, target_score_range)
+            spectrum_id2 = np.random.choice(np.where(self.inchikeys_all == inchikey2)[0])
+
+            spectrum_inchikeys_batch.append([(spectrum_id1, inchikey1), (spectrum_id2, inchikey2)])
+
+        # Generate data
+        X, y = self.__data_generation(spectrum_inchikeys_batch)
+
+        return X, y
+
+    def on_epoch_end(self):
+        """Updates indexes after each epoch"""
+        self.indexes = np.tile(np.arange(len(self.spectrum_ids)), int(self.settings["num_turns"]))
+        if self.settings["shuffle"] == True:
+            np.random.shuffle(self.indexes)
+
+    @staticmethod
+    def _exclude_nans_from_labels(reference_scores_df: pd.DataFrame):
+        """Exclude nans in reference_scores_df, exclude columns and rows if there is any NaN
+        value"""
+        clean_df = reference_scores_df.dropna(axis='rows')  # drop rows with any NaN
+        clean_df = clean_df[clean_df.index]  # drop corresponding columns
+        n_dropped = len(reference_scores_df) - len(clean_df)
+        if n_dropped > 0:
+            print(f"{n_dropped} nans among {len(reference_scores_df)} labels will be excluded.")
+        return clean_df
+
+    def __data_generation(self, spectrum_inchikey_ids_batch):
         """Generates data containing batch_size samples"""
         # Initialization
         X = [np.zeros((self.settings["batch_size"], self.dim)) for i in range(2)]
         y = np.zeros((self.settings["batch_size"],))
 
         # Generate data
-        for i_batch, pair in enumerate(spectrum_inchikeys_batch):
+        for i_batch, pair in enumerate(spectrum_inchikey_ids_batch):
             for i_pair, spectrum_inchikey in enumerate(pair):
                 idx, values = self._data_augmentation(self.spectrums_binned[spectrum_inchikey[0]].binned_peaks)
                 X[i_pair][i_batch, idx] = values
@@ -256,7 +313,7 @@ class DataGeneratorAllSpectrums(Sequence):
         return X, y
 
 
-class DataGeneratorAllInchikeys(DataGeneratorAllSpectrums):
+class DataGeneratorAllInchikeys(DataGeneratorBase):
     """Generates data for training a siamese Keras model
     This generator will provide training data by picking each training InchiKey
     listed in *selected_inchikeys* num_turns times in every epoch. It will then randomly
@@ -275,8 +332,7 @@ class DataGeneratorAllInchikeys(DataGeneratorAllSpectrums):
             Pandas DataFrame with reference similarity scores (=labels) for compounds identified
             by inchikeys. Columns and index should be inchikeys, the value in a row x column
             depicting the similarity score for that pair. Must be symmetric
-            (reference_scores_df[i,j] == reference_scores_df[j,i]) and column names should be
-            identical to the index.
+            (reference_scores_df[i,j] == reference_scores_df[j,i]) and column names should be identical to the index.
         selected_inchikeys
             List of inchikeys to use for training.
         dim
@@ -307,72 +363,9 @@ class DataGeneratorAllInchikeys(DataGeneratorAllSpectrums):
             Default=0.1, which means that intensities are multiplied by 1+- a random
             number within [0, 0.1].
         """
-        self._validate_labels(reference_scores_df)
-
-        # Set all other settings to input (or otherwise to defaults):
-        self._set_generator_parameters(**settings)
-        self.spectrums_binned = spectrums_binned
-        self.reference_scores_df = self._exclude_nans_from_labels(reference_scores_df)
+        super().__init__(spectrums_binned, reference_scores_df, dim, **settings)
         self.reference_scores_df = self._data_selection(reference_scores_df, selected_inchikeys)
-        self.inchikeys_all = np.array([x.get("inchikey") for x in spectrums_binned])
-        # TODO: add check if all inchikeys are present (should fail for missing ones)
-        self.dim = dim
-
-        self._set_generator_parameters(**settings)
         self.on_epoch_end()
-
-    def _set_generator_parameters(self, **settings):
-        """Set parameter for data generator. Use below listed defaults unless other
-        input is provided.
-
-        Parameters
-        ----------
-        batch_size
-            Number of pairs per batch. Default=32.
-        num_turns
-            Number of pairs for each InChiKey during each epoch. Default=1
-        shuffle
-            Set to True to shuffle IDs every epoch. Default=True
-        ignore_equal_pairs
-            Set to True to ignore pairs of two identical spectra. Default=True
-        same_prob_bins
-            List of tuples that define ranges of the true label to be trained with
-            equal frequencies. Default is set to [(0, 0.5), (0.5, 1)], which means
-            that pairs with scores <=0.5 will be picked as often as pairs with scores
-            > 0.5.
-        augment_removal_max
-            Maximum fraction of peaks (if intensity < below augment_removal_intensity)
-            to be removed randomly. Default is set to 0.2, which means that between
-            0 and 20% of all peaks with intensities < augment_removal_intensity
-            will be removed.
-        augment_removal_intensity
-            Specifying that only peaks with intensities < max_intensity will be removed.
-        augment_intensity
-            Change peak intensities by a random number between 0 and augment_intensity.
-            Default=0.1, which means that intensities are multiplied by 1+- a random
-            number within [0, 0.1].
-        """
-        defaults = dict(
-            batch_size=32,
-            num_turns=1,
-            ignore_equal_pairs=True,
-            shuffle=True,
-            same_prob_bins=[(0, 0.5), (0.5, 1)],
-            augment_removal_max= 0.3,
-            augment_removal_intensity=0.2,
-            augment_intensity=0.4,
-        )
-
-        # Set default parameters or replace by **settings input
-        for key in defaults:
-            if key in settings:
-                print("The value for {} is set from {} (default) to {}".format(key, defaults[key],
-                                                                              settings[key]))
-            else:
-                settings[key] = defaults[key]
-        assert 0.0 <= settings["augment_removal_max"] <= 1.0, "Expected value within [0,1]"
-        assert 0.0 <= settings["augment_removal_intensity"] <= 1.0, "Expected value within [0,1]"
-        self.settings = settings
 
     def __len__(self):
         """Denotes the number of batches per epoch"""
