@@ -49,10 +49,9 @@ def test_user_workflow():
     # train model
     dimension = len(ms2ds_binner.known_bins)
     same_prob_bins = [(0, 0.5), (0.5, 1)]
-    spectrum_ids = list(np.arange(0, len(spectrums)))
 
     # Create generator
-    test_generator = DataGeneratorAllSpectrums(binned_spectrums, spectrum_ids, tanimoto_scores_df,
+    test_generator = DataGeneratorAllSpectrums(binned_spectrums, tanimoto_scores_df,
                                                dim=dimension,
                                                same_prob_bins=same_prob_bins)
 

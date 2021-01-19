@@ -3,11 +3,9 @@ import numpy as np
 import pytest
 from tensorflow import keras
 
-from ms2deepscore import MS2DeepScore
+from ms2deepscore import MS2DeepScore, SpectrumBinner
 from ms2deepscore.data_generators import DataGeneratorAllSpectrums
 from ms2deepscore.models import SiameseModel
-# from tests.test_data_generators import create_test_data
-# from tests.test_models import get_test_generator
 from tests.test_user_worfklow import load_processed_spectrums, get_reference_scores
 
 
