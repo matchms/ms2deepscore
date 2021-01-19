@@ -69,11 +69,11 @@ def test_user_workflow():
 
     # calculate similarities (pair)
     similarity_measure = MS2DeepScore(model)
-    score = similarity_measure.pair(binned_spectrums[0], binned_spectrums[1])
+    score = similarity_measure.pair(spectrums[0], spectrums[1])
     assert 0 < score < 1, "Expected score > 0 and < 1"
     assert isinstance(score, float), "Expected score to be float"
 
     # calculate similarities (matrix)
-    scores = similarity_measure.matrix(binned_spectrums[:10], binned_spectrums[:10])
+    scores = similarity_measure.matrix(spectrums[:10], spectrums[:10])
     assert scores.shape == (10, 10), "Expected different score array shape"
     assert np.allclose([scores[i, i] for i in range(10)], 1.0), "Expected diagonal values to be approx 1.0"

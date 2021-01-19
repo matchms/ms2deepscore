@@ -1,6 +1,7 @@
 from typing import List
 from typing import Union
 import numpy as np
+from matchms import Spectrum
 from matchms.similarity.BaseSimilarity import BaseSimilarity
 from tqdm import tqdm
 
@@ -32,15 +33,14 @@ class MS2DeepScore(BaseSimilarity):
         queries = load_from_json("xyz.json")
 
         model = ... TODO: implement such a function
-        binned_references = model.spectrum_binner.transform(references)
-        binned_queries = model.spectrum_binner.transform(queries)
 
-        similarity_measure = MS2DeepScore(model)
-        scores = calculate_scores(binned_references, binned_queries, similarity_measure)
+        similarity_measure = MS2DeepScore(model, spectrum_binner)
+        TODO: move spectrumBinner to model
+        scores = calculate_scores(references, queries, similarity_measure)
 
 
     """
-    def __init__(self, model, progress_bar: bool = False):
+    def __init__(self, model, spectrum_binner, progress_bar: bool = False):
         """
 
         Parameters
@@ -48,16 +48,20 @@ class MS2DeepScore(BaseSimilarity):
         model:
             Expected input is a SiameseModel that has been trained on
             the desired set of spectra.
+        spectrum_binner:
+            SpectrumBinner that was used for training the model.
+            TODO: remove from arguments once this becomes part of the model.
         progress_bar:
             Set to True to monitor the embedding creating with a progress bar.
             Default is False.
         """
         self.model = model
+        self.spectrum_binner = spectrum_binner
         self.input_vector_dim = self.model.base.input_shape[1]  # TODO: later maybe also check against SpectrumBinner
         self.output_vector_dim = self.model.base.output_shape[1]
         self.disable_progress_bar = not progress_bar
 
-    def _create_input_vectors(self, binned_spectrum: BinnedSpectrum):
+    def _create_input_vector(self, binned_spectrum: BinnedSpectrum):
         """Creates input vector for model.base based on binned peaks and intensities"""
         X = np.zeros((1, self.input_vector_dim))
 
@@ -66,36 +70,38 @@ class MS2DeepScore(BaseSimilarity):
         X[0, idx] = values
         return X
 
-    def pair(self, reference: BinnedSpectrum, query: BinnedSpectrum) -> float:
-        """Calculate the MS2DeepScore similaritiy between a reference and a query.
+    def pair(self, reference: Spectrum, query: Spectrum) -> float:
+        """Calculate the MS2DeepScore similaritiy between a reference and a query spectrum.
 
         Parameters
         ----------
         reference:
-            Reference binned spectrum.
+            Reference spectrum.
         query:
-            Query binned spectrum.
+            Query spectrum.
 
         Returns
         -------
         ms2ds_similarity
             MS2DeepScore similarity score.
         """
-        reference_vector = self.model.base.predict(self._create_input_vectors(reference))
-        query_vector = self.model.base.predict(self._create_input_vectors(query))
+        binned_reference = self.spectrum_binner.transform([reference])[0]
+        binned_query = self.spectrum_binner.transform([query])[0]
+        reference_vector = self.model.base.predict(self._create_input_vector(binned_reference))
+        query_vector = self.model.base.predict(self._create_input_vector(binned_query))
 
         return cosine_similarity(reference_vector[0, :], query_vector[0, :])
 
-    def matrix(self, references: List[BinnedSpectrum], queries: List[BinnedSpectrum],
+    def matrix(self, references: List[Spectrum], queries: List[Spectrum],
                is_symmetric: bool = False) -> np.ndarray:
         """Calculate the MS2DeepScore similarities between all references and queries.
 
         Parameters
         ----------
         references:
-            Reference spectrum documents.
+            Reference spectrum.
         queries:
-            Query spectrum documents.
+            Query spectrum.
         is_symmetric:
             Set to True if references == queries to speed up calculation about 2x.
             Uses the fact that in this case score[i, j] = score[j, i]. Default is False.
@@ -107,14 +113,19 @@ class MS2DeepScore(BaseSimilarity):
         """
         n_rows = len(references)
         reference_vectors = np.empty((n_rows, self.output_vector_dim), dtype="float")
-        for index_reference, reference in enumerate(tqdm(references, desc='Calculating vectors of reference spectrums', disable=self.disable_progress_bar)):
+
+        # Convert to binned spectrums
+        binned_references = self.spectrum_binner.transform(references)
+        binned_queries = self.spectrum_binner.transform(queries)
+
+        for index_reference, reference in enumerate(tqdm(binned_references, desc='Calculating vectors of reference spectrums', disable=self.disable_progress_bar)):
             reference_vectors[index_reference,
-                              0:self.output_vector_dim] = self.model.base.predict(self._create_input_vectors(reference))
+                              0:self.output_vector_dim] = self.model.base.predict(self._create_input_vector(reference))
         n_cols = len(queries)
         query_vectors = np.empty((n_cols, self.output_vector_dim), dtype="float")
-        for index_query, query in enumerate(tqdm(queries, desc='Calculating vectors of query spectrums', disable=self.disable_progress_bar)):
+        for index_query, query in enumerate(tqdm(binned_queries, desc='Calculating vectors of query spectrums', disable=self.disable_progress_bar)):
             query_vectors[index_query,
-                          0:self.output_vector_dim] = self.model.base.predict(self._create_input_vectors(query))
+                          0:self.output_vector_dim] = self.model.base.predict(self._create_input_vector(query))
 
         ms2ds_similarity = cosine_similarity_matrix(reference_vectors, query_vectors)
 
