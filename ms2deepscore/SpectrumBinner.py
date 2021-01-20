@@ -46,7 +46,6 @@ class SpectrumBinner:
         self.allowed_missing_percentage = allowed_missing_percentage
         self.peak_to_position = None
         self.known_bins = None
-        self.binned_spectrums = None
 
     def fit_transform(self, spectrums: List[SpectrumType], progress_bar=True):
         """Transforms the input *spectrums* into binned spectrums as needed for
@@ -54,8 +53,7 @@ class SpectrumBinner:
 
         Includes creating a 'vocabulary' of bins that have peaks in spectrums,
         which is stored in SpectrumBinner.known_bins.
-        Creates binned spectrums from input spectrums and stores them in
-        SpectrumBinner.binned_spectrums.
+        Creates binned spectrums from input spectrums and returns them.
 
         Parameters
         ----------

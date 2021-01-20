@@ -1,6 +1,8 @@
 """ Functions to create binned vector from spectrum using fixed width bins.
 """
+from typing import List
 import numpy as np
+from matchms import Spectrum
 
 
 def create_peak_list_fixed(spectrums, peaks_vocab, d_bins, mz_min=10.0, peak_scaling=0.5):
@@ -42,7 +44,7 @@ def create_peak_list_fixed(spectrums, peaks_vocab, d_bins, mz_min=10.0, peak_sca
     return peak_lists, missing_fractions
 
 
-def unique_peaks_fixed(spectrums, d_bins, mz_min):
+def unique_peaks_fixed(spectrums: List[Spectrum], d_bins: float, mz_min: float):
     """Collect unique (binned) peaks."""
     unique_peaks = set()
     for spectrum in spectrums:
@@ -52,9 +54,9 @@ def unique_peaks_fixed(spectrums, d_bins, mz_min):
     class_values = {}
 
     for i, item in enumerate(unique_peaks):
-        class_values[item] = i
+        class_values[int(item)] = i
 
-    return class_values, unique_peaks
+    return class_values, [int(x) for x in unique_peaks]
 
 
 def bin_size_fixed(number, d_bins):
