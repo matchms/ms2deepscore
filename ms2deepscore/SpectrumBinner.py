@@ -63,7 +63,8 @@ class SpectrumBinner:
             Show progress bar if set to True. Default is True.
         """
         print("Collect spectrum peaks...")
-        peak_to_position, known_bins = unique_peaks_fixed(spectrums, self.d_bins, self.mz_min)
+        peak_to_position, known_bins = unique_peaks_fixed(spectrums, self.d_bins,
+                                                          self.mz_max, self.mz_min)
         print(f"Calculated embedding dimension of {len(known_bins)}.")
         self.peak_to_position = peak_to_position
         self.known_bins = known_bins
