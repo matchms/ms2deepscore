@@ -1,6 +1,11 @@
-from typing import Tuple
-
+from pathlib import Path
+from typing import Tuple, Union
+import h5py
+import json
 from tensorflow import keras
+from tensorflow.python.keras.saving import hdf5_format
+
+from ms2deepscore import SpectrumBinner
 
 
 class SiameseModel:
@@ -12,7 +17,7 @@ class SiameseModel:
     Mimics keras.Model API.
     """
     def __init__(self,
-                 input_dim: int,
+                 spectrum_binner: SpectrumBinner,
                  base_dims: Tuple[int, int, int] = (600, 500, 500),
                  embedding_dim: int = 400,
                  dropout_rate: float = 0.5):
@@ -21,8 +26,8 @@ class SiameseModel:
 
         Parameters
         ----------
-        input_dim
-            Dimension of the input vector
+        spectrum_binner
+            SpectrumBinner which is used to bin the spectra data for the model training.
         base_dims
             Size-3 tuple of integers depicting the dimensions of the 1st, 2nd, and 3rd hidden
             layers of the base model
@@ -31,12 +36,16 @@ class SiameseModel:
         dropout_rate
             Dropout rate to be used in the base model
         """
-        self.base = self._get_base_model(input_dim=input_dim,
+        assert spectrum_binner.known_bins is not None, \
+            "spectrum_binner does not contain known bins (run .fit_transform() on training data first!)"
+        self.spectrum_binner = spectrum_binner
+        self.input_dim = len(spectrum_binner.known_bins)
+        self.base = self._get_base_model(input_dim=self.input_dim,
                                          dims=base_dims,
                                          embedding_dim=embedding_dim,
                                          dropout_rate=dropout_rate)
-        input_a = keras.layers.Input(shape=input_dim, name="input_a")
-        input_b = keras.layers.Input(shape=input_dim, name="input_b")
+        input_a = keras.layers.Input(shape=self.input_dim, name="input_a")
+        input_b = keras.layers.Input(shape=self.input_dim, name="input_b")
         embedding_a = self.base(input_a)
         embedding_b = self.base(input_b)
         cosine_similarity = keras.layers.Dot(axes=(1, 1),
@@ -44,6 +53,24 @@ class SiameseModel:
                                              name="cosine_similarity")([embedding_a, embedding_b])
         self.model = keras.Model(inputs=[input_a, input_b], outputs=[cosine_similarity],
                                  name='head')
+
+    def save(self, filename: Union[str, Path]):
+        """
+        Save model to file.
+
+        Parameters
+        ----------
+        filename
+            Filename to specify where to store the model.
+
+        """
+        binner_dict = self.spectrum_binner.__dict__
+        binner_json = json.dumps(binner_dict)
+    
+        # Save model
+        with h5py.File(filename, mode='w') as f:
+            hdf5_format.save_model_to_hdf5(self.model.model, f)
+            f.attrs['spectrum_binner'] = binner_json
 
     @staticmethod
     def _get_base_model(input_dim: int,
