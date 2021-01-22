@@ -1,10 +1,14 @@
+from pathlib import Path
 import numpy as np
 from tensorflow import keras
 
 from ms2deepscore import SpectrumBinner
 from ms2deepscore.data_generators import DataGeneratorAllInchikeys
 from ms2deepscore.models import SiameseModel
+from ms2deepscore.models import load_model
 from tests.test_user_worfklow import load_processed_spectrums, get_reference_scores
+
+TEST_RESOURCES_PATH = Path(__file__).parent / 'resources'
 
 
 def get_test_binner_and_generator():
@@ -12,7 +16,7 @@ def get_test_binner_and_generator():
     # Get test data
     spectrums = load_processed_spectrums()
     tanimoto_scores_df = get_reference_scores()
-    spectrum_binner = SpectrumBinner(200, mz_min=10.0, mz_max=500.0, peak_scaling=0.5)
+    spectrum_binner = SpectrumBinner(400, mz_min=10.0, mz_max=500.0, peak_scaling=0.5)
     binned_spectrums = spectrum_binner.fit_transform(spectrums)
 
     dimension = len(spectrum_binner.known_bins)
@@ -39,7 +43,31 @@ def test_siamese_model():
     assert len(model.model.layers) == 4, "Expected different number of layers"
     assert len(model.model.layers[2].layers) == len(model.base.layers) == 11, \
         "Expected different number of layers"
-    assert model.model.input_shape == [(None, 176), (None, 176)], "Expected different input shape"
+    assert model.model.input_shape == [(None, 339), (None, 339)], "Expected different input shape"
+
+    # Test base model inference
+    X, y = test_generator.__getitem__(0)
+    embeddings = model.base.predict(X[0])
+    assert isinstance(embeddings, np.ndarray), "Expected numpy array"
+    assert embeddings.shape[0] == test_generator.settings["batch_size"] == 32, \
+        "Expected different batch size"
+    assert embeddings.shape[1] == model.base.output_shape[1] == 200, \
+        "Expected different embedding size"
+
+
+def test_load_model():
+    """Test loading a model from file."""
+    spectrum_binner, _ = get_test_binner_and_generator()
+
+    model_file = TEST_RESOURCES_PATH / "testmodel.hdf5"
+    model = load_model(filename)
+    assert model.spectrum_binner.__dict__ == spectrum_binner.__dict__, "Expected different spectrum binner"
+
+    # Test model layer shapes
+    assert len(model.model.layers) == 4, "Expected different number of layers"
+    assert len(model.model.layers[2].layers) == len(model.base.layers) == 11, \
+        "Expected different number of layers"
+    assert model.model.input_shape == [(None, 339), (None, 339)], "Expected different input shape"
 
     # Test base model inference
     X, y = test_generator.__getitem__(0)
