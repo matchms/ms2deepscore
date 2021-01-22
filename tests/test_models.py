@@ -60,7 +60,7 @@ def test_load_model():
     spectrum_binner, _ = get_test_binner_and_generator()
 
     model_file = TEST_RESOURCES_PATH / "testmodel.hdf5"
-    model = load_model(filename)
+    model = load_model(model_file)
     assert model.spectrum_binner.__dict__ == spectrum_binner.__dict__, "Expected different spectrum binner"
 
     # Test model layer shapes
