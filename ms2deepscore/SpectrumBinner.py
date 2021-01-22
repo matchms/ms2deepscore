@@ -88,7 +88,8 @@ class SpectrumBinner:
         """
         peak_lists, missing_fractions = create_peak_list_fixed(input_spectrums,
                                                                self.peak_to_position,
-                                                               self.d_bins, mz_min=self.mz_min,
+                                                               self.d_bins,
+                                                               mz_max=self.mz_max, mz_min=self.mz_min,
                                                                peak_scaling=self.peak_scaling)
         spectrums_binned = []
         for i, peak_list in enumerate(tqdm(peak_lists, disable=(not progress_bar))):
