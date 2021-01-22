@@ -3,6 +3,7 @@ import numpy as np
 from tqdm import tqdm
 from matchms.typing import SpectrumType
 from ms2deepscore import BinnedSpectrum
+from ms2deepscore.typing import BinnedSpectrumType
 from ms2deepscore.spectrum_binning_fixed import create_peak_list_fixed
 from ms2deepscore.spectrum_binning_fixed import set_d_bins_fixed
 from ms2deepscore.spectrum_binning_fixed import unique_peaks_fixed
@@ -73,7 +74,7 @@ class SpectrumBinner:
         return self.transform(spectrums, progress_bar)
 
     def transform(self, input_spectrums: List[SpectrumType],
-                  progress_bar=True) -> List[BinnedSpectrum]:
+                  progress_bar=True) -> List[BinnedSpectrumType]:
         """Create binned spectrums from input spectrums.
 
         Parameters
