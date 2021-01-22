@@ -10,6 +10,7 @@ from ms2deepscore.vector_operations import cosine_similarity_matrix
 from ms2deepscore import BinnedSpectrum
 from ms2deepscore import SpectrumBinner
 from ms2deepscore.models import SiameseModel
+from ms2deepscore.typing import BinnedSpectrumType
 
 
 class MS2DeepScore(BaseSimilarity):
@@ -58,7 +59,7 @@ class MS2DeepScore(BaseSimilarity):
         self.output_vector_dim = self.model.base.output_shape[1]
         self.disable_progress_bar = not progress_bar
 
-    def _create_input_vector(self, binned_spectrum: BinnedSpectrum):
+    def _create_input_vector(self, binned_spectrum: BinnedSpectrumType):
         """Creates input vector for model.base based on binned peaks and intensities"""
         X = np.zeros((1, self.input_vector_dim))
 

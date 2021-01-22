@@ -8,7 +8,7 @@ from ms2deepscore import SpectrumBinner
 from ms2deepscore.models import SiameseModel
 
 
-def load_model(filename: Union[str, Path]):
+def load_model(filename: Union[str, Path]) -> SiameseModel:
     """
     Load a MS2DeepScore model (SiameseModel) from file.
     
