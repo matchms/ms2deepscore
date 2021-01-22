@@ -47,7 +47,7 @@ def test_user_workflow():
     assert len(spectrum_binner.known_bins) == 543, "Expected differnt number of known binned peaks"
 
     # train model
-    dimension = len(ms2ds_binner.known_bins)
+    dimension = len(spectrum_binner.known_bins)
     same_prob_bins = [(0, 0.5), (0.5, 1)]
 
     # Create generator
