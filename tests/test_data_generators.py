@@ -6,7 +6,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from ms2deepscore import BinnedSpectrum
+from ms2deepscore import SpectrumBinner
 from ms2deepscore.data_generators import DataGeneratorAllInchikeys
 from ms2deepscore.data_generators import DataGeneratorAllSpectrums
 from tests.test_user_worfklow import load_processed_spectrums, get_reference_scores
