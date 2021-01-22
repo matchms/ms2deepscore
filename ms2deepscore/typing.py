@@ -1,4 +1,4 @@
 from typing import Optional
-from ms2deepscore import BinnedSpectrum
+from .BinnedSpectrum import BinnedSpectrum
 
 BinnedSpectrumType = Optional[BinnedSpectrum]
