@@ -41,6 +41,7 @@ def load_model(filename: Union[str, Path]):
             dropout_rate = layer.rate
 
     model = SiameseModel(spectrum_binner, base_dims, embedding_dim, dropout_rate)
+    # TODO: Now this creates a keras model in the SiameseModel.__init__() and then replaces this. Seems unefficient.
     model.base = keras_model.layers[2]
     model.model = keras_model
     return model
