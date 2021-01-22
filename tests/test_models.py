@@ -4,8 +4,7 @@ from tensorflow import keras
 
 from ms2deepscore import SpectrumBinner
 from ms2deepscore.data_generators import DataGeneratorAllInchikeys
-from ms2deepscore.models import SiameseModel
-from ms2deepscore.models import load_model
+from ms2deepscore.models import SiameseModel, load_model
 from tests.test_user_worfklow import load_processed_spectrums, get_reference_scores
 
 TEST_RESOURCES_PATH = Path(__file__).parent / 'resources'

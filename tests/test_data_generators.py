@@ -1,7 +1,5 @@
 import json
 import os
-from pathlib import Path
-
 import numpy as np
 import pandas as pd
 import pytest
@@ -11,7 +9,6 @@ from ms2deepscore.data_generators import DataGeneratorAllInchikeys
 from ms2deepscore.data_generators import DataGeneratorAllSpectrums
 from tests.test_user_worfklow import load_processed_spectrums, get_reference_scores
 
-TEST_RESOURCES_PATH = Path(__file__).parent / 'resources'
 
 def create_test_data():
     spectrums = load_processed_spectrums()
