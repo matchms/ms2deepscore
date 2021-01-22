@@ -2,6 +2,7 @@ from pathlib import Path
 from typing import Tuple, Union
 import h5py
 import json
+from tensorflow.python.keras.saving import hdf5_format
 
 from ms2deepscore import SpectrumBinner
 from ms2deepscore.models import SiameseModel
