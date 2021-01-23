@@ -4,8 +4,8 @@ import h5py
 import json
 from tensorflow.python.keras.saving import hdf5_format
 
-from .SpectrumBinner import SpectrumBinner
-from .models import SiameseModel
+from ms2deepscore.SpectrumBinner import SpectrumBinner
+from .SiameseModel import SiameseModel
 
 
 def load_model(filename: Union[str, Path]) -> SiameseModel:
