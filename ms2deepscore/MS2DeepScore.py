@@ -5,12 +5,12 @@ from matchms import Spectrum
 from matchms.similarity.BaseSimilarity import BaseSimilarity
 from tqdm import tqdm
 
-from ms2deepscore.vector_operations import cosine_similarity
-from ms2deepscore.vector_operations import cosine_similarity_matrix
-from ms2deepscore import BinnedSpectrum
-from ms2deepscore import SpectrumBinner
-from ms2deepscore.models import SiameseModel
-from ms2deepscore.typing import BinnedSpectrumType
+from .vector_operations import cosine_similarity
+from .vector_operations import cosine_similarity_matrix
+from .BinnedSpectrum import BinnedSpectrum
+from .SpectrumBinner import SpectrumBinner
+from .models import SiameseModel
+from .typing import BinnedSpectrumType
 
 
 class MS2DeepScore(BaseSimilarity):

@@ -1,13 +1,12 @@
 """ Data generators for training/inference with siamese Keras model.
 """
 from typing import List, Iterator, NamedTuple
-
 import numpy as np
 import pandas as pd
 from tensorflow.keras.utils import Sequence
 
-from ms2deepscore import BinnedSpectrum
-from ms2deepscore.typing import BinnedSpectrumType
+from .BinnedSpectrum import BinnedSpectrum
+from .typing import BinnedSpectrumType
 
 # Set random seed for reproducibility
 np.random.seed(42)

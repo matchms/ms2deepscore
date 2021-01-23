@@ -2,12 +2,13 @@ from typing import List
 import numpy as np
 from tqdm import tqdm
 from matchms.typing import SpectrumType
-from ms2deepscore import BinnedSpectrum
-from ms2deepscore.typing import BinnedSpectrumType
-from ms2deepscore.spectrum_binning_fixed import create_peak_list_fixed
-from ms2deepscore.spectrum_binning_fixed import set_d_bins_fixed
-from ms2deepscore.spectrum_binning_fixed import unique_peaks_fixed
-from ms2deepscore.utils import create_peak_dict
+
+from .BinnedSpectrum import BinnedSpectrum
+from .typing import BinnedSpectrumType
+from .spectrum_binning_fixed import create_peak_list_fixed
+from .spectrum_binning_fixed import set_d_bins_fixed
+from .spectrum_binning_fixed import unique_peaks_fixed
+from .utils import create_peak_dict
 
 
 class SpectrumBinner:
