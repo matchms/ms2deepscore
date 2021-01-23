@@ -15,6 +15,31 @@ class SiameseModel:
     'head' model computes the cosine similarity between the embeddings.
 
     Mimics keras.Model API.
+    
+    For example:
+        
+    .. code-block:: python
+        
+        # Import data and reference scores --> spectrums & tanimoto_scores_df
+        
+        # Create binned spectrums
+        spectrum_binner = SpectrumBinner(1000, mz_min=10.0, mz_max=1000.0, peak_scaling=0.5)
+        binned_spectrums = spectrum_binner.fit_transform(spectrums)
+
+        # Create generator
+        dimension = len(spectrum_binner.known_bins)
+        test_generator = DataGeneratorAllSpectrums(binned_spectrums, tanimoto_scores_df,
+                                                   dim=dimension)
+    
+        # Create (and train) a Siamese model
+        model = SiameseModel(spectrum_binner, base_dims=(600, 500, 400), embedding_dim=400,
+                             dropout_rate=0.2)
+        model.compile(loss='mse', optimizer=keras.optimizers.Adam(lr=0.001))
+        model.summary()
+        model.fit(test_generator,
+                  validation_data=test_generator,
+                  epochs=50)
+
     """
     def __init__(self,
                  spectrum_binner: SpectrumBinner,

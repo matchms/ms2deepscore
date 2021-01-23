@@ -46,11 +46,9 @@ def test_user_workflow():
     assert spectrum_binner.d_bins == 0.99, "Expected differnt bin size"
     assert len(spectrum_binner.known_bins) == 543, "Expected differnt number of known binned peaks"
 
-    # train model
+    # Create generator
     dimension = len(spectrum_binner.known_bins)
     same_prob_bins = [(0, 0.5), (0.5, 1)]
-
-    # Create generator
     test_generator = DataGeneratorAllSpectrums(binned_spectrums, tanimoto_scores_df,
                                                dim=dimension,
                                                same_prob_bins=same_prob_bins)
@@ -64,7 +62,8 @@ def test_user_workflow():
               validation_data=test_generator,
               epochs=2)
 
-    # TODO: once properly implemented: replace model training by loadding a pretrained model
+    # TODO: Add splitting data into training/validation/test
+    # TODO: or load pretrained model instead
 
     # calculate similarities (pair)
     similarity_measure = MS2DeepScore(model)

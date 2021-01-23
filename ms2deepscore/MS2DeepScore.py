@@ -28,15 +28,17 @@ class MS2DeepScore(BaseSimilarity):
         from matchms import calculate_scores()
         from matchms.importing import load_from_json
         from ms2deepscore import MS2DeepScore
-        from ms2deepscore.models import load_ms2ds_model
+        from ms2deepscore.models import load_model
 
+        # Import data
         references = load_from_json("abc.json")
         queries = load_from_json("xyz.json")
 
-        model = ... TODO: implement such a function
+        # Load pretrained model
+        model = load_model("model_file_123.hdf5")
 
-        similarity_measure = MS2DeepScore(model, spectrum_binner)
-        TODO: move spectrumBinner to model
+        similarity_measure = MS2DeepScore(model)
+        # Calculate scores and get matchms.Scores object
         scores = calculate_scores(references, queries, similarity_measure)
 
 
