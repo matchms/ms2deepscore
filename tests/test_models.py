@@ -56,7 +56,7 @@ def test_siamese_model():
 
 def test_load_model():
     """Test loading a model from file."""
-    spectrum_binner, _ = get_test_binner_and_generator()
+    spectrum_binner, test_generator = get_test_binner_and_generator()
 
     model_file = TEST_RESOURCES_PATH / "testmodel.hdf5"
     model = load_model(model_file)
