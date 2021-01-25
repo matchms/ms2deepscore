@@ -3,6 +3,10 @@
 # ms2deepscore
 Deep learning similarity measure for comparing MS/MS spectra with respect to their chemical similarity
 
+## Requirements
+
+Python >= 3.7
+
 ## Prepare environmnent
 We recommend to create an Anaconda environment with
 
