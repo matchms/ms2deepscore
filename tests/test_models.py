@@ -1,3 +1,4 @@
+import os
 from pathlib import Path
 import numpy as np
 from tensorflow import keras
@@ -76,3 +77,31 @@ def test_load_model():
         "Expected different batch size"
     assert embeddings.shape[1] == model.base.output_shape[1] == 200, \
         "Expected different embedding size"
+
+
+def test_save_and_load_jmodel(tmp_path):
+    """Test saving and loading a model."""
+    spectrum_binner, test_generator = get_test_binner_and_generator()
+    model = SiameseModel(spectrum_binner, base_dims=(200, 200, 200),
+                         embedding_dim=200, dropout_rate=0.2)
+    model.compile(loss='mse', optimizer=keras.optimizers.Adam(lr=0.001))
+    model.summary()
+    model.fit(test_generator,
+              validation_data=test_generator,
+              epochs=2)
+
+    # Write to test file
+    filename = os.path.join(tmp_path, "model_export_test.hdf5")
+    model.save(filename)
+
+    # Test if file exists
+    assert os.path.isfile(filename)
+
+    # Test if content is correct
+    model_import = load_model(filename)
+    weights_original = model.base.layers[1].get_weights()[0]
+    weights_imported = model_import.base.layers[1].get_weights()[0]
+    assert np.all(weights_original == weights_imported), \
+        "Imported and original model weights should be the same"
+    assert model.model.to_json() == model_import.model.to_json(), \
+        "Expect same architecture for original and imported model"
