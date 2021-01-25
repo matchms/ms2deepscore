@@ -64,10 +64,8 @@ def test_load_model():
     assert model.spectrum_binner.__dict__ == spectrum_binner.__dict__, "Expected different spectrum binner"
 
     # Test model layer shapes
-    assert len(model.model.layers) == 4, "Expected different number of layers"
-    assert len(model.model.layers[2].layers) == len(model.base.layers) == 11, \
-        "Expected different number of layers"
-    assert model.model.input_shape == [(None, 339), (None, 339)], "Expected different input shape"
+    assert model.model.layers[2].to_json() == model.base.to_json(), \
+        "Expected based model to be identical to part of main model."
 
     # Test base model inference
     X, y = test_generator.__getitem__(0)
