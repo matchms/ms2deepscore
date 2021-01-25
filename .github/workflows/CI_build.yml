@@ -35,4 +35,9 @@ jobs:
       - name: Run unit tests
         run: |
           pytest
-
+      - name: SonarCloud Scan
+        if: ${{ matrix.os == 'ubuntu-latest' && matrix.python-version == '3.7' }}
+        uses: sonarsource/sonarcloud-github-action@master
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
