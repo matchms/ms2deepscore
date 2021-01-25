@@ -1,4 +1,6 @@
-![GitHub](https://img.shields.io/github/license/matchms/ms2deepscore) ![GitHub Workflow Status](https://img.shields.io/github/workflow/status/matchms/ms2deepscore/CI%20Build)
+![GitHub](https://img.shields.io/github/license/matchms/ms2deepscore)
+![GitHub Workflow Status](https://img.shields.io/github/workflow/status/matchms/ms2deepscore/CI%20Build)
+[![SonarCloud Quality Gate](https://sonarcloud.io/api/project_badges/measure?project=matchms_ms2deepscore&metric=alert_status)](https://sonarcloud.io/dashboard?id=matchms_ms2deepscore)
 
 # ms2deepscore
 Deep learning similarity measure for comparing MS/MS spectra with respect to their chemical similarity
