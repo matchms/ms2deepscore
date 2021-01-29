@@ -8,13 +8,20 @@ Deep learning similarity measure for comparing MS/MS spectra with respect to the
 
 ## Requirements
 
-Python >= 3.7
+Python 3.7 or higher
 
 ## Prepare environmnent
 We recommend to create an Anaconda environment with
 
 ```
-conda create --name ms2deepscore python=3.7
+conda create --name ms2deepscore python=3.8
 conda activate ms2deepscore
+pip install -e .
+```
+Or to have the full matchms functionality:
+```
+conda create --name ms2deepscore python=3.8
+conda activate ms2deepscore
+conda install --channel nlesc --channel bioconda --channel conda-forge matchms
 pip install -e .
 ```
