@@ -77,7 +77,7 @@ def test_load_model():
         "Expected different embedding size"
 
 
-def test_save_and_load_jmodel(tmp_path):
+def test_save_and_load_model(tmp_path):
     """Test saving and loading a model."""
     spectrum_binner, test_generator = get_test_binner_and_generator()
     model = SiameseModel(spectrum_binner, base_dims=(200, 200, 200),
