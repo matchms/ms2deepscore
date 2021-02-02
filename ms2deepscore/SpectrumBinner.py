@@ -1,5 +1,5 @@
+import json
 from typing import List
-import numpy as np
 from tqdm import tqdm
 from matchms.typing import SpectrumType
 
@@ -101,3 +101,11 @@ class SpectrumBinner:
                                       metadata={"inchikey": input_spectrums[i].get("inchikey")})
             spectrums_binned.append(spectrum)
         return spectrums_binned
+
+    def to_json(self):
+        """Return SpectrumBinner instance as json dictionary."""
+        return json.dumps(self.__dict__)
+
+    def from_json(self, filename):
+        """Create SpectrumBinner instance from json file."""
+        return json.dumps(self.__dict__)

@@ -89,13 +89,9 @@ class SiameseModel:
             Filename to specify where to store the model.
 
         """
-        binner_dict = self.spectrum_binner.__dict__
-        binner_json = json.dumps(binner_dict)
-    
-        # Save model
         with h5py.File(filename, mode='w') as f:
             hdf5_format.save_model_to_hdf5(self.model, f)
-            f.attrs['spectrum_binner'] = binner_json
+            f.attrs['spectrum_binner'] = self.spectrum_binner.to_json()
 
     @staticmethod
     def _get_base_model(input_dim: int,
