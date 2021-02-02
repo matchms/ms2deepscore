@@ -5,11 +5,12 @@ from matchms import Spectrum
 from matchms.similarity.BaseSimilarity import BaseSimilarity
 from tqdm import tqdm
 
-from ms2deepscore.vector_operations import cosine_similarity
-from ms2deepscore.vector_operations import cosine_similarity_matrix
-from ms2deepscore import BinnedSpectrum
-from ms2deepscore import SpectrumBinner
-from ms2deepscore.models import SiameseModel
+from .vector_operations import cosine_similarity
+from .vector_operations import cosine_similarity_matrix
+from .BinnedSpectrum import BinnedSpectrum
+from .SpectrumBinner import SpectrumBinner
+from .models import SiameseModel
+from .typing import BinnedSpectrumType
 
 
 class MS2DeepScore(BaseSimilarity):
@@ -27,41 +28,40 @@ class MS2DeepScore(BaseSimilarity):
         from matchms import calculate_scores()
         from matchms.importing import load_from_json
         from ms2deepscore import MS2DeepScore
-        from ms2deepscore.models import load_ms2ds_model
+        from ms2deepscore.models import load_model
 
+        # Import data
         references = load_from_json("abc.json")
         queries = load_from_json("xyz.json")
 
-        model = ... TODO: implement such a function
+        # Load pretrained model
+        model = load_model("model_file_123.hdf5")
 
-        similarity_measure = MS2DeepScore(model, spectrum_binner)
-        TODO: move spectrumBinner to model
+        similarity_measure = MS2DeepScore(model)
+        # Calculate scores and get matchms.Scores object
         scores = calculate_scores(references, queries, similarity_measure)
 
 
     """
-    def __init__(self, model, spectrum_binner, progress_bar: bool = False):
+    def __init__(self, model, progress_bar: bool = False):
         """
 
         Parameters
         ----------
         model:
             Expected input is a SiameseModel that has been trained on
-            the desired set of spectra.
-        spectrum_binner:
-            SpectrumBinner that was used for training the model.
-            TODO: remove from arguments once this becomes part of the model.
+            the desired set of spectra. The model contains the keras deep neural
+            network (model.model) as well as the used spectrum binner (model.spectrum_binner).
         progress_bar:
             Set to True to monitor the embedding creating with a progress bar.
             Default is False.
         """
         self.model = model
-        self.spectrum_binner = spectrum_binner
         self.input_vector_dim = self.model.base.input_shape[1]  # TODO: later maybe also check against SpectrumBinner
         self.output_vector_dim = self.model.base.output_shape[1]
         self.disable_progress_bar = not progress_bar
 
-    def _create_input_vector(self, binned_spectrum: BinnedSpectrum):
+    def _create_input_vector(self, binned_spectrum: BinnedSpectrumType):
         """Creates input vector for model.base based on binned peaks and intensities"""
         X = np.zeros((1, self.input_vector_dim))
 
@@ -85,8 +85,8 @@ class MS2DeepScore(BaseSimilarity):
         ms2ds_similarity
             MS2DeepScore similarity score.
         """
-        binned_reference = self.spectrum_binner.transform([reference])[0]
-        binned_query = self.spectrum_binner.transform([query])[0]
+        binned_reference = self.model.spectrum_binner.transform([reference])[0]
+        binned_query = self.model.spectrum_binner.transform([query])[0]
         reference_vector = self.model.base.predict(self._create_input_vector(binned_reference))
         query_vector = self.model.base.predict(self._create_input_vector(binned_query))
 
@@ -115,8 +115,8 @@ class MS2DeepScore(BaseSimilarity):
         reference_vectors = np.empty((n_rows, self.output_vector_dim), dtype="float")
 
         # Convert to binned spectrums
-        binned_references = self.spectrum_binner.transform(references)
-        binned_queries = self.spectrum_binner.transform(queries)
+        binned_references = self.model.spectrum_binner.transform(references)
+        binned_queries = self.model.spectrum_binner.transform(queries)
 
         for index_reference, reference in enumerate(tqdm(binned_references, desc='Calculating vectors of reference spectrums', disable=self.disable_progress_bar)):
             reference_vectors[index_reference,

@@ -1,12 +1,14 @@
+import json
 from typing import List
-import numpy as np
 from tqdm import tqdm
 from matchms.typing import SpectrumType
-from ms2deepscore import BinnedSpectrum
-from ms2deepscore.spectrum_binning_fixed import create_peak_list_fixed
-from ms2deepscore.spectrum_binning_fixed import set_d_bins_fixed
-from ms2deepscore.spectrum_binning_fixed import unique_peaks_fixed
-from ms2deepscore.utils import create_peak_dict
+
+from .BinnedSpectrum import BinnedSpectrum
+from .typing import BinnedSpectrumType
+from .spectrum_binning_fixed import create_peak_list_fixed
+from .spectrum_binning_fixed import set_d_bins_fixed
+from .spectrum_binning_fixed import unique_peaks_fixed
+from .utils import create_peak_dict
 
 
 class SpectrumBinner:
@@ -46,7 +48,24 @@ class SpectrumBinner:
         self.allowed_missing_percentage = allowed_missing_percentage
         self.peak_to_position = None
         self.known_bins = None
-        self.binned_spectrums = None
+
+    @classmethod
+    def from_json(cls, json_str: str):
+        """Create SpectrumBinner instance from json.
+
+        Parameters
+        ---------
+        json_str
+            Json string containing the dictionary to create a SpectrumBinner.
+        """
+        binner_dict = json.loads(json_str)
+        spectrum_binner = cls(binner_dict["number_of_bins"],
+                              binner_dict["mz_max"], binner_dict["mz_min"],
+                              binner_dict["peak_scaling"],
+                              binner_dict["allowed_missing_percentage"])
+        spectrum_binner.peak_to_position = {int(key): value for key, value in binner_dict["peak_to_position"].items()}
+        spectrum_binner.known_bins = binner_dict["known_bins"]
+        return spectrum_binner
 
     def fit_transform(self, spectrums: List[SpectrumType], progress_bar=True):
         """Transforms the input *spectrums* into binned spectrums as needed for
@@ -54,8 +73,7 @@ class SpectrumBinner:
 
         Includes creating a 'vocabulary' of bins that have peaks in spectrums,
         which is stored in SpectrumBinner.known_bins.
-        Creates binned spectrums from input spectrums and stores them in
-        SpectrumBinner.binned_spectrums.
+        Creates binned spectrums from input spectrums and returns them.
 
         Parameters
         ----------
@@ -65,7 +83,8 @@ class SpectrumBinner:
             Show progress bar if set to True. Default is True.
         """
         print("Collect spectrum peaks...")
-        peak_to_position, known_bins = unique_peaks_fixed(spectrums, self.d_bins, self.mz_min)
+        peak_to_position, known_bins = unique_peaks_fixed(spectrums, self.d_bins,
+                                                          self.mz_max, self.mz_min)
         print(f"Calculated embedding dimension of {len(known_bins)}.")
         self.peak_to_position = peak_to_position
         self.known_bins = known_bins
@@ -74,7 +93,7 @@ class SpectrumBinner:
         return self.transform(spectrums, progress_bar)
 
     def transform(self, input_spectrums: List[SpectrumType],
-                  progress_bar=True) -> List[BinnedSpectrum]:
+                  progress_bar=True) -> List[BinnedSpectrumType]:
         """Create binned spectrums from input spectrums.
 
         Parameters
@@ -89,7 +108,8 @@ class SpectrumBinner:
         """
         peak_lists, missing_fractions = create_peak_list_fixed(input_spectrums,
                                                                self.peak_to_position,
-                                                               self.d_bins, mz_min=self.mz_min,
+                                                               self.d_bins,
+                                                               mz_max=self.mz_max, mz_min=self.mz_min,
                                                                peak_scaling=self.peak_scaling)
         spectrums_binned = []
         for i, peak_list in enumerate(tqdm(peak_lists, disable=(not progress_bar))):
@@ -99,3 +119,7 @@ class SpectrumBinner:
                                       metadata={"inchikey": input_spectrums[i].get("inchikey")})
             spectrums_binned.append(spectrum)
         return spectrums_binned
+
+    def to_json(self):
+        """Return SpectrumBinner instance as json dictionary."""
+        return json.dumps(self.__dict__)

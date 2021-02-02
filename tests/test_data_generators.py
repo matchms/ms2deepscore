@@ -1,29 +1,20 @@
 import json
 import os
-from pathlib import Path
-
 import numpy as np
 import pandas as pd
 import pytest
 
-from ms2deepscore import BinnedSpectrum
+from ms2deepscore import SpectrumBinner
 from ms2deepscore.data_generators import DataGeneratorAllInchikeys
 from ms2deepscore.data_generators import DataGeneratorAllSpectrums
+from tests.test_user_worfklow import load_processed_spectrums, get_reference_scores
 
-TEST_RESOURCES_PATH = Path(__file__).parent / 'resources'
 
 def create_test_data():
-    binned_spectrums_file = TEST_RESOURCES_PATH / "testdata_spectrums_binned.json"
-    with open(binned_spectrums_file, "r") as read_file:
-        peaks_dicts = json.load(read_file)
-    inchikeys_array = np.load(TEST_RESOURCES_PATH / "testdata_inchikeys.npy")
-    binned_spectrums = []
-    for i, peaks_dict in enumerate(peaks_dicts):
-        binned_spectrums.append(BinnedSpectrum(binned_peaks=peaks_dict,
-                                               metadata={"inchikey": inchikeys_array[i]}))
-
-    tanimoto_scores_df = pd.read_csv(TEST_RESOURCES_PATH / 'testdata_tanimoto_scores.csv',
-                                     index_col=0)
+    spectrums = load_processed_spectrums()
+    tanimoto_scores_df = get_reference_scores()
+    ms2ds_binner = SpectrumBinner(100, mz_min=10.0, mz_max=1000.0, peak_scaling=0.5)
+    binned_spectrums = ms2ds_binner.fit_transform(spectrums)
     return binned_spectrums, tanimoto_scores_df
 
 
@@ -34,7 +25,7 @@ def test_DataGeneratorAllInchikeys():
 
     # Define other parameters
     batch_size = 10
-    dimension = 101
+    dimension = 88
 
     selected_inchikeys = tanimoto_scores_df.index[:80]
     # Create generator
@@ -47,7 +38,7 @@ def test_DataGeneratorAllInchikeys():
                                                augment_intensity=0.0)
 
     A, B = test_generator.__getitem__(0)
-    assert A[0].shape == A[1].shape == (10, 101), "Expected different data shape"
+    assert A[0].shape == A[1].shape == (10, 88), "Expected different data shape"
     assert B.shape[0] == 10, "Expected different label shape."
     assert test_generator.settings["num_turns"] == 1, "Expected different default."
     assert test_generator.settings["augment_intensity"] == 0.0, "Expected changed value."
@@ -60,7 +51,7 @@ def test_DataGeneratorAllSpectrums():
 
     # Define other parameters
     batch_size = 10
-    dimension = 101
+    dimension = 88
 
     # Create generator
     test_generator = DataGeneratorAllSpectrums(binned_spectrums=binned_spectrums[:150],
@@ -71,7 +62,7 @@ def test_DataGeneratorAllSpectrums():
                                                augment_intensity=0.0)
 
     A, B = test_generator.__getitem__(0)
-    assert A[0].shape == A[1].shape == (10, 101), "Expected different data shape"
+    assert A[0].shape == A[1].shape == (10, 88), "Expected different data shape"
     assert B.shape[0] == 10, "Expected different label shape."
     assert test_generator.settings["num_turns"] == 1, "Expected different default."
     assert test_generator.settings["augment_intensity"] == 0.0, "Expected changed value."
@@ -83,11 +74,11 @@ def test_DataGeneratorAllSpectrums_no_inchikey_leaking():
     binned_spectrums, tanimoto_scores_df = create_test_data()
 
     # Define other parameters
-    batch_size = 10
-    dimension = 101
+    batch_size = 8
+    dimension = 88
 
     # Create generator
-    test_generator = DataGeneratorAllSpectrums(binned_spectrums=binned_spectrums[:11],
+    test_generator = DataGeneratorAllSpectrums(binned_spectrums=binned_spectrums[:8],
                                                reference_scores_df=tanimoto_scores_df,
                                                dim=dimension, batch_size=batch_size,
                                                augment_removal_max=0.0,
@@ -95,23 +86,24 @@ def test_DataGeneratorAllSpectrums_no_inchikey_leaking():
                                                augment_intensity=0.0)
 
     assert test_generator.reference_scores_df.shape == (6, 6), "Expected different reduced shape of labels"
-    expected_inchikeys = ['AAWZDTNXLSGCEK-TUNDHVGDSA-N',
-                          'CXVGEDCSTKKODG-UHFFFAOYSA-N',
-                          'JFFHVIUZNPTGGR-WJLGXSQGSA-N',
-                          'JGCSKOVQDXEQHI-UHFFFAOYSA-N',
-                          'VCBNPTWPJQLHQN-NYAJDEOCSA-N',
-                          'ZBAMSLOMNLECFR-IEAZIUSSSA-N']
+    expected_inchikeys = ['BBXXLROWFHWFQY-UHFFFAOYSA-N',
+                          'FBOUIAKEJMZPQG-AWNIVKPZSA-N',
+                          'GPXLRLUVLMHHIK-UHFFFAOYSA-N',
+                          'JXCGFZXSOMJFOA-UHFFFAOYSA-N',
+                          'RZILCCPWPBTYDO-UHFFFAOYSA-N',
+                          'UYJUZNLFJAWNEZ-UHFFFAOYSA-N']
     found_inchikeys = test_generator.reference_scores_df.columns.to_list()
     found_inchikeys.sort()
     assert found_inchikeys == expected_inchikeys, \
         "Expected different InChIKeys to remain in reference_scores_df"
 
     # Test if the expected labels are returned by generator
-    expected_labels = np.array([0.09285714, 0.11022727, 0.15672306, 0.15920916, 0.19264588,
-                                0.20079523, 0.20326679, 0.21044304, 0.24236453, 0.25663717,
-                                0.27233429, 0.27994122, 0.29661684, 0.41184669, 0.53772684])
-    collect_results = np.zeros(2000)  # Collect 2000 results
-    for i in range(200):
+    expected_labels = np.array([0.38944724, 0.39130435, 0.39378238, 0.40045767, 0.40497738,
+                                0.40930233, 0.43432203, 0.46610169, 0.47416413, 0.48156182,
+                                0.50632911, 0.5214447 , 0.52663934, 0.59934853, 0.63581489])
+    repetitions = 200
+    collect_results = np.zeros(repetitions * batch_size)  # Collect 2000 results
+    for i in range(repetitions):
         _, B = test_generator.__getitem__(0)
         collect_results[batch_size*i:batch_size*(i+1)] = B
     assert len(np.unique(collect_results)) <= 15, "Expected max 15 possible results"

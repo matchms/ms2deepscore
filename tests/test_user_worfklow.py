@@ -41,22 +41,20 @@ def test_user_workflow():
     assert tanimoto_scores_df.shape == (45, 45), "Expected different shape for score array"
 
     # Create binned spectrums
-    ms2ds_binner = SpectrumBinner(1000, mz_min=10.0, mz_max=1000.0, peak_scaling=0.5)
-    binned_spectrums = ms2ds_binner.fit_transform(spectrums)
-    assert ms2ds_binner.d_bins == 0.99, "Expected differnt bin size"
-    assert len(ms2ds_binner.known_bins) == 543, "Expected differnt number of known binned peaks"
-
-    # train model
-    dimension = len(ms2ds_binner.known_bins)
-    same_prob_bins = [(0, 0.5), (0.5, 1)]
+    spectrum_binner = SpectrumBinner(1000, mz_min=10.0, mz_max=1000.0, peak_scaling=0.5)
+    binned_spectrums = spectrum_binner.fit_transform(spectrums)
+    assert spectrum_binner.d_bins == 0.99, "Expected differnt bin size"
+    assert len(spectrum_binner.known_bins) == 543, "Expected differnt number of known binned peaks"
 
     # Create generator
+    dimension = len(spectrum_binner.known_bins)
+    same_prob_bins = [(0, 0.5), (0.5, 1)]
     test_generator = DataGeneratorAllSpectrums(binned_spectrums, tanimoto_scores_df,
                                                dim=dimension,
                                                same_prob_bins=same_prob_bins)
 
     # Create (and train) a Siamese model
-    model = SiameseModel(input_dim=dimension, base_dims=(200, 200, 200), embedding_dim=200,
+    model = SiameseModel(spectrum_binner, base_dims=(200, 200, 200), embedding_dim=200,
                          dropout_rate=0.2)
     model.compile(loss='mse', optimizer=keras.optimizers.Adam(lr=0.001))
     model.summary()
@@ -64,10 +62,11 @@ def test_user_workflow():
               validation_data=test_generator,
               epochs=2)
 
-    # TODO: once properly implemented: replace model training by loadding a pretrained model
+    # TODO: Add splitting data into training/validation/test
+    # TODO: or load pretrained model instead
 
     # calculate similarities (pair)
-    similarity_measure = MS2DeepScore(model, ms2ds_binner)
+    similarity_measure = MS2DeepScore(model)
     score = similarity_measure.pair(spectrums[0], spectrums[1])
     assert 0 < score < 1, "Expected score > 0 and < 1"
     assert isinstance(score, float), "Expected score to be float"

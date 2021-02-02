@@ -1,12 +1,12 @@
 """ Data generators for training/inference with siamese Keras model.
 """
 from typing import List, Iterator, NamedTuple
-
 import numpy as np
 import pandas as pd
 from tensorflow.keras.utils import Sequence
 
-from ms2deepscore import BinnedSpectrum
+from .BinnedSpectrum import BinnedSpectrum
+from .typing import BinnedSpectrumType
 
 # Set random seed for reproducibility
 np.random.seed(42)
@@ -16,12 +16,12 @@ class SpectrumPair(NamedTuple):
     """
     Represents a pair of binned spectrums
     """
-    spectrum1: BinnedSpectrum
-    spectrum2: BinnedSpectrum
+    spectrum1: BinnedSpectrumType
+    spectrum2: BinnedSpectrumType
 
 
 class DataGeneratorBase(Sequence):
-    def __init__(self, binned_spectrums: List[BinnedSpectrum],
+    def __init__(self, binned_spectrums: List[BinnedSpectrumType],
                  reference_scores_df: pd.DataFrame, dim: int, **settings):
         """Base for data generator generating data for a siamese model.
 
@@ -209,7 +209,7 @@ class DataGeneratorBase(Sequence):
             values = (1 - self.settings["augment_intensity"] * 2 * (np.random.random(values.shape) - 0.5)) * values
         return idx, values
 
-    def _get_spectrum_with_inchikey(self, inchikey: str) -> BinnedSpectrum:
+    def _get_spectrum_with_inchikey(self, inchikey: str) -> BinnedSpectrumType:
         """
         Get a random spectrum matching the `inchikey` argument. NB: A compound (identified by an
         inchikey) can have multiple measured spectrums in a binned spectrum dataset.
@@ -246,7 +246,7 @@ class DataGeneratorAllSpectrums(DataGeneratorBase):
     in binned_spectrums num_turns times in every epoch and pairing it with a randomly chosen
     other spectrum that corresponds to a reference score as defined in same_prob_bins.
     """
-    def __init__(self, binned_spectrums: List[BinnedSpectrum],
+    def __init__(self, binned_spectrums: List[BinnedSpectrumType],
                  reference_scores_df: pd.DataFrame, dim: int, **settings):
         """Generates data for training a siamese Keras model.
         Parameters
@@ -353,7 +353,7 @@ class DataGeneratorAllInchikeys(DataGeneratorBase):
     with a randomly chosen other spectrum that corresponds to a reference score
     as defined in same_prob_bins.
     """
-    def __init__(self, binned_spectrums: List[BinnedSpectrum], selected_inchikeys: list,
+    def __init__(self, binned_spectrums: List[BinnedSpectrumType], selected_inchikeys: list,
                  reference_scores_df: pd.DataFrame, dim: int, **settings):
         """Generates data for training a siamese Keras model.
         Parameters
