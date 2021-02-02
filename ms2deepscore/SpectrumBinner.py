@@ -49,6 +49,24 @@ class SpectrumBinner:
         self.peak_to_position = None
         self.known_bins = None
 
+    @classmethod
+    def from_json(cls, json_str: str):
+        """Create SpectrumBinner instance from json.
+
+        Parameters
+        ---------
+        json_str
+            Json string containing the dictionary to create a SpectrumBinner.
+        """
+        binner_dict = json.loads(json_str)
+        spectrum_binner = cls(binner_dict["number_of_bins"],
+                              binner_dict["mz_max"], binner_dict["mz_min"],
+                              binner_dict["peak_scaling"],
+                              binner_dict["allowed_missing_percentage"])
+        spectrum_binner.peak_to_position = {int(key): value for key, value in binner_dict["peak_to_position"].items()}
+        spectrum_binner.known_bins = binner_dict["known_bins"]
+        return spectrum_binner
+
     def fit_transform(self, spectrums: List[SpectrumType], progress_bar=True):
         """Transforms the input *spectrums* into binned spectrums as needed for
         MS2DeepScore.
@@ -105,14 +123,3 @@ class SpectrumBinner:
     def to_json(self):
         """Return SpectrumBinner instance as json dictionary."""
         return json.dumps(self.__dict__)
-
-    @classmethod
-    def from_json(cls, json_str: str):
-        binner_dict = json.loads(json_str)
-        spectrum_binner = cls(binner_dict["number_of_bins"],
-                              binner_dict["mz_max"], binner_dict["mz_min"],
-                              binner_dict["peak_scaling"],
-                              binner_dict["allowed_missing_percentage"])
-        spectrum_binner.peak_to_position = {int(key): value for key, value in binner_dict["peak_to_position"].items()}
-        spectrum_binner.known_bins = binner_dict["known_bins"]
-        return spectrum_binner
