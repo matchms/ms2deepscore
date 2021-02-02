@@ -105,7 +105,3 @@ class SpectrumBinner:
     def to_json(self):
         """Return SpectrumBinner instance as json dictionary."""
         return json.dumps(self.__dict__)
-
-    def from_json(self, filename):
-        """Create SpectrumBinner instance from json file."""
-        return json.dumps(self.__dict__)

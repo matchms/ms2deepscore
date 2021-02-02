@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import Tuple, Union
+from typing import Union
 import h5py
 import json
 from tensorflow.python.keras.saving import hdf5_format
