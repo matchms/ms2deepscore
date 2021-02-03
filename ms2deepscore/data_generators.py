@@ -5,7 +5,6 @@ import numpy as np
 import pandas as pd
 from tensorflow.keras.utils import Sequence
 
-from .BinnedSpectrum import BinnedSpectrum
 from .typing import BinnedSpectrumType
 
 # Set random seed for reproducibility
@@ -76,7 +75,7 @@ class DataGeneratorBase(Sequence):
     @staticmethod
     def _validate_labels(reference_scores_df: pd.DataFrame):
         if set(reference_scores_df.index) != set(reference_scores_df.columns):
-            raise ValueError(f'index and columns of reference_scores_df are not identical')
+            raise ValueError("index and columns of reference_scores_df are not identical")
 
     def _set_generator_parameters(self, **settings):
         """Set parameter for data generator. Use below listed defaults unless other
@@ -192,7 +191,7 @@ class DataGeneratorBase(Sequence):
             Dictionary with the binned peak positions and intensities.
         """
         idx = np.array([int(x) for x in spectrum_binned.keys()])
-        values = np.array([x for x in spectrum_binned.values()])
+        values = np.array(spectrum_binned.values())
         if self.settings["augment_removal_max"] or self.settings["augment_removal_intensity"]:
             # TODO: Factor out function with documentation + example?
             indices_select = np.where(values < self.settings["augment_removal_max"])[0]
@@ -319,7 +318,7 @@ class DataGeneratorAllSpectrums(DataGeneratorBase):
     def on_epoch_end(self):
         """Updates indexes after each epoch"""
         self.indexes = np.tile(np.arange(len(self.binned_spectrums)), int(self.settings["num_turns"]))
-        if self.settings["shuffle"] == True:
+        if self.settings["shuffle"]:
             np.random.shuffle(self.indexes)
 
     @staticmethod
@@ -435,6 +434,5 @@ class DataGeneratorAllInchikeys(DataGeneratorBase):
     def on_epoch_end(self):
         """Updates indexes after each epoch"""
         self.indexes = np.tile(np.arange(len(self.reference_scores_df)), int(self.settings["num_turns"]))
-        if self.settings["shuffle"] == True:
+        if self.settings["shuffle"]:
             np.random.shuffle(self.indexes)
-

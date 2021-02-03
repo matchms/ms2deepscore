@@ -1,8 +1,5 @@
 """ Functions to create binned vector from spectrum using linearly increasing width bins.
 """
-import numpy as np
-
-
 def create_peak_list_linear(spectrums, class_values, 
                             min_bin_size, d_bins, mz_min=10.0):
     """Create list of (binned) peaks."""

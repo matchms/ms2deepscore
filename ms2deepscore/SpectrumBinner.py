@@ -39,6 +39,7 @@ class SpectrumBinner:
             binned peaks compared to all peaks of the spectrum. Default is 0, which
             means no unknown binned peaks are allowed.
         """
+        # pylint: disable=too-many-arguments
         self.number_of_bins = number_of_bins
         assert mz_max > mz_min, "mz_max must be > mz_min"
         self.mz_max = mz_max
