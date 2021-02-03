@@ -191,7 +191,7 @@ class DataGeneratorBase(Sequence):
             Dictionary with the binned peak positions and intensities.
         """
         idx = np.array([int(x) for x in spectrum_binned.keys()])
-        values = np.array(spectrum_binned.values())
+        values = np.array(list(spectrum_binned.values()))
         if self.settings["augment_removal_max"] or self.settings["augment_removal_intensity"]:
             # TODO: Factor out function with documentation + example?
             indices_select = np.where(values < self.settings["augment_removal_max"])[0]

@@ -62,7 +62,7 @@ class MS2DeepScore(BaseSimilarity):
         X = np.zeros((1, self.input_vector_dim))
 
         idx = np.array([int(x) for x in binned_spectrum.binned_peaks.keys()])
-        values = np.array(binned_spectrum.binned_peaks.values())
+        values = np.array(list(binned_spectrum.binned_peaks.values()))
         X[0, idx] = values
         return X
 
