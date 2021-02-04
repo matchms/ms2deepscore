@@ -1,6 +1,6 @@
 import numpy as np
 from matplotlib import pyplot as plt
-from matplotlib.colors import ListedColormap, LinearSegmentedColormap
+from matplotlib.colors import LinearSegmentedColormap
 
 
 def create_histograms_plot(reference_scores, comparison_scores, n_bins=10, hist_resolution=100,
@@ -24,6 +24,7 @@ def create_histograms_plot(reference_scores, comparison_scores, n_bins=10, hist_
         DESCRIPTION. The default is "MS2DeepScore".
 
     """
+    # pylint: disable=too-many-arguments
     histograms, used_bins, bin_content = calculate_histograms(reference_scores, comparison_scores,
                                                  n_bins, hist_resolution)
 

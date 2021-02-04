@@ -24,6 +24,7 @@ def create_peak_list_fixed(spectrums, peaks_vocab, d_bins,
     peak_scaling
         Scale all peak intensities by power pf peak_scaling. Default is 0.5.
     """
+    # pylint: disable=too-many-arguments
     peak_lists = []
     missing_fractions = []
 

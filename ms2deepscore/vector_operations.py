@@ -1,7 +1,6 @@
 """Performance optimized vector operations. Same as found in Spec2Vec
 (https://github.com/iomega/spec2vec)."""
 
-from typing import Union
 import numba
 import numpy
 

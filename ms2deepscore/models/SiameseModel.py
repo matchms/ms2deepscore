@@ -1,7 +1,6 @@
 from pathlib import Path
 from typing import Tuple, Union
 import h5py
-import json
 from tensorflow import keras
 from tensorflow.python.keras.saving import hdf5_format
 
@@ -65,6 +64,7 @@ class SiameseModel:
             When provided, this keras model will be used to construct the SiameseModel instance.
             Default is None.
         """
+        # pylint: disable=too-many-arguments
         assert spectrum_binner.known_bins is not None, \
             "spectrum_binner does not contain known bins (run .fit_transform() on training data first!)"
         self.spectrum_binner = spectrum_binner
