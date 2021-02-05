@@ -30,8 +30,8 @@ class DataGeneratorBase(Sequence):
             List of BinnedSpectrum objects with the binned peak positions and intensities.
         reference_scores_df
             Pandas DataFrame with reference similarity scores (=labels) for compounds identified
-            by inchikeys. Columns and index should be inchikeys, the value in a row x column
-            depicting the similarity score for that pair. Must be symmetric
+            by inchikeys (first 14 characters). Columns and index should be inchikeys, the value
+            in a row x column depicting the similarity score for that pair. Must be symmetric
             (reference_scores_df[i,j] == reference_scores_df[j,i]) and column names should be
             identical to the index.
         dim
@@ -41,7 +41,7 @@ class DataGeneratorBase(Sequence):
         batch_size
             Number of pairs per batch. Default=32.
         num_turns
-            Number of pairs for each InChiKey during each epoch. Default=1.
+            Number of pairs for each InChiKey14 during each epoch. Default=1.
         shuffle
             Set to True to shuffle IDs every epoch. Default=True
         ignore_equal_pairs
@@ -86,7 +86,7 @@ class DataGeneratorBase(Sequence):
         batch_size
             Number of pairs per batch. Default=32.
         num_turns
-            Number of pairs for each InChiKey during each epoch. Default=1
+            Number of pairs for each InChiKey14 during each epoch. Default=1
         shuffle
             Set to True to shuffle IDs every epoch. Default=True
         ignore_equal_pairs
@@ -149,7 +149,8 @@ class DataGeneratorBase(Sequence):
         Parameters
         ----------
         inchikey1
-            Inchikey to be paired up with another compound within target_score_range.
+            Inchikey (first 14 characters) to be paired up with another compound within
+            target_score_range.
         target_score_range
             lower and upper bound of label (score) to find an ID of.
         """
@@ -335,7 +336,7 @@ class DataGeneratorAllSpectrums(DataGeneratorBase):
     def _exclude_not_selected_inchikeys(self, reference_scores_df: pd.DataFrame) -> pd.DataFrame:
         """Exclude rows and columns of reference_scores_df for all InChIKeys which are not
         present in the binned_spectrums."""
-        inchikeys_in_selection = {s.get("inchikey") for s in self.binned_spectrums}
+        inchikeys_in_selection = {s.get("inchikey")[:14] for s in self.binned_spectrums}
         clean_df = reference_scores_df.loc[reference_scores_df.index.isin(inchikeys_in_selection),
                                  reference_scores_df.columns.isin(inchikeys_in_selection)]
         n_dropped = len(self.reference_scores_df) - len(clean_df)
