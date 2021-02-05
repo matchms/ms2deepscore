@@ -215,7 +215,7 @@ class DataGeneratorBase(Sequence):
         inchikey) can have multiple measured spectrums in a binned spectrum dataset.
         """
         matching_spectrums = [spectrum for spectrum in self.binned_spectrums
-                              if spectrum.get('inchikey') == inchikey]
+                              if spectrum.get("inchikey")[:14] == inchikey]
         return np.random.choice(matching_spectrums)
 
     def __data_generation(self, spectrum_pairs: Iterator[SpectrumPair]):
@@ -229,7 +229,7 @@ class DataGeneratorBase(Sequence):
             for i_spectrum, spectrum in enumerate(pair):
                 idx, values = self._data_augmentation(spectrum.binned_peaks)
                 X[i_spectrum][i_pair, idx] = values
-            y[i_pair] = self.reference_scores_df[pair[0].get('inchikey')][pair[1].get('inchikey')]
+            y[i_pair] = self.reference_scores_df[pair[0].get("inchikey")[:14]][pair[1].get("inchikey")[:14]]
 
         return X, y
 
@@ -308,7 +308,7 @@ class DataGeneratorAllSpectrums(DataGeneratorBase):
         indexes = self.indexes[batch_index*batch_size:(batch_index+1)*batch_size]
         for index in indexes:
             spectrum1 = self.binned_spectrums[index]
-            inchikey1 = spectrum1.get('inchikey')
+            inchikey1 = spectrum1.get("inchikey")[:14]
 
             # Randomly pick the desired target score range and pick matching ID
             target_score_range = same_prob_bins[np.random.choice(np.arange(len(same_prob_bins)))]
