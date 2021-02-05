@@ -69,8 +69,17 @@ class DataGeneratorBase(Sequence):
         self._set_generator_parameters(**settings)
         self.binned_spectrums = binned_spectrums
         self.reference_scores_df = self._exclude_nans_from_labels(reference_scores_df)
-        # TODO: add check if all inchikeys are present (should fail for missing ones)
+        self._collect_inchikeys()
         self.dim = dim
+        
+    def _collect_inchikeys(self):
+        """Collect all inchikeys14 (first 14 characters) of all binned_spectrums
+        and check if all are present in the reference scores as well.
+        """
+        self.inchikeys = np.array([s.get("inchikey")[:14] for s in self.binned_spectrums])
+        for inchikey in np.unique(self.inchikeys):
+            assert inchikey in self.reference_scores_df.index, \
+                "InChIKey in given spectrum not found in reference scores"
 
     @staticmethod
     def _validate_labels(reference_scores_df: pd.DataFrame):
@@ -214,9 +223,8 @@ class DataGeneratorBase(Sequence):
         Get a random spectrum matching the `inchikey` argument. NB: A compound (identified by an
         inchikey) can have multiple measured spectrums in a binned spectrum dataset.
         """
-        matching_spectrums = [spectrum for spectrum in self.binned_spectrums
-                              if spectrum.get("inchikey")[:14] == inchikey]
-        return np.random.choice(matching_spectrums)
+        matching_spectrum_id = np.where(self.inchikeys == inchikey)[0]
+        return self.binned_spectrums[np.random.choice(matching_spectrum_id)]
 
     def __data_generation(self, spectrum_pairs: Iterator[SpectrumPair]):
         """Generates data containing batch_size samples"""
