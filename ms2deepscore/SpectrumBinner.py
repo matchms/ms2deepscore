@@ -86,7 +86,7 @@ class SpectrumBinner:
         print("Collect spectrum peaks...")
         peak_to_position, known_bins = unique_peaks_fixed(spectrums, self.d_bins,
                                                           self.mz_max, self.mz_min)
-        print(f"Calculated embedding dimension of {len(known_bins)}.")
+        print(f"Calculated embedding dimension: {len(known_bins)}.")
         self.peak_to_position = peak_to_position
         self.known_bins = known_bins
 
@@ -111,9 +111,12 @@ class SpectrumBinner:
                                                                self.peak_to_position,
                                                                self.d_bins,
                                                                mz_max=self.mz_max, mz_min=self.mz_min,
-                                                               peak_scaling=self.peak_scaling)
+                                                               peak_scaling=self.peak_scaling,
+                                                               progress_bar=progress_bar)
         spectrums_binned = []
-        for i, peak_list in enumerate(tqdm(peak_lists, disable=(not progress_bar))):
+        for i, peak_list in enumerate(tqdm(peak_lists,
+                                           desc="Create BinnedSpectrum instances",
+                                           disable=(not progress_bar))):
             assert 100*missing_fractions[i] <= self.allowed_missing_percentage, \
                 f"{100*missing_fractions[i]:.2f} of weighted spectrum is unknown to the model."
             spectrum = BinnedSpectrum(binned_peaks=create_peak_dict(peak_list),

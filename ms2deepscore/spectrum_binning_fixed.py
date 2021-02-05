@@ -2,11 +2,13 @@
 """
 from typing import List
 import numpy as np
+from tqdm import tqdm
 from matchms import Spectrum
 
 
 def create_peak_list_fixed(spectrums, peaks_vocab, d_bins,
-                           mz_max=1000.0, mz_min=10.0, peak_scaling=0.5):
+                           mz_max=1000.0, mz_min=10.0, peak_scaling=0.5,
+                           progress_bar=True):
     """Create list of (binned) peaks.
     
     Parameters
@@ -23,12 +25,15 @@ def create_peak_list_fixed(spectrums, peaks_vocab, d_bins,
         Lower bound of m/z to include in binned spectrum. Default is 10.0.
     peak_scaling
         Scale all peak intensities by power pf peak_scaling. Default is 0.5.
+    progress_bar
+        Show progress bar if set to True. Default is True.
     """
     # pylint: disable=too-many-arguments
     peak_lists = []
     missing_fractions = []
 
-    for spectrum in spectrums:
+    for spectrum in tqdm(spectrums, desc="Spectrum binning",
+                         disable=(not progress_bar)):
         doc = bin_number_array_fixed(spectrum.peaks.mz, d_bins, mz_max=mz_max, mz_min=mz_min)
         weights = spectrum.peaks.intensities ** peak_scaling                
         
