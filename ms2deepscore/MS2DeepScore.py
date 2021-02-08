@@ -111,7 +111,8 @@ class MS2DeepScore(BaseSimilarity):
         reference_vectors = self.calculate_vectors(references)
         query_vectors = self.calculate_vectors(queries)
 
-        ms2ds_similarity = cosine_similarity_matrix(reference_vectors, query_vectors)
+        ms2ds_similarity = cosine_similarity_matrix(reference_vectors,
+                                                    query_vectors)
 
         return ms2ds_similarity
 
