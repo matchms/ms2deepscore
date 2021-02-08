@@ -107,26 +107,25 @@ class MS2DeepScore(BaseSimilarity):
         ms2ds_similarity
             Array of MS2DeepScore similarity scores.
         """
-        n_rows = len(references)
-        reference_vectors = np.empty((n_rows, self.output_vector_dim), dtype="float")
-
-        # Convert to binned spectrums
-        binned_references = self.model.spectrum_binner.transform(references)
-        binned_queries = self.model.spectrum_binner.transform(queries)
-
-        for index_reference, reference in enumerate(tqdm(binned_references,
-                                                         desc='Calculating vectors of reference spectrums',
-                                                         disable=self.disable_progress_bar)):
-            reference_vectors[index_reference,
-                              0:self.output_vector_dim] = self.model.base.predict(self._create_input_vector(reference))
-        n_cols = len(queries)
-        query_vectors = np.empty((n_cols, self.output_vector_dim), dtype="float")
-        for index_query, query in enumerate(tqdm(binned_queries,
-                                                 desc='Calculating vectors of query spectrums',
-                                                 disable=self.disable_progress_bar)):
-            query_vectors[index_query,
-                          0:self.output_vector_dim] = self.model.base.predict(self._create_input_vector(query))
+        reference_vectors = self.calculate_embeddings(references)
+        query_vectors = self.calculate_embeddings(queries)
 
         ms2ds_similarity = cosine_similarity_matrix(reference_vectors, query_vectors)
 
         return ms2ds_similarity
+
+    def calculate_embeddings(self,
+                             spectrum_list: List[Spectrum]
+                             ):
+        n_rows = len(spectrum_list)
+        reference_vectors = np.empty((n_rows, self.output_vector_dim),
+                                     dtype="float")
+        binned_spectrums = self.model.spectrum_binner.transform(spectrum_list)
+        for index_reference, reference in enumerate(
+                tqdm(binned_spectrums,
+                     desc='Calculating vectors of reference spectrums',
+                     disable=self.disable_progress_bar)):
+            reference_vectors[index_reference,
+                              0:self.output_vector_dim] = \
+                self.model.base.predict(self._create_input_vector(reference))
+        return reference_vectors
