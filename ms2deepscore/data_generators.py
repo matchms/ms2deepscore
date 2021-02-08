@@ -72,7 +72,7 @@ class DataGeneratorBase(Sequence):
         self._collect_inchikeys()
         self.dim = dim
         
-    def _collect_inchikeys(self):
+    def _collect_and_validate_inchikeys(self):
         """Collect all inchikeys14 (first 14 characters) of all binned_spectrums
         and check if all are present in the reference scores as well.
         """
