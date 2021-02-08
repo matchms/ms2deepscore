@@ -63,21 +63,23 @@ class DataGeneratorBase(Sequence):
             Default=0.1, which means that intensities are multiplied by 1+- a random
             number within [0, 0.1].
         """
+
         self._validate_labels(reference_scores_df)
 
         # Set all other settings to input (or otherwise to defaults):
         self._set_generator_parameters(**settings)
         self.binned_spectrums = binned_spectrums
         self.reference_scores_df = self._exclude_nans_from_labels(reference_scores_df)
-        self._collect_inchikeys()
+        self.reference_scores_df = self._transform_to_inchikey14(self.reference_scores_df)
+        self._collect_and_validate_inchikeys()
         self.dim = dim
-        
+
     def _collect_and_validate_inchikeys(self):
         """Collect all inchikeys14 (first 14 characters) of all binned_spectrums
         and check if all are present in the reference scores as well.
         """
-        self.inchikeys = np.array([s.get("inchikey")[:14] for s in self.binned_spectrums])
-        for inchikey in np.unique(self.inchikeys):
+        self.spectrum_inchikeys = np.array([s.get("inchikey")[:14] for s in self.binned_spectrums])
+        for inchikey in np.unique(self.spectrum_inchikeys):
             assert inchikey in self.reference_scores_df.index, \
                 "InChIKey in given spectrum not found in reference scores"
 
@@ -85,6 +87,24 @@ class DataGeneratorBase(Sequence):
     def _validate_labels(reference_scores_df: pd.DataFrame):
         if set(reference_scores_df.index) != set(reference_scores_df.columns):
             raise ValueError("index and columns of reference_scores_df are not identical")
+
+    @staticmethod
+    def _transform_to_inchikey14(reference_scores_df: pd.DataFrame):
+        """Transform index and column names from potential full InChIKeys to InChIKey14"""
+        reference_scores_df.index = [x[:14] for x in reference_scores_df.index]
+        reference_scores_df.columns = [x[:14] for x in reference_scores_df.columns]
+        return reference_scores_df
+
+    @staticmethod
+    def _exclude_nans_from_labels(reference_scores_df: pd.DataFrame):
+        """Exclude nans in reference_scores_df, exclude columns and rows if there is any NaN
+        value"""
+        clean_df = reference_scores_df.dropna(axis='rows')  # drop rows with any NaN
+        clean_df = clean_df[clean_df.index]  # drop corresponding columns
+        n_dropped = len(reference_scores_df) - len(clean_df)
+        if n_dropped > 0:
+            print(f"{n_dropped} nans among {len(reference_scores_df)} labels will be excluded.")
+        return clean_df
 
     def _set_generator_parameters(self, **settings):
         """Set parameter for data generator. Use below listed defaults unless other
@@ -138,17 +158,6 @@ class DataGeneratorBase(Sequence):
         assert 0.0 <= settings["augment_removal_max"] <= 1.0, "Expected value within [0,1]"
         assert 0.0 <= settings["augment_removal_intensity"] <= 1.0, "Expected value within [0,1]"
         self.settings = settings
-
-    @staticmethod
-    def _exclude_nans_from_labels(reference_scores_df: pd.DataFrame):
-        """Exclude nans in reference_scores_df, exclude columns and rows if there is any NaN
-        value"""
-        clean_df = reference_scores_df.dropna(axis='rows')  # drop rows with any NaN
-        clean_df = clean_df[clean_df.index]  # drop corresponding columns
-        n_dropped = len(reference_scores_df) - len(clean_df)
-        if n_dropped > 0:
-            print(f"{n_dropped} nans among {len(reference_scores_df)} labels will be excluded.")
-        return clean_df
 
     def _find_match_in_range(self, inchikey1, target_score_range, max_range=0.4):
         """Randomly pick ID for a pair with inchikey_id1 that has a score in
@@ -223,7 +232,7 @@ class DataGeneratorBase(Sequence):
         Get a random spectrum matching the `inchikey` argument. NB: A compound (identified by an
         inchikey) can have multiple measured spectrums in a binned spectrum dataset.
         """
-        matching_spectrum_id = np.where(self.inchikeys == inchikey)[0]
+        matching_spectrum_id = np.where(self.spectrum_inchikeys == inchikey)[0]
         return self.binned_spectrums[np.random.choice(matching_spectrum_id)]
 
     def __data_generation(self, spectrum_pairs: Iterator[SpectrumPair]):
