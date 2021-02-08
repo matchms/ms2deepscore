@@ -39,7 +39,7 @@ class MS2DeepScore(BaseSimilarity):
 
 
     """
-    def __init__(self, model, progress_bar: bool = False):
+    def __init__(self, model, progress_bar: bool = True):
         """
 
         Parameters
@@ -111,8 +111,8 @@ class MS2DeepScore(BaseSimilarity):
         reference_vectors = np.empty((n_rows, self.output_vector_dim), dtype="float")
 
         # Convert to binned spectrums
-        binned_references = self.model.spectrum_binner.transform(references)
-        binned_queries = self.model.spectrum_binner.transform(queries)
+        binned_references = self.model.spectrum_binner.transform(references, progress_bar=self.progress_bar)
+        binned_queries = self.model.spectrum_binner.transform(queries, progress_bar=self.progress_bar)
 
         for index_reference, reference in enumerate(tqdm(binned_references,
                                                          desc='Calculating vectors of reference spectrums',
