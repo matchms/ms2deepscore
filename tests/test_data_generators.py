@@ -1,7 +1,4 @@
-import json
-import os
 import numpy as np
-import pandas as pd
 import pytest
 
 from ms2deepscore import SpectrumBinner
@@ -86,12 +83,12 @@ def test_DataGeneratorAllSpectrums_no_inchikey_leaking():
                                                augment_intensity=0.0)
 
     assert test_generator.reference_scores_df.shape == (6, 6), "Expected different reduced shape of labels"
-    expected_inchikeys = ['BBXXLROWFHWFQY-UHFFFAOYSA-N',
-                          'FBOUIAKEJMZPQG-AWNIVKPZSA-N',
-                          'GPXLRLUVLMHHIK-UHFFFAOYSA-N',
-                          'JXCGFZXSOMJFOA-UHFFFAOYSA-N',
-                          'RZILCCPWPBTYDO-UHFFFAOYSA-N',
-                          'UYJUZNLFJAWNEZ-UHFFFAOYSA-N']
+    expected_inchikeys = ['BBXXLROWFHWFQY',
+                          'FBOUIAKEJMZPQG',
+                          'GPXLRLUVLMHHIK',
+                          'JXCGFZXSOMJFOA',
+                          'RZILCCPWPBTYDO',
+                          'UYJUZNLFJAWNEZ']
     found_inchikeys = test_generator.reference_scores_df.columns.to_list()
     found_inchikeys.sort()
     assert found_inchikeys == expected_inchikeys, \
