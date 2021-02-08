@@ -232,7 +232,6 @@ class DataGeneratorBase(Sequence):
         # Augmentation 3: Add noise peaks
         if self.settings["augment_noise_max"] and self.settings["augment_noise_max"] > 0:
             n_noise_peaks = np.random.randint(0, self.settings["augment_noise_max"])
-            #indices_possible = np.array([i for i in range(self.dim) if i not in idx])
             idx_noise = np.array([x for x in np.random.randint(0, self.dim, n_noise_peaks) if x not in idx]).astype("int")
             idx = np.concatenate((idx, idx_noise))
             values = np.concatenate((values,
