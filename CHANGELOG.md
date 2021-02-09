@@ -12,6 +12,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - noise peak addition during training via data generators [#55](https://github.com/matchms/ms2deepscore/pull/55)
 - L1 and L2 regularization for first dense layer [#55](https://github.com/matchms/ms2deepscore/pull/55)
 
+## Changed
+
+- move vector calculation to separate calculate_vectors method [#52](https://github.com/matchms/ms2deepscore/pull/52)
+
 ## [0.1.0] - 2021-02-08
 
 ### Added

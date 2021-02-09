@@ -1,13 +1,10 @@
-import os
 from pathlib import Path
 import numpy as np
 import pytest
-from tensorflow import keras
 
-from ms2deepscore import MS2DeepScore, SpectrumBinner
-from ms2deepscore.data_generators import DataGeneratorAllSpectrums
+from ms2deepscore import MS2DeepScore
 from ms2deepscore.models import load_model
-from tests.test_user_worfklow import load_processed_spectrums, get_reference_scores
+from tests.test_user_worfklow import load_processed_spectrums
 
 TEST_RESOURCES_PATH = Path(__file__).parent / 'resources'
 
@@ -15,7 +12,6 @@ TEST_RESOURCES_PATH = Path(__file__).parent / 'resources'
 def get_test_ms2_deep_score_instance():
     """Load data and models for MS2DeepScore unit tests."""
     spectrums = load_processed_spectrums()
-    tanimoto_scores_df = get_reference_scores()
 
     # Load pretrained model
     model_file = TEST_RESOURCES_PATH / "testmodel.hdf5"
@@ -47,9 +43,31 @@ def test_MS2DeepScore_score_pair():
 def test_MS2DeepScore_score_matrix():
     """Test score calculation using *.matrix* method."""
     spectrums, _, similarity_measure = get_test_ms2_deep_score_instance()
-    scores = similarity_measure.matrix(spectrums[:4], spectrums[:4])
+    scores = similarity_measure.matrix(spectrums[:4], spectrums[:3])
+    expected_scores = np.array([[1.        , 0.92501721, 0.8663899 ],
+                                [0.92501721, 1.        , 0.86038138],
+                                [0.8663899 , 0.86038138, 1.        ],
+                                [0.91697757, 0.89758966, 0.79661344]])
+    assert np.allclose(expected_scores, scores, atol=1e-6), "Expected different scores."
+
+
+def test_MS2DeepScore_score_matrix_symmetric():
+    """Test score calculation using *.matrix* method."""
+    spectrums, _, similarity_measure = get_test_ms2_deep_score_instance()
+    scores = similarity_measure.matrix(spectrums[:4], spectrums[:4], is_symmetric=True)
     expected_scores = np.array([[1.        , 0.92501721, 0.8663899 , 0.91697757],
                                 [0.92501721, 1.        , 0.86038138, 0.89758966],
                                 [0.8663899 , 0.86038138, 1.        , 0.79661344],
                                 [0.91697757, 0.89758966, 0.79661344, 1.        ]])
     assert np.allclose(expected_scores, scores, atol=1e-6), "Expected different scores."
+
+
+def test_MS2DeepScore_score_matrix_symmetric_wrong_use():
+    """Test if *.matrix* method gives correct exception."""
+    spectrums, _, similarity_measure = get_test_ms2_deep_score_instance()
+    expected_msg = "Expected references to be equal to queries for is_symmetric=True"
+    with pytest.raises(AssertionError) as msg:
+        _ = similarity_measure.matrix(spectrums[:4],
+                                      [spectrums[i] for i in [1,2,3,0]],
+                                      is_symmetric=True)
+    assert expected_msg in str(msg), "Expected different exception message"

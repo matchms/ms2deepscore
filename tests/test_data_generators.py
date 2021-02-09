@@ -111,9 +111,10 @@ def test_DataGeneratorAllSpectrums_no_inchikey_leaking():
 def test_DataGeneratorAllSpectrums_asymmetric_label_input():
     # Create generator
     binned_spectrums, tanimoto_scores_df = create_test_data()
-    spectrum_ids = list(range(150))
     asymmetric_scores_df = tanimoto_scores_df.iloc[:, 2:]
-    with pytest.raises(ValueError):
-        test_generator = DataGeneratorAllSpectrums(binned_spectrums=binned_spectrums,
-                                                   reference_scores_df=asymmetric_scores_df,
-                                                   dim=101)
+    with pytest.raises(ValueError) as msg:
+        _ = DataGeneratorAllSpectrums(binned_spectrums=binned_spectrums,
+                                      reference_scores_df=asymmetric_scores_df,
+                                      dim=101)
+    assert "index and columns of reference_scores_df are not identical" in str(msg), \
+        "Expected different ValueError"

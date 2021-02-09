@@ -234,7 +234,6 @@ class DataGeneratorBase(Sequence):
             n_noise_peaks = np.random.randint(0, self.settings["augment_noise_max"])
             idx_noise_peaks = np.random.randint(0, self.dim, n_noise_peaks)
             idx_noise_peaks = idx_noise_peaks[np.isin(idx_noise_peaks, idx, invert=True)]
-            print(idx, idx_noise_peaks)
             idx = np.concatenate((idx, idx_noise_peaks))
             values = np.concatenate((values,
                                      self.settings["augment_noise_intensity"] * np.random.random(len(idx_noise_peaks))))
