@@ -30,8 +30,8 @@ class DataGeneratorBase(Sequence):
             List of BinnedSpectrum objects with the binned peak positions and intensities.
         reference_scores_df
             Pandas DataFrame with reference similarity scores (=labels) for compounds identified
-            by inchikeys. Columns and index should be inchikeys, the value in a row x column
-            depicting the similarity score for that pair. Must be symmetric
+            by inchikeys (first 14 characters). Columns and index should be inchikeys, the value
+            in a row x column depicting the similarity score for that pair. Must be symmetric
             (reference_scores_df[i,j] == reference_scores_df[j,i]) and column names should be
             identical to the index.
         dim
@@ -41,7 +41,7 @@ class DataGeneratorBase(Sequence):
         batch_size
             Number of pairs per batch. Default=32.
         num_turns
-            Number of pairs for each InChiKey during each epoch. Default=1.
+            Number of pairs for each InChiKey14 during each epoch. Default=1.
         shuffle
             Set to True to shuffle IDs every epoch. Default=True
         ignore_equal_pairs
@@ -63,19 +63,48 @@ class DataGeneratorBase(Sequence):
             Default=0.1, which means that intensities are multiplied by 1+- a random
             number within [0, 0.1].
         """
+
         self._validate_labels(reference_scores_df)
 
         # Set all other settings to input (or otherwise to defaults):
         self._set_generator_parameters(**settings)
         self.binned_spectrums = binned_spectrums
         self.reference_scores_df = self._exclude_nans_from_labels(reference_scores_df)
-        # TODO: add check if all inchikeys are present (should fail for missing ones)
+        self.reference_scores_df = self._transform_to_inchikey14(self.reference_scores_df)
+        self._collect_and_validate_inchikeys()
         self.dim = dim
+
+    def _collect_and_validate_inchikeys(self):
+        """Collect all inchikeys14 (first 14 characters) of all binned_spectrums
+        and check if all are present in the reference scores as well.
+        """
+        self.spectrum_inchikeys = np.array([s.get("inchikey")[:14] for s in self.binned_spectrums])
+        for inchikey in np.unique(self.spectrum_inchikeys):
+            assert inchikey in self.reference_scores_df.index, \
+                "InChIKey in given spectrum not found in reference scores"
 
     @staticmethod
     def _validate_labels(reference_scores_df: pd.DataFrame):
         if set(reference_scores_df.index) != set(reference_scores_df.columns):
             raise ValueError("index and columns of reference_scores_df are not identical")
+
+    @staticmethod
+    def _transform_to_inchikey14(reference_scores_df: pd.DataFrame):
+        """Transform index and column names from potential full InChIKeys to InChIKey14"""
+        reference_scores_df.index = [x[:14] for x in reference_scores_df.index]
+        reference_scores_df.columns = [x[:14] for x in reference_scores_df.columns]
+        return reference_scores_df
+
+    @staticmethod
+    def _exclude_nans_from_labels(reference_scores_df: pd.DataFrame):
+        """Exclude nans in reference_scores_df, exclude columns and rows if there is any NaN
+        value"""
+        clean_df = reference_scores_df.dropna(axis='rows')  # drop rows with any NaN
+        clean_df = clean_df[clean_df.index]  # drop corresponding columns
+        n_dropped = len(reference_scores_df) - len(clean_df)
+        if n_dropped > 0:
+            print(f"{n_dropped} nans among {len(reference_scores_df)} labels will be excluded.")
+        return clean_df
 
     def _set_generator_parameters(self, **settings):
         """Set parameter for data generator. Use below listed defaults unless other
@@ -86,7 +115,7 @@ class DataGeneratorBase(Sequence):
         batch_size
             Number of pairs per batch. Default=32.
         num_turns
-            Number of pairs for each InChiKey during each epoch. Default=1
+            Number of pairs for each InChiKey14 during each epoch. Default=1
         shuffle
             Set to True to shuffle IDs every epoch. Default=True
         ignore_equal_pairs
@@ -130,17 +159,6 @@ class DataGeneratorBase(Sequence):
         assert 0.0 <= settings["augment_removal_intensity"] <= 1.0, "Expected value within [0,1]"
         self.settings = settings
 
-    @staticmethod
-    def _exclude_nans_from_labels(reference_scores_df: pd.DataFrame):
-        """Exclude nans in reference_scores_df, exclude columns and rows if there is any NaN
-        value"""
-        clean_df = reference_scores_df.dropna(axis='rows')  # drop rows with any NaN
-        clean_df = clean_df[clean_df.index]  # drop corresponding columns
-        n_dropped = len(reference_scores_df) - len(clean_df)
-        if n_dropped > 0:
-            print(f"{n_dropped} nans among {len(reference_scores_df)} labels will be excluded.")
-        return clean_df
-
     def _find_match_in_range(self, inchikey1, target_score_range, max_range=0.4):
         """Randomly pick ID for a pair with inchikey_id1 that has a score in
         target_score_range. When no such score exists, iteratively widen the range
@@ -149,7 +167,8 @@ class DataGeneratorBase(Sequence):
         Parameters
         ----------
         inchikey1
-            Inchikey to be paired up with another compound within target_score_range.
+            Inchikey (first 14 characters) to be paired up with another compound within
+            target_score_range.
         target_score_range
             lower and upper bound of label (score) to find an ID of.
         """
@@ -213,9 +232,8 @@ class DataGeneratorBase(Sequence):
         Get a random spectrum matching the `inchikey` argument. NB: A compound (identified by an
         inchikey) can have multiple measured spectrums in a binned spectrum dataset.
         """
-        matching_spectrums = [spectrum for spectrum in self.binned_spectrums
-                              if spectrum.get('inchikey') == inchikey]
-        return np.random.choice(matching_spectrums)
+        matching_spectrum_id = np.where(self.spectrum_inchikeys == inchikey)[0]
+        return self.binned_spectrums[np.random.choice(matching_spectrum_id)]
 
     def __data_generation(self, spectrum_pairs: Iterator[SpectrumPair]):
         """Generates data containing batch_size samples"""
@@ -228,7 +246,7 @@ class DataGeneratorBase(Sequence):
             for i_spectrum, spectrum in enumerate(pair):
                 idx, values = self._data_augmentation(spectrum.binned_peaks)
                 X[i_spectrum][i_pair, idx] = values
-            y[i_pair] = self.reference_scores_df[pair[0].get('inchikey')][pair[1].get('inchikey')]
+            y[i_pair] = self.reference_scores_df[pair[0].get("inchikey")[:14]][pair[1].get("inchikey")[:14]]
 
         return X, y
 
@@ -307,7 +325,7 @@ class DataGeneratorAllSpectrums(DataGeneratorBase):
         indexes = self.indexes[batch_index*batch_size:(batch_index+1)*batch_size]
         for index in indexes:
             spectrum1 = self.binned_spectrums[index]
-            inchikey1 = spectrum1.get('inchikey')
+            inchikey1 = spectrum1.get("inchikey")[:14]
 
             # Randomly pick the desired target score range and pick matching ID
             target_score_range = same_prob_bins[np.random.choice(np.arange(len(same_prob_bins)))]
@@ -335,7 +353,7 @@ class DataGeneratorAllSpectrums(DataGeneratorBase):
     def _exclude_not_selected_inchikeys(self, reference_scores_df: pd.DataFrame) -> pd.DataFrame:
         """Exclude rows and columns of reference_scores_df for all InChIKeys which are not
         present in the binned_spectrums."""
-        inchikeys_in_selection = {s.get("inchikey") for s in self.binned_spectrums}
+        inchikeys_in_selection = {s.get("inchikey")[:14] for s in self.binned_spectrums}
         clean_df = reference_scores_df.loc[reference_scores_df.index.isin(inchikeys_in_selection),
                                  reference_scores_df.columns.isin(inchikeys_in_selection)]
         n_dropped = len(self.reference_scores_df) - len(clean_df)
