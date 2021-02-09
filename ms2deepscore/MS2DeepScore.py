@@ -39,7 +39,7 @@ class MS2DeepScore(BaseSimilarity):
 
 
     """
-    def __init__(self, model, progress_bar: bool = False):
+    def __init__(self, model, progress_bar: bool = True):
         """
 
         Parameters
@@ -55,7 +55,7 @@ class MS2DeepScore(BaseSimilarity):
         self.model = model
         self.input_vector_dim = self.model.base.input_shape[1]  # TODO: later maybe also check against SpectrumBinner
         self.output_vector_dim = self.model.base.output_shape[1]
-        self.disable_progress_bar = not progress_bar
+        self.progress_bar = progress_bar
 
     def _create_input_vector(self, binned_spectrum: BinnedSpectrumType):
         """Creates input vector for model.base based on binned peaks and intensities"""
@@ -115,9 +115,7 @@ class MS2DeepScore(BaseSimilarity):
         else:
             query_vectors = self.calculate_vectors(queries)
 
-        ms2ds_similarity = cosine_similarity_matrix(reference_vectors,
-                                                    query_vectors)
-
+        ms2ds_similarity = cosine_similarity_matrix(reference_vectors, query_vectors)
         return ms2ds_similarity
 
     def calculate_vectors(self, spectrum_list: List[Spectrum]) -> np.ndarray:
@@ -129,14 +127,13 @@ class MS2DeepScore(BaseSimilarity):
             List of spectra for which the vector should be calculated
         """
         n_rows = len(spectrum_list)
-        reference_vectors = np.empty((n_rows, self.output_vector_dim),
-                                     dtype="float")
-        binned_spectrums = self.model.spectrum_binner.transform(spectrum_list)
+        reference_vectors = np.empty((n_rows, self.output_vector_dim), dtype="float")
+        binned_spectrums = self.model.spectrum_binner.transform(spectrum_list,
+                                                                progress_bar=self.progress_bar)
         for index_reference, reference in enumerate(
                 tqdm(binned_spectrums,
                      desc='Calculating vectors of reference spectrums',
-                     disable=self.disable_progress_bar)):
-            reference_vectors[index_reference,
-                              0:self.output_vector_dim] = \
+                     disable=(not self.progress_bar))):
+            reference_vectors[index_reference, 0:self.output_vector_dim] = \
                 self.model.base.predict(self._create_input_vector(reference))
         return reference_vectors

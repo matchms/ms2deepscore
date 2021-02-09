@@ -146,6 +146,8 @@ class DataGeneratorBase(Sequence):
             augment_removal_max= 0.3,
             augment_removal_intensity=0.2,
             augment_intensity=0.4,
+            augment_noise_max=10,
+            augment_noise_intensity=0.01,
         )
 
         # Set default parameters or replace by **settings input
@@ -211,6 +213,7 @@ class DataGeneratorBase(Sequence):
         """
         idx = np.array([int(x) for x in spectrum_binned.keys()])
         values = np.array(list(spectrum_binned.values()))
+        # Augmentation 1: peak removal (peaks < augment_removal_max)
         if self.settings["augment_removal_max"] or self.settings["augment_removal_intensity"]:
             # TODO: Factor out function with documentation + example?
             indices_select = np.where(values < self.settings["augment_removal_max"])[0]
@@ -222,9 +225,19 @@ class DataGeneratorBase(Sequence):
             if len(indices) > 0:
                 idx = idx[indices]
                 values = values[indices]
+        # Augmentation 2: Change peak intensities
         if self.settings["augment_intensity"]:
             # TODO: Factor out function with documentation + example?
             values = (1 - self.settings["augment_intensity"] * 2 * (np.random.random(values.shape) - 0.5)) * values
+        # Augmentation 3: Add noise peaks
+        if self.settings["augment_noise_max"] and self.settings["augment_noise_max"] > 0:
+            n_noise_peaks = np.random.randint(0, self.settings["augment_noise_max"])
+            idx_noise_peaks = np.random.randint(0, self.dim, n_noise_peaks)
+            idx_noise_peaks = idx_noise_peaks[np.isin(idx_noise_peaks, idx, invert=True)]
+            print(idx, idx_noise_peaks)
+            idx = np.concatenate((idx, idx_noise_peaks))
+            values = np.concatenate((values,
+                                     self.settings["augment_noise_intensity"] * np.random.random(len(idx_noise_peaks))))
         return idx, values
 
     def _get_spectrum_with_inchikey(self, inchikey: str) -> BinnedSpectrumType:
