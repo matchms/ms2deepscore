@@ -39,7 +39,7 @@ class MS2DeepScore(BaseSimilarity):
 
 
     """
-    def __init__(self, model, progress_bar: bool = False):
+    def __init__(self, model, progress_bar: bool = True):
         """
 
         Parameters
@@ -55,7 +55,7 @@ class MS2DeepScore(BaseSimilarity):
         self.model = model
         self.input_vector_dim = self.model.base.input_shape[1]  # TODO: later maybe also check against SpectrumBinner
         self.output_vector_dim = self.model.base.output_shape[1]
-        self.disable_progress_bar = not progress_bar
+        self.progress_bar = progress_bar
 
     def _create_input_vector(self, binned_spectrum: BinnedSpectrumType):
         """Creates input vector for model.base based on binned peaks and intensities"""
@@ -111,19 +111,19 @@ class MS2DeepScore(BaseSimilarity):
         reference_vectors = np.empty((n_rows, self.output_vector_dim), dtype="float")
 
         # Convert to binned spectrums
-        binned_references = self.model.spectrum_binner.transform(references)
-        binned_queries = self.model.spectrum_binner.transform(queries)
+        binned_references = self.model.spectrum_binner.transform(references, progress_bar=self.progress_bar)
+        binned_queries = self.model.spectrum_binner.transform(queries, progress_bar=self.progress_bar)
 
         for index_reference, reference in enumerate(tqdm(binned_references,
                                                          desc='Calculating vectors of reference spectrums',
-                                                         disable=self.disable_progress_bar)):
+                                                         disable=(not self.progress_bar))):
             reference_vectors[index_reference,
                               0:self.output_vector_dim] = self.model.base.predict(self._create_input_vector(reference))
         n_cols = len(queries)
         query_vectors = np.empty((n_cols, self.output_vector_dim), dtype="float")
         for index_query, query in enumerate(tqdm(binned_queries,
                                                  desc='Calculating vectors of query spectrums',
-                                                 disable=self.disable_progress_bar)):
+                                                 disable=(not self.progress_bar))):
             query_vectors[index_query,
                           0:self.output_vector_dim] = self.model.base.predict(self._create_input_vector(query))
 
