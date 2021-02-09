@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.1] - 2021-02-09
+
 ## Added
 
 - noise peak addition during training via data generators [#55](https://github.com/matchms/ms2deepscore/pull/55)
@@ -22,5 +24,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - This is the initial version of MS2DeepScore
 
-[Unreleased]: https://github.com/matchms/ms2deepscore/compare/0.1.0...HEAD
+[Unreleased]: https://github.com/matchms/ms2deepscore/compare/0.1.1...HEAD
+[0.1.1]: https://github.com/matchms/ms2deepscore/releases/tag/0.1.0...0.1.1
 [0.1.0]: https://github.com/matchms/ms2deepscore/releases/tag/0.1.0
