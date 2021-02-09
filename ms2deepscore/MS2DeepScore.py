@@ -107,22 +107,27 @@ class MS2DeepScore(BaseSimilarity):
         ms2ds_similarity
             Array of MS2DeepScore similarity scores.
         """
-        # todo: Add functionality for is_symmetric, or remove is_symmetric
         reference_vectors = self.calculate_vectors(references)
-        query_vectors = self.calculate_vectors(queries)
+        if is_symmetric:
+            assert np.all(references == queries), \
+                "Expected references to be equal to queries for is_symmetric=True"
+            query_vectors = reference_vectors
+        else:
+            query_vectors = self.calculate_vectors(queries)
 
         ms2ds_similarity = cosine_similarity_matrix(reference_vectors,
                                                     query_vectors)
 
         return ms2ds_similarity
 
-    def calculate_vectors(self,
-                          spectrum_list: List[Spectrum]
-                          ) -> np.ndarray:
+    def calculate_vectors(self, spectrum_list: List[Spectrum]) -> np.ndarray:
         """Returns a list of vectors for all spectra
 
+        parameters
+        ----------
         spectrum_list:
-            List of spectra for which the vector should be calculated """
+            List of spectra for which the vector should be calculated
+        """
         n_rows = len(spectrum_list)
         reference_vectors = np.empty((n_rows, self.output_vector_dim),
                                      dtype="float")
