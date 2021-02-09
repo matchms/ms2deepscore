@@ -232,10 +232,12 @@ class DataGeneratorBase(Sequence):
         # Augmentation 3: Add noise peaks
         if self.settings["augment_noise_max"] and self.settings["augment_noise_max"] > 0:
             n_noise_peaks = np.random.randint(0, self.settings["augment_noise_max"])
-            idx_noise = np.array([x for x in np.random.randint(0, self.dim, n_noise_peaks) if x not in idx]).astype("int")
-            idx = np.concatenate((idx, idx_noise))
+            idx_noise_peaks = np.random.randint(0, self.dim, n_noise_peaks)
+            idx_noise_peaks = idx_noise_peaks[np.isin(idx_noise_peaks, idx, invert=True)]
+            print(idx, idx_noise_peaks)
+            idx = np.concatenate((idx, idx_noise_peaks))
             values = np.concatenate((values,
-                                     self.settings["augment_noise_intensity"] * np.random.random(len(idx_noise))))
+                                     self.settings["augment_noise_intensity"] * np.random.random(len(idx_noise_peaks))))
         return idx, values
 
     def _get_spectrum_with_inchikey(self, inchikey: str) -> BinnedSpectrumType:
