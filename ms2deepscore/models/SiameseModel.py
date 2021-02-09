@@ -103,7 +103,7 @@ class SiameseModel:
                         dropout_rate: float = 0.25):
         model_input = keras.layers.Input(shape=input_dim, name='base_input')
         embedding = keras.layers.Dense(dims[0], activation='relu', name='dense1',
-                                       kernel_regularizer=keras.regularizers.l1(1e-6))(model_input)
+                                       kernel_regularizer=keras.regularizers.l1_l2(l1=1e-6, l2=1e-6))(model_input)
         embedding = keras.layers.BatchNormalization(name='normalization1')(embedding)
         embedding = keras.layers.Dropout(dropout_rate, name='dropout1')(embedding)
         embedding = keras.layers.Dense(dims[1], activation='relu', name='dense2')(embedding)
