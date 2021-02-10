@@ -10,18 +10,18 @@ def create_histograms_plot(reference_scores, comparison_scores, n_bins=10, hist_
 
     Parameters
     ----------
-    reference_scores : TYPE
-        DESCRIPTION.
-    comparison_scores : TYPE
-        DESCRIPTION.
-    n_bins : TYPE, optional
-        DESCRIPTION. The default is 10.
-    hist_resolution : TYPE, optional
-        DESCRIPTION. The default is 100.
-    ref_score_name : TYPE, optional
-        DESCRIPTION. The default is "Tanimoto similarity".
-    compare_score_name : TYPE, optional
-        DESCRIPTION. The default is "MS2DeepScore".
+    reference_scores
+        Reference score array.
+    comparison_scores
+        Comparison score array.
+    n_bins
+        Number of bins. The default is 5.
+    hist_resolution
+        Histogram resolution. The default is 100.
+    ref_score_name
+        Label string. The default is "Tanimoto similarity".
+    compare_score_name
+        Label string. The default is "MS2DeepScore".
 
     """
     # pylint: disable=too-many-arguments
@@ -77,3 +77,80 @@ def calculate_histograms(reference_scores, comparison_scores, n_bins=10, hist_re
         histograms.append((a, b))
 
     return histograms, used_bins, bin_content
+
+
+def create_confusion_matrix_plot(reference_scores, comparison_scores, n_bins=5,
+                                 ref_score_name="Tanimoto similarity", compare_score_name="MS2DeepScore",
+                                 max_square_size=5000):
+    """
+    Plot histograms to compare reference and comparison scores.
+
+    Parameters
+    ----------
+    reference_scores
+        Reference score array.
+    comparison_scores
+        Comparison score array.
+    n_bins
+        Number of bins. The default is 5.
+    ref_score_name
+        Label string. The default is "Tanimoto similarity".
+    compare_score_name
+        Label string. The default is "MS2DeepScore".
+    max_square_size
+        Maximum square size.
+
+    """
+    # pylint: disable=too-many-arguments
+    confusion_like_matrix, confusion_like_matrix_scatter = derive_scatter_data(reference_scores,
+                                                                               comparison_scores,
+                                                                               n_bins, n_bins)
+    plot_confusion_like_matrix(confusion_like_matrix_scatter, confusion_like_matrix,
+                              xlabel=compare_score_name, ylabel="Tanimoto score", max_size=max_square_size)
+
+
+def plot_confusion_like_matrix(confusion_like_matrix_scatter, confusion_like_matrix,
+                              xlabel="MS2DeepScore", ylabel="Tanimoto score", max_size=5000):
+    """Do the actual plotting"""
+    summed_tanimoto = []
+    for i in range(confusion_like_matrix.shape[0]):
+        for j in range(confusion_like_matrix.shape[1]):
+            summed_tanimoto.append(confusion_like_matrix[i,:].sum())
+
+    sizes = np.array([x[2] for x in confusion_like_matrix_scatter])
+    colors = 100*sizes/np.array(summed_tanimoto)  # color percentage
+    sizes = sizes/np.max(sizes)
+
+    plt.style.use('seaborn-white')
+    plt.figure(figsize=(10, 8))
+    plt.scatter([x[1] for x in confusion_like_matrix_scatter],
+               [x[0] for x in confusion_like_matrix_scatter], marker='s', c=colors, cmap="plasma",
+               s=sizes*max_size)
+    cbar = plt.colorbar()
+    cbar.ax.tick_params(labelsize=14)
+    cbar.set_label('% within respective Tanimoto bin', rotation=90, fontsize=14)
+
+    plt.xlabel(xlabel, fontsize=14)
+    plt.ylabel(ylabel, fontsize=14)
+    plt.xticks(fontsize=14)
+    plt.yticks(fontsize=14)
+    plt.xlim(-0, 1)
+    plt.ylim(-0, 1)
+    plt.clim(0)
+    plt.grid(True)
+
+
+def derive_scatter_data(reference_scores, comparison_scores, n_bins_x, n_bins_y):
+    bins_x = np.linspace(0,1.0001, n_bins_x+1)
+    bins_y = np.linspace(0,1.0001, n_bins_y+1)
+    confusion_like_matrix = np.zeros((n_bins_x, n_bins_y))
+    confusion_like_matrix_scatter = []
+    for i in range(n_bins_x):
+        for j in range(n_bins_y):
+            idx = np.where((reference_scores>=bins_x[i]) & (reference_scores<bins_x[i+1]) &
+                          (comparison_scores>=bins_y[j]) & (comparison_scores<bins_y[j+1]))
+            confusion_like_matrix[i, j] = idx[0].shape[0]
+            confusion_like_matrix_scatter.append(((bins_x[i] + bins_x[i+1])/2,
+                                                 (bins_y[j] + bins_y[j+1])/2,
+                                                 idx[0].shape[0]))
+    return confusion_like_matrix, confusion_like_matrix_scatter
