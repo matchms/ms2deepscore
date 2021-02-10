@@ -105,9 +105,10 @@ def create_confusion_matrix_plot(reference_scores, comparison_scores, n_bins=5,
     confusion_like_matrix, confusion_like_matrix_scatter = derive_scatter_data(reference_scores,
                                                                                comparison_scores,
                                                                                n_bins, n_bins)
-    plot_confusion_like_matrix(confusion_like_matrix_scatter, confusion_like_matrix,
-                              xlabel=compare_score_name, ylabel=ref_score_name,
-                              max_size=max_square_size)
+    fig = plot_confusion_like_matrix(confusion_like_matrix_scatter, confusion_like_matrix,
+                                     xlabel=compare_score_name, ylabel=ref_score_name,
+                                     max_size=max_square_size)
+    return fig
 
 
 def plot_confusion_like_matrix(confusion_like_matrix_scatter, confusion_like_matrix,
@@ -123,7 +124,7 @@ def plot_confusion_like_matrix(confusion_like_matrix_scatter, confusion_like_mat
     sizes = sizes/np.max(sizes)
 
     plt.style.use('seaborn-white')
-    plt.figure(figsize=(10, 8))
+    fig = plt.figure(figsize=(10, 8))
     plt.scatter([x[1] for x in confusion_like_matrix_scatter],
                [x[0] for x in confusion_like_matrix_scatter], marker='s', c=colors, cmap="plasma",
                s=sizes*max_size)
@@ -139,6 +140,7 @@ def plot_confusion_like_matrix(confusion_like_matrix_scatter, confusion_like_mat
     plt.ylim(-0, 1)
     plt.clim(0)
     plt.grid(True)
+    return fig
 
 
 def derive_scatter_data(reference_scores, comparison_scores, n_bins_x, n_bins_y):
