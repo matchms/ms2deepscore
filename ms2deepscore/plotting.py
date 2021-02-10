@@ -106,7 +106,8 @@ def create_confusion_matrix_plot(reference_scores, comparison_scores, n_bins=5,
                                                                                comparison_scores,
                                                                                n_bins, n_bins)
     plot_confusion_like_matrix(confusion_like_matrix_scatter, confusion_like_matrix,
-                              xlabel=compare_score_name, ylabel="Tanimoto score", max_size=max_square_size)
+                              xlabel=compare_score_name, ylabel=ref_score_name,
+                              max_size=max_square_size)
 
 
 def plot_confusion_like_matrix(confusion_like_matrix_scatter, confusion_like_matrix,
@@ -114,7 +115,7 @@ def plot_confusion_like_matrix(confusion_like_matrix_scatter, confusion_like_mat
     """Do the actual plotting"""
     summed_tanimoto = []
     for i in range(confusion_like_matrix.shape[0]):
-        for j in range(confusion_like_matrix.shape[1]):
+        for _ in range(confusion_like_matrix.shape[1]):
             summed_tanimoto.append(confusion_like_matrix[i,:].sum())
 
     sizes = np.array([x[2] for x in confusion_like_matrix_scatter])
