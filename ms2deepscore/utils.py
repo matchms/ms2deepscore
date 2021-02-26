@@ -1,6 +1,3 @@
-import re
-
-
 def create_peak_dict(peak_list):
     """ Create dictionary of merged peaks (keep max-intensity peak per bin).
     """

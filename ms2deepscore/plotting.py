@@ -127,6 +127,7 @@ def plot_confusion_like_matrix(confusion_like_matrix_scatter, confusion_like_mat
                               xlabel="MS2DeepScore", ylabel="Tanimoto score", max_size=5000,
                               lower_bound=0, upper_bound=1, color_by_reference_fraction=True):
     """Do the actual plotting"""
+    # pylint: disable=too-many-arguments
     summed_tanimoto = []
     for i in range(confusion_like_matrix.shape[0]):
         for _ in range(confusion_like_matrix.shape[1]):
@@ -166,6 +167,8 @@ def plot_confusion_like_matrix(confusion_like_matrix_scatter, confusion_like_mat
 def derive_scatter_data(reference_scores, comparison_scores,
                         lower_bound, upper_bound,
                         n_bins_x, n_bins_y):
+    """Helper function to collect actual scatter plot data"""
+    # pylint: disable=too-many-arguments
     bins_x = np.linspace(lower_bound,upper_bound+0.0001, n_bins_x+1)
     bins_y = np.linspace(lower_bound,upper_bound+0.0001, n_bins_y+1)
     confusion_like_matrix = np.zeros((n_bins_x, n_bins_y))
