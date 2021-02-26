@@ -32,7 +32,7 @@ def create_histograms_plot(reference_scores, comparison_scores, n_bins=10, hist_
 
 
 def plot_histograms(histograms, y_score_bins, bin_content=None,
-                    xlabel, ylabel):
+                    xlabel="MS2DeepScore", ylabel="Tanimoto similarity"):
     """Create histogram based score comparison.
     """
 
