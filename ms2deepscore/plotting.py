@@ -124,7 +124,7 @@ def create_confusion_matrix_plot(reference_scores, comparison_scores, n_bins=5,
 
 
 def plot_confusion_like_matrix(confusion_like_matrix_scatter, confusion_like_matrix,
-                              xlabel="MS2DeepScore", ylabel="Tanimoto score", max_size=5000,
+                              xlabel, ylabel, max_size=5000,
                               lower_bound=0, upper_bound=1, color_by_reference_fraction=True):
     """Do the actual plotting"""
     # pylint: disable=too-many-arguments
