@@ -2,11 +2,11 @@
 (https://github.com/iomega/spec2vec)."""
 
 import numba
-import numpy
+import numpy as np
 
 
 @numba.njit
-def cosine_similarity_matrix(vectors_1: numpy.ndarray, vectors_2: numpy.ndarray) -> numpy.ndarray:
+def cosine_similarity_matrix(vectors_1: np.ndarray, vectors_2: np.ndarray) -> np.ndarray:
     """Fast implementation of cosine similarity between two arrays of vectors.
 
     For example:
@@ -33,19 +33,19 @@ def cosine_similarity_matrix(vectors_1: numpy.ndarray, vectors_2: numpy.ndarray)
         is vector dimension.
     """
     assert vectors_1.shape[1] == vectors_2.shape[1], "Input vectors must have same shape."
-    vectors_1 = vectors_1.astype(numpy.float64)  # Numba dot only accepts float or complex arrays
-    vectors_2 = vectors_2.astype(numpy.float64)
-    norm_1 = numpy.sqrt(numpy.sum(vectors_1**2, axis=1))
-    norm_2 = numpy.sqrt(numpy.sum(vectors_2**2, axis=1))
+    vectors_1 = vectors_1.astype(np.float64)  # Numba dot only accepts float or complex arrays
+    vectors_2 = vectors_2.astype(np.float64)
+    norm_1 = np.sqrt(np.sum(vectors_1**2, axis=1))
+    norm_2 = np.sqrt(np.sum(vectors_2**2, axis=1))
     for i in range(vectors_1.shape[0]):
         vectors_1[i] = vectors_1[i] / norm_1[i]
     for i in range(vectors_2.shape[0]):
         vectors_2[i] = vectors_2[i] / norm_2[i]
-    return numpy.dot(vectors_1, vectors_2.T)
+    return np.dot(vectors_1, vectors_2.T)
 
 
 @numba.njit
-def cosine_similarity(vector1: numpy.ndarray, vector2: numpy.ndarray) -> numpy.float64:
+def cosine_similarity(vector1: np.ndarray, vector2: np.ndarray) -> np.float64:
     """Calculate cosine similarity between two input vectors.
 
     For example:
@@ -82,5 +82,5 @@ def cosine_similarity(vector1: numpy.ndarray, vector2: numpy.ndarray) -> numpy.f
         prod22 += vector2[i] * vector2[i]
     cosine_score = 0
     if prod11 != 0 and prod22 != 0:
-        cosine_score = prod12 / numpy.sqrt(prod11 * prod22)
-    return numpy.float64(cosine_score)
+        cosine_score = prod12 / np.sqrt(prod11 * prod22)
+    return np.float64(cosine_score)
