@@ -3,6 +3,7 @@ import numba
 import numpy as np
 from matchms import Spectrum
 from matchms.similarity.BaseSimilarity import BaseSimilarity
+from tensorflow import keras
 from tensorflow.keras.models import Model
 from tqdm import tqdm
 
@@ -59,11 +60,13 @@ class MS2DeepScoreMonteCarlo(BaseSimilarity):
             Default is False.
         """
         self.model = model
-        self.partial_model = Model(model.base.inputs, model.base.layers[-1].output)
+
+        #self.partial_model = Model(model.base.inputs, model.base.layers[-1].output)
         self.n_ensembles = n_ensembles
         self.input_vector_dim = self.model.base.input_shape[1]  # TODO: later maybe also check against SpectrumBinner
         self.output_vector_dim = self.model.base.output_shape[1]
         self.progress_bar = progress_bar
+        self.partial_model = self._create_monte_carlo_encoder()
 
     def _create_input_vector(self, binned_spectrum: BinnedSpectrumType):
         """Creates input vector for model.base based on binned peaks and intensities"""
@@ -73,6 +76,36 @@ class MS2DeepScoreMonteCarlo(BaseSimilarity):
         values = np.array(list(binned_spectrum.binned_peaks.values()))
         X[0, idx] = values
         return X
+    
+    def _create_monte_carlo_encoder(self):
+        """Rebuild base network with training=True"""
+        dims = []
+        for layer in self.model.base.layers:
+            if "dense" in layer.name:
+                dims.append(layer.units)
+            if "dropout" in layer.name:
+                dropout_rate = layer.rate
+        
+        # Encoder network
+        model_input = keras.layers.Input(shape=self.input_vector_dim, name='base_input')
+        for i, dim in enumerate(dims):
+            if i == 0:
+                embedding = keras.layers.Dense(dim, activation='relu', name='dense'+str(i+1),
+                                               kernel_regularizer=keras.regularizers.l1_l2(l1=1e-6, l2=1e-6))(
+                   model_input)
+            else:
+                embedding = keras.layers.Dense(dim, activation='relu', name='dense'+str(i+1),
+                                               kernel_regularizer=keras.regularizers.l1_l2(l1=1e-6, l2=1e-6))(
+                   embedding)
+            embedding = keras.layers.BatchNormalization(name='normalization'+str(i+1))(embedding)
+            embedding = keras.layers.Dropout(dropout_rate, name='dropout'+str(i+1))(embedding, training=True)
+        
+        embedding = keras.layers.Dense(self.output_vector_dim, activation='relu', name='embedding')(
+            embedding)
+        encoder = keras.Model(model_input, embedding, name='base')
+        
+        encoder.set_weights(self.model.base.get_weights())
+        return encoder
 
     def pair(self, reference: Spectrum, query: Spectrum) -> float:
         """Calculate the MS2DeepScore similaritiy between a reference and a query spectrum.
@@ -150,4 +183,4 @@ class MS2DeepScoreMonteCarlo(BaseSimilarity):
     
     def get_embedding_ensemble(self, spectrum_binned):
         input_vector_array = np.tile(self._create_input_vector(spectrum_binned), (self.n_ensembles, 1))
-        return self.partial_model(input_vector_array, training=True)
+        return self.partial_model.predict(input_vector_array)

@@ -40,6 +40,16 @@ def test_MS2DeepScoreMonteCarlo_score_pair():
     spectrums, _, similarity_measure = get_test_ms2_deep_score_instance(n_ensembles=5)
     score, score_std = similarity_measure.pair(spectrums[0], spectrums[1])
     assert isinstance(score, np.float64), "Expected float as score."
-    assert score > 0.2 and score < 0.5, "Expected score in different range"
+    assert score > 0.65 and score < 0.9, "Expected score in different range"
     assert isinstance(score_std, np.float64), "Expected float as STD."
-    assert score_std > 0.05 and score_std < 0.1, "Expected STD(score) in different range"
+    assert score_std > 0.02 and score_std < 0.06, "Expected STD(score) in different range"
+
+
+def test_MS2DeepScoreMonteCarlo_score_matrix():
+    """Test score calculation using *.matrix* method."""
+    spectrums, _, similarity_measure = get_test_ms2_deep_score_instance(n_ensembles=5)
+    scores, scores_std = similarity_measure.matrix(spectrums[:4], spectrums[:3])
+    assert scores.shape == (4, 3), "Expected different shape"
+    assert scores_std.shape == (4, 3), "Expected different shape"
+    assert np.max(scores_std) < 0.1, "Expected lower STD"
+    assert np.max(scores) > 0.5, "Expected higher scores"
