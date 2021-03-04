@@ -57,7 +57,7 @@ def test_siamese_model():
 
 def test_siamese_model_different_architecture():
     spectrum_binner, test_generator = get_test_binner_and_generator()
-    model = SiameseModel(spectrum_binner, base_dims=[200, 200, 100, 100, 100],
+    model = SiameseModel(spectrum_binner, base_dims=(200, 200, 100, 100, 100),
                          embedding_dim=100, dropout_rate=0.2)
     model.compile(loss='mse', optimizer=keras.optimizers.Adam(lr=0.001))
     assert len(model.model.layers) == 4, "Expected different number of layers"

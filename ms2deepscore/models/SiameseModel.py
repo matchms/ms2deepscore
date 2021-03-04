@@ -42,7 +42,7 @@ class SiameseModel:
     """
     def __init__(self,
                  spectrum_binner: SpectrumBinner,
-                 base_dims: List[int] = [600, 500, 500],
+                 base_dims: Tuple[int, ...] = (600, 500, 500),
                  embedding_dim: int = 400,
                  dropout_rate: float = 0.5,
                  keras_model: keras.Model = None):
@@ -98,7 +98,7 @@ class SiameseModel:
 
     @staticmethod
     def _get_base_model(input_dim: int,
-                        dims: List[int] = [600, 500, 500],
+                        dims: Tuple[int, ...] = (600, 500, 500),
                         embedding_dim: int = 400,
                         dropout_rate: float = 0.25):
         model_input = keras.layers.Input(shape=input_dim, name='base_input')
