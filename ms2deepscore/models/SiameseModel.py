@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import List, Union
+from typing import Tuple, Union
 import h5py
 from tensorflow import keras
 from tensorflow.python.keras.saving import hdf5_format
@@ -54,7 +54,7 @@ class SiameseModel:
         spectrum_binner
             SpectrumBinner which is used to bin the spectra data for the model training.
         base_dims
-            List of integers depicting the dimensions of the desired hidden
+            Tuple of integers depicting the dimensions of the desired hidden
             layers of the base model
         embedding_dim
             Dimension of the embedding (i.e. the output of the base model)
