@@ -9,7 +9,7 @@ from tests.test_user_worfklow import load_processed_spectrums
 TEST_RESOURCES_PATH = Path(__file__).parent / 'resources'
 
 
-def get_test_ms2_deep_score_instance(n_ensemble):
+def get_test_ms2_deep_score_instance(n_ensembles):
     """Load data and models for MS2DeepScore unit tests."""
     spectrums = load_processed_spectrums()
 
@@ -17,7 +17,7 @@ def get_test_ms2_deep_score_instance(n_ensemble):
     model_file = TEST_RESOURCES_PATH / "testmodel.hdf5"
     model = load_model(model_file)
 
-    similarity_measure = MS2DeepScoreMonteCarlo(model, n_ensemble)
+    similarity_measure = MS2DeepScoreMonteCarlo(model, n_ensembles)
     return spectrums, model, similarity_measure
 
 
@@ -53,3 +53,14 @@ def test_MS2DeepScoreMonteCarlo_score_matrix():
     assert scores_std.shape == (4, 3), "Expected different shape"
     assert np.max(scores_std) < 0.1, "Expected lower STD"
     assert np.max(scores) > 0.5, "Expected higher scores"
+
+
+def test_MS2DeepScoreMonteCarlo_score_matrix_symmetric_wrong_use():
+    """Test if *.matrix* method gives correct exception."""
+    spectrums, _, similarity_measure = get_test_ms2_deep_score_instance(n_ensembles=2)
+    expected_msg = "Expected references to be equal to queries for is_symmetric=True"
+    with pytest.raises(AssertionError) as msg:
+        _ = similarity_measure.matrix(spectrums[:4],
+                                      [spectrums[i] for i in [1,2,3,0]],
+                                      is_symmetric=True)
+    assert expected_msg in str(msg), "Expected different exception message"
