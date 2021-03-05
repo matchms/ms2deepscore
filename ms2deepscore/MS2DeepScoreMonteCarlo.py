@@ -1,10 +1,8 @@
 from typing import List
-import numba
 import numpy as np
 from matchms import Spectrum
 from matchms.similarity.BaseSimilarity import BaseSimilarity
 from tensorflow import keras
-from tensorflow.keras.models import Model
 from tqdm import tqdm
 
 from .vector_operations import cosine_similarity_matrix, mean_pooling, std_pooling
@@ -76,7 +74,7 @@ class MS2DeepScoreMonteCarlo(BaseSimilarity):
         values = np.array(list(binned_spectrum.binned_peaks.values()))
         X[0, idx] = values
         return X
-    
+
     def _create_monte_carlo_encoder(self):
         """Rebuild base network with training=True"""
         dims = []
@@ -85,7 +83,7 @@ class MS2DeepScoreMonteCarlo(BaseSimilarity):
                 dims.append(layer.units)
             if "dropout" in layer.name:
                 dropout_rate = layer.rate
-        
+
         # Encoder network
         model_input = keras.layers.Input(shape=self.input_vector_dim, name='base_input')
         for i, dim in enumerate(dims):
@@ -99,11 +97,11 @@ class MS2DeepScoreMonteCarlo(BaseSimilarity):
                    embedding)
             embedding = keras.layers.BatchNormalization(name='normalization'+str(i+1))(embedding)
             embedding = keras.layers.Dropout(dropout_rate, name='dropout'+str(i+1))(embedding, training=True)
-        
+
         embedding = keras.layers.Dense(self.output_vector_dim, activation='relu', name='embedding')(
             embedding)
         encoder = keras.Model(model_input, embedding, name='base')
-        
+
         encoder.set_weights(self.model.base.get_weights())
         return encoder
 
@@ -127,7 +125,7 @@ class MS2DeepScoreMonteCarlo(BaseSimilarity):
         reference_vectors = self.get_embedding_ensemble(binned_reference)
         query_vectors = self.get_embedding_ensemble(binned_query)
         scores_ensemble = cosine_similarity_matrix(reference_vectors, query_vectors)
-        
+
         return scores_ensemble.mean(), scores_ensemble.std()
 
     def matrix(self, references: List[Spectrum], queries: List[Spectrum],
@@ -177,10 +175,10 @@ class MS2DeepScoreMonteCarlo(BaseSimilarity):
                      desc='Calculating vectors of reference spectrums',
                      disable=(not self.progress_bar))):
             embeddings = self.get_embedding_ensemble(reference)
-            reference_vectors[index_ref * self.n_ensembles:(index_ref + 1) * self.n_ensembles, 
+            reference_vectors[index_ref * self.n_ensembles:(index_ref + 1) * self.n_ensembles,
                               0:self.output_vector_dim] = embeddings
         return reference_vectors
-    
+
     def get_embedding_ensemble(self, spectrum_binned):
         input_vector_array = np.tile(self._create_input_vector(spectrum_binned), (self.n_ensembles, 1))
         return self.partial_model.predict(input_vector_array)
