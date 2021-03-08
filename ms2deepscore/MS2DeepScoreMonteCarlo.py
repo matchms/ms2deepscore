@@ -84,24 +84,12 @@ class MS2DeepScoreMonteCarlo(BaseSimilarity):
             if "dropout" in layer.name:
                 dropout_rate = layer.rate
 
-        # Encoder network
-        model_input = keras.layers.Input(shape=self.input_vector_dim, name='base_input')
-        for i, dim in enumerate(dims):
-            if i == 0:
-                embedding = keras.layers.Dense(dim, activation='relu', name='dense'+str(i+1),
-                                               kernel_regularizer=keras.regularizers.l1_l2(l1=1e-6, l2=1e-6))(
-                   model_input)
-            else:
-                embedding = keras.layers.Dense(dim, activation='relu', name='dense'+str(i+1),
-                                               kernel_regularizer=keras.regularizers.l1_l2(l1=1e-6, l2=1e-6))(
-                   embedding)
-            embedding = keras.layers.BatchNormalization(name='normalization'+str(i+1))(embedding)
-            embedding = keras.layers.Dropout(dropout_rate, name='dropout'+str(i+1))(embedding, training=True)
-
-        embedding = keras.layers.Dense(self.output_vector_dim, activation='relu', name='embedding')(
-            embedding)
-        encoder = keras.Model(model_input, embedding, name='base')
-
+        # re-build encoder network with dropout layers always on
+        encoder = self.model._get_base_model(input_dim=self.input_vector_dim,
+                                             dims=dims,
+                                             embedding_dim=self.output_vector_dim,
+                                             dropout_rate=dropout_rate,
+                                             dropout_always_on=True)
         encoder.set_weights(self.model.base.get_weights())
         return encoder
 

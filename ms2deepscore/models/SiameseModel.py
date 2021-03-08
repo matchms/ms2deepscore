@@ -2,6 +2,7 @@ from pathlib import Path
 from typing import Tuple, Union
 import h5py
 from tensorflow import keras
+from tensorflow.keras.layers import BatchNormalization, Dense, Dropout, Input
 from tensorflow.python.keras.saving import hdf5_format
 
 from ms2deepscore import SpectrumBinner
@@ -100,29 +101,52 @@ class SiameseModel:
     def _get_base_model(input_dim: int,
                         dims: Tuple[int, ...] = (600, 500, 500),
                         embedding_dim: int = 400,
-                        dropout_rate: float = 0.25):
-        model_input = keras.layers.Input(shape=input_dim, name='base_input')
+                        dropout_rate: float = 0.25,
+                        dropout_always_on: bool = False) -> keras.Model:
+        """Create base model for Siamaese network.
+
+        Parameters
+        ----------
+        input_dim : int
+            DESCRIPTION.
+        base_dims
+            Tuple of integers depicting the dimensions of the desired hidden
+            layers of the base model
+        embedding_dim
+            Dimension of the embedding (i.e. the output of the base model)
+        dropout_rate
+            Dropout rate to be used in the base model
+        dropout_always_on
+            Default is False in which case dropout layers will only be active during
+            model training, but switched off during inference. When set to True,
+            dropout layers will always be on, which is used for ensembling via
+            Monte Carlo dropout.
+        """
+        model_input = Input(shape=input_dim, name='base_input')
         for i, dim in enumerate(dims):
             if i == 0:
-                model_layer = keras.layers.Dense(dim, activation='relu', name='dense'+str(i+1),
-                                               kernel_regularizer=keras.regularizers.l1_l2(l1=1e-6, l2=1e-6))(
+                model_layer = Dense(dim, activation='relu', name='dense'+str(i+1),
+                                    kernel_regularizer=keras.regularizers.l1_l2(l1=1e-6, l2=1e-6))(
                    model_input)
             else:
-                model_layer = keras.layers.Dense(dim, activation='relu', name='dense'+str(i+1),
-                                               kernel_regularizer=keras.regularizers.l1_l2(l1=1e-6, l2=1e-6))(
+                model_layer = Dense(dim, activation='relu', name='dense'+str(i+1),
+                                    kernel_regularizer=keras.regularizers.l1_l2(l1=1e-6, l2=1e-6))(
                    model_layer)
-            model_layer = keras.layers.BatchNormalization(name='normalization'+str(i+1))(model_layer)
-            model_layer = keras.layers.Dropout(dropout_rate, name='dropout'+str(i+1))(model_layer)
+            model_layer = BatchNormalization(name='normalization'+str(i+1))(model_layer)
+            if dropout_always_on:
+                model_layer = Dropout(dropout_rate, name='dropout'+str(i+1))(model_layer,
+                                                                             training=True)
+            else:
+                model_layer = Dropout(dropout_rate, name='dropout'+str(i+1))(model_layer)
 
-        embedding = keras.layers.Dense(embedding_dim, activation='relu', name='embedding')(
-            model_layer)
+        embedding = Dense(embedding_dim, activation='relu', name='embedding')(model_layer)
         return keras.Model(model_input, embedding, name='base')
 
     @staticmethod
     def _get_head_model(input_dim: int,
                         base_model: keras.Model):
-        input_a = keras.layers.Input(shape=input_dim, name="input_a")
-        input_b = keras.layers.Input(shape=input_dim, name="input_b")
+        input_a = Input(shape=input_dim, name="input_a")
+        input_b = Input(shape=input_dim, name="input_b")
         embedding_a = base_model(input_a)
         embedding_b = base_model(input_b)
         cosine_similarity = keras.layers.Dot(axes=(1, 1),
