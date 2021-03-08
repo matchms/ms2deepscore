@@ -28,6 +28,6 @@ Or, to have the full matchms functionality:
 ```
 conda create --name ms2deepscore python=3.8
 conda activate ms2deepscore
-conda install --channel nlesc --channel bioconda --channel conda-forge matchms
+conda install --channel bioconda --channel conda-forge matchms
 pip install ms2deepscore
 ```
