@@ -102,7 +102,7 @@ def mean_pooling(scores_ensemble: np.ndarray, n_ensembles: int) -> np.ndarray:
 
 @numba.njit(fastmath=True)
 def std_pooling(scores_ensemble: np.ndarray, n_ensembles: int) -> np.ndarray:
-    """Do mean pooling on an ensemble of scores."""
+    """Do standard deviation pooling on an ensemble of score std's."""
     dim_0 = int(scores_ensemble.shape[0]/n_ensembles)
     dim_1 = int(scores_ensemble.shape[1]/n_ensembles)
     scores_pooled = np.zeros((dim_0, dim_1))
