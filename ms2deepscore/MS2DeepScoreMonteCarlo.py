@@ -143,7 +143,7 @@ class MS2DeepScoreMonteCarlo(BaseSimilarity):
         ms2ds_similarity = cosine_similarity_matrix(reference_vectors, query_vectors)
         return mean_pooling(ms2ds_similarity, self.n_ensembles), std_pooling(ms2ds_similarity, self.n_ensembles)
 
-    def calculate_vectors(self, spectrum_list: List[Spectrum]) -> Tuple[np.ndarray, ndarray]:
+    def calculate_vectors(self, spectrum_list: List[Spectrum]) -> Tuple[np.ndarray, np.ndarray]:
         """Returns a list of vectors for all spectra
 
         parameters
