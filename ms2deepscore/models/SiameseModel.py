@@ -104,18 +104,18 @@ class SiameseModel:
         model_input = keras.layers.Input(shape=input_dim, name='base_input')
         for i, dim in enumerate(dims):
             if i == 0:
-                embedding = keras.layers.Dense(dim, activation='relu', name='dense'+str(i+1),
+                model_layer = keras.layers.Dense(dim, activation='relu', name='dense'+str(i+1),
                                                kernel_regularizer=keras.regularizers.l1_l2(l1=1e-6, l2=1e-6))(
                    model_input)
             else:
-                embedding = keras.layers.Dense(dim, activation='relu', name='dense'+str(i+1),
+                model_layer = keras.layers.Dense(dim, activation='relu', name='dense'+str(i+1),
                                                kernel_regularizer=keras.regularizers.l1_l2(l1=1e-6, l2=1e-6))(
-                   embedding)
-            embedding = keras.layers.BatchNormalization(name='normalization'+str(i+1))(embedding)
-            embedding = keras.layers.Dropout(dropout_rate, name='dropout'+str(i+1))(embedding)
+                   model_layer)
+            model_layer = keras.layers.BatchNormalization(name='normalization'+str(i+1))(model_layer)
+            model_layer = keras.layers.Dropout(dropout_rate, name='dropout'+str(i+1))(model_layer)
 
         embedding = keras.layers.Dense(embedding_dim, activation='relu', name='embedding')(
-            embedding)
+            model_layer)
         return keras.Model(model_input, embedding, name='base')
 
     @staticmethod
