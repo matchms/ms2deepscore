@@ -13,17 +13,18 @@ class MS2DeepScoreMonteCarlo(BaseSimilarity):
     and a query using Monte-Carlo Dropout
 
     Using a trained model, binned spectrums will be converted into spectrum
-    vectors using a deep neural network. The MS2DeepScore similarity is then
-    the cosine similarity score between two spectrum vectors.
+    vectors using a deep neural network. The MS2DeepScoreMonteCarlo similarity is then
+    the mean of n_ensemble x n_ensemble cosine similarity score between two spectrum
+    vectors.
 
-    Example code to calcualte MS2DeepScore similarities between query and reference
-    spectrums:
+    Example code to calcualte MS2DeepScoreMonteCarlo similarities between query and
+    reference spectrums:
 
     .. code-block:: python
 
         from matchms import calculate_scores()
         from matchms.importing import load_from_json
-        from ms2deepscore import MS2DeepScore
+        from ms2deepscore import MS2DeepScoreMonteCarlo
         from ms2deepscore.models import load_model
 
         # Import data
@@ -33,7 +34,7 @@ class MS2DeepScoreMonteCarlo(BaseSimilarity):
         # Load pretrained model
         model = load_model("model_file_123.hdf5")
 
-        similarity_measure = MS2DeepScoreMonteCarlo(model)
+        similarity_measure = MS2DeepScoreMonteCarlo(model, n_ensembles=5)
         # Calculate scores and get matchms.Scores object
         scores = calculate_scores(references, queries, similarity_measure)
 
@@ -91,7 +92,8 @@ class MS2DeepScoreMonteCarlo(BaseSimilarity):
         return encoder
 
     def pair(self, reference: Spectrum, query: Spectrum) -> Tuple[float, float]:
-        """Calculate the MS2DeepScore similaritiy between a reference and a query spectrum.
+        """Calculate the MS2DeepScoreMonteCarlo similaritiy between a reference
+        and a query spectrum.
 
         Parameters
         ----------
@@ -115,7 +117,7 @@ class MS2DeepScoreMonteCarlo(BaseSimilarity):
 
     def matrix(self, references: List[Spectrum], queries: List[Spectrum],
                is_symmetric: bool = False) -> np.ndarray:
-        """Calculate the MS2DeepScore similarities between all references and queries.
+        """Calculate the MS2DeepScoreMonteCarlo similarities between all references and queries.
 
         Parameters
         ----------
