@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Tuple
 import numpy as np
 from matchms import Spectrum
 from matchms.similarity.BaseSimilarity import BaseSimilarity
@@ -57,8 +57,6 @@ class MS2DeepScoreMonteCarlo(BaseSimilarity):
             Default is False.
         """
         self.model = model
-
-        #self.partial_model = Model(model.base.inputs, model.base.layers[-1].output)
         self.n_ensembles = n_ensembles
         self.input_vector_dim = self.model.base.input_shape[1]  # TODO: later maybe also check against SpectrumBinner
         self.output_vector_dim = self.model.base.output_shape[1]
@@ -92,7 +90,7 @@ class MS2DeepScoreMonteCarlo(BaseSimilarity):
         encoder.set_weights(self.model.base.get_weights())
         return encoder
 
-    def pair(self, reference: Spectrum, query: Spectrum) -> float:
+    def pair(self, reference: Spectrum, query: Spectrum) -> Tuple[float, float]:
         """Calculate the MS2DeepScore similaritiy between a reference and a query spectrum.
 
         Parameters
@@ -145,7 +143,7 @@ class MS2DeepScoreMonteCarlo(BaseSimilarity):
         ms2ds_similarity = cosine_similarity_matrix(reference_vectors, query_vectors)
         return mean_pooling(ms2ds_similarity, self.n_ensembles), std_pooling(ms2ds_similarity, self.n_ensembles)
 
-    def calculate_vectors(self, spectrum_list: List[Spectrum]) -> np.ndarray:
+    def calculate_vectors(self, spectrum_list: List[Spectrum]) -> Tuple[np.ndarray, ndarray]:
         """Returns a list of vectors for all spectra
 
         parameters
