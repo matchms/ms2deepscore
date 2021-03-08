@@ -42,7 +42,7 @@ def test_MS2DeepScoreMonteCarlo_score_pair():
     assert isinstance(score, np.float64), "Expected float as score."
     assert score > 0.65 and score < 0.9, "Expected score in different range"
     assert isinstance(score_std, np.float64), "Expected float as STD."
-    assert score_std > 0.02 and score_std < 0.06, "Expected STD(score) in different range"
+    assert score_std > 0.01 and score_std < 0.06, "Expected STD(score) in different range"
 
 
 def test_MS2DeepScoreMonteCarlo_score_matrix():
