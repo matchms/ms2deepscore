@@ -73,10 +73,10 @@ class SiameseModel:
 
         if keras_model is None:
             # Create base model
-            self.base = self._get_base_model(input_dim=self.input_dim,
-                                             dims=base_dims,
-                                             embedding_dim=embedding_dim,
-                                             dropout_rate=dropout_rate)
+            self.base = self.get_base_model(input_dim=self.input_dim,
+                                            dims=base_dims,
+                                            embedding_dim=embedding_dim,
+                                            dropout_rate=dropout_rate)
             # Create head model
             self.model = self._get_head_model(input_dim=self.input_dim,
                                               base_model=self.base)
@@ -98,11 +98,11 @@ class SiameseModel:
             f.attrs['spectrum_binner'] = self.spectrum_binner.to_json()
 
     @staticmethod
-    def _get_base_model(input_dim: int,
-                        dims: Tuple[int, ...] = (600, 500, 500),
-                        embedding_dim: int = 400,
-                        dropout_rate: float = 0.25,
-                        dropout_always_on: bool = False) -> keras.Model:
+    def get_base_model(input_dim: int,
+                       dims: Tuple[int, ...] = (600, 500, 500),
+                       embedding_dim: int = 400,
+                       dropout_rate: float = 0.25,
+                       dropout_always_on: bool = False) -> keras.Model:
         """Create base model for Siamaese network.
 
         Parameters

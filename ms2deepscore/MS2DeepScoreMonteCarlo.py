@@ -2,7 +2,6 @@ from typing import List
 import numpy as np
 from matchms import Spectrum
 from matchms.similarity.BaseSimilarity import BaseSimilarity
-from tensorflow import keras
 from tqdm import tqdm
 
 from .vector_operations import cosine_similarity_matrix, mean_pooling, std_pooling
@@ -85,11 +84,11 @@ class MS2DeepScoreMonteCarlo(BaseSimilarity):
                 dropout_rate = layer.rate
 
         # re-build encoder network with dropout layers always on
-        encoder = self.model._get_base_model(input_dim=self.input_vector_dim,
-                                             dims=dims,
-                                             embedding_dim=self.output_vector_dim,
-                                             dropout_rate=dropout_rate,
-                                             dropout_always_on=True)
+        encoder = self.model.get_base_model(input_dim=self.input_vector_dim,
+                                            dims=dims,
+                                            embedding_dim=self.output_vector_dim,
+                                            dropout_rate=dropout_rate,
+                                            dropout_always_on=True)
         encoder.set_weights(self.model.base.get_weights())
         return encoder
 
