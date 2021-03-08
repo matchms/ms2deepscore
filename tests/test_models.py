@@ -55,6 +55,18 @@ def test_siamese_model():
         "Expected different embedding size"
 
 
+def test_siamese_model_different_architecture():
+    spectrum_binner, test_generator = get_test_binner_and_generator()
+    model = SiameseModel(spectrum_binner, base_dims=(200, 200, 100, 100, 100),
+                         embedding_dim=100, dropout_rate=0.2)
+    model.compile(loss='mse', optimizer=keras.optimizers.Adam(lr=0.001))
+    assert len(model.model.layers) == 4, "Expected different number of layers"
+    assert len(model.model.layers[2].layers) == len(model.base.layers) == 17, \
+        "Expected different number of layers"
+    assert model.model.input_shape == [(None, 339), (None, 339)], "Expected different input shape"
+    assert model.base.output_shape == (None, 100), "Expected different output shape of base model"
+
+
 def test_load_model():
     """Test loading a model from file."""
     spectrum_binner, test_generator = get_test_binner_and_generator()

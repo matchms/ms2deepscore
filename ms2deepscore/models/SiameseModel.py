@@ -42,7 +42,7 @@ class SiameseModel:
     """
     def __init__(self,
                  spectrum_binner: SpectrumBinner,
-                 base_dims: Tuple[int, int, int] = (600, 500, 500),
+                 base_dims: Tuple[int, ...] = (600, 500, 500),
                  embedding_dim: int = 400,
                  dropout_rate: float = 0.5,
                  keras_model: keras.Model = None):
@@ -54,7 +54,7 @@ class SiameseModel:
         spectrum_binner
             SpectrumBinner which is used to bin the spectra data for the model training.
         base_dims
-            Size-3 tuple of integers depicting the dimensions of the 1st, 2nd, and 3rd hidden
+            Tuple of integers depicting the dimensions of the desired hidden
             layers of the base model
         embedding_dim
             Dimension of the embedding (i.e. the output of the base model)
@@ -98,22 +98,24 @@ class SiameseModel:
 
     @staticmethod
     def _get_base_model(input_dim: int,
-                        dims: Tuple[int, int, int] = (600, 500, 500),
+                        dims: Tuple[int, ...] = (600, 500, 500),
                         embedding_dim: int = 400,
                         dropout_rate: float = 0.25):
         model_input = keras.layers.Input(shape=input_dim, name='base_input')
-        embedding = keras.layers.Dense(dims[0], activation='relu', name='dense1',
-                                       kernel_regularizer=keras.regularizers.l1_l2(l1=1e-6, l2=1e-6))(model_input)
-        embedding = keras.layers.BatchNormalization(name='normalization1')(embedding)
-        embedding = keras.layers.Dropout(dropout_rate, name='dropout1')(embedding)
-        embedding = keras.layers.Dense(dims[1], activation='relu', name='dense2')(embedding)
-        embedding = keras.layers.BatchNormalization(name='normalization2')(embedding)
-        embedding = keras.layers.Dropout(dropout_rate, name='dropout2')(embedding)
-        embedding = keras.layers.Dense(dims[2], activation='relu', name='dense3')(embedding)
-        embedding = keras.layers.BatchNormalization(name='normalization3')(embedding)
-        embedding = keras.layers.Dropout(dropout_rate, name='dropout3')(embedding)
+        for i, dim in enumerate(dims):
+            if i == 0:
+                model_layer = keras.layers.Dense(dim, activation='relu', name='dense'+str(i+1),
+                                               kernel_regularizer=keras.regularizers.l1_l2(l1=1e-6, l2=1e-6))(
+                   model_input)
+            else:
+                model_layer = keras.layers.Dense(dim, activation='relu', name='dense'+str(i+1),
+                                               kernel_regularizer=keras.regularizers.l1_l2(l1=1e-6, l2=1e-6))(
+                   model_layer)
+            model_layer = keras.layers.BatchNormalization(name='normalization'+str(i+1))(model_layer)
+            model_layer = keras.layers.Dropout(dropout_rate, name='dropout'+str(i+1))(model_layer)
+
         embedding = keras.layers.Dense(embedding_dim, activation='relu', name='embedding')(
-            embedding)
+            model_layer)
         return keras.Model(model_input, embedding, name='base')
 
     @staticmethod
