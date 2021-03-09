@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.3] - 2021-03-09
+
 ## Changed
 
 - Allow users to define L1 and L2 regularization of `SiameseModel` [#67](https://github.com/matchms/ms2deepscore/issues/67)
@@ -35,7 +37,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - This is the initial version of MS2DeepScore
 
-[Unreleased]: https://github.com/matchms/ms2deepscore/compare/0.1.2...HEAD
+[Unreleased]: https://github.com/matchms/ms2deepscore/compare/0.1.3...HEAD
+[0.1.3]: https://github.com/matchms/ms2deepscore/compare/0.1.2...0.1.3
 [0.1.2]: https://github.com/matchms/ms2deepscore/compare/0.1.1...0.1.2
 [0.1.1]: https://github.com/matchms/ms2deepscore/compare/0.1.0...0.1.1
 [0.1.0]: https://github.com/matchms/ms2deepscore/releases/tag/0.1.0
