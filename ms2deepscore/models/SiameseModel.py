@@ -111,6 +111,7 @@ class SiameseModel:
                         dropout_rate: float = 0.25,
                         l1_reg: float = 1e-6,
                         l2_reg: float = 1e-6):
+        # pylint: disable=too-many-arguments
         model_input = keras.layers.Input(shape=input_dim, name='base_input')
         for i, dim in enumerate(dims):
             if i == 0:

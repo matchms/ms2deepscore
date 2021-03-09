@@ -44,6 +44,10 @@ def test_siamese_model():
     assert len(model.model.layers[2].layers) == len(model.base.layers) == 11, \
         "Expected different number of layers"
     assert model.model.input_shape == [(None, 339), (None, 339)], "Expected different input shape"
+    np.testing.assert_array_almost_equal(model.base.layers[1].kernel_regularizer.l1, 1e-6), \
+        "Expected different L1 regularization rate"
+    np.testing.assert_array_almost_equal(model.base.layers[1].kernel_regularizer.l2, 1e-6), \
+        "Expected different L2 regularization rate"
 
     # Test base model inference
     X, y = test_generator.__getitem__(0)
@@ -65,6 +69,16 @@ def test_siamese_model_different_architecture():
         "Expected different number of layers"
     assert model.model.input_shape == [(None, 339), (None, 339)], "Expected different input shape"
     assert model.base.output_shape == (None, 100), "Expected different output shape of base model"
+
+
+def test_siamese_model_different_regularization_rates():
+    spectrum_binner, test_generator = get_test_binner_and_generator()
+    model = SiameseModel(spectrum_binner, base_dims=(200,),
+                         embedding_dim=100, l1_reg=1e-7, l2_reg=1e-5)
+    np.testing.assert_array_almost_equal(model.base.layers[1].kernel_regularizer.l1, 1e-7), \
+        "Expected different L1 regularization rate"
+    np.testing.assert_array_almost_equal(model.base.layers[1].kernel_regularizer.l2, 1e-5), \
+        "Expected different L2 regularization rate"
 
 
 def test_load_model():
