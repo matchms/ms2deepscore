@@ -79,12 +79,12 @@ class SiameseModel:
 
         if keras_model is None:
             # Create base model
-            self.base = self._get_base_model(input_dim=self.input_dim,
-                                             dims=base_dims,
-                                             embedding_dim=embedding_dim,
-                                             dropout_rate=dropout_rate,
-                                             l1_reg=l1_reg,
-                                             l2_reg=l2_reg)
+            self.base = self.get_base_model(input_dim=self.input_dim,
+                                            dims=base_dims,
+                                            embedding_dim=embedding_dim,
+                                            dropout_rate=dropout_rate,
+                                            l1_reg=l1_reg,
+                                            l2_reg=l2_reg)
             # Create head model
             self.model = self._get_head_model(input_dim=self.input_dim,
                                               base_model=self.base)
