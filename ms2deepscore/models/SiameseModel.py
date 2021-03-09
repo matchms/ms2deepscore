@@ -46,6 +46,8 @@ class SiameseModel:
                  base_dims: Tuple[int, ...] = (600, 500, 500),
                  embedding_dim: int = 400,
                  dropout_rate: float = 0.5,
+                 l1_reg: float = 1e-6,
+                 l2_reg: float = 1e-6,
                  keras_model: keras.Model = None):
         """
         Construct SiameseModel
@@ -60,7 +62,11 @@ class SiameseModel:
         embedding_dim
             Dimension of the embedding (i.e. the output of the base model)
         dropout_rate
-            Dropout rate to be used in the base model
+            Dropout rate to be used in the base model.
+        l1_reg
+            L1 regularization rate. Default is 1e-6.
+        l2_reg
+            L2 regularization rate. Default is 1e-6.
         keras_model
             When provided, this keras model will be used to construct the SiameseModel instance.
             Default is None.
@@ -73,10 +79,12 @@ class SiameseModel:
 
         if keras_model is None:
             # Create base model
-            self.base = self.get_base_model(input_dim=self.input_dim,
-                                            dims=base_dims,
-                                            embedding_dim=embedding_dim,
-                                            dropout_rate=dropout_rate)
+            self.base = self._get_base_model(input_dim=self.input_dim,
+                                             dims=base_dims,
+                                             embedding_dim=embedding_dim,
+                                             dropout_rate=dropout_rate,
+                                             l1_reg=l1_reg,
+                                             l2_reg=l2_reg)
             # Create head model
             self.model = self._get_head_model(input_dim=self.input_dim,
                                               base_model=self.base)
@@ -102,6 +110,8 @@ class SiameseModel:
                        dims: Tuple[int, ...] = (600, 500, 500),
                        embedding_dim: int = 400,
                        dropout_rate: float = 0.25,
+                       l1_reg: float = 1e-6,
+                       l2_reg: float = 1e-6,
                        dropout_always_on: bool = False) -> keras.Model:
         """Create base model for Siamaese network.
 
@@ -116,22 +126,25 @@ class SiameseModel:
             Dimension of the embedding (i.e. the output of the base model)
         dropout_rate
             Dropout rate to be used in the base model
+        l1_reg
+            L1 regularization rate. Default is 1e-6.
+        l2_reg
+            L2 regularization rate. Default is 1e-6.
         dropout_always_on
             Default is False in which case dropout layers will only be active during
             model training, but switched off during inference. When set to True,
             dropout layers will always be on, which is used for ensembling via
             Monte Carlo dropout.
         """
+        # pylint: disable=too-many-arguments
         model_input = Input(shape=input_dim, name='base_input')
         for i, dim in enumerate(dims):
             if i == 0:
                 model_layer = Dense(dim, activation='relu', name='dense'+str(i+1),
-                                    kernel_regularizer=keras.regularizers.l1_l2(l1=1e-6, l2=1e-6))(
+                                    kernel_regularizer=keras.regularizers.l1_l2(l1=l1_reg, l2=l2_reg))(
                    model_input)
             else:
-                model_layer = Dense(dim, activation='relu', name='dense'+str(i+1),
-                                    kernel_regularizer=keras.regularizers.l1_l2(l1=1e-6, l2=1e-6))(
-                   model_layer)
+                model_layer = Dense(dim, activation='relu', name='dense'+str(i+1))(model_layer)
             model_layer = BatchNormalization(name='normalization'+str(i+1))(model_layer)
             if dropout_always_on:
                 model_layer = Dropout(dropout_rate, name='dropout'+str(i+1))(model_layer,

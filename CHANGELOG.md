@@ -7,12 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## Changed
+
+- Allow users to define L1 and L2 regularization of `SiameseModel` [#67](https://github.com/matchms/ms2deepscore/issues/67)
+- Allow users to define number and size of `SiameseModel` [#64](https://github.com/matchms/ms2deepscore/pull/64)
+
 ## [0.1.2] - 2021-03-05
 
 ## Added
 
 - `create_confusion_matrix_plot` in `plotting` [#58](https://github.com/matchms/ms2deepscore/pull/58)
-- Allow users to define number and size of `SiameseModel` [#64](https://github.com/matchms/ms2deepscore/pull/64)
 
 ## [0.1.1] - 2021-02-09
 
@@ -32,6 +36,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - This is the initial version of MS2DeepScore
 
 [Unreleased]: https://github.com/matchms/ms2deepscore/compare/0.1.2...HEAD
-[0.1.2]: https://github.com/matchms/ms2deepscore/releases/tag/0.1.1...0.1.2
-[0.1.1]: https://github.com/matchms/ms2deepscore/releases/tag/0.1.0...0.1.1
+[0.1.2]: https://github.com/matchms/ms2deepscore/compare/0.1.1...0.1.2
+[0.1.1]: https://github.com/matchms/ms2deepscore/compare/0.1.0...0.1.1
 [0.1.0]: https://github.com/matchms/ms2deepscore/releases/tag/0.1.0
