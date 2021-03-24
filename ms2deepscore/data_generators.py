@@ -165,7 +165,8 @@ class DataGeneratorBase(Sequence):
         """Randomly pick ID for a pair with inchikey_id1 that has a score in
         target_score_range. When no such score exists, iteratively widen the range
         in steps of 0.1 until a max of max_range. If still no match is found take
-        a random ID.
+        an inchikey with a reference value closest to the bin center.
+
         Parameters
         ----------
         inchikey1
@@ -189,13 +190,12 @@ class DataGeneratorBase(Sequence):
                 break
             extend_range += 0.1
 
-        # Part 2 - if still no match is found take the inchikey that has highest similarity score
-        # with inchikey1
-        # TODO: Why are we taking the highest score here? Shouldn't we take the one that is closest
-        #  to the center of the bin?
+        # Part 2 - if still no match is found take the inchikey that has similarity score
+        # closest to the center of bin
         if not inchikey2:
-            inchikey2 = self.reference_scores_df[inchikey1][self.reference_scores_df.index != inchikey1].idxmax()
-
+            candidates = self.reference_scores_df[inchikey1][self.reference_scores_df.index != inchikey1]
+            bin_center = np.mean(target_score_range)
+            inchikey2 = np.abs(candidates - bin_center).idxmin()
         return inchikey2
 
     def __getitem__(self, batch_index: int):
