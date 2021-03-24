@@ -118,3 +118,45 @@ def test_DataGeneratorAllSpectrums_asymmetric_label_input():
                                       dim=101)
     assert "index and columns of reference_scores_df are not identical" in str(msg), \
         "Expected different ValueError"
+
+
+def test_DataGeneratorAllSpectrums_fixed_set():
+    """
+    Test whether use_fixed_set=True toggles generating the same dataset on each epoch.
+    """
+    # Get test data
+    binned_spectrums, tanimoto_scores_df = create_test_data()
+
+    # Define other parameters
+    batch_size = 4
+    dimension = 88
+
+    # Create normal generator
+    normal_generator = DataGeneratorAllSpectrums(binned_spectrums=binned_spectrums[:8],
+                                                 reference_scores_df=tanimoto_scores_df,
+                                                 dim=dimension, batch_size=batch_size,
+                                                 use_fixed_set=False)
+
+    # Create generator that generates a fixed set every epoch
+    fixed_generator = DataGeneratorAllSpectrums(binned_spectrums=binned_spectrums[:8],
+                                                reference_scores_df=tanimoto_scores_df,
+                                                dim=dimension, batch_size=batch_size,
+                                                use_fixed_set=True)
+
+    def collect_results(generator):
+        n_batches = len(generator)
+        X = np.zeros((batch_size, dimension, 2, n_batches))
+        y = np.zeros((batch_size, n_batches))
+        for i, batch in enumerate(generator):
+            X[:, :, 0, i] = batch[0][0]
+            X[:, :, 1, i] = batch[0][1]
+            y[:, i] = batch[1]
+        return X, y
+
+    first_X, first_y = collect_results(normal_generator)
+    second_X, second_y = collect_results(normal_generator)
+    assert not np.array_equal(first_X, second_X)
+
+    first_X, first_y = collect_results(fixed_generator)
+    second_X, second_y = collect_results(fixed_generator)
+    assert np.array_equal(first_X, second_X)

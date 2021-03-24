@@ -1,6 +1,8 @@
 """ Data generators for training/inference with siamese Keras model.
 """
+import warnings
 from typing import List, Iterator, NamedTuple
+
 import numpy as np
 import pandas as pd
 from tensorflow.keras.utils import Sequence
@@ -62,6 +64,14 @@ class DataGeneratorBase(Sequence):
             Change peak intensities by a random number between 0 and augment_intensity.
             Default=0.1, which means that intensities are multiplied by 1+- a random
             number within [0, 0.1].
+        augment_noise_max
+            Max number of 'new' noise peaks to add to the spectrum, between 0 to `augment_noise_max`
+            of peaks are added.
+        augment_noise_intensity
+            Intensity of the 'new' noise peaks to add to the spectrum
+        use_fixed_set
+            Toggles using a fixed dataset, if set to True the same dataset will be generated each
+            epoch. Default is False.
         """
 
         self._validate_labels(reference_scores_df)
@@ -73,6 +83,7 @@ class DataGeneratorBase(Sequence):
         self.reference_scores_df = self._transform_to_inchikey14(self.reference_scores_df)
         self._collect_and_validate_inchikeys()
         self.dim = dim
+        self.fixed_set = dict()
 
     def _collect_and_validate_inchikeys(self):
         """Collect all inchikeys14 (first 14 characters) of all binned_spectrums
@@ -136,6 +147,14 @@ class DataGeneratorBase(Sequence):
             Change peak intensities by a random number between 0 and augment_intensity.
             Default=0.1, which means that intensities are multiplied by 1+- a random
             number within [0, 0.1].
+        augment_noise_max
+            Max number of 'new' noise peaks to add to the spectrum, between 0 to `augment_noise_max`
+            of peaks are added.
+        augment_noise_intensity
+            Intensity of the 'new' noise peaks to add to the spectrum
+        use_fixed_set
+            Toggles using a fixed dataset, if set to True the same dataset will be generated each
+            epoch. Default is False.
         """
         defaults = dict(
             batch_size=32,
@@ -148,6 +167,7 @@ class DataGeneratorBase(Sequence):
             augment_intensity=0.4,
             augment_noise_max=10,
             augment_noise_intensity=0.01,
+            use_fixed_set=False
         )
 
         # Set default parameters or replace by **settings input
@@ -159,6 +179,10 @@ class DataGeneratorBase(Sequence):
                 settings[key] = defaults[key]
         assert 0.0 <= settings["augment_removal_max"] <= 1.0, "Expected value within [0,1]"
         assert 0.0 <= settings["augment_removal_intensity"] <= 1.0, "Expected value within [0,1]"
+        if settings["use_fixed_set"] and settings["num_turns"] != 1:
+            raise ValueError('When using a fixed set, num_turns can only be 1')
+        if settings["use_fixed_set"] and settings["shuffle"]:
+            warnings.warn('When using a fixed set, data will not be shuffled')
         self.settings = settings
 
     def _find_match_in_range(self, inchikey1, target_score_range, max_range=0.4):
@@ -199,9 +223,17 @@ class DataGeneratorBase(Sequence):
         return inchikey2
 
     def __getitem__(self, batch_index: int):
-        """Generate one batch of data"""
+        """Generate one batch of data.
+
+        If use_fixed_set=True we try retrieving the batch from self.fixed_set (or store it if
+        this is the first epoch). This ensures a fixed set of data is generated each epoch.
+        """
+        if self.settings['use_fixed_set'] and batch_index in self.fixed_set:
+            return self.fixed_set[batch_index]
         spectrum_pairs = self._spectrum_pair_generator(batch_index)
         X, y = self.__data_generation(spectrum_pairs)
+        if self.settings['use_fixed_set']:
+            self.fixed_set[batch_index] = (X, y)
         return X, y
 
     def _data_augmentation(self, spectrum_binned):
