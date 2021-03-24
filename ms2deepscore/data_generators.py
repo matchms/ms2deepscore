@@ -230,6 +230,8 @@ class DataGeneratorBase(Sequence):
         """
         if self.settings['use_fixed_set'] and batch_index in self.fixed_set:
             return self.fixed_set[batch_index]
+        if self.settings['use_fixed_set'] and batch_index == 0:
+            np.random.seed(42)
         spectrum_pairs = self._spectrum_pair_generator(batch_index)
         X, y = self.__data_generation(spectrum_pairs)
         if self.settings['use_fixed_set']:
