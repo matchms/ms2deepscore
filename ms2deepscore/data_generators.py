@@ -229,14 +229,22 @@ class DataGeneratorBase(Sequence):
         if self.settings["augment_intensity"]:
             # TODO: Factor out function with documentation + example?
             values = (1 - self.settings["augment_intensity"] * 2 * (np.random.random(values.shape) - 0.5)) * values
-        # Augmentation 3: Add noise peaks
+        # Augmentation 3: Peak addition
         if self.settings["augment_noise_max"] and self.settings["augment_noise_max"] > 0:
-            n_noise_peaks = np.random.randint(0, self.settings["augment_noise_max"])
-            idx_noise_peaks = np.random.randint(0, self.dim, n_noise_peaks)
-            idx_noise_peaks = idx_noise_peaks[np.isin(idx_noise_peaks, idx, invert=True)]
-            idx = np.concatenate((idx, idx_noise_peaks))
-            values = np.concatenate((values,
-                                     self.settings["augment_noise_intensity"] * np.random.random(len(idx_noise_peaks))))
+            idx, values = self._peak_addition(idx, values)
+        return idx, values
+
+    def _peak_addition(self, idx, values):
+        """
+        For each of between 0-augment_noise_max randomly selected zero-intensity bins
+        that bin’s intensity is set to random values between 0 and augment_noise_intensity
+        """
+        n_noise_peaks = np.random.randint(0, self.settings["augment_noise_max"])
+        idx_no_peaks = np.setdiff1d(np.arange(0, self.dim), idx)
+        idx_noise_peaks = np.random.choice(idx_no_peaks, n_noise_peaks)
+        idx = np.concatenate((idx, idx_noise_peaks))
+        new_values = self.settings["augment_noise_intensity"] * np.random.random(len(idx_noise_peaks))
+        values = np.concatenate((values, new_values))
         return idx, values
 
     def _get_spectrum_with_inchikey(self, inchikey: str) -> BinnedSpectrumType:
