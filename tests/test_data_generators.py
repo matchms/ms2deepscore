@@ -141,7 +141,7 @@ def test_DataGeneratorAllSpectrums_fixed_set():
     fixed_generator = DataGeneratorAllSpectrums(binned_spectrums=binned_spectrums[:8],
                                                 reference_scores_df=tanimoto_scores_df,
                                                 dim=dimension, batch_size=batch_size,
-                                                use_fixed_set=True)
+                                                num_turns=5, use_fixed_set=True)
 
     def collect_results(generator):
         n_batches = len(generator)
@@ -156,17 +156,19 @@ def test_DataGeneratorAllSpectrums_fixed_set():
     first_X, first_y = collect_results(normal_generator)
     second_X, second_y = collect_results(normal_generator)
     assert not np.array_equal(first_X, second_X)
+    assert first_y.shape == (4, 2), "Expected different number of labels"
 
     first_X, first_y = collect_results(fixed_generator)
     second_X, second_y = collect_results(fixed_generator)
     assert np.array_equal(first_X, second_X)
+    assert first_y.shape == (4, 10), "Expected different number of labels"
 
     # Create another fixed generator based on the same dataset that should generate the same
     # fixed set
     fixed_generator2 = DataGeneratorAllSpectrums(binned_spectrums=binned_spectrums[:8],
                                                  reference_scores_df=tanimoto_scores_df,
                                                  dim=dimension, batch_size=batch_size,
-                                                 use_fixed_set=True)
+                                                 num_turns=5, use_fixed_set=True)
     first_X, first_y = collect_results(fixed_generator)
     second_X, second_y = collect_results(fixed_generator2)
     assert np.array_equal(first_X, second_X)
