@@ -47,7 +47,7 @@ To create release you need write permission on the repository.
 1. Check author list in `citation.cff` and `.zenodo.json` files
 1. Bump the version using `bump2version <major|minor|patch>`. For example, `bump2version major` will increase major version numbers everywhere its needed (code, meta, etc.) in the repo.
 1. Update the `CHANGELOG.md` to include changes made
-1. Goto [GitHub release page](https://github.com/iomega/spec2vec/releases)
+1. Goto [GitHub release page](https://github.com/matchms/ms2deepscore/releases)
 1. Press draft a new release button
 1. Fill version, title and description field
 1. Press the Publish Release button
