@@ -87,4 +87,4 @@ score = similarity_measure.pair(spectrums[0], spectrums[1])
 ```
 
 ## Contributing
-We welcome contributions to the development of ms2deepscore! Have a look at the [contribution guidelines](ttps://github.com/matchms/ms2deepscore/blob/main/CONTRIBUTING.md).
+We welcome contributions to the development of ms2deepscore! Have a look at the [contribution guidelines](https://github.com/matchms/ms2deepscore/blob/main/CONTRIBUTING.md).
