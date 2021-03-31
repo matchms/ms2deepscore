@@ -13,7 +13,7 @@ The sections below outline the steps in each case.
 
 ## You have a question
 
-1. use the search functionality [here](https://github.com/iomega/spec2vec/issues) to see if someone already filed the same issue;
+1. use the search functionality [here](https://github.com/matchms/ms2deepscore/issues) to see if someone already filed the same issue;
 1. if your issue search did not yield any relevant results, make a new issue;
 1. apply the "Question" label; apply other labels when relevant.
 
