@@ -65,7 +65,6 @@ def plot_histograms(histograms, y_score_bins, bin_content=None,
 
 def calculate_histograms(reference_scores, comparison_scores, n_bins=10, hist_resolution=100):
     """Calcualte a series of histograms, one for every bin."""
-    d_bin = 1/n_bins
     hist_bins = np.linspace(0, 1, hist_resolution)
     hist_bins = np.concatenate((hist_bins, np.array([2.0])))
 
