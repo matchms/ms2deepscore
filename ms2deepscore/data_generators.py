@@ -182,11 +182,11 @@ class DataGeneratorBase(Sequence):
             np.random.seed(42)
         self.settings = settings
 
-    def _find_match_in_range(self, inchikey1, target_score_range, max_range=0.4):
+    def _find_match_in_range(self, inchikey1, target_score_range):
         """Randomly pick ID for a pair with inchikey_id1 that has a score in
         target_score_range. When no such score exists, iteratively widen the range
-        in steps of 0.1 until a max of max_range. If still no match is found take
-        a random ID.
+        in steps of 0.1.
+
         Parameters
         ----------
         inchikey1
@@ -199,7 +199,7 @@ class DataGeneratorBase(Sequence):
         extend_range = 0
         low, high = target_score_range
         inchikey2 = None
-        while extend_range < max_range:
+        while inchikey2 is None:
             matching_inchikeys = self.reference_scores_df.index[
                 (self.reference_scores_df[inchikey1] > low - extend_range)
                 & (self.reference_scores_df[inchikey1] <= high + extend_range)]
@@ -207,16 +207,7 @@ class DataGeneratorBase(Sequence):
                 matching_inchikeys = matching_inchikeys[matching_inchikeys != inchikey1]
             if len(matching_inchikeys) > 0:
                 inchikey2 = np.random.choice(matching_inchikeys)
-                break
             extend_range += 0.1
-
-        # Part 2 - if still no match is found take the inchikey that has highest similarity score
-        # with inchikey1
-        # TODO: Why are we taking the highest score here? Shouldn't we take the one that is closest
-        #  to the center of the bin?
-        if not inchikey2:
-            inchikey2 = self.reference_scores_df[inchikey1][self.reference_scores_df.index != inchikey1].idxmax()
-
         return inchikey2
 
     def __getitem__(self, batch_index: int):
