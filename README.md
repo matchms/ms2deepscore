@@ -25,7 +25,7 @@ Python 3.7 or higher
 ### Installation
 Simply install using pip: `pip install ms2deepscore`
 
-###Prepare environment
+### Prepare environment
 We recommend to create an Anaconda environment with
 
 ```
