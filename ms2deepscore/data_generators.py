@@ -9,9 +9,6 @@ from tensorflow.keras.utils import Sequence
 
 from .typing import BinnedSpectrumType
 
-# Set random seed for reproducibility
-np.random.seed(42)
-
 
 class SpectrumPair(NamedTuple):
     """
@@ -179,10 +176,10 @@ class DataGeneratorBase(Sequence):
                 settings[key] = defaults[key]
         assert 0.0 <= settings["augment_removal_max"] <= 1.0, "Expected value within [0,1]"
         assert 0.0 <= settings["augment_removal_intensity"] <= 1.0, "Expected value within [0,1]"
-        if settings["use_fixed_set"] and settings["num_turns"] != 1:
-            raise ValueError('When using a fixed set, num_turns can only be 1')
         if settings["use_fixed_set"] and settings["shuffle"]:
             warnings.warn('When using a fixed set, data will not be shuffled')
+        if settings["use_fixed_set"]:
+            np.random.seed(42)
         self.settings = settings
 
     def _find_match_in_range(self, inchikey1, target_score_range, max_range=0.4):
