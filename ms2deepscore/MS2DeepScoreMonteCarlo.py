@@ -4,7 +4,8 @@ from matchms import Spectrum
 from matchms.similarity.BaseSimilarity import BaseSimilarity
 from tqdm import tqdm
 
-from .vector_operations import cosine_similarity_matrix, mean_pooling, std_pooling
+from .vector_operations import cosine_similarity_matrix
+from .vector_operations import mean_pooling, median_pooling, std_pooling
 from .typing import BinnedSpectrumType
 
 
@@ -40,7 +41,8 @@ class MS2DeepScoreMonteCarlo(BaseSimilarity):
 
 
     """
-    def __init__(self, model, n_ensembles: int = 10, progress_bar: bool = True):
+    def __init__(self, model, n_ensembles: int = 10, average_type: str = "median",
+                 progress_bar: bool = True):
         """
 
         Parameters
@@ -53,12 +55,18 @@ class MS2DeepScoreMonteCarlo(BaseSimilarity):
             Number of embeddings to create for every spectrum using Monte-Carlo Dropout.
             n_ensembles will lead to n_ensembles^2 scores of which the mean and STD will
             be taken.
+        average_type:
+            Choice between "median" and "mean" defineing which type of averaging is used
+            to compute the similarity score from all ensemble scores. Default is "median".
         progress_bar:
             Set to True to monitor the embedding creating with a progress bar.
             Default is False.
         """
         self.model = model
         self.n_ensembles = n_ensembles
+        assert average_type in ["median", "mean"], \
+            "Non supported input for average_type. Must be 'median' or 'mean'."
+        self.average_type = average_type
         self.input_vector_dim = self.model.base.input_shape[1]  # TODO: later maybe also check against SpectrumBinner
         self.output_vector_dim = self.model.base.output_shape[1]
         self.progress_bar = progress_bar
@@ -116,8 +124,11 @@ class MS2DeepScoreMonteCarlo(BaseSimilarity):
         reference_vectors = self.get_embedding_ensemble(binned_reference)
         query_vectors = self.get_embedding_ensemble(binned_query)
         scores_ensemble = cosine_similarity_matrix(reference_vectors, query_vectors)
-
-        return scores_ensemble.mean(), scores_ensemble.std()
+        if self.average_type == "median":
+            average_similarity = np.median(scores_ensemble)
+        elif self.average_type == "mean":
+            average_similarity = np.mean(scores_ensemble)
+        return average_similarity, scores_ensemble.std()
 
     def matrix(self, references: List[Spectrum], queries: List[Spectrum],
                is_symmetric: bool = False) -> np.ndarray:
@@ -147,7 +158,11 @@ class MS2DeepScoreMonteCarlo(BaseSimilarity):
             query_vectors = self.calculate_vectors(queries)
 
         ms2ds_similarity = cosine_similarity_matrix(reference_vectors, query_vectors)
-        return mean_pooling(ms2ds_similarity, self.n_ensembles), std_pooling(ms2ds_similarity, self.n_ensembles)
+        if self.average_type == "median":
+            average_similarities = median_pooling(ms2ds_similarity, self.n_ensembles)
+        elif self.average_type == "mean":
+            average_similarities = mean_pooling(ms2ds_similarity, self.n_ensembles)
+        return average_similarities, std_pooling(ms2ds_similarity, self.n_ensembles)
 
     def calculate_vectors(self, spectrum_list: List[Spectrum]) -> Tuple[np.ndarray, np.ndarray]:
         """Returns a list of vectors for all spectra
