@@ -107,7 +107,7 @@ class SiameseModel:
 
     @staticmethod
     def get_base_model(input_dim: int,
-                       dims: Tuple[int, ...] = (600, 500, 500),
+                       base_dims: Tuple[int, ...] = (600, 500, 500),
                        embedding_dim: int = 400,
                        dropout_rate: float = 0.25,
                        l1_reg: float = 1e-6,
@@ -118,7 +118,7 @@ class SiameseModel:
         Parameters
         ----------
         input_dim : int
-            DESCRIPTION.
+            Dimension of the input vectors.
         base_dims
             Tuple of integers depicting the dimensions of the desired hidden
             layers of the base model
@@ -138,19 +138,20 @@ class SiameseModel:
         """
         # pylint: disable=too-many-arguments
         model_input = Input(shape=input_dim, name='base_input')
-        for i, dim in enumerate(dims):
+        for i, dim in enumerate(base_dims):
             if i == 0:
                 model_layer = Dense(dim, activation='relu', name='dense'+str(i+1),
                                     kernel_regularizer=keras.regularizers.l1_l2(l1=l1_reg, l2=l2_reg))(
                    model_input)
-            else:
+                model_layer = BatchNormalization(name='normalization'+str(i+1))(model_layer)
+            else: # dropout only AFTER first dense layer
                 model_layer = Dense(dim, activation='relu', name='dense'+str(i+1))(model_layer)
-            model_layer = BatchNormalization(name='normalization'+str(i+1))(model_layer)
-            if dropout_always_on:
-                model_layer = Dropout(dropout_rate, name='dropout'+str(i+1))(model_layer,
-                                                                             training=True)
-            else:
-                model_layer = Dropout(dropout_rate, name='dropout'+str(i+1))(model_layer)
+                model_layer = BatchNormalization(name='normalization'+str(i+1))(model_layer)
+                if dropout_always_on:
+                    model_layer = Dropout(dropout_rate, name='dropout'+str(i+1))(model_layer,
+                                                                                 training=True)
+                else:
+                    model_layer = Dropout(dropout_rate, name='dropout'+str(i+1))(model_layer)
 
         embedding = Dense(embedding_dim, activation='relu', name='embedding')(model_layer)
         return keras.Model(model_input, embedding, name='base')
