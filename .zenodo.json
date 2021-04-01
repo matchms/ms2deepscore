@@ -9,6 +9,16 @@
          "affiliation": "Netherlands eScience Center", 
          "name": "van der Burg, Sven", 
          "orcid": "0000-0003-1250-6968"
+      },
+      {
+         "affiliation": "Wageningen University and Research",
+         "name": "van der Hooft, Justin J. J.",
+         "orcid": "0000-0002-9340-5511"
+      },
+      {
+         "affiliation": "Netherlands eScience Center", 
+         "name": "Ridder, Lars",
+         "orcid": "0000-0002-7635-9533"
       }
    ], 
    "description": "Deep learning based similarity measure of mass spectrometry data.", 
