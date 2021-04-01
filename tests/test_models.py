@@ -41,7 +41,7 @@ def test_siamese_model():
               validation_data=test_generator,
               epochs=2)
     assert len(model.model.layers) == 4, "Expected different number of layers"
-    assert len(model.model.layers[2].layers) == len(model.base.layers) == 11, \
+    assert len(model.model.layers[2].layers) == len(model.base.layers) == 10, \
         "Expected different number of layers"
     assert model.model.input_shape == [(None, 339), (None, 339)], "Expected different input shape"
     np.testing.assert_array_almost_equal(model.base.layers[1].kernel_regularizer.l1, 1e-6), \
@@ -65,7 +65,7 @@ def test_siamese_model_different_architecture():
                          embedding_dim=100, dropout_rate=0.2)
     model.compile(loss='mse', optimizer=keras.optimizers.Adam(lr=0.001))
     assert len(model.model.layers) == 4, "Expected different number of layers"
-    assert len(model.model.layers[2].layers) == len(model.base.layers) == 17, \
+    assert len(model.model.layers[2].layers) == len(model.base.layers) == 16, \
         "Expected different number of layers"
     assert model.model.input_shape == [(None, 339), (None, 339)], "Expected different input shape"
     assert model.base.output_shape == (None, 100), "Expected different output shape of base model"

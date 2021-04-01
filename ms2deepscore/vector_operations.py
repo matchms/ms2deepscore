@@ -84,3 +84,45 @@ def cosine_similarity(vector1: np.ndarray, vector2: np.ndarray) -> np.float64:
     if prod11 != 0 and prod22 != 0:
         cosine_score = prod12 / np.sqrt(prod11 * prod22)
     return np.float64(cosine_score)
+
+
+@numba.njit(fastmath=True)
+def mean_pooling(scores_ensemble: np.ndarray, n_ensembles: int) -> np.ndarray:
+    """Do mean pooling on an ensemble of scores."""
+    dim_0 = int(scores_ensemble.shape[0]/n_ensembles)
+    dim_1 = int(scores_ensemble.shape[1]/n_ensembles)
+    scores_pooled = np.zeros((dim_0, dim_1))
+
+    for i in range(dim_0):
+        for j in range(dim_1):
+            scores_pooled[i, j] = np.mean(scores_ensemble[i*n_ensembles:(i+1)*n_ensembles,
+                                                          j*n_ensembles:(j+1)*n_ensembles])
+    return scores_pooled
+
+
+@numba.njit(fastmath=True)
+def median_pooling(scores_ensemble: np.ndarray, n_ensembles: int) -> np.ndarray:
+    """Do median pooling on an ensemble of scores."""
+    dim_0 = int(scores_ensemble.shape[0]/n_ensembles)
+    dim_1 = int(scores_ensemble.shape[1]/n_ensembles)
+    scores_pooled = np.zeros((dim_0, dim_1))
+
+    for i in range(dim_0):
+        for j in range(dim_1):
+            scores_pooled[i, j] = np.median(scores_ensemble[i*n_ensembles:(i+1)*n_ensembles,
+                                                            j*n_ensembles:(j+1)*n_ensembles])
+    return scores_pooled
+
+
+@numba.njit(fastmath=True)
+def std_pooling(scores_ensemble: np.ndarray, n_ensembles: int) -> np.ndarray:
+    """Do standard deviation pooling on an ensemble of score std's."""
+    dim_0 = int(scores_ensemble.shape[0]/n_ensembles)
+    dim_1 = int(scores_ensemble.shape[1]/n_ensembles)
+    scores_pooled = np.zeros((dim_0, dim_1))
+
+    for i in range(dim_0):
+        for j in range(dim_1):
+            scores_pooled[i, j] = np.std(scores_ensemble[i*n_ensembles:(i+1)*n_ensembles,
+                                                         j*n_ensembles:(j+1)*n_ensembles])
+    return scores_pooled

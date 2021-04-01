@@ -3,6 +3,7 @@ from . import models
 from .__version__ import __version__
 from .BinnedSpectrum import BinnedSpectrum
 from .MS2DeepScore import MS2DeepScore
+from .MS2DeepScoreMonteCarlo import MS2DeepScoreMonteCarlo
 from .SpectrumBinner import SpectrumBinner
 
 
@@ -14,5 +15,6 @@ __all__ = [
     "__version__",
     "BinnedSpectrum",
     "MS2DeepScore",
+    "MS2DeepScoreMonteCarlo",
     "SpectrumBinner",
 ]
