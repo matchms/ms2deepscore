@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 from ms2deepscore.vector_operations import cosine_similarity, cosine_similarity_matrix
-from ms2deepscore.vector_operations import mean_pooling, std_pooling
+from ms2deepscore.vector_operations import mean_pooling, median_pooling, std_pooling
 
 
 @pytest.mark.parametrize("numba_compiled", [True, False])
@@ -118,6 +118,24 @@ def test_mean_pooling(numba_compiled):
     scores_expected = np.array([[ 2.5,  4.5],
                                 [10.5, 12.5]])
     assert np.allclose(scores_mean, scores_expected, atol=1e-8), \
+        "Expected different pooled mean scores"
+
+
+@pytest.mark.parametrize("numba_compiled", [True, False])
+def test_median_pooling(numba_compiled):
+    """Test if scores are pooled correctly."""
+    scores = np.arange(0, 16).reshape(4, 4)
+    scores[0,0] = 10
+    scores[2,2] = 0
+
+    if numba_compiled:
+        scores_median = median_pooling(scores, 2)
+    else:
+        scores_median = median_pooling.py_func(scores, 2)
+
+    scores_expected = np.array([[ 5.0,  4.5],
+                                [10.5, 12.5]])
+    assert np.allclose(scores_median, scores_expected, atol=1e-8), \
         "Expected different pooled mean scores"
 
 
