@@ -26,7 +26,7 @@ def create_histograms_plot(reference_scores, comparison_scores, n_bins=10, hist_
     """
     # pylint: disable=too-many-arguments
     histograms, used_bins, bin_content = calculate_histograms(reference_scores, comparison_scores,
-                                                 n_bins, hist_resolution)
+                                                              n_bins, hist_resolution)
 
     plot_histograms(histograms, used_bins, bin_content, xlabel=compare_score_name, ylabel=ref_score_name)
 
@@ -55,25 +55,29 @@ def plot_histograms(histograms, y_score_bins, bin_content=None,
         if bin_content:
             plt.text(0.01, -shift*i+shift/6, f"{bin_content[::-1][i]} pairs")#, color="white")
 
+    plt.xticks(fontsize=14)
     plt.yticks(-shift*np.arange(len(histograms)),
-               [f"{a:.2f} to < {b:.2f}" for (a, b) in y_score_bins[::-1]], fontsize=12)
-    plt.xlabel(xlabel, fontsize=12)
-    plt.ylabel(ylabel, fontsize=12)
+               [f"{a:.1f} to < {b:.1f}" for (a, b) in y_score_bins[::-1]], fontsize=14)
+    plt.xlabel(xlabel, fontsize=14)
+    plt.ylabel(ylabel, fontsize=14)
     plt.xlim([0, 1])
 
 
 def calculate_histograms(reference_scores, comparison_scores, n_bins=10, hist_resolution=100):
     """Calcualte a series of histograms, one for every bin."""
-    d_bin = 1/n_bins
     hist_bins = np.linspace(0, 1, hist_resolution)
     hist_bins = np.concatenate((hist_bins, np.array([2.0])))
 
     histograms = []
     used_bins = []
     bin_content = []
-    for i in range(n_bins+1):
-        used_bins.append((i*d_bin, (i + 1) * d_bin))
-        idx = np.where((reference_scores >= i*d_bin) & (reference_scores < (i + 1) * d_bin))
+    ref_scores_bins_inclusive = np.linspace(0, 1, n_bins+1)
+    ref_scores_bins_inclusive[0] = -np.inf
+    ref_scores_bins_inclusive[-1] = np.inf
+    
+    for i in range(n_bins):
+        used_bins.append((ref_scores_bins_inclusive[i], ref_scores_bins_inclusive[i+1]))
+        idx = np.where((reference_scores >= ref_scores_bins_inclusive[i]) & (reference_scores < ref_scores_bins_inclusive[i+1]))
         bin_content.append(idx[0].shape[0])
         a, b = np.histogram(comparison_scores[idx], bins=hist_bins)
         histograms.append((a, b))
