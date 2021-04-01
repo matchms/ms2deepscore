@@ -15,8 +15,8 @@ class MS2DeepScoreMonteCarlo(BaseSimilarity):
 
     Using a trained model, binned spectrums will be converted into spectrum
     vectors using a deep neural network. The MS2DeepScoreMonteCarlo similarity is then
-    the mean of n_ensemble x n_ensemble cosine similarity score between two spectrum
-    vectors.
+    the median (or mean, depending on set `average_type`) of n_ensemble x n_ensemble
+    cosine similarity score between two spectrum vectors.
 
     Example code to calcualte MS2DeepScoreMonteCarlo similarities between query and
     reference spectrums:
