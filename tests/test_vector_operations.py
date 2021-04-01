@@ -133,7 +133,7 @@ def test_median_pooling(numba_compiled):
     else:
         scores_median = median_pooling.py_func(scores, 2)
 
-    scores_expected = np.array([[ 5.0,  4.5],
+    scores_expected = np.array([[ 4.5,  4.5],
                                 [10.5, 12.5]])
     assert np.allclose(scores_median, scores_expected, atol=1e-8), \
         "Expected different pooled mean scores"
