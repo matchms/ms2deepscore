@@ -7,8 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.0] - 2021-04-01
+
 ## Added
 
+- `MS2DeepScoreMonteCarlo` Monte-Carlo dropout based ensembling do obtain mean/median score and STD [#65](https://github.com/matchms/ms2deepscore/pull/65)
 - `use_fixed_set` option for data generators to create deterministic training/testing data with fixed random seed [#73](https://github.com/matchms/ms2deepscore/issues/73)
 
 ## Changed
@@ -18,6 +21,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## Fixed
 
 - solved minor unclarity with the pair selection for non-available reference scores [#79](https://github.com/matchms/ms2deepscore/pull/79)
+- solved minor unclarity with the addition of noise peaks during data augmentation [#78](https://github.com/matchms/ms2deepscore/pull/78)
 
 ## [0.1.3] - 2021-03-09
 
@@ -49,7 +53,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - This is the initial version of MS2DeepScore
 
-[Unreleased]: https://github.com/matchms/ms2deepscore/compare/0.1.3...HEAD
+[Unreleased]: https://github.com/matchms/ms2deepscore/compare/0.2.0...HEAD
+[0.2.0]: https://github.com/matchms/ms2deepscore/compare/0.1.3...0.2.0
 [0.1.3]: https://github.com/matchms/ms2deepscore/compare/0.1.2...0.1.3
 [0.1.2]: https://github.com/matchms/ms2deepscore/compare/0.1.1...0.1.2
 [0.1.1]: https://github.com/matchms/ms2deepscore/compare/0.1.0...0.1.1
