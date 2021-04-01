@@ -11,6 +11,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - `use_fixed_set` option for data generators to create deterministic training/testing data with fixed random seed [#73](https://github.com/matchms/ms2deepscore/issues/73)
 
+## Changed
+
+- small update of `create_histograms_plot` to make the plot prettier/better to read [#85](https://github.com/matchms/ms2deepscore/pull/85)
+
 ## Fixed
 
 - solved minor unclarity with the pair selection for non-available reference scores [#79](https://github.com/matchms/ms2deepscore/pull/79)
