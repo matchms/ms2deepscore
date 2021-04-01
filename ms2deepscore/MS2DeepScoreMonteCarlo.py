@@ -75,11 +75,11 @@ class MS2DeepScoreMonteCarlo(BaseSimilarity):
 
     def _create_monte_carlo_encoder(self):
         """Rebuild base network with training=True"""
-        dims = []
+        base_dims = []
         dropout_rates = []
         for layer in self.model.base.layers:
             if "dense" in layer.name:
-                dims.append(layer.units)
+                base_dims.append(layer.units)
             if "dropout" in layer.name:
                 dropout_rates.append(layer.rate)
         if np.unique(dropout_rates).shape[0] > 1:
@@ -88,7 +88,7 @@ class MS2DeepScoreMonteCarlo(BaseSimilarity):
 
         # re-build encoder network with dropout layers always on
         encoder = self.model.get_base_model(input_dim=self.input_vector_dim,
-                                            dims=dims,
+                                            base_dims=base_dims,
                                             embedding_dim=self.output_vector_dim,
                                             dropout_rate=dropout_rate,
                                             dropout_always_on=True)
