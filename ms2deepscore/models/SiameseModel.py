@@ -80,7 +80,7 @@ class SiameseModel:
         if keras_model is None:
             # Create base model
             self.base = self.get_base_model(input_dim=self.input_dim,
-                                            dims=base_dims,
+                                            base_dims=base_dims,
                                             embedding_dim=embedding_dim,
                                             dropout_rate=dropout_rate,
                                             l1_reg=l1_reg,

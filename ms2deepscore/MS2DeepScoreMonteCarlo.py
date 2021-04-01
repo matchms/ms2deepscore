@@ -62,7 +62,7 @@ class MS2DeepScoreMonteCarlo(BaseSimilarity):
         self.input_vector_dim = self.model.base.input_shape[1]  # TODO: later maybe also check against SpectrumBinner
         self.output_vector_dim = self.model.base.output_shape[1]
         self.progress_bar = progress_bar
-        self.partial_model = self._create_monte_carlo_encoder()
+        self.partial_model = self._create_monte_carlo_base()
 
     def _create_input_vector(self, binned_spectrum: BinnedSpectrumType):
         """Creates input vector for model.base based on binned peaks and intensities"""
@@ -73,7 +73,7 @@ class MS2DeepScoreMonteCarlo(BaseSimilarity):
         X[0, idx] = values
         return X
 
-    def _create_monte_carlo_encoder(self):
+    def _create_monte_carlo_base(self):
         """Rebuild base network with training=True"""
         base_dims = []
         dropout_rates = []
@@ -86,14 +86,14 @@ class MS2DeepScoreMonteCarlo(BaseSimilarity):
             print(f"Found multiple different dropout rates. Selected 1st dropout rate: {dropout_rates[0]}")
         dropout_rate = dropout_rates[0]
 
-        # re-build encoder network with dropout layers always on
-        encoder = self.model.get_base_model(input_dim=self.input_vector_dim,
-                                            base_dims=base_dims,
-                                            embedding_dim=self.output_vector_dim,
-                                            dropout_rate=dropout_rate,
-                                            dropout_always_on=True)
-        encoder.set_weights(self.model.base.get_weights())
-        return encoder
+        # re-build base network with dropout layers always on
+        base = self.model.get_base_model(input_dim=self.input_vector_dim,
+                                         base_dims=base_dims,
+                                         embedding_dim=self.output_vector_dim,
+                                         dropout_rate=dropout_rate,
+                                         dropout_always_on=True)
+        base.set_weights(self.model.base.get_weights())
+        return base
 
     def pair(self, reference: Spectrum, query: Spectrum) -> Tuple[float, float]:
         """Calculate the MS2DeepScoreMonteCarlo similaritiy between a reference
@@ -108,8 +108,8 @@ class MS2DeepScoreMonteCarlo(BaseSimilarity):
 
         Returns
         -------
-        ms2ds_similarity
-            MS2DeepScore similarity score.
+        ms2ds_ensemble_similarity, ms2ds_ensemble_std
+            Tuple of MS2DeepScore similarity score and uncertainty measure (STD).
         """
         binned_reference = self.model.spectrum_binner.transform([reference])[0]
         binned_query = self.model.spectrum_binner.transform([query])[0]
@@ -135,8 +135,8 @@ class MS2DeepScoreMonteCarlo(BaseSimilarity):
 
         Returns
         -------
-        ms2ds_similarity
-            Array of MS2DeepScore similarity scores.
+        ms2ds_ensemble_similarity, ms2ds_ensemble_std
+            Array of Tuples of MS2DeepScore similarity score and uncertainty measure (STD).
         """
         reference_vectors = self.calculate_vectors(references)
         if is_symmetric:
