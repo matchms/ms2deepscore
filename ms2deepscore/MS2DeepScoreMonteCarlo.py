@@ -41,6 +41,11 @@ class MS2DeepScoreMonteCarlo(BaseSimilarity):
 
 
     """
+    # Set key characteristics as class attributes
+    is_commutative = True
+    # Set output data type, e.g. ("score", "float") or [("score", "float"), ("matches", "int")]
+    score_datatype = [("score", np.float64), ("std", np.float64)]
+
     def __init__(self, model, n_ensembles: int = 10, average_type: str = "median",
                  progress_bar: bool = True):
         """
@@ -93,13 +98,19 @@ class MS2DeepScoreMonteCarlo(BaseSimilarity):
         if np.unique(dropout_rates).shape[0] > 1:
             print(f"Found multiple different dropout rates. Selected 1st dropout rate: {dropout_rates[0]}")
         dropout_rate = dropout_rates[0]
+        
+        if 'dropout' in self.model.base.layers[3].name:
+            dropout_in_first_layer = True
+        else:
+            dropout_in_first_layer = False
 
         # re-build base network with dropout layers always on
         base = self.model.get_base_model(input_dim=self.input_vector_dim,
                                          base_dims=base_dims,
                                          embedding_dim=self.output_vector_dim,
                                          dropout_rate=dropout_rate,
-                                         dropout_always_on=True)
+                                         dropout_always_on=True,
+                                         dropout_in_first_layer=dropout_in_first_layer)
         base.set_weights(self.model.base.get_weights())
         return base
 
@@ -128,7 +139,8 @@ class MS2DeepScoreMonteCarlo(BaseSimilarity):
             average_similarity = np.median(scores_ensemble)
         elif self.average_type == "mean":
             average_similarity = np.mean(scores_ensemble)
-        return average_similarity, scores_ensemble.std()
+        return np.asarray((average_similarity, scores_ensemble.std()),
+                          dtype=self.score_datatype)
 
     def matrix(self, references: List[Spectrum], queries: List[Spectrum],
                is_symmetric: bool = False) -> np.ndarray:
@@ -162,7 +174,12 @@ class MS2DeepScoreMonteCarlo(BaseSimilarity):
             average_similarities = median_pooling(ms2ds_similarity, self.n_ensembles)
         elif self.average_type == "mean":
             average_similarities = mean_pooling(ms2ds_similarity, self.n_ensembles)
-        return average_similarities, std_pooling(ms2ds_similarity, self.n_ensembles)
+        
+        similarities=np.empty((average_similarities.shape[0],
+                              average_similarities.shape[1]), dtype=self.score_datatype)
+        similarities['score'] = average_similarities
+        similarities['std'] = std_pooling(ms2ds_similarity, self.n_ensembles)
+        return similarities 
 
     def calculate_vectors(self, spectrum_list: List[Spectrum]) -> Tuple[np.ndarray, np.ndarray]:
         """Returns a list of vectors for all spectra

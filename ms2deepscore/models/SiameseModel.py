@@ -46,6 +46,7 @@ class SiameseModel:
                  base_dims: Tuple[int, ...] = (600, 500, 500),
                  embedding_dim: int = 400,
                  dropout_rate: float = 0.5,
+                 dropout_in_first_layer: bool = False,
                  l1_reg: float = 1e-6,
                  l2_reg: float = 1e-6,
                  keras_model: keras.Model = None):
@@ -63,6 +64,8 @@ class SiameseModel:
             Dimension of the embedding (i.e. the output of the base model)
         dropout_rate
             Dropout rate to be used in the base model.
+        dropout_in_first_layer
+            Set to True if dropout should be part of first dense layer as well. Default is False.
         l1_reg
             L1 regularization rate. Default is 1e-6.
         l2_reg
@@ -83,6 +86,7 @@ class SiameseModel:
                                             base_dims=base_dims,
                                             embedding_dim=embedding_dim,
                                             dropout_rate=dropout_rate,
+                                            dropout_in_first_layer=dropout_in_first_layer,
                                             l1_reg=l1_reg,
                                             l2_reg=l2_reg)
             # Create head model
@@ -110,6 +114,7 @@ class SiameseModel:
                        base_dims: Tuple[int, ...] = (600, 500, 500),
                        embedding_dim: int = 400,
                        dropout_rate: float = 0.25,
+                       dropout_in_first_layer: bool = False,
                        l1_reg: float = 1e-6,
                        l2_reg: float = 1e-6,
                        dropout_always_on: bool = False) -> keras.Model:
@@ -126,6 +131,8 @@ class SiameseModel:
             Dimension of the embedding (i.e. the output of the base model)
         dropout_rate
             Dropout rate to be used in the base model
+        dropout_in_first_layer
+            Set to True if dropout should be part of first dense layer as well. Default is False.
         l1_reg
             L1 regularization rate. Default is 1e-6.
         l2_reg
@@ -137,21 +144,23 @@ class SiameseModel:
             Monte Carlo dropout.
         """
         # pylint: disable=too-many-arguments
+        
+        dropout_starting_layer = 0 if dropout_in_first_layer else 1
         model_input = Input(shape=input_dim, name='base_input')
         for i, dim in enumerate(base_dims):
-            if i == 0:
+            if i == 0: # L1 and L2 regularization only in 1st layer
                 model_layer = Dense(dim, activation='relu', name='dense'+str(i+1),
                                     kernel_regularizer=keras.regularizers.l1_l2(l1=l1_reg, l2=l2_reg))(
                    model_input)
-                model_layer = BatchNormalization(name='normalization'+str(i+1))(model_layer)
-            else: # dropout only AFTER first dense layer
+            else:
                 model_layer = Dense(dim, activation='relu', name='dense'+str(i+1))(model_layer)
-                model_layer = BatchNormalization(name='normalization'+str(i+1))(model_layer)
-                if dropout_always_on:
-                    model_layer = Dropout(dropout_rate, name='dropout'+str(i+1))(model_layer,
-                                                                                 training=True)
-                else:
-                    model_layer = Dropout(dropout_rate, name='dropout'+str(i+1))(model_layer)
+
+            model_layer = BatchNormalization(name='normalization'+str(i+1))(model_layer)
+            if dropout_always_on and i >= dropout_starting_layer:
+                model_layer = Dropout(dropout_rate, name='dropout'+str(i+1))(model_layer,
+                                                                             training=True)
+            elif i >= dropout_starting_layer:
+                model_layer = Dropout(dropout_rate, name='dropout'+str(i+1))(model_layer)
 
         embedding = Dense(embedding_dim, activation='relu', name='embedding')(model_layer)
         return keras.Model(model_input, embedding, name='base')
