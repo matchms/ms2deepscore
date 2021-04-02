@@ -98,11 +98,8 @@ class MS2DeepScoreMonteCarlo(BaseSimilarity):
         if np.unique(dropout_rates).shape[0] > 1:
             print(f"Found multiple different dropout rates. Selected 1st dropout rate: {dropout_rates[0]}")
         dropout_rate = dropout_rates[0]
-        
-        if 'dropout' in self.model.base.layers[3].name:
-            dropout_in_first_layer = True
-        else:
-            dropout_in_first_layer = False
+
+        dropout_in_first_layer = ('dropout' in self.model.base.layers[3].name)
 
         # re-build base network with dropout layers always on
         base = self.model.get_base_model(input_dim=self.input_vector_dim,
@@ -174,12 +171,12 @@ class MS2DeepScoreMonteCarlo(BaseSimilarity):
             average_similarities = median_pooling(ms2ds_similarity, self.n_ensembles)
         elif self.average_type == "mean":
             average_similarities = mean_pooling(ms2ds_similarity, self.n_ensembles)
-        
+
         similarities=np.empty((average_similarities.shape[0],
                               average_similarities.shape[1]), dtype=self.score_datatype)
         similarities['score'] = average_similarities
         similarities['std'] = std_pooling(ms2ds_similarity, self.n_ensembles)
-        return similarities 
+        return similarities
 
     def calculate_vectors(self, spectrum_list: List[Spectrum]) -> Tuple[np.ndarray, np.ndarray]:
         """Returns a list of vectors for all spectra
