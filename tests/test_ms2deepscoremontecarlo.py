@@ -45,7 +45,7 @@ def test_MS2DeepScoreMonteCarlo_score_pair(average_type):
     assert score['score'].dtype == np.float64, "Expected float as score."
     assert score['score'] > 0.65 and score['score'] < 0.9, "Expected score in different range"
     assert score['uncertainty'].dtype == np.float64, "Expected float as uncertainty."
-    assert score['uncertainty'] > 0.01 and score['uncertainty'] < 0.06, "Expected STD(score) in different range"
+    assert score['uncertainty'] > 0.01 and score['uncertainty'] < 0.08, "Expected uncertainty in different range"
 
 
 @pytest.mark.parametrize("average_type", ['median', 'mean'])
@@ -56,7 +56,7 @@ def test_MS2DeepScoreMonteCarlo_score_matrix(average_type):
     scores = similarity_measure.matrix(spectrums[:4], spectrums[:3])
     assert scores['score'].shape == (4, 3), "Expected different shape"
     assert scores['uncertainty'].shape == (4, 3), "Expected different shape"
-    assert np.max(scores['uncertainty']) < 0.1, "Expected lower uncertainty"
+    assert np.max(scores['uncertainty']) < 0.2, "Expected lower uncertainty"
     assert np.max(scores['score']) > 0.5, "Expected higher scores"
 
 
