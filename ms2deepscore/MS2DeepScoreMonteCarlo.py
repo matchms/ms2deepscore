@@ -65,7 +65,7 @@ class MS2DeepScoreMonteCarlo(BaseSimilarity):
             Choice between "median" and "mean" defining which type of averaging is used
             to compute the similarity score from all ensemble scores. Default is "median"
             in which case the uncertainty will be evaluate by the interquantile range (IQR).
-            When usind "mean" the standard deviation is taken as uncertainty measure.
+            When using "mean" the standard deviation is taken as uncertainty measure.
         progress_bar:
             Set to True to monitor the embedding creating with a progress bar.
             Default is False.

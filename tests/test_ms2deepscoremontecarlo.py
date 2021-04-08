@@ -9,7 +9,7 @@ from tests.test_user_worfklow import load_processed_spectrums
 TEST_RESOURCES_PATH = Path(__file__).parent / 'resources'
 
 
-def get_test_ms2_deep_score_instance(n_ensembles, average_type):
+def get_test_ms2_deep_score_instance(n_ensembles, average_type="median"):
     """Load data and models for MS2DeepScore unit tests."""
     spectrums = load_processed_spectrums()
 
@@ -18,7 +18,7 @@ def get_test_ms2_deep_score_instance(n_ensembles, average_type):
     model = load_model(model_file)
 
     similarity_measure = MS2DeepScoreMonteCarlo(model, n_ensembles,
-                                                average_type="median")
+                                                average_type)
     return spectrums, model, similarity_measure
 
 
@@ -45,7 +45,12 @@ def test_MS2DeepScoreMonteCarlo_score_pair(average_type):
     assert score['score'].dtype == np.float64, "Expected float as score."
     assert score['score'] > 0.65 and score['score'] < 0.9, "Expected score in different range"
     assert score['uncertainty'].dtype == np.float64, "Expected float as uncertainty."
-    assert score['uncertainty'] > 0.01 and score['uncertainty'] < 0.08, "Expected uncertainty in different range"
+    if average_type == 'median':
+        assert score['uncertainty'] > 0.01 and score['uncertainty'] < 0.12, \
+            "Expected uncertainty in different range"
+    else:
+        assert score['uncertainty'] > 0.01 and score['uncertainty'] < 0.06, \
+            "Expected uncertainty in different range"
 
 
 @pytest.mark.parametrize("average_type", ['median', 'mean'])
