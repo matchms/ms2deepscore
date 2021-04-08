@@ -1,7 +1,8 @@
 import numpy as np
 import pytest
 from ms2deepscore.vector_operations import cosine_similarity, cosine_similarity_matrix
-from ms2deepscore.vector_operations import mean_pooling, median_pooling, std_pooling
+from ms2deepscore.vector_operations import mean_pooling, median_pooling
+from ms2deepscore.vector_operations import iqr_pooling, std_pooling
 
 
 @pytest.mark.parametrize("numba_compiled", [True, False])
@@ -152,3 +153,21 @@ def test_std_pooling(numba_compiled):
     std_expected = np.std([0,1,4,5]) * np.ones((2, 2))
     assert np.allclose(scores_std, std_expected, atol=1e-8), \
         "Expected different pooled standard deviations"
+
+
+@pytest.mark.parametrize("numba_compiled", [True, False])
+def test_iqr_pooling(numba_compiled):
+    """Test if scores are pooled correctly."""
+    scores = np.arange(0, 16).reshape(4, 4)
+    scores[0,0] = 10
+    scores[2,2] = 0
+
+    if numba_compiled:
+        scores_iqr = iqr_pooling(scores, 2)
+    else:
+        scores_iqr = iqr_pooling.py_func(scores, 2)
+
+    iqr_expected = np.array([[3. , 3.5],
+                             [3.5, 6. ]])
+    assert np.allclose(scores_iqr, iqr_expected, atol=1e-8), \
+        "Expected different pooled interquantile ranges"

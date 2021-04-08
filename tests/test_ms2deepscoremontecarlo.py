@@ -41,8 +41,8 @@ def test_MS2DeepScoreMonteCarlo_score_pair():
     score = similarity_measure.pair(spectrums[0], spectrums[1])
     assert score['score'].dtype == np.float64, "Expected float as score."
     assert score['score'] > 0.65 and score['score'] < 0.9, "Expected score in different range"
-    assert score['std'].dtype == np.float64, "Expected float as STD."
-    assert score['std'] > 0.01 and score['std'] < 0.06, "Expected STD(score) in different range"
+    assert score['uncertainty'].dtype == np.float64, "Expected float as STD."
+    assert score['uncertainty'] > 0.01 and score['uncertainty'] < 0.06, "Expected STD(score) in different range"
 
 
 def test_MS2DeepScoreMonteCarlo_score_matrix():
@@ -50,8 +50,8 @@ def test_MS2DeepScoreMonteCarlo_score_matrix():
     spectrums, _, similarity_measure = get_test_ms2_deep_score_instance(n_ensembles=5)
     scores = similarity_measure.matrix(spectrums[:4], spectrums[:3])
     assert scores['score'].shape == (4, 3), "Expected different shape"
-    assert scores['std'].shape == (4, 3), "Expected different shape"
-    assert np.max(scores['std']) < 0.1, "Expected lower STD"
+    assert scores['uncertainty'].shape == (4, 3), "Expected different shape"
+    assert np.max(scores['uncertainty']) < 0.1, "Expected lower STD"
     assert np.max(scores['score']) > 0.5, "Expected higher scores"
 
 
