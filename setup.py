@@ -18,6 +18,7 @@ setup(
     version=version["__version__"],
     description="Deep learning similarity measure for comparing MS/MS spectra.",
     long_description=readme,
+    long_description_content_type='text/markdown',
     author="Netherlands eScience Center",
     author_email="f.huber@esciencecenter.nl",
     url="https://github.com/iomega/ms2deepscore",
