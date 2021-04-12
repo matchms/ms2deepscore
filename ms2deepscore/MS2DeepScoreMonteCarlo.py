@@ -5,7 +5,8 @@ from matchms.similarity.BaseSimilarity import BaseSimilarity
 from tqdm import tqdm
 
 from .vector_operations import cosine_similarity_matrix
-from .vector_operations import mean_pooling, median_pooling, std_pooling
+from .vector_operations import mean_pooling, median_pooling
+from .vector_operations import std_pooling, iqr_pooling
 from .typing import BinnedSpectrumType
 
 
@@ -35,12 +36,17 @@ class MS2DeepScoreMonteCarlo(BaseSimilarity):
         # Load pretrained model
         model = load_model("model_file_123.hdf5")
 
-        similarity_measure = MS2DeepScoreMonteCarlo(model, n_ensembles=5)
+        similarity_measure = MS2DeepScoreMonteCarlo(model, n_ensembles=10)
         # Calculate scores and get matchms.Scores object
         scores = calculate_scores(references, queries, similarity_measure)
 
 
     """
+    # Set key characteristics as class attributes
+    is_commutative = True
+    # Set output data type, e.g. ("score", "float") or [("score", "float"), ("matches", "int")]
+    score_datatype = [("score", np.float64), ("uncertainty", np.float64)]
+
     def __init__(self, model, n_ensembles: int = 10, average_type: str = "median",
                  progress_bar: bool = True):
         """
@@ -56,8 +62,10 @@ class MS2DeepScoreMonteCarlo(BaseSimilarity):
             n_ensembles will lead to n_ensembles^2 scores of which the mean and STD will
             be taken.
         average_type:
-            Choice between "median" and "mean" defineing which type of averaging is used
-            to compute the similarity score from all ensemble scores. Default is "median".
+            Choice between "median" and "mean" defining which type of averaging is used
+            to compute the similarity score from all ensemble scores. Default is "median"
+            in which case the uncertainty will be evaluate by the interquantile range (IQR).
+            When using "mean" the standard deviation is taken as uncertainty measure.
         progress_bar:
             Set to True to monitor the embedding creating with a progress bar.
             Default is False.
@@ -94,12 +102,15 @@ class MS2DeepScoreMonteCarlo(BaseSimilarity):
             print(f"Found multiple different dropout rates. Selected 1st dropout rate: {dropout_rates[0]}")
         dropout_rate = dropout_rates[0]
 
+        dropout_in_first_layer = ('dropout' in self.model.base.layers[3].name)
+
         # re-build base network with dropout layers always on
         base = self.model.get_base_model(input_dim=self.input_vector_dim,
                                          base_dims=base_dims,
                                          embedding_dim=self.output_vector_dim,
                                          dropout_rate=dropout_rate,
-                                         dropout_always_on=True)
+                                         dropout_always_on=True,
+                                         dropout_in_first_layer=dropout_in_first_layer)
         base.set_weights(self.model.base.get_weights())
         return base
 
@@ -116,8 +127,8 @@ class MS2DeepScoreMonteCarlo(BaseSimilarity):
 
         Returns
         -------
-        ms2ds_ensemble_similarity, ms2ds_ensemble_std
-            Tuple of MS2DeepScore similarity score and uncertainty measure (STD).
+        ms2ds_ensemble_similarity, ms2ds_ensemble_uncertainty
+            Tuple of MS2DeepScore similarity score and uncertainty measure (STD/IQR).
         """
         binned_reference = self.model.spectrum_binner.transform([reference])[0]
         binned_query = self.model.spectrum_binner.transform([query])[0]
@@ -126,9 +137,12 @@ class MS2DeepScoreMonteCarlo(BaseSimilarity):
         scores_ensemble = cosine_similarity_matrix(reference_vectors, query_vectors)
         if self.average_type == "median":
             average_similarity = np.median(scores_ensemble)
+            uncertainty = iqr_pooling(scores_ensemble, self.n_ensembles)[0, 0]
         elif self.average_type == "mean":
             average_similarity = np.mean(scores_ensemble)
-        return average_similarity, scores_ensemble.std()
+            uncertainty = scores_ensemble.std()
+        return np.asarray((average_similarity, uncertainty),
+                          dtype=self.score_datatype)
 
     def matrix(self, references: List[Spectrum], queries: List[Spectrum],
                is_symmetric: bool = False) -> np.ndarray:
@@ -146,8 +160,8 @@ class MS2DeepScoreMonteCarlo(BaseSimilarity):
 
         Returns
         -------
-        ms2ds_ensemble_similarity, ms2ds_ensemble_std
-            Array of Tuples of MS2DeepScore similarity score and uncertainty measure (STD).
+        ms2ds_ensemble_similarity, ms2ds_ensemble_uncertainties
+            Array of Tuples of MS2DeepScore similarity score and uncertainty measure (STD/IQR).
         """
         reference_vectors = self.calculate_vectors(references)
         if is_symmetric:
@@ -160,9 +174,16 @@ class MS2DeepScoreMonteCarlo(BaseSimilarity):
         ms2ds_similarity = cosine_similarity_matrix(reference_vectors, query_vectors)
         if self.average_type == "median":
             average_similarities = median_pooling(ms2ds_similarity, self.n_ensembles)
+            uncertainties = iqr_pooling(ms2ds_similarity, self.n_ensembles)
         elif self.average_type == "mean":
             average_similarities = mean_pooling(ms2ds_similarity, self.n_ensembles)
-        return average_similarities, std_pooling(ms2ds_similarity, self.n_ensembles)
+            uncertainties = std_pooling(ms2ds_similarity, self.n_ensembles)
+
+        similarities=np.empty((average_similarities.shape[0],
+                              average_similarities.shape[1]), dtype=self.score_datatype)
+        similarities['score'] = average_similarities
+        similarities['uncertainty'] = uncertainties
+        return similarities
 
     def calculate_vectors(self, spectrum_list: List[Spectrum]) -> Tuple[np.ndarray, np.ndarray]:
         """Returns a list of vectors for all spectra

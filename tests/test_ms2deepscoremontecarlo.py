@@ -9,7 +9,7 @@ from tests.test_user_worfklow import load_processed_spectrums
 TEST_RESOURCES_PATH = Path(__file__).parent / 'resources'
 
 
-def get_test_ms2_deep_score_instance(n_ensembles):
+def get_test_ms2_deep_score_instance(n_ensembles, average_type="median"):
     """Load data and models for MS2DeepScore unit tests."""
     spectrums = load_processed_spectrums()
 
@@ -17,7 +17,8 @@ def get_test_ms2_deep_score_instance(n_ensembles):
     model_file = TEST_RESOURCES_PATH / "testmodel.hdf5"
     model = load_model(model_file)
 
-    similarity_measure = MS2DeepScoreMonteCarlo(model, n_ensembles)
+    similarity_measure = MS2DeepScoreMonteCarlo(model, n_ensembles,
+                                                average_type)
     return spectrums, model, similarity_measure
 
 
@@ -35,24 +36,33 @@ def test_MS2DeepScoreMonteCarlo_vector_creation():
     assert input_vectors[0, 92] == 1, "Expected different entries"
 
 
-def test_MS2DeepScoreMonteCarlo_score_pair():
+@pytest.mark.parametrize("average_type", ['median', 'mean'])
+def test_MS2DeepScoreMonteCarlo_score_pair(average_type):
     """Test score calculation using *.pair* method."""
-    spectrums, _, similarity_measure = get_test_ms2_deep_score_instance(n_ensembles=5)
-    score, score_std = similarity_measure.pair(spectrums[0], spectrums[1])
-    assert isinstance(score, np.float64), "Expected float as score."
-    assert score > 0.65 and score < 0.9, "Expected score in different range"
-    assert isinstance(score_std, np.float64), "Expected float as STD."
-    assert score_std > 0.01 and score_std < 0.06, "Expected STD(score) in different range"
+    spectrums, _, similarity_measure = get_test_ms2_deep_score_instance(n_ensembles=5,
+                                                                        average_type=average_type)
+    score = similarity_measure.pair(spectrums[0], spectrums[1])
+    assert score['score'].dtype == np.float64, "Expected float as score."
+    assert score['score'] > 0.65 and score['score'] < 0.9, "Expected score in different range"
+    assert score['uncertainty'].dtype == np.float64, "Expected float as uncertainty."
+    if average_type == 'median':
+        assert score['uncertainty'] > 0.01 and score['uncertainty'] < 0.12, \
+            "Expected uncertainty in different range"
+    else:
+        assert score['uncertainty'] > 0.01 and score['uncertainty'] < 0.06, \
+            "Expected uncertainty in different range"
 
 
-def test_MS2DeepScoreMonteCarlo_score_matrix():
+@pytest.mark.parametrize("average_type", ['median', 'mean'])
+def test_MS2DeepScoreMonteCarlo_score_matrix(average_type):
     """Test score calculation using *.matrix* method."""
-    spectrums, _, similarity_measure = get_test_ms2_deep_score_instance(n_ensembles=5)
-    scores, scores_std = similarity_measure.matrix(spectrums[:4], spectrums[:3])
-    assert scores.shape == (4, 3), "Expected different shape"
-    assert scores_std.shape == (4, 3), "Expected different shape"
-    assert np.max(scores_std) < 0.1, "Expected lower STD"
-    assert np.max(scores) > 0.5, "Expected higher scores"
+    spectrums, _, similarity_measure = get_test_ms2_deep_score_instance(n_ensembles=5,
+                                                                        average_type=average_type)
+    scores = similarity_measure.matrix(spectrums[:4], spectrums[:3])
+    assert scores['score'].shape == (4, 3), "Expected different shape"
+    assert scores['uncertainty'].shape == (4, 3), "Expected different shape"
+    assert np.max(scores['uncertainty']) < 0.2, "Expected lower uncertainty"
+    assert np.max(scores['score']) > 0.5, "Expected higher scores"
 
 
 def test_MS2DeepScoreMonteCarlo_score_matrix_symmetric_wrong_use():

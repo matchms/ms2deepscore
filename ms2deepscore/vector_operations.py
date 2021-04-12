@@ -116,7 +116,7 @@ def median_pooling(scores_ensemble: np.ndarray, n_ensembles: int) -> np.ndarray:
 
 @numba.njit(fastmath=True)
 def std_pooling(scores_ensemble: np.ndarray, n_ensembles: int) -> np.ndarray:
-    """Do standard deviation pooling on an ensemble of score std's."""
+    """Do standard deviation pooling on an ensemble of scores."""
     dim_0 = int(scores_ensemble.shape[0]/n_ensembles)
     dim_1 = int(scores_ensemble.shape[1]/n_ensembles)
     scores_pooled = np.zeros((dim_0, dim_1))
@@ -125,4 +125,20 @@ def std_pooling(scores_ensemble: np.ndarray, n_ensembles: int) -> np.ndarray:
         for j in range(dim_1):
             scores_pooled[i, j] = np.std(scores_ensemble[i*n_ensembles:(i+1)*n_ensembles,
                                                          j*n_ensembles:(j+1)*n_ensembles])
+    return scores_pooled
+
+
+@numba.njit(fastmath=True)
+def iqr_pooling(scores_ensemble: np.ndarray, n_ensembles: int) -> np.ndarray:
+    """Do interquartile range (IQR) pooling on an ensemble of scores."""
+    dim_0 = int(scores_ensemble.shape[0]/n_ensembles)
+    dim_1 = int(scores_ensemble.shape[1]/n_ensembles)
+    scores_pooled = np.zeros((dim_0, dim_1))
+
+    for i in range(dim_0):
+        for j in range(dim_1):
+            q75, q25 = np.percentile(scores_ensemble[i*n_ensembles:(i+1)*n_ensembles,
+                                                     j*n_ensembles:(j+1)*n_ensembles],
+                                     [75 ,25])
+            scores_pooled[i, j] = q75 - q25
     return scores_pooled

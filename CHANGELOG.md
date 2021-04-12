@@ -12,6 +12,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## Added
 
 - `MS2DeepScoreMonteCarlo` Monte-Carlo dropout based ensembling do obtain mean/median score and STD [#65](https://github.com/matchms/ms2deepscore/pull/65)
+- choice between `median` (default) and `mean` ensemble score which come with `IQR` and `STD` as uncertainty measures [#86](https://github.com/matchms/ms2deepscore/pull/86)
+- `dropout_in_first_layer` option for SiameseModel (default is False) [#86](https://github.com/matchms/ms2deepscore/pull/86)
 - `use_fixed_set` option for data generators to create deterministic training/testing data with fixed random seed [#73](https://github.com/matchms/ms2deepscore/issues/73)
 
 ## Changed
