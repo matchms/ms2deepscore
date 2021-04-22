@@ -16,6 +16,12 @@ and compute similarities between pairs of spectra.
 In addition to the prediction of a structural similarity, 
 MS2DeepScore can also make use of Monte-Carlo dropout to assess the model uncertainty.
 
+## Reference
+If you use MS2DeepScore for your research, please cite the following:
+
+**"MS2DeepScore - a novel deep learning similarity measure for mass fragmentation spectrum comparisons"**
+Florian Huber, Sven van der Burg, Justin J.J. van der Hooft, Lars Ridder, bioRxiv 2021, doi: https://doi.org/10.1101/2021.04.18.440324 
+
 
 ## Setup
 ### Requirements
@@ -48,6 +54,56 @@ pip install ms2deepscore
 See [notebooks/MS2DeepScore_tutorial.ipynb](https://github.com/matchms/ms2deepscore/blob/main/notebooks/MS2DeepScore_tutorial.ipynb) 
 for a more extensive fully-working example on test data.
 
+There are two different ways to use MS2DeepScore to compute spectral similarities. You can train a new model on a dataset of your choice. That, however, should preferentially contain a substantial amount of spectra to learn relevant features, say > 10,000 spectra of sufficiently diverse types.
+The second way is much simpler: Use a model that was pretrained on a large dataset. 
+
+## 1) Use a pretrained model to compute spectral similarities
+We provide a model which was trained on > 100,000 MS/MS spectra from [GNPS](https://gnps.ucsd.edu/), which can simply be downloaded [from zenodo here](https://zenodo.org/record/4699356).
+To then compute the similarities between spectra of your choice you can run something like:
+```python
+from matchms import calculate_scores()
+from matchms.importing import load_from_msp
+from ms2deepscore import MS2DeepScore
+from ms2deepscore.models import load_model
+
+# Import data
+references = load_from_json("my_reference_spectra.msp")
+queries = load_from_json("my_query_spectra.msp")
+
+# Load pretrained model
+model = load_model("MS2DeepScore_allGNPSpositive_10k_500_500_200.hdf5")
+
+similarity_measure = MS2DeepScore(model)
+# Calculate scores and get matchms.Scores object
+scores = calculate_scores(references, queries, similarity_measure)
+```
+
+If you want to calculate all-vs-all spectral similarities, e.g. to build a network, than you can run:
+```python
+scores = calculate_scores(references, references, similarity_measure, is_symmetric=True)
+```
+
+To use Monte-Carlo Dropout to also get a uncertainty measure with each score, run the following:
+```python
+from matchms import calculate_scores()
+from matchms.importing import load_from_msp
+from ms2deepscore import MS2DeepScoreMonteCarlo
+from ms2deepscore.models import load_model
+
+# Import data
+references = load_from_json("my_reference_spectra.msp")
+queries = load_from_json("my_query_spectra.msp")
+
+# Load pretrained model
+model = load_model("MS2DeepScore_allGNPSpositive_10k_500_500_200.hdf5")
+
+similarity_measure = MS2DeepScoreMonteCarlo(model, n_ensembles=10)
+# Calculate scores and get matchms.Scores object
+scores = calculate_scores(references, queries, similarity_measure)
+```
+In that scenario, `scores["score"]` contains the similarity scores (median of the ensemble of 10x10 scores) and `scores["uncertainty"]` give an uncertainty estimate (interquartile range of ensemble of 10x10 scores.
+
+## 2) Train an own MS2DeepScore model
 ### Data preperation
 Bin spectrums using `ms2deepscore.SpectrumBinner`. 
 In this binned form we can feed spectra to the model.
