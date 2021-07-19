@@ -39,7 +39,7 @@ def create_peak_list_fixed(spectrums, peaks_vocab, d_bins,
         
         # Find binned peaks present in peaks_vocab
         idx_in_vocab = [i for i, x in enumerate(doc) if x in peaks_vocab.keys()]
-        idx_not_in_vocab = list(set(np.arange(len(doc))) - set(idx_in_vocab))
+        idx_not_in_vocab = [i for i in np.arange(len(doc)) if i not in idx_in_vocab]
     
         doc_bow = [peaks_vocab[doc[i]] for i in idx_in_vocab]
 
