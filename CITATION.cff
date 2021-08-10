@@ -1,27 +1,27 @@
 # YAML 1.2
 ---
-abstract: "Deep learning similarity measure for comparing MS/MS spectra with respect to their chemical similarity."
+title: "Deep learning similarity measure for comparing MS/MS spectra with respect to their chemical similarity."
 authors:
   -
     affiliation: "Netherlands eScience Center"
-    family-names: Huber
-    given-names: Florian
+    family-names: "Huber"
+    given-names: "Florian"
     orcid: "https://orcid.org/0000-0002-3535-9406"
   -
     affiliation: "Netherlands eScience Center"
-    family-names: van der Burg
-    given-names: Sven
+    family-names: "van der Burg"
+    given-names: "Sven"
     orcid: "https://orcid.org/0000-0003-1250-6968"
   -
     affiliation: "Wageningen University and Research"
-    family-names: Hooft
-    name-particle: van der
-    given-names: Justin J. J.
+    family-names: "Hooft"
+    name-particle: "van der"
+    given-names: "Justin J. J."
     orcid: "https://orcid.org/0000-0002-9340-5511"
   -
     affiliation: "Netherlands eScience Center"
-    family-names: Ridder
-    given-names: Lars
+    family-names: "Ridder"
+    given-names: "Lars"
     orcid: "https://orcid.org/0000-0002-7635-9533"
 
 cff-version: "1.1.0"
