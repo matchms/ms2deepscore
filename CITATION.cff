@@ -1,6 +1,6 @@
 # YAML 1.2
 ---
-title: "Deep learning similarity measure for comparing MS/MS spectra with respect to their chemical similarity."
+abstract: "Deep learning similarity measure for comparing MS/MS spectra with respect to their chemical similarity."
 authors:
   -
     affiliation: "Netherlands eScience Center"
