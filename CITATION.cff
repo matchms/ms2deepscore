@@ -12,6 +12,17 @@ authors:
     family-names: van der Burg
     given-names: Sven
     orcid: "https://orcid.org/0000-0003-1250-6968"
+  -
+    affiliation: "Wageningen University and Research"
+    family-names: Hooft
+    name-particle: van der
+    given-names: Justin J. J.
+    orcid: "https://orcid.org/0000-0002-9340-5511"
+  -
+    affiliation: "Netherlands eScience Center"
+    family-names: Ridder
+    given-names: Lars
+    orcid: "https://orcid.org/0000-0002-7635-9533"
 
 cff-version: "1.1.0"
 license: "Apache-2.0"
