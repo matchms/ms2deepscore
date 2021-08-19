@@ -184,7 +184,7 @@ class SiameseModel:
             assert len(given_model.layers) > 2, "Expected more layers"
             assert len(keras_model.layers[2]) > 1, "Expected more layers for base model"
             
-        valid_keras_model(given_model)
+        valid_keras_model(keras_model)
         self.base = keras_model.layers[2]
         self.model = keras_model
 
