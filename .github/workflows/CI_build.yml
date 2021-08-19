@@ -89,7 +89,7 @@ jobs:
           pip install -e .[dev]
       - name: Install specific Tensorflow version
         run: |
-          pip install --upgrade tensorflow<2.6
+          pip install --upgrade "tensorflow<2.6"
       - name: Show pip list
         run: |
           pip list
