@@ -93,7 +93,7 @@ jobs:
       - name: Show pip list
         run: |
           pip list
-      - name: Run test with coverage
+      - name: Run test with tensorflow version 2.4
         run: pytest
       - name: Install Tensorflow version 2.5
         run: |
@@ -101,5 +101,5 @@ jobs:
       - name: Show pip list
         run: |
           pip list
-      - name: Run test with coverage
+      - name: Run test with tensorflow version 2.5
         run: pytest
