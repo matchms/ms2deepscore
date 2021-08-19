@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## Fixed
+
+- now compatible with new Tensorflow 2.6, also checked by additional CI runs for Tensorflow 2.4, 2.5 and 2.6 [#92](https://github.com/matchms/ms2deepscore/pull/92)
+
 ## [0.2.1] - 2021-07-20
 
 ## Changed
