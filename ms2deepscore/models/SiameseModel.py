@@ -180,7 +180,7 @@ class SiameseModel:
 
     def _construct_from_keras_model(self, keras_model):
         def valid_keras_model(given_model):
-            # assert isinstance(given_model, keras.Model), "Expected keras model as input."
+            assert given_model.layers, "Expected valid keras model as input."
             assert len(given_model.layers) > 2, "Expected more layers"
             assert len(keras_model.layers[2].layers) > 1, "Expected more layers for base model"
             
