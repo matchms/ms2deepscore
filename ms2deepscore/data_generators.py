@@ -80,7 +80,7 @@ class DataGeneratorBase(Sequence):
         self.reference_scores_df = self._transform_to_inchikey14(self.reference_scores_df)
         self._collect_and_validate_inchikeys()
         self.dim = dim
-        self.fixed_set = dict()
+        self.fixed_set = {}
 
     def _collect_and_validate_inchikeys(self):
         """Collect all inchikeys14 (first 14 characters) of all binned_spectrums
@@ -159,7 +159,7 @@ class DataGeneratorBase(Sequence):
             ignore_equal_pairs=True,
             shuffle=True,
             same_prob_bins=[(0, 0.5), (0.5, 1)],
-            augment_removal_max= 0.3,
+            augment_removal_max=0.3,
             augment_removal_intensity=0.2,
             augment_intensity=0.4,
             augment_noise_max=10,
@@ -168,10 +168,9 @@ class DataGeneratorBase(Sequence):
         )
 
         # Set default parameters or replace by **settings input
-        for key in defaults:
+        for key, value in defaults.items():
             if key in settings:
-                print("The value for {} is set from {} (default) to {}".format(key, defaults[key],
-                                                                              settings[key]))
+                print(f"The value for {key} is set from {value} (default) to {settings[key]}")
             else:
                 settings[key] = defaults[key]
         assert 0.0 <= settings["augment_removal_max"] <= 1.0, "Expected value within [0,1]"

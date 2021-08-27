@@ -30,6 +30,7 @@ setup(
     python_requires='>=3.7',
     install_requires=[
         "matchms",
+        "numba<0.54",
         "numpy",
         "pandas",
         "tensorflow",
