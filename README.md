@@ -50,9 +50,10 @@ conda install --channel bioconda --channel conda-forge matchms
 pip install ms2deepscore
 ```
 
-## Quick start: How to prepare data, train a model, and compute similarities.
+## Getting started: How to prepare data, train a model, and compute similarities.
 See [notebooks/MS2DeepScore_tutorial.ipynb](https://github.com/matchms/ms2deepscore/blob/main/notebooks/MS2DeepScore_tutorial.ipynb) 
 for a more extensive fully-working example on test data.
+If you are not familiar with `matchms` yet, then we also recommand our [tutorial on how to get started using matchms](https://blog.esciencecenter.nl/build-your-own-mass-spectrometry-analysis-pipeline-in-python-using-matchms-part-i-d96c718c68ee).
 
 There are two different ways to use MS2DeepScore to compute spectral similarities. You can train a new model on a dataset of your choice. That, however, should preferentially contain a substantial amount of spectra to learn relevant features, say > 10,000 spectra of sufficiently diverse types.
 The second way is much simpler: Use a model that was pretrained on a large dataset. 
