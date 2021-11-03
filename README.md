@@ -19,8 +19,8 @@ MS2DeepScore can also make use of Monte-Carlo dropout to assess the model uncert
 ## Reference
 If you use MS2DeepScore for your research, please cite the following:
 
-**"MS2DeepScore - a novel deep learning similarity measure for mass fragmentation spectrum comparisons"**
-Florian Huber, Sven van der Burg, Justin J.J. van der Hooft, Lars Ridder, bioRxiv 2021, doi: https://doi.org/10.1101/2021.04.18.440324 
+**"MS2DeepScore - a novel deep learning similarity measure to compare tandem mass spectra"**
+Florian Huber, Sven van der Burg, Justin J.J. van der Hooft, Lars Ridder, Journal of Cheminformatics, doi: https://doi.org/10.1186/s13321-021-00558-4
 
 
 ## Setup
