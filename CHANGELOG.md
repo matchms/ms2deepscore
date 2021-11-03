@@ -13,7 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Fixed
 
-- Freezing numba to <0.54 due to dependency issues with new release [#94](https://github.com/matchms/ms2deepscore/issues/94)
+- Handled numby dependency issues [#94](https://github.com/matchms/ms2deepscore/issues/94) and [#95](https://github.com/matchms/ms2deepscore/issues/95)
 
 ## [0.2.2] - 2021-08-19
 
