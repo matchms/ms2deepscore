@@ -85,11 +85,17 @@ class DataGeneratorBase(Sequence):
     def _collect_and_validate_inchikeys(self):
         """Collect all inchikeys14 (first 14 characters) of all binned_spectrums
         and check if all are present in the reference scores as well.
+        Check for duplicate inchikeys.
         """
         self.spectrum_inchikeys = np.array([s.get("inchikey")[:14] for s in self.binned_spectrums])
         for inchikey in np.unique(self.spectrum_inchikeys):
             assert inchikey in self.reference_scores_df.index, \
                 "InChIKey in given spectrum not found in reference scores"
+        inchikeys = self.reference_scores_df.index
+        if len(set(inchikeys)) != len(inchikeys):
+            raise ValueError("Duplicate InChIKeys-14 detected in reference_scores_df: %s" % list(inchikeys[inchikeys.duplicated()]))
+
+
 
     @staticmethod
     def _validate_labels(reference_scores_df: pd.DataFrame):
@@ -316,7 +322,7 @@ class DataGeneratorAllSpectrums(DataGeneratorBase):
             by inchikeys. Columns and index should be inchikeys, the value in a row x column
             depicting the similarity score for that pair. Must be symmetric
             (reference_scores_df[i,j] == reference_scores_df[j,i]) and column names should be
-            identical to the index.
+            identical to the index and unique.
         dim
             Input vector dimension.
         As part of **settings, defaults for the following parameters can be set:
@@ -460,7 +466,7 @@ class DataGeneratorAllInchikeys(DataGeneratorBase):
     def __len__(self):
         """Denotes the number of batches per epoch
         NB1: self.reference_scores_df only contains 'selected' inchikeys, see `self._data_selection`.
-        NB2: We don't see all data every epoch, because the last half-empty batch is omitted. 
+        NB2: We don't see all data every epoch, because the last half-empty batch is omitted.
         This is expected behavior, with the shuffling this is OK.
         """
         return int(self.settings["num_turns"]) * int(np.floor(len(self.reference_scores_df) / self.settings[
