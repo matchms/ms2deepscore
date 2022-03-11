@@ -2,7 +2,7 @@ from pathlib import Path
 from typing import Tuple, Union
 import h5py
 from tensorflow import keras
-from tensorflow.keras.layers import BatchNormalization, Dense, Dropout, Input
+from tensorflow.keras.layers import BatchNormalization, Dense, Dropout, Input  # pylint: disable=import-error
 from tensorflow.python.keras.saving import hdf5_format
 
 from ms2deepscore import SpectrumBinner

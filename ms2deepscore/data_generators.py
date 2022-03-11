@@ -5,7 +5,7 @@ from typing import List, Iterator, NamedTuple
 
 import numpy as np
 import pandas as pd
-from tensorflow.keras.utils import Sequence
+from tensorflow.keras.utils import Sequence  # pylint: disable=import-error
 
 from .typing import BinnedSpectrumType
 
@@ -93,8 +93,8 @@ class DataGeneratorBase(Sequence):
                 "InChIKey in given spectrum not found in reference scores"
         inchikeys = self.reference_scores_df.index
         if len(set(inchikeys)) != len(inchikeys):
-            raise ValueError("Duplicate InChIKeys-14 detected in reference_scores_df: %s" % list(inchikeys[inchikeys.duplicated()]))
-
+            msg = f"Duplicate InChIKeys-14 detected in reference_scores_df: {list(inchikeys[inchikeys.duplicated()])}"
+            raise ValueError(msg)
 
 
     @staticmethod
