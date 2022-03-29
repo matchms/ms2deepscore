@@ -105,43 +105,7 @@ scores = calculate_scores(references, queries, similarity_measure)
 In that scenario, `scores["score"]` contains the similarity scores (median of the ensemble of 10x10 scores) and `scores["uncertainty"]` give an uncertainty estimate (interquartile range of ensemble of 10x10 scores.
 
 ## 2) Train an own MS2DeepScore model
-### Data preperation
-Bin spectrums using `ms2deepscore.SpectrumBinner`. 
-In this binned form we can feed spectra to the model.
-```python
-from ms2deepscore import SpectrumBinner
-spectrum_binner = SpectrumBinner(1000, mz_min=10.0, mz_max=1000.0, peak_scaling=0.5)
-binned_spectrums = spectrum_binner.fit_transform(spectrums)
-```
-Create a data generator that will generate batches of training examples.
-Each training example consists of a pair of binned spectra and the corresponding reference similarity score.
-```python
-from ms2deepscore.data_generators import DataGeneratorAllSpectrums
-dimension = len(spectrum_binner.known_bins)
-data_generator = DataGeneratorAllSpectrums(binned_spectrums, tanimoto_scores_df,
-                                           dim=dimension)
-```
-### Train a model
-Initialize and train a SiameseModel. 
-It consists of a dense 'base' network that produces an embedding for each of the 2 inputs.
-The 'head' model computes the cosine similarity between the embeddings.
-```python
-from tensorflow import keras
-from ms2deepscore.models import SiameseModel
-model = SiameseModel(spectrum_binner, base_dims=(200, 200, 200), embedding_dim=200,
-                     dropout_rate=0.2)
-model.compile(loss='mse', optimizer=keras.optimizers.Adam(lr=0.001))
-model.fit(data_generator,
-          validation_data=data_generator,
-          epochs=2)
-```
-### Predict similarity scores
-Calculate similariteis for a pair of spectra
-```python
-from ms2deepscore import MS2DeepScore
-similarity_measure = MS2DeepScore(model)
-score = similarity_measure.pair(spectrums[0], spectrums[1])
-```
+A notebook with a tutorial on how to train a MS2Deepscore model on your own data can be found here: [MS2DeepScore tutorial](https://github.com/matchms/ms2deepscore/blob/main/notebooks/MS2DeepScore_tutorial.ipynb)
 
 ## Contributing
 We welcome contributions to the development of ms2deepscore! Have a look at the [contribution guidelines](https://github.com/matchms/ms2deepscore/blob/main/CONTRIBUTING.md).
