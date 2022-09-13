@@ -50,6 +50,9 @@ conda install --channel bioconda --channel conda-forge matchms
 pip install ms2deepscore
 ```
 
+### Installation on macos with M1 chip
+Users on MacOS with the M1 chip should intall tensorflow manually: `pip install tensorflow=macos`.
+
 ## Getting started: How to prepare data, train a model, and compute similarities.
 See [notebooks/MS2DeepScore_tutorial.ipynb](https://github.com/matchms/ms2deepscore/blob/main/notebooks/MS2DeepScore_tutorial.ipynb) 
 for a more extensive fully-working example on test data.
