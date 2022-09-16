@@ -39,6 +39,22 @@ def test_SpectrumBinner_fit_transform():
         "Expected different inchikeys."
 
 
+def test_SpectrumBinner_fit_transform_peak_overlap():
+    """Test if method works and takes the maximum peak intensity per bin."""
+    ms2ds_binner = SpectrumBinner(100, mz_min=0.0, mz_max=100.0, peak_scaling=1.0)
+    spectrum_1 = Spectrum(mz=np.array([10, 10.01, 100.]),
+                          intensities=np.array([0.1, 0.8, 0.1]),
+                          metadata={'inchikey': "test_inchikey_01"})
+    spectrum_2 = Spectrum(mz=np.array([10, 40, 90.]),
+                          intensities=np.array([0.4, 0.2, 0.1]),
+                          metadata={'inchikey': "test_inchikey_02"})
+
+    binned_spectrums = ms2ds_binner.fit_transform([spectrum_1, spectrum_2])
+    assert ms2ds_binner.known_bins == [10, 40, 90, 100], "Expected different known bins."
+    assert binned_spectrums[0].binned_peaks == {0: 0.8, 3: 0.1}, \
+        "Expected different binned spectrum."
+
+
 def test_SpectrumBinner_fit_transform_peak_scaling():
     """Test if collect binned spectrums method works with different peak_scaling."""
     ms2ds_binner = SpectrumBinner(100, mz_min=0.0, mz_max=100.0, peak_scaling=0.0)
