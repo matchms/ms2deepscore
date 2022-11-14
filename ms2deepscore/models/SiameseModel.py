@@ -163,23 +163,17 @@ class SiameseModel:
         for i, dim in enumerate(base_dims):
             if i == 0:  # L1 and L2 regularization only in 1st layer
                 model_layer = Dense(dim, activation='relu', name='dense'+str(i+1),
-                                    kernel_regularizer=keras.regularizers.l1_l2(l1=l1_reg, l2=l2_reg))(
-                    model_input)
+                                    kernel_regularizer=keras.regularizers.l1_l2(l1=l1_reg, l2=l2_reg))(model_input)
             else:
-                model_layer = Dense(dim, activation='relu',
-                                    name='dense'+str(i+1))(model_layer)
+                model_layer = Dense(dim, activation='relu', name='dense'+str(i+1))(model_layer)
 
-            model_layer = BatchNormalization(
-                name='normalization'+str(i+1))(model_layer)
+            model_layer = BatchNormalization(name='normalization'+str(i+1))(model_layer)
             if dropout_always_on and i >= dropout_starting_layer:
-                model_layer = Dropout(dropout_rate, name='dropout'+str(i+1))(model_layer,
-                                                                             training=True)
+                model_layer = Dropout(dropout_rate, name='dropout'+str(i+1))(model_layer, training=True)
             elif i >= dropout_starting_layer:
-                model_layer = Dropout(
-                    dropout_rate, name='dropout'+str(i+1))(model_layer)
+                model_layer = Dropout(dropout_rate, name='dropout'+str(i+1))(model_layer)
 
-        embedding = Dense(embedding_dim, activation='relu',
-                          name='embedding')(model_layer)
+        embedding = Dense(embedding_dim, activation='relu', name='embedding')(model_layer)
         if additional_input > 0:
             return keras.Model(inputs=[base_input, side_input], outputs=[embedding], name='base')
 
@@ -208,15 +202,13 @@ class SiameseModel:
                                              normalize=True,
                                              name="cosine_similarity")([embedding_a, embedding_b])
 
-        return keras.Model(inputs=inputs, outputs=[cosine_similarity],
-                           name='head')
+        return keras.Model(inputs=inputs, outputs=[cosine_similarity], name='head')
 
     def _construct_from_keras_model(self, keras_model):
         def valid_keras_model(given_model):
             assert given_model.layers, "Expected valid keras model as input."
             assert len(given_model.layers) > 2, "Expected more layers"
-            assert len(
-                keras_model.layers[2].layers) > 1, "Expected more layers for base model"
+            assert len(keras_model.layers[2].layers) > 1, "Expected more layers for base model"
 
         valid_keras_model(keras_model)
         self.base = keras_model.layers[2]

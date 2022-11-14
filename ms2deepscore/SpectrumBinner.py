@@ -45,8 +45,7 @@ class SpectrumBinner:
         assert mz_max > mz_min, "mz_max must be > mz_min"
         self.mz_max = mz_max
         self.mz_min = mz_min
-        self.d_bins = set_d_bins_fixed(
-            number_of_bins, mz_min=mz_min, mz_max=mz_max)
+        self.d_bins = set_d_bins_fixed(number_of_bins, mz_min=mz_min, mz_max=mz_max)
         self.peak_scaling = peak_scaling
         self.allowed_missing_percentage = allowed_missing_percentage
         self.peak_to_position = None
@@ -66,8 +65,7 @@ class SpectrumBinner:
                               binner_dict["mz_max"], binner_dict["mz_min"],
                               binner_dict["peak_scaling"],
                               binner_dict["allowed_missing_percentage"])
-        spectrum_binner.peak_to_position = {
-            int(key): value for key, value in binner_dict["peak_to_position"].items()}
+        spectrum_binner.peak_to_position = {int(key): value for key, value in binner_dict["peak_to_position"].items()}
         spectrum_binner.known_bins = binner_dict["known_bins"]
         return spectrum_binner
 
@@ -87,8 +85,7 @@ class SpectrumBinner:
             Show progress bar if set to True. Default is True.
         """
         print("Collect spectrum peaks...")
-        peak_to_position, known_bins = unique_peaks_fixed(spectrums, self.d_bins,
-                                                          self.mz_max, self.mz_min)
+        peak_to_position, known_bins = unique_peaks_fixed(spectrums, self.d_bins, self.mz_max, self.mz_min)
         print(f"Calculated embedding dimension: {len(known_bins)}.")
         self.peak_to_position = peak_to_position
         self.known_bins = known_bins
