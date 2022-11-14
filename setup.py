@@ -33,9 +33,9 @@ setup(
         "numba",
         "numpy",
         "pandas",
-        "tensorflow;platform_system=='Darwin'"
-        "tensorflow;platform_system=='Windows'"
-        "tensorflow;platform_system=='Linux'"
+        "tensorflow;platform_system=='Darwin'",
+        "tensorflow;platform_system=='Windows'",
+        "tensorflow;platform_system=='Linux'",
         "tqdm",
     ],
     extras_require={"dev": ["bump2version",
