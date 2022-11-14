@@ -33,7 +33,8 @@ setup(
         "numba",
         "numpy",
         "pandas",
-        "tensorflow",
+        "tensorflow;platform_system!='darwin'"
+        "tensorflow-macos;platform_system!='darwin'"
         "tqdm",
     ],
     extras_require={"dev": ["bump2version",
