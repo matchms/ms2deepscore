@@ -18,6 +18,7 @@ class SpectrumBinner:
     Binning is here done using a fixed bin width defined by the *number_of_bins*
     as well as the range set by *mz_min* and *mz_max*.
     """
+
     def __init__(self, number_of_bins: int,
                  mz_max: float = 1000.0, mz_min: float = 10.0,
                  peak_scaling: float = 0.5, allowed_missing_percentage: float = 0.0):
@@ -44,7 +45,8 @@ class SpectrumBinner:
         assert mz_max > mz_min, "mz_max must be > mz_min"
         self.mz_max = mz_max
         self.mz_min = mz_min
-        self.d_bins = set_d_bins_fixed(number_of_bins, mz_min=mz_min, mz_max=mz_max)
+        self.d_bins = set_d_bins_fixed(
+            number_of_bins, mz_min=mz_min, mz_max=mz_max)
         self.peak_scaling = peak_scaling
         self.allowed_missing_percentage = allowed_missing_percentage
         self.peak_to_position = None
@@ -64,7 +66,8 @@ class SpectrumBinner:
                               binner_dict["mz_max"], binner_dict["mz_min"],
                               binner_dict["peak_scaling"],
                               binner_dict["allowed_missing_percentage"])
-        spectrum_binner.peak_to_position = {int(key): value for key, value in binner_dict["peak_to_position"].items()}
+        spectrum_binner.peak_to_position = {
+            int(key): value for key, value in binner_dict["peak_to_position"].items()}
         spectrum_binner.known_bins = binner_dict["known_bins"]
         return spectrum_binner
 
@@ -120,7 +123,9 @@ class SpectrumBinner:
             assert 100*missing_fractions[i] <= self.allowed_missing_percentage, \
                 f"{100*missing_fractions[i]:.2f} of weighted spectrum is unknown to the model."
             spectrum = BinnedSpectrum(binned_peaks=create_peak_dict(peak_list),
-                                      metadata={"inchikey": input_spectrums[i].get("inchikey")})
+                                      metadata={"inchikey": input_spectrums[i].get("inchikey"),
+                                                "precursor_mz": input_spectrums[i].get("precursor_mz"),
+                                                "parent_mass": input_spectrums[i].get("parent_mass")})
             spectrums_binned.append(spectrum)
         return spectrums_binned
 

@@ -76,8 +76,10 @@ class DataGeneratorBase(Sequence):
         # Set all other settings to input (or otherwise to defaults):
         self._set_generator_parameters(**settings)
         self.binned_spectrums = binned_spectrums
-        self.reference_scores_df = self._exclude_nans_from_labels(reference_scores_df)
-        self.reference_scores_df = self._transform_to_inchikey14(self.reference_scores_df)
+        self.reference_scores_df = self._exclude_nans_from_labels(
+            reference_scores_df)
+        self.reference_scores_df = self._transform_to_inchikey14(
+            self.reference_scores_df)
         self._collect_and_validate_inchikeys()
         self.dim = dim
         self.fixed_set = {}
@@ -87,7 +89,8 @@ class DataGeneratorBase(Sequence):
         and check if all are present in the reference scores as well.
         Check for duplicate inchikeys.
         """
-        self.spectrum_inchikeys = np.array([s.get("inchikey")[:14] for s in self.binned_spectrums])
+        self.spectrum_inchikeys = np.array(
+            [s.get("inchikey")[:14] for s in self.binned_spectrums])
         for inchikey in np.unique(self.spectrum_inchikeys):
             assert inchikey in self.reference_scores_df.index, \
                 "InChIKey in given spectrum not found in reference scores"
@@ -96,28 +99,31 @@ class DataGeneratorBase(Sequence):
             msg = f"Duplicate InChIKeys-14 detected in reference_scores_df: {list(inchikeys[inchikeys.duplicated()])}"
             raise ValueError(msg)
 
-
     @staticmethod
     def _validate_labels(reference_scores_df: pd.DataFrame):
         if set(reference_scores_df.index) != set(reference_scores_df.columns):
-            raise ValueError("index and columns of reference_scores_df are not identical")
+            raise ValueError(
+                "index and columns of reference_scores_df are not identical")
 
     @staticmethod
     def _transform_to_inchikey14(reference_scores_df: pd.DataFrame):
         """Transform index and column names from potential full InChIKeys to InChIKey14"""
         reference_scores_df.index = [x[:14] for x in reference_scores_df.index]
-        reference_scores_df.columns = [x[:14] for x in reference_scores_df.columns]
+        reference_scores_df.columns = [x[:14]
+                                       for x in reference_scores_df.columns]
         return reference_scores_df
 
     @staticmethod
     def _exclude_nans_from_labels(reference_scores_df: pd.DataFrame):
         """Exclude nans in reference_scores_df, exclude columns and rows if there is any NaN
         value"""
-        clean_df = reference_scores_df.dropna(axis='rows')  # drop rows with any NaN
+        clean_df = reference_scores_df.dropna(
+            axis='rows')  # drop rows with any NaN
         clean_df = clean_df[clean_df.index]  # drop corresponding columns
         n_dropped = len(reference_scores_df) - len(clean_df)
         if n_dropped > 0:
-            print(f"{n_dropped} nans among {len(reference_scores_df)} labels will be excluded.")
+            print(
+                f"{n_dropped} nans among {len(reference_scores_df)} labels will be excluded.")
         return clean_df
 
     def _set_generator_parameters(self, **settings):
@@ -158,6 +164,8 @@ class DataGeneratorBase(Sequence):
         use_fixed_set
             Toggles using a fixed dataset, if set to True the same dataset will be generated each
             epoch. Default is False.
+        additional_inputs
+            Array of additional values to be used in training for e.g. ["precursor_mz", "parent_mass"]
         """
         defaults = dict(
             batch_size=32,
@@ -170,13 +178,15 @@ class DataGeneratorBase(Sequence):
             augment_intensity=0.4,
             augment_noise_max=10,
             augment_noise_intensity=0.01,
-            use_fixed_set=False
+            use_fixed_set=False,
+            additional_input=[]
         )
 
         # Set default parameters or replace by **settings input
         for key, value in defaults.items():
             if key in settings:
-                print(f"The value for {key} is set from {value} (default) to {settings[key]}")
+                print(
+                    f"The value for {key} is set from {value} (default) to {settings[key]}")
             else:
                 settings[key] = defaults[key]
         assert 0.0 <= settings["augment_removal_max"] <= 1.0, "Expected value within [0,1]"
@@ -243,8 +253,10 @@ class DataGeneratorBase(Sequence):
         # Augmentation 1: peak removal (peaks < augment_removal_max)
         if self.settings["augment_removal_max"] or self.settings["augment_removal_intensity"]:
             # TODO: Factor out function with documentation + example?
-            indices_select = np.where(values < self.settings["augment_removal_max"])[0]
-            removal_part = np.random.random(1) * self.settings["augment_removal_max"]
+            indices_select = np.where(
+                values < self.settings["augment_removal_max"])[0]
+            removal_part = np.random.random(
+                1) * self.settings["augment_removal_max"]
             indices_select = np.random.choice(indices_select,
                                               int(np.ceil((1 - removal_part)*len(indices_select))))
             indices = np.concatenate((indices_select,
@@ -255,7 +267,8 @@ class DataGeneratorBase(Sequence):
         # Augmentation 2: Change peak intensities
         if self.settings["augment_intensity"]:
             # TODO: Factor out function with documentation + example?
-            values = (1 - self.settings["augment_intensity"] * 2 * (np.random.random(values.shape) - 0.5)) * values
+            values = (1 - self.settings["augment_intensity"] *
+                      2 * (np.random.random(values.shape) - 0.5)) * values
         # Augmentation 3: Peak addition
         if self.settings["augment_noise_max"] and self.settings["augment_noise_max"] > 0:
             idx, values = self._peak_addition(idx, values)
@@ -266,11 +279,13 @@ class DataGeneratorBase(Sequence):
         For each of between 0-augment_noise_max randomly selected zero-intensity bins
         that bin’s intensity is set to random values between 0 and augment_noise_intensity
         """
-        n_noise_peaks = np.random.randint(0, self.settings["augment_noise_max"])
+        n_noise_peaks = np.random.randint(
+            0, self.settings["augment_noise_max"])
         idx_no_peaks = np.setdiff1d(np.arange(0, self.dim), idx)
         idx_noise_peaks = np.random.choice(idx_no_peaks, n_noise_peaks)
         idx = np.concatenate((idx, idx_noise_peaks))
-        new_values = self.settings["augment_noise_intensity"] * np.random.random(len(idx_noise_peaks))
+        new_values = self.settings["augment_noise_intensity"] * \
+            np.random.random(len(idx_noise_peaks))
         values = np.concatenate((values, new_values))
         return idx, values
 
@@ -284,18 +299,40 @@ class DataGeneratorBase(Sequence):
 
     def __data_generation(self, spectrum_pairs: Iterator[SpectrumPair]):
         """Generates data containing batch_size samples"""
-        # Initialization
-        X = [np.zeros((self.settings["batch_size"], self.dim)) for i in range(2)]
-        y = np.zeros((self.settings["batch_size"],))
+        container_list = []
+        for pair in spectrum_pairs:
+            container_list.append(Container(pair,
+                                            self.reference_scores_df[pair[0].get(
+                                                "inchikey")[:14]][pair[1].get("inchikey")[:14]],
+                                            self.dim,
+                                            self._data_augmentation,
+                                            self.settings.get("additional_input")))
 
-        # Generate data
-        for i_pair, pair in enumerate(spectrum_pairs):
-            for i_spectrum, spectrum in enumerate(pair):
-                idx, values = self._data_augmentation(spectrum.binned_peaks)
-                X[i_spectrum][i_pair, idx] = values
-            y[i_pair] = self.reference_scores_df[pair[0].get("inchikey")[:14]][pair[1].get("inchikey")[:14]]
+        # multi input
+        if len(self.settings.get("additional_input")) > 0:
+            X = [[], [], [], []]
+            y = []
+            for container in container_list:
+                X[0].append(container.spectrum_values_left)
+                X[1].append(
+                    np.array(np.squeeze(container.additional_inputs_left)))
+                X[2].append(container.spectrum_values_right)
+                X[3].append(
+                    np.array(np.squeeze(container.additional_inputs_right)))
 
-        return X, y
+                y.append(container.tanimoto_score)
+
+            # important to return lists of arrays
+            return [np.array(X[0]), np.array(X[1]), np.array(X[2]), np.array(X[3])], np.asarray(y).astype('float32')
+
+        # else
+        X = [[], []]
+        y = []
+        for container in container_list:
+            X[0].append(container.spectrum_values_left)
+            X[1].append(container.spectrum_values_right)
+            y.append(container.tanimoto_score)
+        return [np.array(X[0]), np.array(X[1])], np.asarray(y).astype('float32')
 
     def _spectrum_pair_generator(self, batch_index: int) -> Iterator[SpectrumPair]:
         """
@@ -310,6 +347,7 @@ class DataGeneratorAllSpectrums(DataGeneratorBase):
     in binned_spectrums num_turns times in every epoch and pairing it with a randomly chosen
     other spectrum that corresponds to a reference score as defined in same_prob_bins.
     """
+
     def __init__(self, binned_spectrums: List[BinnedSpectrumType],
                  reference_scores_df: pd.DataFrame, dim: int, **settings):
         """Generates data for training a siamese Keras model.
@@ -350,9 +388,12 @@ class DataGeneratorAllSpectrums(DataGeneratorBase):
             Change peak intensities by a random number between 0 and augment_intensity.
             Default=0.1, which means that intensities are multiplied by 1+- a random
             number within [0, 0.1].
+        additional_inputs
+            Array of additional values to be used in training for e.g. ["precursor_mz", "parent_mass"]
         """
         super().__init__(binned_spectrums, reference_scores_df, dim, **settings)
-        self.reference_scores_df = self._exclude_not_selected_inchikeys(self.reference_scores_df)
+        self.reference_scores_df = self._exclude_not_selected_inchikeys(
+            self.reference_scores_df)
         self.on_epoch_end()
 
     def __len__(self):
@@ -369,43 +410,51 @@ class DataGeneratorAllSpectrums(DataGeneratorBase):
         """
         same_prob_bins = self.settings["same_prob_bins"]
         batch_size = self.settings["batch_size"]
-        indexes = self.indexes[batch_index*batch_size:(batch_index+1)*batch_size]
+        indexes = self.indexes[batch_index *
+                               batch_size:(batch_index+1)*batch_size]
         for index in indexes:
             spectrum1 = self.binned_spectrums[index]
             inchikey1 = spectrum1.get("inchikey")[:14]
 
             # Randomly pick the desired target score range and pick matching ID
-            target_score_range = same_prob_bins[np.random.choice(np.arange(len(same_prob_bins)))]
-            inchikey2 = self._find_match_in_range(inchikey1, target_score_range)
+            target_score_range = same_prob_bins[np.random.choice(
+                np.arange(len(same_prob_bins)))]
+            inchikey2 = self._find_match_in_range(
+                inchikey1, target_score_range)
             spectrum2 = self._get_spectrum_with_inchikey(inchikey2)
             yield SpectrumPair(spectrum1, spectrum2)
 
     def on_epoch_end(self):
         """Updates indexes after each epoch"""
-        self.indexes = np.tile(np.arange(len(self.binned_spectrums)), int(self.settings["num_turns"]))
+        self.indexes = np.tile(
+            np.arange(len(self.binned_spectrums)), int(self.settings["num_turns"]))
         if self.settings["shuffle"]:
             np.random.shuffle(self.indexes)
 
-    @staticmethod
+    @ staticmethod
     def _exclude_nans_from_labels(reference_scores_df: pd.DataFrame):
         """Exclude nans in reference_scores_df, exclude columns and rows if there is any NaN
         value"""
-        clean_df = reference_scores_df.dropna(axis='rows')  # drop rows with any NaN
+        clean_df = reference_scores_df.dropna(
+            axis='rows')  # drop rows with any NaN
         clean_df = clean_df[clean_df.index]  # drop corresponding columns
         n_dropped = len(reference_scores_df) - len(clean_df)
         if n_dropped > 0:
-            print(f"{n_dropped} nans among {len(reference_scores_df)} labels will be excluded.")
+            print(
+                f"{n_dropped} nans among {len(reference_scores_df)} labels will be excluded.")
         return clean_df
 
     def _exclude_not_selected_inchikeys(self, reference_scores_df: pd.DataFrame) -> pd.DataFrame:
         """Exclude rows and columns of reference_scores_df for all InChIKeys which are not
         present in the binned_spectrums."""
-        inchikeys_in_selection = {s.get("inchikey")[:14] for s in self.binned_spectrums}
+        inchikeys_in_selection = {
+            s.get("inchikey")[:14] for s in self.binned_spectrums}
         clean_df = reference_scores_df.loc[reference_scores_df.index.isin(inchikeys_in_selection),
-                                 reference_scores_df.columns.isin(inchikeys_in_selection)]
+                                           reference_scores_df.columns.isin(inchikeys_in_selection)]
         n_dropped = len(self.reference_scores_df) - len(clean_df)
         if n_dropped > 0:
-            print(f"{len(clean_df)} out of {len(self.reference_scores_df)} InChIKeys found in selected spectrums.")
+            print(
+                f"{len(clean_df)} out of {len(self.reference_scores_df)} InChIKeys found in selected spectrums.")
         return clean_df
 
 
@@ -417,6 +466,7 @@ class DataGeneratorAllInchikeys(DataGeneratorBase):
     with a randomly chosen other spectrum that corresponds to a reference score
     as defined in same_prob_bins.
     """
+
     def __init__(self, binned_spectrums: List[BinnedSpectrumType], selected_inchikeys: list,
                  reference_scores_df: pd.DataFrame, dim: int, **settings):
         """Generates data for training a siamese Keras model.
@@ -458,9 +508,12 @@ class DataGeneratorAllInchikeys(DataGeneratorBase):
             Change peak intensities by a random number between 0 and augment_intensity.
             Default=0.1, which means that intensities are multiplied by 1+- a random
             number within [0, 0.1].
+        additional_inputs
+            Array of additional values to be used in training for e.g. ["precursor_mz", "parent_mass"]
         """
         super().__init__(binned_spectrums, reference_scores_df, dim, **settings)
-        self.reference_scores_df = self._data_selection(reference_scores_df, selected_inchikeys)
+        self.reference_scores_df = self._data_selection(
+            reference_scores_df, selected_inchikeys)
         self.on_epoch_end()
 
     def __len__(self):
@@ -480,18 +533,21 @@ class DataGeneratorAllInchikeys(DataGeneratorBase):
         same_prob_bins = self.settings["same_prob_bins"]
         batch_size = self.settings["batch_size"]
         # Go through all indexes
-        indexes = self.indexes[batch_index * batch_size:(batch_index + 1) * batch_size]
+        indexes = self.indexes[batch_index *
+                               batch_size:(batch_index + 1) * batch_size]
 
         for index in indexes:
             inchikey1 = self.reference_scores_df.index[index]
             # Randomly pick the desired target score range and pick matching inchikey
-            target_score_range = same_prob_bins[np.random.choice(np.arange(len(same_prob_bins)))]
-            inchikey2 = self._find_match_in_range(inchikey1, target_score_range)
+            target_score_range = same_prob_bins[np.random.choice(
+                np.arange(len(same_prob_bins)))]
+            inchikey2 = self._find_match_in_range(
+                inchikey1, target_score_range)
             spectrum1 = self._get_spectrum_with_inchikey(inchikey1)
             spectrum2 = self._get_spectrum_with_inchikey(inchikey2)
             yield SpectrumPair(spectrum1, spectrum2)
 
-    @staticmethod
+    @ staticmethod
     def _data_selection(reference_scores_df, selected_inchikeys):
         """
         Select labeled data to generate from based on `selected_inchikeys`
@@ -500,6 +556,36 @@ class DataGeneratorAllInchikeys(DataGeneratorBase):
 
     def on_epoch_end(self):
         """Updates indexes after each epoch"""
-        self.indexes = np.tile(np.arange(len(self.reference_scores_df)), int(self.settings["num_turns"]))
+        self.indexes = np.tile(
+            np.arange(len(self.reference_scores_df)), int(self.settings["num_turns"]))
         if self.settings["shuffle"]:
             np.random.shuffle(self.indexes)
+
+
+class Container:
+    """
+    Helper class for DataGenerator
+    """
+
+    def __init__(self, spectrumPair, tanimoto_score, dim, _data_augmentation, additional_inputs=None):
+        self.spectrum_left = spectrumPair[0]
+        self.spectrum_right = spectrumPair[1]
+        self.spectrum_values_left = np.zeros((dim, ))
+        self.spectrum_values_right = np.zeros((dim, ))
+        self.idx_left, self.values_left = _data_augmentation(
+            self.spectrum_left.binned_peaks)
+        self.idx_right, self.values_right = _data_augmentation(
+            self.spectrum_right.binned_peaks)
+
+        self.spectrum_values_left[self.idx_left] = self.values_left
+        self.spectrum_values_right[self.idx_right] = self.values_right
+
+        self.additional_inputs_left = []
+        self.additional_inputs_right = []
+        for additional_input in additional_inputs:
+            self.additional_inputs_left.append(
+                [float(self.spectrum_left.get(additional_input))])
+            self.additional_inputs_right.append(
+                [float(self.spectrum_right.get(additional_input))])
+
+        self.tanimoto_score = tanimoto_score
