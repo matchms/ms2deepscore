@@ -76,10 +76,8 @@ class DataGeneratorBase(Sequence):
         # Set all other settings to input (or otherwise to defaults):
         self._set_generator_parameters(**settings)
         self.binned_spectrums = binned_spectrums
-        self.reference_scores_df = self._exclude_nans_from_labels(
-            reference_scores_df)
-        self.reference_scores_df = self._transform_to_inchikey14(
-            self.reference_scores_df)
+        self.reference_scores_df = self._exclude_nans_from_labels(reference_scores_df)
+        self.reference_scores_df = self._transform_to_inchikey14(self.reference_scores_df)
         self._collect_and_validate_inchikeys()
         self.dim = dim
         self.fixed_set = {}
@@ -89,8 +87,7 @@ class DataGeneratorBase(Sequence):
         and check if all are present in the reference scores as well.
         Check for duplicate inchikeys.
         """
-        self.spectrum_inchikeys = np.array(
-            [s.get("inchikey")[:14] for s in self.binned_spectrums])
+        self.spectrum_inchikeys = np.array([s.get("inchikey")[:14] for s in self.binned_spectrums])
         for inchikey in np.unique(self.spectrum_inchikeys):
             assert inchikey in self.reference_scores_df.index, \
                 "InChIKey in given spectrum not found in reference scores"
@@ -181,8 +178,7 @@ class DataGeneratorBase(Sequence):
         # Set default parameters or replace by **settings input
         for key, value in defaults.items():
             if key in settings:
-                print(
-                    f"The value for {key} is set from {value} (default) to {settings[key]}")
+                print(f"The value for {key} is set from {value} (default) to {settings[key]}")
             else:
                 settings[key] = defaults[key]
         assert 0.0 <= settings["augment_removal_max"] <= 1.0, "Expected value within [0,1]"
@@ -260,8 +256,7 @@ class DataGeneratorBase(Sequence):
         # Augmentation 2: Change peak intensities
         if self.settings["augment_intensity"]:
             # TODO: Factor out function with documentation + example?
-            values = (1 - self.settings["augment_intensity"] *
-                      2 * (np.random.random(values.shape) - 0.5)) * values
+            values = (1 - self.settings["augment_intensity"] * 2 * (np.random.random(values.shape) - 0.5)) * values
         # Augmentation 3: Peak addition
         if self.settings["augment_noise_max"] and self.settings["augment_noise_max"] > 0:
             idx, values = self._peak_addition(idx, values)
@@ -272,8 +267,7 @@ class DataGeneratorBase(Sequence):
         For each of between 0-augment_noise_max randomly selected zero-intensity bins
         that bin’s intensity is set to random values between 0 and augment_noise_intensity
         """
-        n_noise_peaks = np.random.randint(
-            0, self.settings["augment_noise_max"])
+        n_noise_peaks = np.random.randint(0, self.settings["augment_noise_max"])
         idx_no_peaks = np.setdiff1d(np.arange(0, self.dim), idx)
         idx_noise_peaks = np.random.choice(idx_no_peaks, n_noise_peaks)
         idx = np.concatenate((idx, idx_noise_peaks))
