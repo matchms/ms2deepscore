@@ -7,7 +7,7 @@
 [![fair-software.eu](https://img.shields.io/badge/fair--software.eu-%E2%97%8F%20%20%E2%97%8F%20%20%E2%97%8F%20%20%E2%97%8F%20%20%E2%97%8B-yellow)](https://fair-software.eu)
 
 # ms2deepscore
-ms2deepscore provides a Siamese neural network that is trained to predict molecular structural similarities (Tanimoto scores) 
+`ms2deepscore` provides a Siamese neural network that is trained to predict molecular structural similarities (Tanimoto scores) 
 from pairs of mass spectrometry spectra. 
 
 The library provides an intuitive classes to prepare data, train a siamese model,
