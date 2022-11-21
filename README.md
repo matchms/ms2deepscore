@@ -26,7 +26,7 @@ Florian Huber, Sven van der Burg, Justin J.J. van der Hooft, Lars Ridder, 13, Ar
 ## Setup
 ### Requirements
 
-Python 3.7 or higher
+Python 3.7 or higher.  
 Tested with Tensorflow 2.4, 2.5, and latest version.
 
 ### Installation
