@@ -5,7 +5,7 @@ from typing import List, Iterator, NamedTuple
 
 import numpy as np
 import pandas as pd
-from tensorflow.keras.utils import Sequence  # pylint: disable=import-error
+from tensorflow.keras.utils import Sequence
 
 from .typing import BinnedSpectrumType
 
@@ -408,6 +408,7 @@ class DataGeneratorAllSpectrums(DataGeneratorBase):
         """Updates indexes after each epoch"""
         self.indexes = np.tile(np.arange(len(self.binned_spectrums)), int(self.settings["num_turns"]))
         if self.settings["shuffle"]:
+
             np.random.shuffle(self.indexes)
 
     @ staticmethod

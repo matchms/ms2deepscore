@@ -2,7 +2,7 @@ from pathlib import Path
 from typing import Tuple, Union
 import h5py
 from tensorflow import keras
-from tensorflow.keras.layers import BatchNormalization, Dense, Dropout, Input, concatenate, Embedding  # pylint: disable=import-error
+from tensorflow.keras.layers import BatchNormalization, Dense, Dropout, Input, concatenate
 from tensorflow.python.keras.saving import hdf5_format
 
 from ms2deepscore import SpectrumBinner
@@ -150,7 +150,7 @@ class SiameseModel:
         additional_input
             Default is 0, can be increased when more inputs are configured in input data.
         """
-        # pylint: disable=too-many-arguments
+        # pylint: disable=too-many-arguments, disable=too-many-locals
 
         dropout_starting_layer = 0 if dropout_in_first_layer else 1
         base_input = Input(shape=input_dim, name='base_input')
