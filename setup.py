@@ -33,7 +33,7 @@ setup(
         "numba",
         "numpy",
         "pandas",
-        "tensorflow",
+        "tensorflow<=2.10",
         "tqdm",
     ],
     extras_require={"dev": ["bump2version",
