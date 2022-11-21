@@ -31,7 +31,7 @@ setup(
     install_requires=[
         "matchms",
         "numba",
-        "numpy",
+        "numpy>= 1.20.3",
         "pandas",
         "tensorflow",
         "tqdm",
