@@ -1,8 +1,13 @@
 import os
 from pathlib import Path
+from packaging import version
 import numpy as np
+import tensorflow as tf
 from tensorflow import keras
-
+if version.parse(tf.__version__) >= version.parse("2.11"):
+    AdamOptimizer = keras.optimizers.legacy.Adam
+else:
+    AdamOptimizer = keras.optimizers.Adam
 from ms2deepscore import SpectrumBinner
 from ms2deepscore.data_generators import DataGeneratorAllInchikeys
 from ms2deepscore.models import SiameseModel, load_model
@@ -35,7 +40,7 @@ def test_siamese_model():
     spectrum_binner, test_generator = get_test_binner_and_generator()
     model = SiameseModel(spectrum_binner, base_dims=(200, 200, 200),
                          embedding_dim=200, dropout_rate=0.2)
-    model.compile(loss='mse', optimizer=keras.optimizers.Adam(lr=0.001))
+    model.compile(loss='mse', optimizer=AdamOptimizer(learning_rate=0.001))
     model.summary()
     model.fit(test_generator,
               validation_data=test_generator,
@@ -63,7 +68,7 @@ def test_siamese_model_different_architecture():
     spectrum_binner, test_generator = get_test_binner_and_generator()
     model = SiameseModel(spectrum_binner, base_dims=(200, 200, 100, 100, 100),
                          embedding_dim=100, dropout_rate=0.2)
-    model.compile(loss='mse', optimizer=keras.optimizers.Adam(lr=0.001))
+    model.compile(loss='mse', optimizer=AdamOptimizer(lr=0.001))
     assert len(model.model.layers) == 4, "Expected different number of layers"
     assert len(model.model.layers[2].layers) == len(model.base.layers) == 16, \
         "Expected different number of layers"
@@ -75,7 +80,7 @@ def test_siamese_model_dropout_in_first_layer():
     spectrum_binner, test_generator = get_test_binner_and_generator()
     model = SiameseModel(spectrum_binner, base_dims=(200, 200, 100, 100, 100),
                          embedding_dim=100, dropout_rate=0.2, dropout_in_first_layer=True)
-    model.compile(loss='mse', optimizer=keras.optimizers.Adam(lr=0.001))
+    model.compile(loss='mse', optimizer=AdamOptimizer(lr=0.001))
     assert len(model.model.layers) == 4, "Expected different number of layers"
     assert len(model.model.layers[2].layers) == len(model.base.layers) == 17, \
         "Expected different number of layers"
@@ -120,7 +125,7 @@ def test_save_and_load_model(tmp_path):
     spectrum_binner, test_generator = get_test_binner_and_generator()
     model = SiameseModel(spectrum_binner, base_dims=(200, 200, 200),
                          embedding_dim=200, dropout_rate=0.2)
-    model.compile(loss='mse', optimizer=keras.optimizers.Adam(lr=0.001))
+    model.compile(loss='mse', optimizer=AdamOptimizer(lr=0.001))
     model.summary()
     model.fit(test_generator,
               validation_data=test_generator,
