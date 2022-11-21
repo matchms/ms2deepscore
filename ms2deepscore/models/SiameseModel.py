@@ -2,7 +2,7 @@ from pathlib import Path
 from typing import Tuple, Union
 import h5py
 from tensorflow import keras
-from tensorflow.keras.layers import BatchNormalization, Dense, Dropout, Input  # pylint: disable=import-error
+from tensorflow.keras.layers import BatchNormalization, Dense, Dropout, Input, concatenate
 from tensorflow.python.keras.saving import hdf5_format
 
 from ms2deepscore import SpectrumBinner
@@ -41,6 +41,7 @@ class SiameseModel:
                   epochs=50)
 
     """
+
     def __init__(self,
                  spectrum_binner: SpectrumBinner,
                  base_dims: Tuple[int, ...] = (600, 500, 500),
@@ -49,7 +50,8 @@ class SiameseModel:
                  dropout_in_first_layer: bool = False,
                  l1_reg: float = 1e-6,
                  l2_reg: float = 1e-6,
-                 keras_model: keras.Model = None):
+                 keras_model: keras.Model = None,
+                 additional_input=0):
         """
         Construct SiameseModel
 
@@ -88,9 +90,11 @@ class SiameseModel:
                                             dropout_rate=dropout_rate,
                                             dropout_in_first_layer=dropout_in_first_layer,
                                             l1_reg=l1_reg,
-                                            l2_reg=l2_reg)
+                                            l2_reg=l2_reg,
+                                            additional_input=additional_input)
             # Create head model
             self.model = self._get_head_model(input_dim=self.input_dim,
+                                              additional_input=additional_input,
                                               base_model=self.base)
         else:
             self._construct_from_keras_model(keras_model)
@@ -117,7 +121,8 @@ class SiameseModel:
                        dropout_in_first_layer: bool = False,
                        l1_reg: float = 1e-6,
                        l2_reg: float = 1e-6,
-                       dropout_always_on: bool = False) -> keras.Model:
+                       dropout_always_on: bool = False,
+                       additional_input=0) -> keras.Model:
         """Create base model for Siamaese network.
 
         Parameters
@@ -142,48 +147,69 @@ class SiameseModel:
             model training, but switched off during inference. When set to True,
             dropout layers will always be on, which is used for ensembling via
             Monte Carlo dropout.
+        additional_input
+            Default is 0, can be increased when more inputs are configured in input data.
         """
-        # pylint: disable=too-many-arguments
-        
+        # pylint: disable=too-many-arguments, disable=too-many-locals
+
         dropout_starting_layer = 0 if dropout_in_first_layer else 1
-        model_input = Input(shape=input_dim, name='base_input')
+        base_input = Input(shape=input_dim, name='base_input')
+        if (additional_input > 0):
+            side_input = Input(shape=additional_input, name="additional_input")
+            model_input = concatenate([base_input, side_input], axis=1)
+        else:
+            model_input = base_input
+
         for i, dim in enumerate(base_dims):
-            if i == 0: # L1 and L2 regularization only in 1st layer
+            if i == 0:  # L1 and L2 regularization only in 1st layer
                 model_layer = Dense(dim, activation='relu', name='dense'+str(i+1),
-                                    kernel_regularizer=keras.regularizers.l1_l2(l1=l1_reg, l2=l2_reg))(
-                   model_input)
+                                    kernel_regularizer=keras.regularizers.l1_l2(l1=l1_reg, l2=l2_reg))(model_input)
             else:
                 model_layer = Dense(dim, activation='relu', name='dense'+str(i+1))(model_layer)
 
             model_layer = BatchNormalization(name='normalization'+str(i+1))(model_layer)
             if dropout_always_on and i >= dropout_starting_layer:
-                model_layer = Dropout(dropout_rate, name='dropout'+str(i+1))(model_layer,
-                                                                             training=True)
+                model_layer = Dropout(dropout_rate, name='dropout'+str(i+1))(model_layer, training=True)
             elif i >= dropout_starting_layer:
                 model_layer = Dropout(dropout_rate, name='dropout'+str(i+1))(model_layer)
 
         embedding = Dense(embedding_dim, activation='relu', name='embedding')(model_layer)
-        return keras.Model(model_input, embedding, name='base')
+        if additional_input > 0:
+            return keras.Model(inputs=[base_input, side_input], outputs=[embedding], name='base')
+
+        return keras.Model(inputs=[base_input], outputs=[embedding], name='base')
 
     @staticmethod
     def _get_head_model(input_dim: int,
+                        additional_input: int,
                         base_model: keras.Model):
         input_a = Input(shape=input_dim, name="input_a")
         input_b = Input(shape=input_dim, name="input_b")
-        embedding_a = base_model(input_a)
-        embedding_b = base_model(input_b)
+
+        if additional_input > 0:
+            input_a_2 = Input(shape=additional_input, name="input_a_2")
+            input_b_2 = Input(shape=additional_input, name="input_b_2")
+            inputs = [input_a, input_a_2, input_b, input_b_2]
+
+            embedding_a = base_model([input_a, input_a_2])
+            embedding_b = base_model([input_b, input_b_2])
+        else:
+            embedding_a = base_model(input_a)
+            embedding_b = base_model(input_b)
+            inputs = [input_a, input_b]
+
         cosine_similarity = keras.layers.Dot(axes=(1, 1),
                                              normalize=True,
                                              name="cosine_similarity")([embedding_a, embedding_b])
-        return keras.Model(inputs=[input_a, input_b], outputs=[cosine_similarity],
-                           name='head')
+
+        return keras.Model(inputs=inputs, outputs=[cosine_similarity], name='head')
 
     def _construct_from_keras_model(self, keras_model):
         def valid_keras_model(given_model):
             assert given_model.layers, "Expected valid keras model as input."
             assert len(given_model.layers) > 2, "Expected more layers"
             assert len(keras_model.layers[2].layers) > 1, "Expected more layers for base model"
-            
+
         valid_keras_model(keras_model)
         self.base = keras_model.layers[2]
         self.model = keras_model

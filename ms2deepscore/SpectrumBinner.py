@@ -18,6 +18,7 @@ class SpectrumBinner:
     Binning is here done using a fixed bin width defined by the *number_of_bins*
     as well as the range set by *mz_min* and *mz_max*.
     """
+
     def __init__(self, number_of_bins: int,
                  mz_max: float = 1000.0, mz_min: float = 10.0,
                  peak_scaling: float = 0.5, allowed_missing_percentage: float = 0.0):
@@ -84,8 +85,7 @@ class SpectrumBinner:
             Show progress bar if set to True. Default is True.
         """
         print("Collect spectrum peaks...")
-        peak_to_position, known_bins = unique_peaks_fixed(spectrums, self.d_bins,
-                                                          self.mz_max, self.mz_min)
+        peak_to_position, known_bins = unique_peaks_fixed(spectrums, self.d_bins, self.mz_max, self.mz_min)
         print(f"Calculated embedding dimension: {len(known_bins)}.")
         self.peak_to_position = peak_to_position
         self.known_bins = known_bins
@@ -120,7 +120,9 @@ class SpectrumBinner:
             assert 100*missing_fractions[i] <= self.allowed_missing_percentage, \
                 f"{100*missing_fractions[i]:.2f} of weighted spectrum is unknown to the model."
             spectrum = BinnedSpectrum(binned_peaks=create_peak_dict(peak_list),
-                                      metadata={"inchikey": input_spectrums[i].get("inchikey")})
+                                      metadata={"inchikey": input_spectrums[i].get("inchikey"),
+                                                "precursor_mz": input_spectrums[i].get("precursor_mz"),
+                                                "parent_mass": input_spectrums[i].get("parent_mass")})
             spectrums_binned.append(spectrum)
         return spectrums_binned
 
