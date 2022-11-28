@@ -19,6 +19,11 @@
          "affiliation": "Netherlands eScience Center", 
          "name": "Ridder, Lars",
          "orcid": "0000-0002-7635-9533"
+      },
+      {
+         "affiliation": "University of Applied Sciences Düsseldorf", 
+         "name": "Joas, David",
+         "orcid": "0000-0001-9567-2157"
       }
    ], 
    "description": "Deep learning based similarity measure of mass spectrometry data.", 
