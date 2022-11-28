@@ -71,7 +71,7 @@ class MS2DeepScore(BaseSimilarity):
             values = np.array(list(binned_spectrum.binned_peaks.values()))
 
             X[0][0, idx] = values
-            X[1] = np.array([[float(value) for key, value in binned_spectrum.metadata.items() if not (key == "inchikey")]])
+            X[1] = np.array([[float(value) for key, value in binned_spectrum.metadata.items() if (key != "inchikey")]])
         else:
             X = np.zeros((1, self.input_vector_dim))
             idx = np.array([int(x)for x in binned_spectrum.binned_peaks.keys()])

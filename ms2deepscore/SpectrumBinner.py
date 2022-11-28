@@ -21,7 +21,8 @@ class SpectrumBinner:
 
     def __init__(self, number_of_bins: int,
                  mz_max: float = 1000.0, mz_min: float = 10.0,
-                 peak_scaling: float = 0.5, allowed_missing_percentage: float = 0.0):
+                 peak_scaling: float = 0.5, allowed_missing_percentage: float = 0.0,
+                 metadata=["inchikey"]):
         """
 
         Parameters
@@ -39,6 +40,8 @@ class SpectrumBinner:
             from the input model. This is measured as percentage of the weighted, unknown
             binned peaks compared to all peaks of the spectrum. Default is 0, which
             means no unknown binned peaks are allowed.
+        metadata:
+            List of all metadata used/wanted in a BinnedSpectrum. Default is ["inchikey"].
         """
         # pylint: disable=too-many-arguments
         self.number_of_bins = number_of_bins
@@ -50,6 +53,7 @@ class SpectrumBinner:
         self.allowed_missing_percentage = allowed_missing_percentage
         self.peak_to_position = None
         self.known_bins = None
+        self.metadata = metadata
 
     @classmethod
     def from_json(cls, json_str: str):
@@ -119,10 +123,12 @@ class SpectrumBinner:
                                            disable=(not progress_bar))):
             assert 100*missing_fractions[i] <= self.allowed_missing_percentage, \
                 f"{100*missing_fractions[i]:.2f} of weighted spectrum is unknown to the model."
+
+            assert not all(
+                metadata_key in input_spectrums[i] for metadata_key in self.metadata), "Spectrum " + i + " is missing specified metadata."
+            metadata = {metadata_key: input_spectrums[i].get(metadata_key) for metadata_key in self.metadata}
             spectrum = BinnedSpectrum(binned_peaks=create_peak_dict(peak_list),
-                                      metadata={"inchikey": input_spectrums[i].get("inchikey"),
-                                                "precursor_mz": input_spectrums[i].get("precursor_mz"),
-                                                "parent_mass": input_spectrums[i].get("parent_mass")})
+                                      metadata=metadata)
             spectrums_binned.append(spectrum)
         return spectrums_binned
 

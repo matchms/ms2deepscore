@@ -538,9 +538,9 @@ class Container:
     Helper class for DataGenerator
     """
 
-    def __init__(self, spectrumPair, tanimoto_score, dim, _data_augmentation, additional_inputs=None):
-        self.spectrum_left = spectrumPair[0]
-        self.spectrum_right = spectrumPair[1]
+    def __init__(self, spectrum_pair, tanimoto_score, dim, _data_augmentation, additional_inputs=None):
+        self.spectrum_left = spectrum_pair[0]
+        self.spectrum_right = spectrum_pair[1]
         self.spectrum_values_left = np.zeros((dim, ))
         self.spectrum_values_right = np.zeros((dim, ))
         self.idx_left, self.values_left = _data_augmentation(self.spectrum_left.binned_peaks)
