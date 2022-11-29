@@ -75,12 +75,15 @@ class SiameseModel:
         keras_model
             When provided, this keras model will be used to construct the SiameseModel instance.
             Default is None.
+        additional_input
+            Shape of additional inputs to be used in the model. Default is 0.
         """
         # pylint: disable=too-many-arguments
         assert spectrum_binner.known_bins is not None, \
             "spectrum_binner does not contain known bins (run .fit_transform() on training data first!)"
         self.spectrum_binner = spectrum_binner
         self.input_dim = len(spectrum_binner.known_bins)
+        self.additional_input = additional_input
 
         if keras_model is None:
             # Create base model
@@ -112,6 +115,7 @@ class SiameseModel:
         with h5py.File(filename, mode='w') as f:
             hdf5_format.save_model_to_hdf5(self.model, f)
             f.attrs['spectrum_binner'] = self.spectrum_binner.to_json()
+            f.attrs['additional_input'] = self.additional_input
 
     @staticmethod
     def get_base_model(input_dim: int,
@@ -148,7 +152,7 @@ class SiameseModel:
             dropout layers will always be on, which is used for ensembling via
             Monte Carlo dropout.
         additional_input
-            Default is 0, can be increased when more inputs are configured in input data.
+            Default is 0, shape of additional inputs 
         """
         # pylint: disable=too-many-arguments, disable=too-many-locals
 
@@ -208,10 +212,15 @@ class SiameseModel:
         def valid_keras_model(given_model):
             assert given_model.layers, "Expected valid keras model as input."
             assert len(given_model.layers) > 2, "Expected more layers"
-            assert len(keras_model.layers[2].layers) > 1, "Expected more layers for base model"
+            if self.additional_input > 0:
+                assert keras_model.layers[4], "Expected more layers for base model"
+            else: 
+                assert len(keras_model.layers[2].layers) > 1, "Expected more layers for base model"
 
         valid_keras_model(keras_model)
         self.base = keras_model.layers[2]
+        if self.additional_input > 0:
+            self.base = keras_model.layers[4]
         self.model = keras_model
 
     def compile(self, *args, **kwargs):
