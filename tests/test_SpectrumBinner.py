@@ -115,3 +115,20 @@ def test_SpectrumBinner_transform_missing_fraction():
         _ = ms2ds_binner.transform([spectrum_3])
     assert "weighted spectrum is unknown to the model"in str(msg.value), \
         "Expected different exception."
+
+
+def test_spectrum_binner_additional_metadata():
+    ms2ds_binner = SpectrumBinner(100, mz_min=0.0, mz_max=100.0, peak_scaling=1.0, additional_metadata=["parent_mass", "precursor_mz"])
+    
+    spectrum_1 = Spectrum(mz=np.array([10, 20, 50, 100.]),
+                          intensities=np.array([0.7, 0.6, 0.2, 0.1]),
+                          metadata={'inchikey': "test_inchikey_01", "parent_mass": "100", "precursor_mz": "99"})
+    binned_spectrums = ms2ds_binner.fit_transform([spectrum_1])
+    assert len(binned_spectrums[0].metadata) == 3, "Expected 3 items but found " + len(binned_spectrums[0].metadata) + " in metadata."
+    
+    spectrum_2 = Spectrum(mz=np.array([10, 20, 50, 100.]),
+                          intensities=np.array([0.7, 0.6, 0.2, 0.1]),
+                          metadata={'inchikey': "test_inchikey_01", "parent_mass": "100"})
+    with pytest.raises(AssertionError) as msg:
+        _= ms2ds_binner.transform([spectrum_2])
+    assert "is missing specified metadata." in str(msg.value), "Expected different exception."

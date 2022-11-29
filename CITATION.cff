@@ -23,6 +23,11 @@ authors:
     family-names: Ridder
     given-names: Lars
     orcid: https://orcid.org/0000-0002-7635-9533
+  -
+    affiliation: "University of Applied Sciences Düsseldorf"
+    family-names: Joas
+    given-names: David
+    orcid: https://orcid.org/0000-0001-9567-2157
 
 cff-version: 1.2.0
 license: "Apache-2.0"

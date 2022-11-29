@@ -172,3 +172,27 @@ def test_DataGeneratorAllSpectrums_fixed_set():
     first_X, first_y = collect_results(fixed_generator)
     second_X, second_y = collect_results(fixed_generator2)
     assert np.array_equal(first_X, second_X)
+
+def test_DataGeneratorAllSpectrums_additional_inputs():
+    """
+    Test if additional input parameter works as intended 
+    """
+    
+    # Get test data
+    spectrums = load_processed_spectrums()
+    tanimoto_scores_df = get_reference_scores()
+    ms2ds_binner = SpectrumBinner(100, mz_min=10.0, mz_max=1000.0, peak_scaling=0.5, 
+                                    additional_metadata=["parent_mass", "precursor_mz"])
+    binned_spectrums = ms2ds_binner.fit_transform(spectrums)
+
+
+    # Define other parameters
+    batch_size = 4
+    dimension = 88
+    additional_input=["precursor_mz", "parent_mass"]
+    data_generator = DataGeneratorAllSpectrums(binned_spectrums, tanimoto_scores_df,
+                                           dim=dimension, additional_input=additional_input)
+    batch_X, batch_y = data_generator.__getitem__(0)
+
+    assert len(batch_X) != len(batch_y), "Batchsizes from X and y are not the same."
+    assert len(batch_X[0]) != 3, "There are not as many inputs as specified."

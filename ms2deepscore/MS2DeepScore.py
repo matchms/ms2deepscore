@@ -39,7 +39,8 @@ class MS2DeepScore(BaseSimilarity):
 
 
     """
-    def __init__(self, model, progress_bar: bool = True):
+
+    def __init__(self, model, multi_inputs: bool = False, progress_bar: bool = True):
         """
 
         Parameters
@@ -53,17 +54,29 @@ class MS2DeepScore(BaseSimilarity):
             Default is False.
         """
         self.model = model
-        self.input_vector_dim = self.model.base.input_shape[1]  # TODO: later maybe also check against SpectrumBinner
+        self.multi_inputs = multi_inputs
+        # TODO: later maybe also check against SpectrumBinner
+        if (self.multi_inputs):
+            self.input_vector_dim = [self.model.base.input_shape[0][1], self.model.base.input_shape[1][1]]
+        else:
+            self.input_vector_dim = self.model.base.input_shape[1]
         self.output_vector_dim = self.model.base.output_shape[1]
         self.progress_bar = progress_bar
 
     def _create_input_vector(self, binned_spectrum: BinnedSpectrumType):
         """Creates input vector for model.base based on binned peaks and intensities"""
-        X = np.zeros((1, self.input_vector_dim))
+        if (self.multi_inputs):
+            X = [np.zeros((1, i[1])) for i in self.model.base.input_shape]
+            idx = np.array([int(x) for x in binned_spectrum.binned_peaks.keys()])
+            values = np.array(list(binned_spectrum.binned_peaks.values()))
 
-        idx = np.array([int(x) for x in binned_spectrum.binned_peaks.keys()])
-        values = np.array(list(binned_spectrum.binned_peaks.values()))
-        X[0, idx] = values
+            X[0][0, idx] = values
+            X[1] = np.array([[float(value) for key, value in binned_spectrum.metadata.items() if (key != "inchikey")]])
+        else:
+            X = np.zeros((1, self.input_vector_dim))
+            idx = np.array([int(x) for x in binned_spectrum.binned_peaks.keys()])
+            values = np.array(list(binned_spectrum.binned_peaks.values()))
+            X[0, idx] = values
         return X
 
     def pair(self, reference: Spectrum, query: Spectrum) -> float:
@@ -127,9 +140,9 @@ class MS2DeepScore(BaseSimilarity):
             List of spectra for which the vector should be calculated
         """
         n_rows = len(spectrum_list)
-        reference_vectors = np.empty((n_rows, self.output_vector_dim), dtype="float")
-        binned_spectrums = self.model.spectrum_binner.transform(spectrum_list,
-                                                                progress_bar=self.progress_bar)
+        reference_vectors = np.empty(
+            (n_rows, self.output_vector_dim), dtype="float")
+        binned_spectrums = self.model.spectrum_binner.transform(spectrum_list, progress_bar=self.progress_bar)
         for index_reference, reference in enumerate(
                 tqdm(binned_spectrums,
                      desc='Calculating vectors of reference spectrums',

@@ -71,3 +71,26 @@ def test_MS2DeepScore_score_matrix_symmetric_wrong_use():
                                       [spectrums[i] for i in [1,2,3,0]],
                                       is_symmetric=True)
     assert expected_msg in str(msg), "Expected different exception message"
+
+def get_test_ms2_deep_score_instance_additional_inputs():
+    """Load data and models for MS2DeepScore unit tests."""
+    spectrums = load_processed_spectrums()
+
+    # Load pretrained model
+    model_file = TEST_RESOURCES_PATH / "testmodel_additional_input.hdf5"
+    model = load_model(model_file)
+
+    similarity_measure = MS2DeepScore(model, multi_inputs=True)
+    return spectrums, model, similarity_measure
+
+def test_MS2DeepScore_score_matrix_symmetric_wrong_use():
+    """Test vector creation."""
+    spectrums, model, similarity_measure = get_test_ms2_deep_score_instance_additional_inputs()
+
+    binned_spectrum0 = model.spectrum_binner.transform([spectrums[0]])[0]
+    inputs = similarity_measure._create_input_vector(binned_spectrum0)
+    assert isinstance(inputs, list), "Expected inputs to be list"
+    assert inputs[0].shape == (1, 543), "Expected different vector shape"
+    assert inputs[1].shape == (1, model.additional_input), "Expected different shape for additional_input"
+    assert isinstance(inputs[0], np.ndarray), "Expected vector to be numpy array"
+    assert inputs[0][0, 92] == 0.0, "Expected different entries"
