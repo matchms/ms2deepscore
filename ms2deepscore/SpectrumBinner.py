@@ -22,7 +22,7 @@ class SpectrumBinner:
     def __init__(self, number_of_bins: int,
                  mz_max: float = 1000.0, mz_min: float = 10.0,
                  peak_scaling: float = 0.5, allowed_missing_percentage: float = 0.0,
-                 additional_metadata=[]):
+                 additional_metadata=None):
         """
 
         Parameters
@@ -128,7 +128,7 @@ class SpectrumBinner:
 
             assert all(metadata_key in input_spectrums[i].metadata  for metadata_key in self.additional_metadata), \
                         "Spectrum " + str(i) + " is missing specified metadata."
-            additional_metadata = {metadata_key: input_spectrums[i].get(metadata_key) for metadata_key in self.additional_metadata}
+            additional_metadata = {metadata_key: input_spectrums[i].get(metadata_key) for metadata_key in self.additional_metadata or []}
             spectrum = BinnedSpectrum(binned_peaks=create_peak_dict(peak_list),
                                 metadata={"inchikey": input_spectrums[i].get("inchikey") , **additional_metadata})
             spectrums_binned.append(spectrum)
