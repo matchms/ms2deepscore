@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+
+## [0.3.0] - 2022-11-29
+
+## Added
+
+- Allow adding metadata to the network inputs, e.g. precursor-m/z using the `additional_inputs` parameter [#115](https://github.com/matchms/ms2deepscore/pull/115)
+
 ## Fixed
 
 - Update test to work with Tensorflow 2.11 [#114](https://github.com/matchms/ms2deepscore/pull/114)
@@ -85,7 +92,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - This is the initial version of MS2DeepScore
 
-[Unreleased]: https://github.com/matchms/ms2deepscore/compare/0.2.2...HEAD
+[Unreleased]: https://github.com/matchms/ms2deepscore/compare/0.3.0...HEAD
+[0.3.0]: https://github.com/matchms/ms2deepscore/compare/0.2.3...0.3.0
+[0.2.3]: https://github.com/matchms/ms2deepscore/compare/0.2.2...0.2.3
 [0.2.2]: https://github.com/matchms/ms2deepscore/compare/0.2.1...0.2.2
 [0.2.1]: https://github.com/matchms/ms2deepscore/compare/0.2.0...0.2.1
 [0.2.0]: https://github.com/matchms/ms2deepscore/compare/0.1.3...0.2.0
