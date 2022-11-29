@@ -105,7 +105,7 @@ class DataGeneratorBase(Sequence):
     def _transform_to_inchikey14(reference_scores_df: pd.DataFrame):
         """Transform index and column names from potential full InChIKeys to InChIKey14"""
         reference_scores_df.index = [x[:14] for x in reference_scores_df.index]
-        reference_scores_df.columns = [x[:14]for x in reference_scores_df.columns]
+        reference_scores_df.columns = [x[:14] for x in reference_scores_df.columns]
         return reference_scores_df
 
     @staticmethod
