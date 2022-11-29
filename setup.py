@@ -31,7 +31,7 @@ setup(
     install_requires=[
         "matchms",
         "numba",
-        "numpy",
+        "numpy>= 1.20.3",
         "pandas",
         "tensorflow-macos;platform_machine=='arm64'",
         "tensorflow-metal;platform_machine=='arm64'",
@@ -40,6 +40,7 @@ setup(
     ],
     extras_require={"dev": ["bump2version",
                             "isort>=4.2.5,<5",
+                            "pylint!=2.15.7",
                             "prospector[with_pyroma]",
                             "pytest",
                             "pytest-cov",
