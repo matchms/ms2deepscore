@@ -411,7 +411,7 @@ class DataGeneratorAllSpectrums(DataGeneratorBase):
 
             np.random.shuffle(self.indexes)
 
-    @ staticmethod
+    @staticmethod
     def _exclude_nans_from_labels(reference_scores_df: pd.DataFrame):
         """Exclude nans in reference_scores_df, exclude columns and rows if there is any NaN
         value"""
