@@ -116,6 +116,7 @@ def test_SpectrumBinner_transform_missing_fraction():
     assert "weighted spectrum is unknown to the model"in str(msg.value), \
         "Expected different exception."
 
+
 def test_spectrum_binner_additional_metadata():
     ms2ds_binner = SpectrumBinner(100, mz_min=0.0, mz_max=100.0, peak_scaling=1.0, additional_metadata=["parent_mass", "precursor_mz"])
     
@@ -131,5 +132,3 @@ def test_spectrum_binner_additional_metadata():
     with pytest.raises(AssertionError) as msg:
         _= ms2ds_binner.transform([spectrum_2])
     assert "is missing specified metadata." in str(msg.value), "Expected different exception."
-        
-    

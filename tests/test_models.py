@@ -36,7 +36,6 @@ def get_test_binner_and_generator():
                                   dim=dimension, same_prob_bins=same_prob_bins)
 
 
-
 def test_siamese_model():
     spectrum_binner, test_generator = get_test_binner_and_generator()
     model = SiameseModel(spectrum_binner, base_dims=(200, 200, 200),
@@ -148,6 +147,7 @@ def test_save_and_load_model(tmp_path):
     assert model.model.to_json() == model_import.model.to_json(), \
         "Expect same architecture for original and imported model"
 
+
 def get_test_binner_and_generator_additional_inputs():
     """Load test data and create instance of SpectrumBinner and data generator."""
     # Get test data
@@ -164,6 +164,7 @@ def get_test_binner_and_generator_additional_inputs():
 
     # Create generator
     return spectrum_binner, data_generator
+
 
 def test_save_and_load_model_additional_inputs(tmp_path):
     """Test saving and loading a model."""
