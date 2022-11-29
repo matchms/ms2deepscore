@@ -9,7 +9,7 @@ if version.parse(tf.__version__) >= version.parse("2.11"):
 else:
     AdamOptimizer = keras.optimizers.Adam
 from ms2deepscore import SpectrumBinner
-from ms2deepscore.data_generators import DataGeneratorAllInchikeys
+from ms2deepscore.data_generators import DataGeneratorAllInchikeys, DataGeneratorAllSpectrums
 from ms2deepscore.models import SiameseModel, load_model
 from tests.test_user_worfklow import load_processed_spectrums, get_reference_scores
 
@@ -34,6 +34,7 @@ def get_test_binner_and_generator():
                                   selected_inchikeys=selected_inchikeys,
                                   reference_scores_df=tanimoto_scores_df,
                                   dim=dimension, same_prob_bins=same_prob_bins)
+
 
 
 def test_siamese_model():
@@ -142,6 +143,59 @@ def test_save_and_load_model(tmp_path):
     model_import = load_model(filename)
     weights_original = model.base.layers[1].get_weights()[0]
     weights_imported = model_import.base.layers[1].get_weights()[0]
+    assert np.all(weights_original == weights_imported), \
+        "Imported and original model weights should be the same"
+    assert model.model.to_json() == model_import.model.to_json(), \
+        "Expect same architecture for original and imported model"
+
+def get_test_binner_and_generator_additional_inputs():
+    """Load test data and create instance of SpectrumBinner and data generator."""
+    # Get test data
+    spectrums = load_processed_spectrums()
+    tanimoto_scores_df = get_reference_scores()
+    additional_inputs=["precursor_mz", "parent_mass"]
+    spectrum_binner = SpectrumBinner(1000, mz_min=10.0, mz_max=1000.0, peak_scaling=0.5, 
+                                        additional_metadata=additional_inputs)
+    binned_spectrums = spectrum_binner.fit_transform(spectrums)
+
+    dimension = len(spectrum_binner.known_bins)
+    data_generator = DataGeneratorAllSpectrums(binned_spectrums, tanimoto_scores_df,
+                                           dim=dimension, additional_input=additional_inputs)
+
+    # Create generator
+    return spectrum_binner, data_generator
+
+def test_save_and_load_model_additional_inputs(tmp_path):
+    """Test saving and loading a model."""
+    spectrum_binner, test_generator = get_test_binner_and_generator_additional_inputs()
+    # generic retrieval of the input shape of additional inputs
+    input, _ = test_generator[0]
+
+    additional_input = len(input[1][0])
+    spectrum_length = len(input[0][0])
+
+    model = SiameseModel(spectrum_binner, base_dims=(200, 200, 200),
+                         embedding_dim=200, dropout_rate=0.2, additional_input=2)
+    model.compile(loss='mse', optimizer=AdamOptimizer(lr=0.001))
+    model.summary()
+    
+    assert model.base.layers[2].input_shape == [(None, spectrum_length), (None, additional_input)], \
+                                    "Concatenate Layer has a false input shape"
+    model.fit(test_generator,
+              validation_data=test_generator,
+              epochs=2)
+
+    # Write to test file
+    filename = os.path.join(tmp_path, "model_export_test_additional_inputs.hdf5")
+    model.save(filename)
+
+    # Test if file exists
+    assert os.path.isfile(filename)
+
+    # Test if content is correct
+    model_import = load_model(filename)
+    weights_original = model.base.layers[4].get_weights()[0]
+    weights_imported = model_import.base.layers[4].get_weights()[0]
     assert np.all(weights_original == weights_imported), \
         "Imported and original model weights should be the same"
     assert model.model.to_json() == model_import.model.to_json(), \
