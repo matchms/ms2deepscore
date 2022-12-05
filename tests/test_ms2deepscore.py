@@ -80,7 +80,7 @@ def get_test_ms2_deep_score_instance_additional_inputs():
     model_file = TEST_RESOURCES_PATH / "testmodel_additional_input.hdf5"
     model = load_model(model_file)
 
-    similarity_measure = MS2DeepScore(model, multi_inputs=True)
+    similarity_measure = MS2DeepScore(model)
     return spectrums, model, similarity_measure
 
 def test_MS2DeepScore_score_matrix_symmetric_wrong_use():
