@@ -40,7 +40,7 @@ class MS2DeepScore(BaseSimilarity):
 
     """
 
-    def __init__(self, model, multi_inputs: bool = False, progress_bar: bool = True):
+    def __init__(self, model, progress_bar: bool = True):
         """
 
         Parameters
@@ -54,8 +54,12 @@ class MS2DeepScore(BaseSimilarity):
             Default is False.
         """
         self.model = model
-        self.multi_inputs = multi_inputs
+        self.multi_inputs = False
         # TODO: later maybe also check against SpectrumBinner
+        if len(self.model.base.input_shape)  > 1 and type(self.model.base.input_shape) is list: 
+            self.multi_inputs = True
+        
+
         if (self.multi_inputs):
             self.input_vector_dim = [self.model.base.input_shape[0][1], self.model.base.input_shape[1][1]]
         else:
