@@ -66,7 +66,7 @@ The second way is much simpler: Use a model that was pretrained on a large datas
 We provide a model which was trained on > 100,000 MS/MS spectra from [GNPS](https://gnps.ucsd.edu/), which can simply be downloaded [from zenodo here](https://zenodo.org/record/4699356).
 To then compute the similarities between spectra of your choice you can run something like:
 ```python
-from matchms import calculate_scores()
+from matchms import calculate_scores
 from matchms.importing import load_from_msp
 from ms2deepscore import MS2DeepScore
 from ms2deepscore.models import load_model
