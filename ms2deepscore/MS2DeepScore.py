@@ -148,5 +148,5 @@ class MS2DeepScore(BaseSimilarity):
                      desc='Calculating vectors of reference spectrums',
                      disable=(not self.progress_bar))):
             reference_vectors[index_reference, 0:self.output_vector_dim] = \
-                self.model.base.predict(self._create_input_vector(reference))
+                self.model.base.predict(self._create_input_vector(reference), verbose=0)
         return reference_vectors
