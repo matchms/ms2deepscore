@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.1] - 2023-01-06
+
+### Changed
+
+- Minor changes to make tests work with new matchms (>=0.18.0). Older versions should work as well though. [#120](https://github.com/matchms/ms2deepscore/pull/120)
 
 ## [0.3.0] - 2022-11-29
 
@@ -92,7 +97,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - This is the initial version of MS2DeepScore
 
-[Unreleased]: https://github.com/matchms/ms2deepscore/compare/0.3.0...HEAD
+[Unreleased]: https://github.com/matchms/ms2deepscore/compare/0.3.1...HEAD
+[0.3.1]: https://github.com/matchms/ms2deepscore/compare/0.3.1...0.3.1
 [0.3.0]: https://github.com/matchms/ms2deepscore/compare/0.2.3...0.3.0
 [0.2.3]: https://github.com/matchms/ms2deepscore/compare/0.2.2...0.2.3
 [0.2.2]: https://github.com/matchms/ms2deepscore/compare/0.2.1...0.2.2
