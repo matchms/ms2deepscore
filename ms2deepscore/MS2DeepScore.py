@@ -102,6 +102,7 @@ class MS2DeepScore(BaseSimilarity):
         return cosine_similarity(reference_vector[0, :], query_vector[0, :])
 
     def matrix(self, references: List[Spectrum], queries: List[Spectrum],
+               array_type: str = "numpy",
                is_symmetric: bool = False) -> np.ndarray:
         """Calculate the MS2DeepScore similarities between all references and queries.
 
@@ -111,6 +112,10 @@ class MS2DeepScore(BaseSimilarity):
             Reference spectrum.
         queries:
             Query spectrum.
+        array_type
+            Specify the output array type. Can be "numpy" or "sparse".
+            Currently, only "numpy" is supported and will return a numpy array.
+            Future versions will include "sparse" as option to return a COO-sparse array.
         is_symmetric:
             Set to True if references == queries to speed up calculation about 2x.
             Uses the fact that in this case score[i, j] = score[j, i]. Default is False.
