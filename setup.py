@@ -29,7 +29,7 @@ setup(
     test_suite="tests",
     python_requires='>=3.7',
     install_requires=[
-        "matchms",
+        "matchms>=0.18.0",
         "numba",
         "numpy>= 1.20.3",
         "pandas",
