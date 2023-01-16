@@ -71,11 +71,15 @@ class MS2DeepScoreMonteCarlo(BaseSimilarity):
             Default is False.
         """
         self.model = model
+        self.multi_inputs = (model.additional_input > 0)
         self.n_ensembles = n_ensembles
         assert average_type in ["median", "mean"], \
             "Non supported input for average_type. Must be 'median' or 'mean'."
         self.average_type = average_type
-        self.input_vector_dim = self.model.base.input_shape[1]  # TODO: later maybe also check against SpectrumBinner
+        if self.multi_inputs:
+            self.input_vector_dim = [self.model.base.input_shape[0][1], self.model.base.input_shape[1][1]]
+        else:
+            self.input_vector_dim = self.model.base.input_shape[1]
         self.output_vector_dim = self.model.base.output_shape[1]
         self.progress_bar = progress_bar
         self.partial_model = self._create_monte_carlo_base()
