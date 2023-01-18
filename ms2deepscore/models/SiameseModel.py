@@ -34,7 +34,7 @@ class SiameseModel:
         # Create (and train) a Siamese model
         model = SiameseModel(spectrum_binner, base_dims=(600, 500, 400), embedding_dim=400,
                              dropout_rate=0.2)
-        model.compile(loss='mse', optimizer=keras.optimizers.Adam(lr=0.001))
+        model.compile(loss='mse', optimizer=keras.optimizers.Adam(learning_rate=0.001))
         model.summary()
         model.fit(test_generator,
                   validation_data=test_generator,

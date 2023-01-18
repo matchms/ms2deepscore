@@ -31,7 +31,7 @@ def load_model(filename: Union[str, Path]) -> SiameseModel:
 
         # models with multiple inputs have different shapes
         if "additional_input" in f.attrs:
-            additional_input = f.attrs['additional_input']            
+            additional_input = f.attrs['additional_input']
 
     spectrum_binner = SpectrumBinner.from_json(binner_json)
     return SiameseModel(spectrum_binner, keras_model=keras_model, additional_input=additional_input)

@@ -40,7 +40,7 @@ class MS2DeepScore(BaseSimilarity):
 
     """
 
-    def __init__(self, model, multi_inputs: bool = False, progress_bar: bool = True):
+    def __init__(self, model, progress_bar: bool = True):
         """
 
         Parameters
@@ -54,9 +54,9 @@ class MS2DeepScore(BaseSimilarity):
             Default is False.
         """
         self.model = model
-        self.multi_inputs = multi_inputs
+        self.multi_inputs = (model.additional_input > 0)
         # TODO: later maybe also check against SpectrumBinner
-        if (self.multi_inputs):
+        if self.multi_inputs:
             self.input_vector_dim = [self.model.base.input_shape[0][1], self.model.base.input_shape[1][1]]
         else:
             self.input_vector_dim = self.model.base.input_shape[1]
@@ -65,7 +65,7 @@ class MS2DeepScore(BaseSimilarity):
 
     def _create_input_vector(self, binned_spectrum: BinnedSpectrumType):
         """Creates input vector for model.base based on binned peaks and intensities"""
-        if (self.multi_inputs):
+        if self.multi_inputs:
             X = [np.zeros((1, i[1])) for i in self.model.base.input_shape]
             idx = np.array([int(x) for x in binned_spectrum.binned_peaks.keys()])
             values = np.array(list(binned_spectrum.binned_peaks.values()))

@@ -54,7 +54,7 @@ def test_user_workflow():
     # Create (and train) a Siamese model
     model = SiameseModel(spectrum_binner, base_dims=(200, 200, 200), embedding_dim=200,
                          dropout_rate=0.2)
-    model.compile(loss='mse', optimizer=keras.optimizers.Adam(lr=0.001))
+    model.compile(loss='mse', optimizer=keras.optimizers.Adam(learning_rate=0.001))
     model.summary()
     model.fit(test_generator,
               validation_data=test_generator,

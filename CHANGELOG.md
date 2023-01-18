@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- `load_model()` functions now auto-detects if a model is multi_inputs or not
+
 ## [0.3.1] - 2023-01-06
 
 ### Changed
