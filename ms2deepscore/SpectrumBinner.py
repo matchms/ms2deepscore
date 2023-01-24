@@ -22,7 +22,7 @@ class SpectrumBinner:
     def __init__(self, number_of_bins: int,
                  mz_max: float = 1000.0, mz_min: float = 10.0,
                  peak_scaling: float = 0.5, allowed_missing_percentage: float = 0.0,
-                 additional_metadata=[]):
+                 additional_metadata=None):
         """
 
         Parameters
@@ -53,7 +53,7 @@ class SpectrumBinner:
         self.allowed_missing_percentage = allowed_missing_percentage
         self.peak_to_position = None
         self.known_bins = None
-        self.additional_metadata = additional_metadata
+        self.additional_metadata = additional_metadata or []
 
     @classmethod
     def from_json(cls, json_str: str):
