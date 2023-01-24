@@ -22,7 +22,7 @@ class SpectrumBinner:
     def __init__(self, number_of_bins: int,
                  mz_max: float = 1000.0, mz_min: float = 10.0,
                  peak_scaling: float = 0.5, allowed_missing_percentage: float = 0.0,
-                 additional_metadata=None):
+                 additional_metadata=[]):
         """
 
         Parameters
@@ -126,11 +126,15 @@ class SpectrumBinner:
             assert 100*missing_fractions[i] <= self.allowed_missing_percentage, \
                 f"{100*missing_fractions[i]:.2f} of weighted spectrum is unknown to the model."
 
-            assert all(metadata_key in input_spectrums[i].metadata  for metadata_key in (self.additional_metadata or [])), \
-                        "Spectrum " + str(i) + " is missing specified metadata."
-            additional_metadata = {metadata_key: input_spectrums[i].get(metadata_key) for metadata_key in (self.additional_metadata or [])}
+            additional_input = {}
+            for metadata in self.additional_metadata:
+                assert (metadata in input_spectrums[i].metadata), \
+                    "Spectrum " + str(i) + " is missing specified metadata."
+                additional_input[metadata] = float(input_spectrums[i].get(metadata)) * \
+                    float(self.additional_metadata[metadata])
+
             spectrum = BinnedSpectrum(binned_peaks=create_peak_dict(peak_list),
-                                metadata={"inchikey": input_spectrums[i].get("inchikey") , **additional_metadata})
+                                      metadata={"inchikey": input_spectrums[i].get("inchikey"), **additional_input})
             spectrums_binned.append(spectrum)
         return spectrums_binned
 

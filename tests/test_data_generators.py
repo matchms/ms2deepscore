@@ -97,14 +97,15 @@ def test_DataGeneratorAllSpectrums_no_inchikey_leaking():
     # Test if the expected labels are returned by generator
     expected_labels = np.array([0.38944724, 0.39130435, 0.39378238, 0.40045767, 0.40497738,
                                 0.40930233, 0.43432203, 0.46610169, 0.47416413, 0.48156182,
-                                0.50632911, 0.5214447 , 0.52663934, 0.59934853, 0.63581489])
+                                0.50632911, 0.5214447, 0.52663934, 0.59934853, 0.63581489])
     repetitions = 200
     collect_results = np.zeros(repetitions * batch_size)  # Collect 2000 results
     for i in range(repetitions):
         _, B = test_generator.__getitem__(0)
         collect_results[batch_size*i:batch_size*(i+1)] = B
     assert len(np.unique(collect_results)) <= 15, "Expected max 15 possible results"
-    present_in_expected_labels = [(np.round(x,6) in list(np.round(expected_labels, 6))) for x in np.unique(collect_results)]
+    present_in_expected_labels = [(np.round(x, 6) in list(np.round(expected_labels, 6)))
+                                  for x in np.unique(collect_results)]
     assert np.all(present_in_expected_labels), "Got unexpected labels from generator"
 
 
@@ -173,25 +174,25 @@ def test_DataGeneratorAllSpectrums_fixed_set():
     second_X, second_y = collect_results(fixed_generator2)
     assert np.array_equal(first_X, second_X)
 
+
 def test_DataGeneratorAllSpectrums_additional_inputs():
     """
     Test if additional input parameter works as intended 
     """
-    
+
     # Get test data
+    additional_input = {"precursor_mz": 0.001, "parent_mass": 0.001}
     spectrums = load_processed_spectrums()
     tanimoto_scores_df = get_reference_scores()
-    ms2ds_binner = SpectrumBinner(100, mz_min=10.0, mz_max=1000.0, peak_scaling=0.5, 
-                                    additional_metadata=["parent_mass", "precursor_mz"])
+    ms2ds_binner = SpectrumBinner(100, mz_min=10.0, mz_max=1000.0, peak_scaling=0.5,
+                                  additional_metadata=additional_input)
     binned_spectrums = ms2ds_binner.fit_transform(spectrums)
-
 
     # Define other parameters
     batch_size = 4
     dimension = 88
-    additional_input=["precursor_mz", "parent_mass"]
     data_generator = DataGeneratorAllSpectrums(binned_spectrums, tanimoto_scores_df,
-                                           dim=dimension, additional_input=additional_input)
+                                               dim=dimension, additional_input=additional_input)
     batch_X, batch_y = data_generator.__getitem__(0)
 
     assert len(batch_X) != len(batch_y), "Batchsizes from X and y are not the same."

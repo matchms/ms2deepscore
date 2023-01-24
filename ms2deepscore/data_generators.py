@@ -538,7 +538,7 @@ class Container:
     Helper class for DataGenerator
     """
 
-    def __init__(self, spectrum_pair, tanimoto_score, dim, _data_augmentation, additional_inputs=None):
+    def __init__(self, spectrum_pair, tanimoto_score, dim, _data_augmentation, additional_inputs):
         self.spectrum_left = spectrum_pair[0]
         self.spectrum_right = spectrum_pair[1]
         self.spectrum_values_left = np.zeros((dim, ))
@@ -551,8 +551,12 @@ class Container:
 
         self.additional_inputs_left = []
         self.additional_inputs_right = []
-        for additional_input in additional_inputs:
-            self.additional_inputs_left.append([float(self.spectrum_left.get(additional_input))])
-            self.additional_inputs_right.append([float(self.spectrum_right.get(additional_input))])
+
+        if len(additional_inputs) > 0:
+            for additional_input in additional_inputs:
+                self.additional_inputs_left.append(
+                    [float(self.spectrum_left.get(additional_input))])
+                self.additional_inputs_right.append(
+                    [float(self.spectrum_right.get(additional_input))])
 
         self.tanimoto_score = tanimoto_score
