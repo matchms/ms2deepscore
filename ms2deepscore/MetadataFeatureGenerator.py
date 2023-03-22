@@ -14,7 +14,7 @@ class PrecursorMZFeatureGenerator(MetadataFeatureGenerator):
     def generate_features(self):
         precursor_mz = self.metadata.get("precursor_mz")
         assert precursor_mz is not None, "No precursor mz was found, preprocess your spectra first using matchms"
-        return precursor_mz//1000
+        return precursor_mz/1000
 
 
 class IonizationModeFeatureGenerator(MetadataFeatureGenerator):
