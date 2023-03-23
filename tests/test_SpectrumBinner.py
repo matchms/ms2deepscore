@@ -118,7 +118,8 @@ def test_SpectrumBinner_transform_missing_fraction():
 
 
 def test_spectrum_binner_additional_metadata():
-    ms2ds_binner = SpectrumBinner(100, mz_min=0.0, mz_max=100.0, peak_scaling=1.0, additional_metadata=(PrecursorMZFeatureGenerator, IonizationModeFeatureGenerator))
+    ms2ds_binner = SpectrumBinner(100, mz_min=0.0, mz_max=100.0, peak_scaling=1.0,
+                                  additional_metadata=(PrecursorMZFeatureGenerator, IonizationModeFeatureGenerator))
     
     spectrum_1 = Spectrum(mz=np.array([10, 20, 50, 100.]),
                           intensities=np.array([0.7, 0.6, 0.2, 0.1]),

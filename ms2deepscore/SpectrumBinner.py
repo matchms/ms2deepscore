@@ -133,7 +133,7 @@ class SpectrumBinner:
                                            disable=(not progress_bar))):
             assert 100*missing_fractions[i] <= self.allowed_missing_percentage, \
                 f"{100*missing_fractions[i]:.2f} of weighted spectrum is unknown to the model."
-            additional_metadata = {feature_generator.feature_name(): feature_generator(input_spectrums[i].metadata).generate_features() for feature_generator in self.additional_metadata}
+            additional_metadata = {feature_generator.__name__: feature_generator(input_spectrums[i].metadata).generate_features() for feature_generator in self.additional_metadata}
             # assert all(metadata_key in input_spectrums[i].metadata for metadata_key in (self.additional_metadata or [])), \
             #             "Spectrum " + str(i) + " is missing specified metadata."
             # additional_metadata = {metadata_key: input_spectrums[i].get(metadata_key) for metadata_key in (self.additional_metadata or [])}

@@ -188,7 +188,8 @@ class DataGeneratorBase(Sequence):
         if settings["use_fixed_set"]:
             np.random.seed(42)
         if len(settings["additional_input"]) > 0:
-            settings["additional_input"] = [additional_feature_type.feature_name() for additional_feature_type in settings["additional_input"]]
+            settings["additional_input"] = \
+                [additional_feature_type.__name__ for additional_feature_type in settings["additional_input"]]
         self.settings = settings
 
     def _find_match_in_range(self, inchikey1, target_score_range):
