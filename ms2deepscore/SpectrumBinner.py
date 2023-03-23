@@ -1,6 +1,7 @@
 import json
-from typing import List
+from typing import List, Tuple, Type
 from tqdm import tqdm
+from importlib import import_module
 from matchms.typing import SpectrumType
 
 from .BinnedSpectrum import BinnedSpectrum
@@ -9,6 +10,7 @@ from .spectrum_binning_fixed import create_peak_list_fixed
 from .spectrum_binning_fixed import set_d_bins_fixed
 from .spectrum_binning_fixed import unique_peaks_fixed
 from .utils import create_peak_dict
+from ms2deepscore.MetadataFeatureGenerator import MetadataFeatureGenerator
 
 
 class SpectrumBinner:
@@ -22,7 +24,7 @@ class SpectrumBinner:
     def __init__(self, number_of_bins: int,
                  mz_max: float = 1000.0, mz_min: float = 10.0,
                  peak_scaling: float = 0.5, allowed_missing_percentage: float = 0.0,
-                 additional_metadata=None):
+                 additional_metadata: Tuple[Type[MetadataFeatureGenerator], ...] = ()):
         """
 
         Parameters
@@ -69,8 +71,14 @@ class SpectrumBinner:
                               binner_dict["mz_max"], binner_dict["mz_min"],
                               binner_dict["peak_scaling"],
                               binner_dict["allowed_missing_percentage"])
+        # loads in all the classes in MetadataFeatureGenerator.py
         if "additional_metadata" in binner_dict:
-            spectrum_binner.additional_metadata = binner_dict["additional_metadata"]
+            possible_metadata_classes = import_module("ms2deepscore.MetadataFeatureGenerator")
+            additional_metadata = []
+            for metadata_class_name in binner_dict["additional_metadata"]:
+                metadata_class = getattr(possible_metadata_classes, metadata_class_name)
+                additional_metadata.append(metadata_class)
+            spectrum_binner.additional_metadata = tuple(additional_metadata)
         spectrum_binner.peak_to_position = {int(key): value for key, value in binner_dict["peak_to_position"].items()}
         spectrum_binner.known_bins = binner_dict["known_bins"]
         return spectrum_binner
@@ -125,15 +133,17 @@ class SpectrumBinner:
                                            disable=(not progress_bar))):
             assert 100*missing_fractions[i] <= self.allowed_missing_percentage, \
                 f"{100*missing_fractions[i]:.2f} of weighted spectrum is unknown to the model."
-
-            assert all(metadata_key in input_spectrums[i].metadata  for metadata_key in (self.additional_metadata or [])), \
-                        "Spectrum " + str(i) + " is missing specified metadata."
-            additional_metadata = {metadata_key: input_spectrums[i].get(metadata_key) for metadata_key in (self.additional_metadata or [])}
+            additional_metadata = {feature_generator.feature_name(): feature_generator(input_spectrums[i].metadata).generate_features() for feature_generator in self.additional_metadata}
+            # assert all(metadata_key in input_spectrums[i].metadata for metadata_key in (self.additional_metadata or [])), \
+            #             "Spectrum " + str(i) + " is missing specified metadata."
+            # additional_metadata = {metadata_key: input_spectrums[i].get(metadata_key) for metadata_key in (self.additional_metadata or [])}
             spectrum = BinnedSpectrum(binned_peaks=create_peak_dict(peak_list),
-                                metadata={"inchikey": input_spectrums[i].get("inchikey") , **additional_metadata})
+                                      metadata={"inchikey": input_spectrums[i].get("inchikey"), **additional_metadata})
             spectrums_binned.append(spectrum)
         return spectrums_binned
 
     def to_json(self):
         """Return SpectrumBinner instance as json dictionary."""
-        return json.dumps(self.__dict__)
+        dictionary = self.__dict__.copy()
+        dictionary["additional_metadata"] = [feature.__name__ for feature in self.__dict__["additional_metadata"]]
+        return json.dumps(dictionary)
