@@ -93,9 +93,7 @@ class SiameseModel:
                                             l2_reg=l2_reg,
                                             additional_input=self.nr_of_additional_inputs)
             # Create head model
-            self.model = self._get_head_model(input_dim=self.input_dim,
-                                              additional_input=self.nr_of_additional_inputs,
-                                              base_model=self.base)
+            self.model = self._get_head_model()
         else:
             self._construct_from_keras_model(keras_model)
 
@@ -180,23 +178,21 @@ class SiameseModel:
 
         return keras.Model(inputs=[base_input], outputs=[embedding], name='base')
 
-    @staticmethod
-    def _get_head_model(input_dim: int,
-                        additional_input: int,
-                        base_model: keras.Model):
-        input_a = Input(shape=input_dim, name="input_a")
-        input_b = Input(shape=input_dim, name="input_b")
+    def _get_head_model(self):
 
-        if additional_input > 0:
-            input_a_2 = Input(shape=additional_input, name="input_a_2")
-            input_b_2 = Input(shape=additional_input, name="input_b_2")
+        input_a = Input(shape=self.input_dim, name="input_a")
+        input_b = Input(shape=self.input_dim, name="input_b")
+
+        if self.nr_of_additional_inputs > 0:
+            input_a_2 = Input(shape=self.nr_of_additional_inputs, name="input_a_2")
+            input_b_2 = Input(shape=self.nr_of_additional_inputs, name="input_b_2")
             inputs = [input_a, input_a_2, input_b, input_b_2]
 
-            embedding_a = base_model([input_a, input_a_2])
-            embedding_b = base_model([input_b, input_b_2])
+            embedding_a = self.base([input_a, input_a_2])
+            embedding_b = self.base([input_b, input_b_2])
         else:
-            embedding_a = base_model(input_a)
-            embedding_b = base_model(input_b)
+            embedding_a = self.base(input_a)
+            embedding_b = self.base(input_b)
             inputs = [input_a, input_b]
 
         cosine_similarity = keras.layers.Dot(axes=(1, 1),
