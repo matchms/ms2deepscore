@@ -172,8 +172,7 @@ def test_save_and_load_model_additional_inputs(tmp_path):
     spectrum_length = len(input[0][0])
     nr_of_additional_input = len(input[1][0])
 
-    model = SiameseModel(spectrum_binner, base_dims=(200, 200, 200), embedding_dim=200, dropout_rate=0.2,
-                         nr_of_additional_inputs=nr_of_additional_input)
+    model = SiameseModel(spectrum_binner, base_dims=(200, 200, 200), embedding_dim=200, dropout_rate=0.2)
     model.compile(loss='mse', optimizer=AdamOptimizer(learning_rate=0.001))
     model.summary()
     
