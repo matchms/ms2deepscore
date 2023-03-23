@@ -74,8 +74,6 @@ class SiameseModel:
         keras_model
             When provided, this keras model will be used to construct the SiameseModel instance.
             Default is None.
-        nr_of_additional_inputs
-            Shape of additional inputs to be used in the model. Default is 0.
         """
         # pylint: disable=too-many-arguments
         assert spectrum_binner.known_bins is not None, \
