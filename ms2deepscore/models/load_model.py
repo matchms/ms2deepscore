@@ -34,4 +34,4 @@ def load_model(filename: Union[str, Path]) -> SiameseModel:
             additional_input = f.attrs['additional_input']
 
     spectrum_binner = SpectrumBinner.from_json(binner_json)
-    return SiameseModel(spectrum_binner, keras_model=keras_model, additional_input=additional_input)
+    return SiameseModel(spectrum_binner, keras_model=keras_model, nr_of_additional_inputs=additional_input)
