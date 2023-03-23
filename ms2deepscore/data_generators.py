@@ -187,6 +187,8 @@ class DataGeneratorBase(Sequence):
             warnings.warn('When using a fixed set, data will not be shuffled')
         if settings["use_fixed_set"]:
             np.random.seed(42)
+        if len(settings["additional_input"]) > 0:
+            settings["additional_input"] = [additional_feature_type.feature_name() for additional_feature_type in settings["additional_input"]]
         self.settings = settings
 
     def _find_match_in_range(self, inchikey1, target_score_range):
@@ -300,9 +302,9 @@ class DataGeneratorBase(Sequence):
             y = []
             for container in container_list:
                 X[0].append(container.spectrum_values_left)
-                X[1].append(np.array(np.squeeze(container.additional_inputs_left)))
+                X[1].append(np.array(np.ravel(container.additional_inputs_left))) #Using ravel instead of squeeze, since squeeze returns 0D arrays when only one extra feature is given. This can give unexpected behaviour
                 X[2].append(container.spectrum_values_right)
-                X[3].append(np.array(np.squeeze(container.additional_inputs_right)))
+                X[3].append(np.array(np.ravel(container.additional_inputs_right)))
 
                 y.append(container.tanimoto_score)
 

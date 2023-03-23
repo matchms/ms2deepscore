@@ -4,6 +4,7 @@ import pytest
 from ms2deepscore import SpectrumBinner
 from ms2deepscore.data_generators import DataGeneratorAllInchikeys
 from ms2deepscore.data_generators import DataGeneratorAllSpectrums
+from ms2deepscore.MetadataFeatureGenerator import PrecursorMZFeatureGenerator
 from tests.test_user_worfklow import load_processed_spectrums, get_reference_scores
 
 
@@ -173,26 +174,31 @@ def test_DataGeneratorAllSpectrums_fixed_set():
     second_X, second_y = collect_results(fixed_generator2)
     assert np.array_equal(first_X, second_X)
 
+
 def test_DataGeneratorAllSpectrums_additional_inputs():
     """
     Test if additional input parameter works as intended 
     """
-    
     # Get test data
     spectrums = load_processed_spectrums()
     tanimoto_scores_df = get_reference_scores()
-    ms2ds_binner = SpectrumBinner(100, mz_min=10.0, mz_max=1000.0, peak_scaling=0.5, 
-                                    additional_metadata=["parent_mass", "precursor_mz"])
-    binned_spectrums = ms2ds_binner.fit_transform(spectrums)
 
+    test_cases = [(PrecursorMZFeatureGenerator, ),  # We are using two test cases, one with only one
+                  (PrecursorMZFeatureGenerator, PrecursorMZFeatureGenerator)]  # Normally you would of course have two different ones (but metadata did not allow it)
+    for additional_feature_types in test_cases:
 
-    # Define other parameters
-    batch_size = 4
-    dimension = 88
-    additional_input=["precursor_mz", "parent_mass"]
-    data_generator = DataGeneratorAllSpectrums(binned_spectrums, tanimoto_scores_df,
-                                           dim=dimension, additional_input=additional_input)
-    batch_X, batch_y = data_generator.__getitem__(0)
+        # additional_feature_types = ()
+        ms2ds_binner = SpectrumBinner(100, mz_min=10.0, mz_max=1000.0, peak_scaling=0.5,
+                                      additional_metadata=additional_feature_types)
+        binned_spectrums = ms2ds_binner.fit_transform(spectrums)
 
-    assert len(batch_X) != len(batch_y), "Batchsizes from X and y are not the same."
-    assert len(batch_X[0]) != 3, "There are not as many inputs as specified."
+        # Define other parameters
+        batch_size = 4
+        dimension = 88
+        data_generator = DataGeneratorAllSpectrums(binned_spectrums, tanimoto_scores_df,
+                                                   dim=dimension, batch_size=batch_size,
+                                                   additional_input=additional_feature_types)
+        batch_X, batch_y = data_generator.__getitem__(0)
+        for batch_X_values in batch_X:
+            assert len(batch_X_values) == len(batch_y) == batch_size, "Batchsizes from X and y are not the same."
+        assert len(batch_X[1][0]) == len(additional_feature_types) == len(batch_X[3][0]), "There are not as many inputs as specified."
