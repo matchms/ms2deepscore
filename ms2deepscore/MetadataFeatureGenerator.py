@@ -3,6 +3,8 @@ from typing import Tuple
 
 
 class MetadataFeatureGenerator:
+    """Base class to define metadata-to-feature conversion rules.
+    """
     def __init__(self, metadata: Metadata):
         self.metadata = metadata
 
@@ -12,6 +14,8 @@ class MetadataFeatureGenerator:
 
 
 class PrecursorMZFeatureGenerator(MetadataFeatureGenerator):
+    """Class for generating feature from precursor-m/z (here: simply m/z divided by 1000).
+    """
     def generate_features(self) -> float:
         precursor_mz = self.metadata.get("precursor_mz")
         assert precursor_mz is not None, "No precursor mz was found, preprocess your spectra first using matchms"
@@ -19,6 +23,8 @@ class PrecursorMZFeatureGenerator(MetadataFeatureGenerator):
 
 
 class IonizationModeFeatureGenerator(MetadataFeatureGenerator):
+    """Class for generating feature from ionization mode. Here simply 0: positive mode and 1: negative mode.
+    """
     def generate_features(self) -> float:
         ionization_mode = self.metadata.get("ionization_mode")
         if ionization_mode == "positive":
