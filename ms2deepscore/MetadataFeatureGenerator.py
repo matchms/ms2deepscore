@@ -1,34 +1,110 @@
 from matchms import Metadata
-from typing import Tuple
+import json
+from importlib import import_module
 
 
 class MetadataFeatureGenerator:
     """Base class to define metadata-to-feature conversion rules.
     """
-    def __init__(self, metadata: Metadata):
-        self.metadata = metadata
-
-    def generate_features(self) -> float:
+    def generate_features(self, metadata: Metadata) -> float:
         """This method should be implemented by child classes to generate a input feature for the model"""
         raise NotImplementedError
 
+    def to_json(self) -> str:
+        return json.dumps((type(self).__name__, vars(self)))
 
-class PrecursorMZFeatureGenerator(MetadataFeatureGenerator):
-    """Class for generating feature from precursor-m/z (here: simply m/z divided by 1000).
-    """
-    def generate_features(self) -> float:
-        precursor_mz = self.metadata.get("precursor_mz")
-        assert precursor_mz is not None, "No precursor mz was found, preprocess your spectra first using matchms"
-        return precursor_mz/1000
+    @classmethod
+    def load_from_dict(cls, json_dict: dict):
+        """This method should be implemented by child classes Create class instance from json.
+        """
+        raise NotImplementedError
+
+    def __eq__(self, other):
+        if isinstance(other, type(self)):
+            return self.__dict__ == other.__dict__
+        return False
 
 
-class IonizationModeFeatureGenerator(MetadataFeatureGenerator):
-    """Class for generating feature from ionization mode. Here simply 0: positive mode and 1: negative mode.
-    """
-    def generate_features(self) -> float:
-        ionization_mode = self.metadata.get("ionization_mode")
-        if ionization_mode == "positive":
-            return 0
-        if ionization_mode == "negative":
+class StandardScaler(MetadataFeatureGenerator):
+    def __init__(self, metadata_field: str, mean: float, std: float = None):
+        self.metadata_field = metadata_field
+        self.mean = mean
+        self.standard_deviation = std
+
+    def generate_features(self, metadata: Metadata):
+        feature = metadata.get(self.metadata_field, None)
+        assert self.metadata_field is not None, f"Metadata entry for {self.metadata_field} is missing."
+        assert isinstance(feature, (int, float))
+        if self.standard_deviation:
+            return (feature - self.mean) / self.standard_deviation
+        return feature - self.mean
+
+    @classmethod
+    def load_from_dict(cls, json_dict: dict):
+        """Create StandardScaler instance from json.
+        """
+        return cls(json_dict["metadata_field"],
+                   json_dict["mean"],
+                   json_dict["standard_deviation"],)
+
+
+class OneHotEncode(MetadataFeatureGenerator):
+    def __init__(self, metadata_field: str,
+                 entries_becoming_one):
+        self.metadata_field = metadata_field
+        self.entries_becoming_one = entries_becoming_one
+
+    def generate_features(self, metadata: Metadata):
+        feature = metadata.get(self.metadata_field, None)
+        assert self.metadata_field is not None, f"Metadata entry for {self.metadata_field} is missing."
+        if feature == self.entries_becoming_one:
             return 1
-        assert False, "Ionization mode should be 'positive' or 'negative'"
+        return 0
+
+    @classmethod
+    def load_from_dict(cls, json_dict: dict):
+        """Create StandardScaler instance from json.
+        """
+        return cls(json_dict["metadata_field"],
+                   json_dict["entries_becoming_one"])
+
+
+class FeatureToBinary(MetadataFeatureGenerator):
+    def __init__(self, metadata_field: str,
+                 entries_becoming_one,
+                 entries_becoming_zero):
+        self.metadata_field = metadata_field
+        self.entries_becoming_one = entries_becoming_one
+        self.entries_becoming_zero = entries_becoming_zero
+
+    def generate_features(self, metadata: Metadata):
+        feature = metadata.get(self.metadata_field, None)
+        assert self.metadata_field is not None, f"Metadata entry for {self.metadata_field} is missing."
+        if feature == self.entries_becoming_one:
+            return 1
+        if feature == self.entries_becoming_zero:
+            return 0
+        assert False, f"Feature should be {self.entries_becoming_one} or {self.entries_becoming_zero}, not {feature}"
+
+    @classmethod
+    def load_from_dict(cls, json_dict: dict):
+        """Create StandardScaler instance from json.
+        """
+        return cls(json_dict["metadata_field"],
+                   json_dict["entries_becoming_one"],
+                   json_dict["entries_becoming_zero"],)
+
+
+def load_from_json(json_dict):
+    """Loads any of the objects from load_from_json"""
+    # I think we can directly implement this in the base class.
+    possible_metadata_classes = import_module(__name__)
+    metadata_feature_generator_list = []
+    for metadata_feature_json in json_dict:
+        metadata_feature = json.loads(metadata_feature_json)
+        class_name, settings = metadata_feature
+        # loads in all the classes in MetadataFeatureGenerator.py
+        metadata_class = getattr(possible_metadata_classes, class_name)
+        assert issubclass(metadata_class, MetadataFeatureGenerator)
+        metadata_feature_generator_list.append(metadata_class.load_from_dict(settings))
+    return tuple(metadata_feature_generator_list)
