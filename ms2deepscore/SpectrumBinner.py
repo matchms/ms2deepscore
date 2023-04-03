@@ -1,7 +1,6 @@
 import json
-from typing import List, Tuple, Type
+from typing import List, Tuple
 from tqdm import tqdm
-from importlib import import_module
 from matchms.typing import SpectrumType
 
 from .BinnedSpectrum import BinnedSpectrum

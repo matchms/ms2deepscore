@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 from matchms import Spectrum
 from ms2deepscore import SpectrumBinner
-from ms2deepscore.MetadataFeatureGenerator import FeatureToBinary, StandardScaler
+from ms2deepscore.MetadataFeatureGenerator import CategoricalToBinary, StandardScaler
 
 def test_SpectrumBinner():
     """Test if default initalization works"""
@@ -120,7 +120,7 @@ def test_SpectrumBinner_transform_missing_fraction():
 def test_spectrum_binner_additional_metadata():
     ms2ds_binner = SpectrumBinner(100, mz_min=0.0, mz_max=100.0, peak_scaling=1.0,
                                   additional_metadata=(StandardScaler("precursor_mz", mean=0, std=1000),
-                                                       FeatureToBinary("ionization_mode", "positive", "negative")))
+                                                       CategoricalToBinary("ionization_mode", "positive", "negative")))
     
     spectrum_1 = Spectrum(mz=np.array([10, 20, 50, 100.]),
                           intensities=np.array([0.7, 0.6, 0.2, 0.1]),
