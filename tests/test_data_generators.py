@@ -183,9 +183,11 @@ def test_DataGeneratorAllSpectrums_additional_inputs():
     spectrums = load_processed_spectrums()
     tanimoto_scores_df = get_reference_scores()
 
-    test_cases = [(StandardScaler("precursor_mz", mean=0, std=1000), ),  # We are using two test cases, one with only one
+    # Run for two test cases.
+    # Testing a single and multiple inputs is important, since numpy can do weird things with 1D arrays of len= 1
+    test_cases = [(StandardScaler("precursor_mz", mean=0, std=1000), ),
                   (StandardScaler("precursor_mz", mean=0, std=1000),
-                   CategoricalToBinary("ionmode", entries_becoming_one="negative", entries_becoming_zero="positive"))]  # Normally you would of course have two different ones (but metadata did not allow it)
+                   CategoricalToBinary("ionmode", entries_becoming_one="negative", entries_becoming_zero="positive"))]
     for additional_feature_types in test_cases:
 
         # additional_feature_types = ()
