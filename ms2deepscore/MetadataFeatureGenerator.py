@@ -88,7 +88,7 @@ class CategoricalToBinary(MetadataFeatureGenerator):
     def generate_features(self, metadata: Metadata):
         feature = metadata.get(self.metadata_field, None)
         assert self.metadata_field is not None, f"Metadata entry for {self.metadata_field} is missing."
-        if feature == self.entries_becoming_one:
+        if feature in self.entries_becoming_one:
             return 1
         if feature == self.entries_becoming_zero:
             return 0
