@@ -113,6 +113,6 @@ def load_from_json(json_dict):
         class_name, settings = metadata_feature
         # loads in all the classes in MetadataFeatureGenerator.py
         metadata_class = getattr(possible_metadata_classes, class_name)
-        assert issubclass(metadata_class, MetadataFeatureGenerator)
+        assert issubclass(metadata_class, MetadataFeatureGenerator), "Unknown feature generator class."
         metadata_feature_generator_list.append(metadata_class.load_from_dict(settings))
     return tuple(metadata_feature_generator_list)
