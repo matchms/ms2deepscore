@@ -69,7 +69,9 @@ class OneHotEncoder(MetadataFeatureGenerator):
                    json_dict["entries_becoming_one"])
 
 
-class FeatureToBinary(MetadataFeatureGenerator):
+class CategoricalToBinary(MetadataFeatureGenerator):
+    """Converts categorical features (e.g. strings) into binary 1 or 0 feature values.
+    """
     def __init__(self, metadata_field: str,
                  entries_becoming_one,
                  entries_becoming_zero):
