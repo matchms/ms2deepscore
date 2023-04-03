@@ -1,3 +1,4 @@
+from typing import List, Dict, Union
 from matchms import Metadata
 import json
 from importlib import import_module
@@ -103,12 +104,17 @@ class CategoricalToBinary(MetadataFeatureGenerator):
                    json_dict["entries_becoming_zero"],)
 
 
-def load_from_json(json_dict):
-    """Loads any of the objects from load_from_json"""
-    # I think we can directly implement this in the base class.
+def load_from_json(list_of_json_metadata_feature_generators: List[str]):
+    """Creates an object from json for any of the subclasses of MetadataFeatureGenerator
+
+    This is used for loading in the MetadataFeatureGenerator in SpectrumBinner.
+
+    list_of_json_metadata_feature_generators:
+        A list containing all the json representations of the subclasses of MetadataFeatureGenerator.
+    """
     possible_metadata_classes = import_module(__name__)
     metadata_feature_generator_list = []
-    for metadata_feature_json in json_dict:
+    for metadata_feature_json in list_of_json_metadata_feature_generators:
         metadata_feature = json.loads(metadata_feature_json)
         class_name, settings = metadata_feature
         # loads in all the classes in MetadataFeatureGenerator.py
