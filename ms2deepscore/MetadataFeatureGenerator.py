@@ -96,7 +96,7 @@ class CategoricalToBinary(MetadataFeatureGenerator):
 
     @classmethod
     def load_from_dict(cls, json_dict: dict):
-        """Create StandardScaler instance from json.
+        """Create FeatureToBinary instance from json.
         """
         return cls(json_dict["metadata_field"],
                    json_dict["entries_becoming_one"],
