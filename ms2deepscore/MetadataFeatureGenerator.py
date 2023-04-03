@@ -90,7 +90,7 @@ class CategoricalToBinary(MetadataFeatureGenerator):
         assert self.metadata_field is not None, f"Metadata entry for {self.metadata_field} is missing."
         if feature in self.entries_becoming_one:
             return 1
-        if feature == self.entries_becoming_zero:
+        if feature in self.entries_becoming_zero:
             return 0
         assert False, f"Feature should be {self.entries_becoming_one} or {self.entries_becoming_zero}, not {feature}"
 
