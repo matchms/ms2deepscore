@@ -4,7 +4,7 @@ import pytest
 from ms2deepscore import SpectrumBinner
 from ms2deepscore.data_generators import DataGeneratorAllInchikeys
 from ms2deepscore.data_generators import DataGeneratorAllSpectrums
-from ms2deepscore.MetadataFeatureGenerator import StandardScaler
+from ms2deepscore.MetadataFeatureGenerator import StandardScaler, CategoricalToBinary
 from tests.test_user_worfklow import load_processed_spectrums, get_reference_scores
 
 
@@ -184,7 +184,8 @@ def test_DataGeneratorAllSpectrums_additional_inputs():
     tanimoto_scores_df = get_reference_scores()
 
     test_cases = [(StandardScaler("precursor_mz", mean=0, std=1000), ),  # We are using two test cases, one with only one
-                  (StandardScaler("precursor_mz", mean=0, std=1000), StandardScaler("precursor_mz", mean=0, std=100))]  # Normally you would of course have two different ones (but metadata did not allow it)
+                  (StandardScaler("precursor_mz", mean=0, std=1000),
+                   CategoricalToBinary("ionmode", entries_becoming_one="negative", entries_becoming_zero="positive"))]  # Normally you would of course have two different ones (but metadata did not allow it)
     for additional_feature_types in test_cases:
 
         # additional_feature_types = ()
