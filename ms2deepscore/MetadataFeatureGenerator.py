@@ -48,7 +48,7 @@ class StandardScaler(MetadataFeatureGenerator):
                    json_dict["standard_deviation"],)
 
 
-class OneHotEncode(MetadataFeatureGenerator):
+class OneHotEncoder(MetadataFeatureGenerator):
     def __init__(self, metadata_field: str,
                  entries_becoming_one):
         self.metadata_field = metadata_field
