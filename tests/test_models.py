@@ -11,7 +11,7 @@ else:
 from ms2deepscore import SpectrumBinner
 from ms2deepscore.data_generators import DataGeneratorAllInchikeys, DataGeneratorAllSpectrums
 from ms2deepscore.models import SiameseModel, load_model
-from ms2deepscore.MetadataFeatureGenerator import PrecursorMZFeatureGenerator
+from ms2deepscore.MetadataFeatureGenerator import StandardScaler
 from tests.test_user_worfklow import load_processed_spectrums, get_reference_scores
 
 TEST_RESOURCES_PATH = Path(__file__).parent / 'resources'
@@ -150,7 +150,7 @@ def get_test_binner_and_generator_additional_inputs():
     # Get test data
     spectrums = load_processed_spectrums()
     tanimoto_scores_df = get_reference_scores()
-    additional_inputs=(PrecursorMZFeatureGenerator, )
+    additional_inputs=(StandardScaler("precursor_mz", mean=0, std=1000), StandardScaler("precursor_mz", mean=0, std=100), )
     spectrum_binner = SpectrumBinner(1000, mz_min=10.0, mz_max=1000.0, peak_scaling=0.5,
                                      additional_metadata=additional_inputs)
     binned_spectrums = spectrum_binner.fit_transform(spectrums)
@@ -197,4 +197,4 @@ def test_save_and_load_model_additional_inputs(tmp_path):
         "Imported and original model weights should be the same"
     assert model.model.to_json() == model_import.model.to_json(), \
         "Expect same architecture for original and imported model"
-    assert model.spectrum_binner.additional_metadata == (PrecursorMZFeatureGenerator, )
+    assert model.spectrum_binner.additional_metadata == (StandardScaler("precursor_mz", mean=0, std=1000), StandardScaler("precursor_mz", mean=0, std=100), )
