@@ -73,11 +73,17 @@ class CategoricalToBinary(MetadataFeatureGenerator):
     """Converts categorical features (e.g. strings) into binary 1 or 0 feature values.
     """
     def __init__(self, metadata_field: str,
-                 entries_becoming_one,
-                 entries_becoming_zero):
+                 entries_becoming_one: Union[list, str, int],
+                 entries_becoming_zero: Union[list, str, int]):
         self.metadata_field = metadata_field
-        self.entries_becoming_one = entries_becoming_one
-        self.entries_becoming_zero = entries_becoming_zero
+        if isinstance(entries_becoming_one, list):
+            self.entries_becoming_one = entries_becoming_one
+        else:
+            self.entries_becoming_one = [entries_becoming_one]
+        if isinstance(entries_becoming_zero, list):
+            self.entries_becoming_zero = entries_becoming_zero
+        else:
+            self.entries_becoming_zero = [entries_becoming_zero]
 
     def generate_features(self, metadata: Metadata):
         feature = metadata.get(self.metadata_field, None)
