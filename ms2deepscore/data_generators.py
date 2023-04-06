@@ -1,7 +1,7 @@
 """ Data generators for training/inference with siamese Keras model.
 """
 import warnings
-from typing import List, Iterator, NamedTuple
+from typing import List, Iterator, NamedTuple, Optional
 
 import numpy as np
 import pandas as pd
@@ -447,8 +447,11 @@ class DataGeneratorAllInchikeys(DataGeneratorBase):
     as defined in same_prob_bins.
     """
 
-    def __init__(self, binned_spectrums: List[BinnedSpectrumType], selected_inchikeys: list,
-                 reference_scores_df: pd.DataFrame, dim: int, **settings):
+    def __init__(self, binned_spectrums: List[BinnedSpectrumType],
+                 reference_scores_df: pd.DataFrame,
+                 dim: int,
+                 selected_inchikeys: Optional[list] = None,
+                 **settings):
         """Generates data for training a siamese Keras model.
         Parameters
         ----------
