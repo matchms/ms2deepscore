@@ -6,7 +6,7 @@ def load_pickled_file(filename: str):
         loaded_object = pickle.load(file)
     return loaded_object
 
-data_folder = "../../data"
+data_folder = "../../../data"
 file_name = "all_cleaned_spectra.pickle"
 cleaned_library_spectra = load_pickled_file(os.path.join(data_folder, file_name))
 
