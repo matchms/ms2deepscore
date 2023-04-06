@@ -24,14 +24,11 @@ def load_pickled_file(filename: str):
 
 training_spectra_file_name = os.path.join(data_directory, "training_spectra.pickle")
 validation_spectra_file_name = os.path.join(data_directory, "validation_spectra.pickle")
-similarity_scores_file_name = os.path.join(data_directory, "all_spectra_230201_annotated_min2peaks_tanimoto_scores.pickle")
 
 # Load in Spectra
 training_spectra = load_pickled_file(training_spectra_file_name)
 validation_spectra = load_pickled_file(validation_spectra_file_name)
 
-# Load in similarity scores
-similarity_scores = load_pickled_file(similarity_scores_file_name)
 # Loading in tensorflow can take long therfore the import is done here
 from ms2deepscore.SpectrumBinner import SpectrumBinner
 
