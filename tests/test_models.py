@@ -34,7 +34,7 @@ def get_test_binner_and_generator():
         DataGeneratorAllInchikeys(binned_spectrums=binned_spectrums,
                                   selected_inchikeys=selected_inchikeys,
                                   reference_scores_df=tanimoto_scores_df,
-                                  dim=dimension, same_prob_bins=same_prob_bins)
+                                  spectrum_binner=spectrum_binner, same_prob_bins=same_prob_bins)
 
 
 def test_siamese_model():
@@ -157,7 +157,7 @@ def get_test_binner_and_generator_additional_inputs():
 
     dimension = len(spectrum_binner.known_bins)
     data_generator = DataGeneratorAllSpectrums(binned_spectrums, tanimoto_scores_df,
-                                               dim=dimension, additional_input=additional_inputs)
+                                               spectrum_binner=spectrum_binner, additional_input=additional_inputs)
 
     # Create generator
     return spectrum_binner, data_generator

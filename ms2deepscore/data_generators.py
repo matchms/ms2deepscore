@@ -7,6 +7,7 @@ import numpy as np
 import pandas as pd
 from tensorflow.keras.utils import Sequence  # pylint: disable=import-error
 
+from ms2deepscore.SpectrumBinner import SpectrumBinner
 from .typing import BinnedSpectrumType
 
 
@@ -20,7 +21,8 @@ class SpectrumPair(NamedTuple):
 
 class DataGeneratorBase(Sequence):
     def __init__(self, binned_spectrums: List[BinnedSpectrumType],
-                 reference_scores_df: pd.DataFrame, dim: int, **settings):
+                 reference_scores_df: pd.DataFrame,
+                 spectrum_binner: SpectrumBinner, **settings):
         """Base for data generator generating data for a siamese model.
 
         Parameters
@@ -79,7 +81,13 @@ class DataGeneratorBase(Sequence):
         self.reference_scores_df = self._exclude_nans_from_labels(reference_scores_df)
         self.reference_scores_df = self._transform_to_inchikey14(self.reference_scores_df)
         self._collect_and_validate_inchikeys()
-        self.dim = dim
+        self.dim = len(spectrum_binner.known_bins)
+        additional_metadata = spectrum_binner.additional_metadata
+        if len(additional_metadata) > 0:
+            self.additional_metadata = \
+                [additional_feature_type.to_json() for additional_feature_type in additional_metadata]
+        else:
+            self.additional_metadata = ()
         self.fixed_set = {}
 
     def _collect_and_validate_inchikeys(self):
@@ -171,8 +179,7 @@ class DataGeneratorBase(Sequence):
             augment_intensity=0.4,
             augment_noise_max=10,
             augment_noise_intensity=0.01,
-            use_fixed_set=False,
-            additional_input=[]
+            use_fixed_set=False
         )
 
         # Set default parameters or replace by **settings input
@@ -187,9 +194,6 @@ class DataGeneratorBase(Sequence):
             warnings.warn('When using a fixed set, data will not be shuffled')
         if settings["use_fixed_set"]:
             np.random.seed(42)
-        if len(settings["additional_input"]) > 0:
-            settings["additional_input"] = \
-                [additional_feature_type.to_json() for additional_feature_type in settings["additional_input"]]
         self.settings = settings
 
     def _find_match_in_range(self, inchikey1, target_score_range):
@@ -295,10 +299,10 @@ class DataGeneratorBase(Sequence):
                                                 "inchikey")[:14]][pair[1].get("inchikey")[:14]],
                                             self.dim,
                                             self._data_augmentation,
-                                            self.settings.get("additional_input")))
+                                            self.additional_metadata))
 
         # multi input
-        if len(self.settings.get("additional_input")) > 0:
+        if len(self.additional_metadata) > 0:
             X = [[], [], [], []]
             y = []
             for container in container_list:
@@ -336,7 +340,7 @@ class DataGeneratorAllSpectrums(DataGeneratorBase):
     """
 
     def __init__(self, binned_spectrums: List[BinnedSpectrumType],
-                 reference_scores_df: pd.DataFrame, dim: int, **settings):
+                 reference_scores_df: pd.DataFrame, spectrum_binner: SpectrumBinner, **settings):
         """Generates data for training a siamese Keras model.
         Parameters
         ----------
@@ -375,10 +379,8 @@ class DataGeneratorAllSpectrums(DataGeneratorBase):
             Change peak intensities by a random number between 0 and augment_intensity.
             Default=0.1, which means that intensities are multiplied by 1+- a random
             number within [0, 0.1].
-        additional_inputs
-            Array of additional values to be used in training for e.g. ["precursor_mz", "parent_mass"]
         """
-        super().__init__(binned_spectrums, reference_scores_df, dim, **settings)
+        super().__init__(binned_spectrums, reference_scores_df, spectrum_binner, **settings)
         self.reference_scores_df = self._exclude_not_selected_inchikeys(self.reference_scores_df)
         self.on_epoch_end()
 
@@ -449,7 +451,7 @@ class DataGeneratorAllInchikeys(DataGeneratorBase):
 
     def __init__(self, binned_spectrums: List[BinnedSpectrumType],
                  reference_scores_df: pd.DataFrame,
-                 dim: int,
+                 spectrum_binner: SpectrumBinner,
                  selected_inchikeys: Optional[list] = None,
                  **settings):
         """Generates data for training a siamese Keras model.
@@ -494,7 +496,7 @@ class DataGeneratorAllInchikeys(DataGeneratorBase):
         additional_inputs
             Array of additional values to be used in training for e.g. ["precursor_mz", "parent_mass"]
         """
-        super().__init__(binned_spectrums, reference_scores_df, dim, **settings)
+        super().__init__(binned_spectrums, reference_scores_df, spectrum_binner, **settings)
         self.reference_scores_df = self._data_selection(reference_scores_df, selected_inchikeys)
         self.on_epoch_end()
 
