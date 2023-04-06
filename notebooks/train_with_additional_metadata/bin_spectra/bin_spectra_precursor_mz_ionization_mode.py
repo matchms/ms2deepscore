@@ -2,18 +2,18 @@ import pickle
 import os
 from ms2deepscore.MetadataFeatureGenerator import CategoricalToBinary, StandardScaler
 
-data_directory = "../../data/"
+data_directory = "../../../data/"
 # Define MetadataFeature generators.
 additional_input = (StandardScaler("precursor_mz", 0, 1000),
-                    CategoricalToBinary("ionization_mode", "positive", "negative"))
+                    CategoricalToBinary("ionmode", "positive", "negative"))
 file_label = "precursor_mz_ionization_mode"
 # Check if the current notebook has the right name
 current_file_name = os.path.basename(__file__)
 assert current_file_name == "bin_spectra_" + file_label + ".py"
 
-spectrum_binner_file_name = os.path.join(data_directory, "spectrum_binner_" + file_label + ".pickle")
-binned_training_spectra_file_name = os.path.join(data_directory, "binned_training_spectra" + file_label + ".pickle")
-binned_validation_spectra_file_name = os.path.join(data_directory, "binned_validation_spectra" + file_label + ".pickle")
+spectrum_binner_file_name = os.path.join(data_directory, "binned_spectra", "spectrum_binner_" + file_label + ".pickle")
+binned_training_spectra_file_name = os.path.join(data_directory, "binned_spectra", "binned_training_spectra_" + file_label + ".pickle")
+binned_validation_spectra_file_name = os.path.join(data_directory, "binned_spectra", "binned_validation_spectra_" + file_label + ".pickle")
 
 
 def load_pickled_file(filename: str):
