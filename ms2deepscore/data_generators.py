@@ -90,7 +90,7 @@ class DataGeneratorBase(Sequence):
         self.spectrum_inchikeys = np.array([s.get("inchikey")[:14] for s in self.binned_spectrums])
         for inchikey in np.unique(self.spectrum_inchikeys):
             assert inchikey in self.reference_scores_df.index, \
-                "InChIKey in given spectrum not found in reference scores"
+                f"InChIKey: {inchikey} in given spectrum not found in reference scores"
         inchikeys = self.reference_scores_df.index
         if len(set(inchikeys)) != len(inchikeys):
             msg = f"Duplicate InChIKeys-14 detected in reference_scores_df: {list(inchikeys[inchikeys.duplicated()])}"
