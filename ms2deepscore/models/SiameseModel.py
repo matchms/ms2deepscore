@@ -112,8 +112,8 @@ class SiameseModel:
             Filename to specify where to store the model.
 
         """
-        with h5py.File(filename, mode='w') as f:
-            hdf5_format.save_model_to_hdf5(self.model, f)
+        self.model.save(filename, save_format="h5")
+        with h5py.File(filename, mode='a') as f:
             f.attrs['spectrum_binner'] = self.spectrum_binner.to_json()
             f.attrs['additional_input'] = self.additional_input
 
