@@ -38,7 +38,8 @@ setup(
         "tensorflow;platform_machine!='arm64'",
         "tqdm",
     ],
-    extras_require={"dev": ["bump2version",
+    extras_require={"train": ["rdkit"],
+                    "dev": ["bump2version",
                             "isort>=4.2.5,<5",
                             "pylint!=2.15.7",
                             "prospector[with_pyroma]",
@@ -48,5 +49,5 @@ setup(
                             "sphinx_rtd_theme",
                             "sphinxcontrib-apidoc",
                             "yapf",],
-    }
+                    }
 )
