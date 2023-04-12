@@ -9,7 +9,7 @@ import pandas as pd
 from matchms import Spectrum
 import numpy as np
 
-from matchms.similarity.vector_similarity_functions import jaccard_similarity_matrix, jaccard_index
+from matchms.similarity.vector_similarity_functions import jaccard_similarity_matrix
 from rdkit import Chem
 from tqdm import tqdm
 
@@ -74,4 +74,3 @@ def get_fingerprint(smiles: str):
     assert isinstance(fingerprint, np.ndarray), \
         f"Fingerprint for 1 spectrum could not be set smiles is {smiles}"
     return fingerprint
-
