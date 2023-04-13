@@ -5,9 +5,10 @@ def load_pickled_file(filename: str):
     with open(filename, 'rb') as file:
         loaded_object = pickle.load(file)
     return loaded_object
+IONIZATION_MODE = "negative"
 
-data_folder = "../../../data"
-file_name = "all_cleaned_spectra.pickle"
+data_folder = "../../../../data"
+file_name = f"cleaned_spectra/{IONIZATION_MODE}_annotated_spectra.pickle"
 cleaned_library_spectra = load_pickled_file(os.path.join(data_folder, file_name))
 
 print(len(cleaned_library_spectra))
@@ -68,11 +69,13 @@ print(len(train_spectra))
 
 import pickle
 
+
 def save_pickled_file(obj, filename: str):
     assert not os.path.exists(filename), "File already exists"
     with open(filename, "wb") as f:
         pickle.dump(obj, f)
 
-save_pickled_file(validation_spectra, os.path.join(data_folder, "validation_spectra.pickle"))
-save_pickled_file(test_spectra, os.path.join(data_folder, "test_spectra.pickle"))
-save_pickled_file(train_spectra, os.path.join(data_folder, "training_spectra.pickle"))
+
+save_pickled_file(validation_spectra, os.path.join(data_folder, "training_and_validation_split", f"{IONIZATION_MODE}_validation_spectra.pickle"))
+save_pickled_file(test_spectra, os.path.join(data_folder, "training_and_validation_split", f"{IONIZATION_MODE}_test_spectra.pickle"))
+save_pickled_file(train_spectra, os.path.join(data_folder, "training_and_validation_split", f"{IONIZATION_MODE}_training_spectra.pickle"))
