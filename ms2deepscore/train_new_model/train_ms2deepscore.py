@@ -17,8 +17,7 @@ from ms2deepscore.train_new_model.calculate_tanimoto_matrix import calculate_tan
 def train_ms2ds_model(training_spectra,
                       validation_spectra,
                       tanimoto_df,
-                      output_model_file_name,
-                      epochs=150):
+                      output_model_file_name):
     assert not os.path.isfile(output_model_file_name), "The MS2Deepscore output model file name already exists"
     # Bin training spectra
     spectrum_binner = SpectrumBinner(10000, mz_min=10.0, mz_max=1000.0, peak_scaling=0.5,
@@ -63,7 +62,7 @@ def train_ms2ds_model(training_spectra,
     earlystopper_scoring_net = tf.keras.callbacks.EarlyStopping(monitor='val_loss', mode="min", patience=10, verbose=1)
     # Fit model and save history
     history = model.model.fit(training_generator, validation_data=validation_generator,
-                              epochs=epochs, verbose=1,
+                              epochs=150, verbose=1,
                               callbacks=[checkpointer, earlystopper_scoring_net])
     model.load_weights(output_model_file_name)
     model.save(output_model_file_name)

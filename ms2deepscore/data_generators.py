@@ -172,7 +172,6 @@ class DataGeneratorBase(Sequence):
             "augment_noise_max": 10,
             "augment_noise_intensity": 0.01,
             "use_fixed_set": False,
-            "additional_input": []
         }
 
         # Set default parameters or replace by **settings input
