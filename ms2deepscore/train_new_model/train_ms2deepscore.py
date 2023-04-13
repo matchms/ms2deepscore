@@ -17,7 +17,8 @@ from ms2deepscore.train_new_model.calculate_tanimoto_matrix import calculate_tan
 def train_ms2ds_model(training_spectra,
                       validation_spectra,
                       tanimoto_df,
-                      output_model_file_name):
+                      output_model_file_name,
+                      epochs):
     assert not os.path.isfile(output_model_file_name), "The MS2Deepscore output model file name already exists"
     # Bin training spectra
     spectrum_binner = SpectrumBinner(10000, mz_min=10.0, mz_max=1000.0, peak_scaling=0.5,
@@ -33,21 +34,21 @@ def train_ms2ds_model(training_spectra,
         binned_spectrums_training,
         selected_inchikeys=list({s.get("inchikey")[:14] for s in training_spectra}),
         reference_scores_df=tanimoto_df,
-        dim=len(spectrum_binner.known_bins), # The number of bins created
         same_prob_bins=same_prob_bins,
         num_turns=2,
         augment_noise_max=10,
-        augment_noise_intensity=0.01)
+        augment_noise_intensity=0.01,
+        spectrum_binner=spectrum_binner)
 
     validation_generator = DataGeneratorAllInchikeys(
         binned_spectrums_val,
         selected_inchikeys=list({s.get("inchikey")[:14] for s in binned_spectrums_val}),
         reference_scores_df=tanimoto_df,
-        dim=len(spectrum_binner.known_bins),  # The number of bins created
         same_prob_bins=same_prob_bins,
         num_turns=10, # Number of pairs for each InChiKey14 during each epoch.
         # To prevent data augmentation
-        augment_removal_max=0, augment_removal_intensity=0, augment_intensity=0, augment_noise_max=0, use_fixed_set=True
+        augment_removal_max=0, augment_removal_intensity=0, augment_intensity=0, augment_noise_max=0, use_fixed_set=True,
+        spectrum_binner=spectrum_binner
     )
 
     model = SiameseModel(spectrum_binner, base_dims=(500, 500),
@@ -62,7 +63,7 @@ def train_ms2ds_model(training_spectra,
     earlystopper_scoring_net = tf.keras.callbacks.EarlyStopping(monitor='val_loss', mode="min", patience=10, verbose=1)
     # Fit model and save history
     history = model.model.fit(training_generator, validation_data=validation_generator,
-                              epochs=150, verbose=1,
+                              epochs=epochs, verbose=1,
                               callbacks=[checkpointer, earlystopper_scoring_net])
     model.load_weights(output_model_file_name)
     model.save(output_model_file_name)
