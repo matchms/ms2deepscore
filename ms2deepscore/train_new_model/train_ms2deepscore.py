@@ -3,7 +3,8 @@ This script is not needed for normally running MS2Deepscore, it is only needed t
 """
 
 import os
-from typing import List, Dict, Optional
+from os import PathLike
+from typing import List, Dict, Optional, Union
 import numpy as np
 import tensorflow as tf
 from matplotlib import pyplot as plt
@@ -12,27 +13,46 @@ from ms2deepscore import SpectrumBinner
 from ms2deepscore.data_generators import DataGeneratorAllInchikeys
 from ms2deepscore.models import SiameseModel
 from ms2deepscore.train_new_model.calculate_tanimoto_matrix import calculate_tanimoto_scores_unique_inchikey
+from ms2deepscore.utils import save_pickled_file, return_non_existing_file_name, load_pickled_file
 
 
-def train_ms2ds_model(training_spectra,
-                      validation_spectra,
-                      tanimoto_df,
-                      output_model_file_name,
-                      epochs):
-    assert not os.path.isfile(output_model_file_name), "The MS2Deepscore output model file name already exists"
+def bin_spectra(training_spectra: List[Spectrum],
+                validation_spectra: List[Spectrum],
+                additional_metadata=(),
+                save_folder=None):
     # Bin training spectra
     spectrum_binner = SpectrumBinner(10000, mz_min=10.0, mz_max=1000.0, peak_scaling=0.5,
-                                     allowed_missing_percentage=100.0)
+                                     allowed_missing_percentage=100.0,
+                                     additional_metadata=additional_metadata)
     binned_spectrums_training = spectrum_binner.fit_transform(training_spectra)
     # Bin validation spectra using the binner based on the training spectra.
     # Peaks that do not occur in the training spectra will not be binned in the validaiton spectra.
     binned_spectrums_val = spectrum_binner.transform(validation_spectra)
+    if save_folder:
+        if not os.path.exists(save_folder):
+            assert not os.path.isfile(save_folder), "The folder specified is a file"
+            os.mkdir(save_folder)
+        save_pickled_file(binned_spectrums_training, return_non_existing_file_name(os.path.join(save_folder, "binned_training_spectra.pickle")))
+        save_pickled_file(binned_spectrums_val, return_non_existing_file_name(os.path.join(save_folder, "binned_validation_spectra.pickle")))
+        save_pickled_file(spectrum_binner, return_non_existing_file_name(os.path.join(save_folder, "spectrum_binner.pickle")))
+    return binned_spectrums_training, binned_spectrums_val, spectrum_binner
+
+
+def train_ms2ds_model(binned_spectrums_training,
+                      binned_spectrums_val,
+                      spectrum_binner,
+                      tanimoto_df,
+                      output_model_file_name,
+                      epochs=150,
+                      base_dims=(500, 500)
+                      ):
+    assert not os.path.isfile(output_model_file_name), "The MS2Deepscore output model file name already exists"
 
     same_prob_bins = list(zip(np.linspace(0, 0.9, 10), np.linspace(0.1, 1, 10)))
 
     training_generator = DataGeneratorAllInchikeys(
         binned_spectrums_training,
-        selected_inchikeys=list({s.get("inchikey")[:14] for s in training_spectra}),
+        selected_inchikeys=list({s.get("inchikey")[:14] for s in binned_spectrums_training}),
         reference_scores_df=tanimoto_df,
         same_prob_bins=same_prob_bins,
         num_turns=2,
@@ -51,7 +71,7 @@ def train_ms2ds_model(training_spectra,
         spectrum_binner=spectrum_binner
     )
 
-    model = SiameseModel(spectrum_binner, base_dims=(500, 500),
+    model = SiameseModel(spectrum_binner, base_dims=base_dims,
                          embedding_dim=200, dropout_rate=0.2)
 
     model.compile(loss='mse', optimizer=tf.keras.optimizers.Adam(learning_rate=0.001),
@@ -85,15 +105,58 @@ def plot_history(history: Dict[str, List[float]],
 
 
 def train_ms2deepscore_wrapper(training_spectra: List[Spectrum],
-                               validation_spectra,
-                               output_model_file_name,
-                               epochs,
-                               ms2ds_history_file_name=None):
-    assert not os.path.isfile(output_model_file_name), "The MS2Deepscore output model file name already exists"
-    all_spectra = training_spectra + validation_spectra
-    tanimoto_score_df = calculate_tanimoto_scores_unique_inchikey(all_spectra, all_spectra)
-    history = train_ms2ds_model(training_spectra, validation_spectra,
+                               validation_spectra: List[Spectrum],
+                               output_folder: Union[str, PathLike],
+                               binned_spectrum_folder=None,
+                               tanimoto_scores_file_name=None,
+                               epochs: int = 150,
+                               base_dims = (500, 500),
+                               additional_metadata = ()
+                               ):
+    """Trains a MS2Deepscore model
+
+    :param training_spectra: The spectra used for training
+    :param validation_spectra: The spectra used for validation
+    :param output_folder: The folder in which the model and intermediate files should be stored
+    :param epochs: The number of epochs used for training
+    :param binned_spectrum_folder: The folder in which precalculated embeddings are stored.
+    If set to None, they will be calculated.
+    :param tanimoto_scores_file_name: The file location of precalculated tanimoto scores.
+    If None, these will be calculated.
+    """
+    # creates a folder if it does not yet exist.
+    if not os.path.exists(output_folder):
+        assert not os.path.isfile(output_folder), "The folder specified is a file"
+        os.mkdir(output_folder)
+
+    # Load in tanimoto scores, or calculate tanimoto scores
+    if tanimoto_scores_file_name:
+        tanimoto_score_df = load_pickled_file(tanimoto_scores_file_name)
+    else:
+        all_spectra = training_spectra + validation_spectra
+        tanimoto_score_df = calculate_tanimoto_scores_unique_inchikey(all_spectra, all_spectra)
+
+    if binned_spectrum_folder:
+        binned_spectrums_training = load_pickled_file(os.path.join(binned_spectrum_folder, "binned_training_spectra.pickle"))
+        binned_spectrums_val = load_pickled_file(os.path.join(binned_spectrum_folder, "binned_validation_spectra.pickle"))
+        spectrum_binner = load_pickled_file(os.path.join(binned_spectrum_folder, "spectrum_binner.pickle"))
+    else:
+        binned_spectrums_training, binned_spectrums_val, spectrum_binner = bin_spectra(
+            training_spectra, validation_spectra, additional_metadata=additional_metadata, save_folder=output_folder)
+
+    # Train model
+    output_model_file_name = return_non_existing_file_name(os.path.join(output_folder,
+                                                                        "ms2deepscore_model.hdf5"))
+    history = train_ms2ds_model(binned_spectrums_training, binned_spectrums_val, spectrum_binner,
                                 tanimoto_score_df, output_model_file_name,
-                                epochs)
-    print(f"The training history is: {history}")
-    plot_history(history, ms2ds_history_file_name)
+                                epochs,
+                                base_dims=base_dims
+                                )
+
+    # Save history
+    ms2ds_history_file_name = return_non_existing_file_name(os.path.join(output_folder, "history.txt"))
+    with open(ms2ds_history_file_name, 'w') as f:
+        f.write(str(history))
+    # Save plot of history
+    ms2ds_history_plot_file_name = return_non_existing_file_name(os.path.join(output_folder, "history.svg"))
+    plot_history(history, ms2ds_history_plot_file_name)
