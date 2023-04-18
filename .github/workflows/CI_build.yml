@@ -95,10 +95,9 @@ jobs:
           pip list
       - name: Run test with tensorflow version 2.4
         run: pytest
-      - name: Install Tensorflow version 2.5
+      - name: Install Tensorflow version 2.6
         run: |
-          pip install --upgrade "pandas<1.5.0"
-          pip install --upgrade "tensorflow>=2.5,<2.6"
+          pip install --upgrade "tensorflow>=2.6,<2.7"
       - name: Show pip list
         run: |
           pip list
