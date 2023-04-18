@@ -27,7 +27,7 @@ setup(
     license="Apache Software License 2.0",
     zip_safe=False,
     test_suite="tests",
-    python_requires='>=3.7',
+    python_requires='>=3.8',
     install_requires=[
         "matchms>=0.14.0",
         "numba",
