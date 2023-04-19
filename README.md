@@ -36,16 +36,23 @@ Simply install using pip: `pip install ms2deepscore`
 We recommend to create an Anaconda environment with
 
 ```
-conda create --name ms2deepscore python=3.8
+conda create --name ms2deepscore python=3.9
 conda activate ms2deepscore
 pip install ms2deepscore
 ```
 Alternatively, simply install in the environment of your choice by .
 
 
-Or, to also include the full [matchms](https://github.com/matchms/matchms) functionality:
+Or, to also include the full [matchms](https://github.com/matchms/matchms) functionality, including rdkit:
 ```
-conda create --name ms2deepscore python=3.8
+conda create --name ms2deepscore python=3.9
+conda activate ms2deepscore
+pip install ms2deepscore[chemistry]
+```
+
+Or, via conda:
+```
+conda create --name ms2deepscore python=3.9
 conda activate ms2deepscore
 conda install --channel bioconda --channel conda-forge matchms
 pip install ms2deepscore
