@@ -82,9 +82,9 @@ def benchmark_wrapper(val_spectra_1, val_spectra_2,
         save_pickled_file(true_values, true_values_file_name)
 
     # Create plots
-    create_plot(predictions, true_values, plots_folder=os.path.join(benchmarking_results_folder, "plots"),
+    create_plot(predictions, true_values, plots_folder=os.path.join(benchmarking_results_folder, "plots_normalized_auc"),
                 file_name=file_name)
-    create_reverse_plot(predictions, true_values, plots_folder=os.path.join(benchmarking_results_folder, "plots"),
+    create_reverse_plot(predictions, true_values, plots_folder=os.path.join(benchmarking_results_folder, "plots_normalized_auc"),
                         file_name=file_name)
 
     mae = np.abs(predictions - true_values).mean()
@@ -106,7 +106,12 @@ def create_all_plots(model_folder_name):
     negative_validation_spectra = load_pickled_file(os.path.join(
         data_dir, "training_and_validation_split", "negative_validation_spectra.pickle"))
 
-    #Create benchmarking results folder
+    # Check if the model already finished training
+    if not os.path.exists(os.path.join(model_folder, "history.txt")):
+        print(f"Did not plot since {model_folder_name} did not yet finish training")
+        return None
+
+    # Create benchmarking results folder
     benchmarking_results_folder = os.path.join(model_folder, "benchmarking_results")
     if not os.path.exists(benchmarking_results_folder):
         assert not os.path.isfile(benchmarking_results_folder), "The folder specified is a file"
