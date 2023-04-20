@@ -44,15 +44,18 @@ def plot_histograms(histograms, y_score_bins, bin_content=None,
     alpha = 1.0 #0.5
 
     # Create plot
-    plt.figure(figsize=(10,10))
+    plt.figure(figsize=(10, 10))
 
+    # Loop over each bin.
     for i in range(0, len(histograms)):
         data = histograms[len(histograms)-i-1][0]
-        data = data/max(data)
-        plt.fill_between(histograms[0][1][:100], -shift*i, [(-shift*i + x) for x in data], color=cmap1(i/10), alpha=alpha)
+        # Normalize the data to have the same area under the curve
+        data = data/sum(data)*len(data)/4
+        plt.fill_between(histograms[0][1][:len(data)], -shift*i, [(-shift*i + x) for x in data], color=cmap1(i/10), alpha=alpha)
         if i > 0:
-            plt.plot(histograms[0][1][:100], [(-shift*i + x) for x in data], color="white")
+            plt.plot(histograms[0][1][:len(data)], [(-shift*i + x) for x in data], color="white")
         if bin_content:
+            # Writes down the number of pairs per bin
             plt.text(0.01, -shift*i+shift/6, f"{bin_content[::-1][i]} pairs")#, color="white")
 
     plt.xticks(fontsize=14)
@@ -194,3 +197,57 @@ def derive_scatter_data(reference_scores, comparison_scores,
                                                  (bins_y[j] + bins_y[j+1])/2,
                                                  idx[0].shape[0]))
     return confusion_like_matrix, confusion_like_matrix_scatter
+
+
+def tanimoto_dependent_losses(scores, scores_ref, ref_score_bins):
+    """Compute errors (RMSE and MSE) for different bins of the reference scores (scores_ref).
+
+    Parameters
+    ----------
+
+    scores
+        Scores that should be evaluated
+    scores_ref
+        Reference scores (= ground truth).
+    ref_score_bins
+        Bins for the refernce score to evaluate the performance of scores.
+    """
+    bin_content = []
+    rmses = []
+    maes = []
+    bounds = []
+    ref_scores_bins_inclusive = ref_score_bins.copy()
+    ref_scores_bins_inclusive[0] = -np.inf
+    ref_scores_bins_inclusive[-1] = np.inf
+    for i in range(len(ref_scores_bins_inclusive) - 1):
+        low = ref_scores_bins_inclusive[i]
+        high = ref_scores_bins_inclusive[i + 1]
+        bounds.append((low, high))
+        idx = np.where((scores_ref >= low) & (scores_ref < high))
+        bin_content.append(idx[0].shape[0])
+        maes.append(np.abs(scores_ref[idx] - scores[idx]).mean())
+        rmses.append(np.sqrt(np.square(scores_ref[idx] - scores[idx]).mean()))
+    return bin_content, bounds, rmses, maes
+
+
+def plot_rmse_per_bin(predicted_scores, true_scores):
+    ref_score_bins = np.linspace(0, 1.0, 11)
+    bin_content, bounds, rmses, maes = tanimoto_dependent_losses(predicted_scores,
+                                                                 true_scores, ref_score_bins)
+
+    fig, (ax1, ax2) = plt.subplots(2, 1, sharex=True, figsize=(4, 5), dpi=120)
+
+    ax1.plot(np.arange(len(rmses)), rmses, "o:", color="crimson")
+    ax1.set_title('RMSE')
+    ax1.set_ylabel("RMSE")
+    ax1.grid(True)
+
+    ax2.plot(np.arange(len(rmses)), bin_content, "o:", color="teal")
+    ax2.set_title('# of spectrum pairs')
+    ax2.set_ylabel("# of spectrum pairs")
+    ax2.set_xlabel("Tanimoto score bin")
+    plt.yscale('log')
+    plt.xticks(np.arange(len(rmses)),
+               [f"{a:.1f} to < {b:.1f}" for (a, b) in bounds], fontsize=9, rotation='vertical')
+    ax2.grid(True)
+    plt.tight_layout()
