@@ -44,7 +44,8 @@ def train_ms2ds_model(binned_spectrums_training,
                       tanimoto_df,
                       output_model_file_name,
                       epochs=150,
-                      base_dims=(500, 500)
+                      base_dims=(500, 500),
+                      embedding_dim=200
                       ):
     assert not os.path.isfile(output_model_file_name), "The MS2Deepscore output model file name already exists"
 
@@ -72,7 +73,7 @@ def train_ms2ds_model(binned_spectrums_training,
     )
 
     model = SiameseModel(spectrum_binner, base_dims=base_dims,
-                         embedding_dim=200, dropout_rate=0.2)
+                         embedding_dim=embedding_dim, dropout_rate=0.2)
 
     model.compile(loss='mse', optimizer=tf.keras.optimizers.Adam(learning_rate=0.001),
                   metrics=["mae", tf.keras.metrics.RootMeanSquaredError()])
@@ -80,7 +81,7 @@ def train_ms2ds_model(binned_spectrums_training,
     checkpointer = tf.keras.callbacks.ModelCheckpoint(
         filepath=output_model_file_name, monitor='val_loss', mode="min",
         verbose=1, save_best_only=True)
-    earlystopper_scoring_net = tf.keras.callbacks.EarlyStopping(monitor='val_loss', mode="min", patience=10, verbose=1)
+    earlystopper_scoring_net = tf.keras.callbacks.EarlyStopping(monitor='val_loss', mode="min", patience=30, verbose=1)
     # Fit model and save history
     history = model.model.fit(training_generator, validation_data=validation_generator,
                               epochs=epochs, verbose=1,
@@ -111,7 +112,8 @@ def train_ms2deepscore_wrapper(training_spectra: List[Spectrum],
                                tanimoto_scores_file_name=None,
                                epochs: int = 150,
                                base_dims = (500, 500),
-                               additional_metadata = ()
+                               additional_metadata = (),
+                               embedding_dim = 200
                                ):
     """Trains a MS2Deepscore model
 
@@ -150,7 +152,8 @@ def train_ms2deepscore_wrapper(training_spectra: List[Spectrum],
     history = train_ms2ds_model(binned_spectrums_training, binned_spectrums_val, spectrum_binner,
                                 tanimoto_score_df, output_model_file_name,
                                 epochs,
-                                base_dims=base_dims
+                                base_dims=base_dims,
+                                embedding_dim=embedding_dim
                                 )
 
     # Save history
