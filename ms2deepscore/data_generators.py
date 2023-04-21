@@ -18,6 +18,36 @@ class SpectrumPair(NamedTuple):
     spectrum2: BinnedSpectrumType
 
 
+def clean_reference_scores_df(reference_scores_df):
+    validate_labels(reference_scores_df)
+    reference_scores_df = exclude_nans_from_labels(reference_scores_df)
+    reference_scores_df = transform_to_inchikey14(reference_scores_df)
+    return reference_scores_df
+
+
+def validate_labels(reference_scores_df: pd.DataFrame):
+    if set(reference_scores_df.index) != set(reference_scores_df.columns):
+        raise ValueError("index and columns of reference_scores_df are not identical")
+
+
+def transform_to_inchikey14(reference_scores_df: pd.DataFrame):
+    """Transform index and column names from potential full InChIKeys to InChIKey14"""
+    reference_scores_df.index = [x[:14] for x in reference_scores_df.index]
+    reference_scores_df.columns = [x[:14] for x in reference_scores_df.columns]
+    return reference_scores_df
+
+
+def exclude_nans_from_labels(reference_scores_df: pd.DataFrame):
+    """Exclude nans in reference_scores_df, exclude columns and rows if there is any NaN
+    value"""
+    clean_df = reference_scores_df.dropna(axis='rows')  # drop rows with any NaN
+    clean_df = clean_df[clean_df.index]  # drop corresponding columns
+    n_dropped = len(reference_scores_df) - len(clean_df)
+    if n_dropped > 0:
+        print(f"{n_dropped} nans among {len(reference_scores_df)} labels will be excluded.")
+    return clean_df
+
+
 class DataGeneratorBase(Sequence):
     def __init__(self, binned_spectrums: List[BinnedSpectrumType],
                  reference_scores_df: pd.DataFrame, dim: int, **settings):
@@ -70,14 +100,11 @@ class DataGeneratorBase(Sequence):
             Toggles using a fixed dataset, if set to True the same dataset will be generated each
             epoch. Default is False.
         """
-
-        self._validate_labels(reference_scores_df)
+        self.reference_scores_df = clean_reference_scores_df(reference_scores_df)
 
         # Set all other settings to input (or otherwise to defaults):
         self._set_generator_parameters(**settings)
         self.binned_spectrums = binned_spectrums
-        self.reference_scores_df = self._exclude_nans_from_labels(reference_scores_df)
-        self.reference_scores_df = self._transform_to_inchikey14(self.reference_scores_df)
         self._collect_and_validate_inchikeys()
         self.dim = dim
         self.fixed_set = {}
@@ -95,29 +122,6 @@ class DataGeneratorBase(Sequence):
         if len(set(inchikeys)) != len(inchikeys):
             msg = f"Duplicate InChIKeys-14 detected in reference_scores_df: {list(inchikeys[inchikeys.duplicated()])}"
             raise ValueError(msg)
-
-    @staticmethod
-    def _validate_labels(reference_scores_df: pd.DataFrame):
-        if set(reference_scores_df.index) != set(reference_scores_df.columns):
-            raise ValueError("index and columns of reference_scores_df are not identical")
-
-    @staticmethod
-    def _transform_to_inchikey14(reference_scores_df: pd.DataFrame):
-        """Transform index and column names from potential full InChIKeys to InChIKey14"""
-        reference_scores_df.index = [x[:14] for x in reference_scores_df.index]
-        reference_scores_df.columns = [x[:14] for x in reference_scores_df.columns]
-        return reference_scores_df
-
-    @staticmethod
-    def _exclude_nans_from_labels(reference_scores_df: pd.DataFrame):
-        """Exclude nans in reference_scores_df, exclude columns and rows if there is any NaN
-        value"""
-        clean_df = reference_scores_df.dropna(axis='rows')  # drop rows with any NaN
-        clean_df = clean_df[clean_df.index]  # drop corresponding columns
-        n_dropped = len(reference_scores_df) - len(clean_df)
-        if n_dropped > 0:
-            print(f"{n_dropped} nans among {len(reference_scores_df)} labels will be excluded.")
-        return clean_df
 
     def _set_generator_parameters(self, **settings):
         """Set parameter for data generator. Use below listed defaults unless other
