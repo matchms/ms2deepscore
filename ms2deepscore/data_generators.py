@@ -75,11 +75,11 @@ class DataGeneratorBase(Sequence):
         self.binned_spectrums = binned_spectrums
         # Collect all inchikeys
         self.spectrum_inchikeys = np.array([s.get("inchikey")[:14] for s in self.binned_spectrums])
+        self._validate_indexes()
 
         # Set all other settings to input (or otherwise to defaults):
         self._set_generator_parameters(**settings)
 
-        self._collect_and_validate_inchikeys()
         self.dim = dim
         self.fixed_set = {}
 
@@ -197,6 +197,8 @@ class DataGeneratorBase(Sequence):
         if self.settings['use_fixed_set'] and batch_index in self.fixed_set:
             return self.fixed_set[batch_index]
         if self.settings['use_fixed_set'] and batch_index == 0:
+            # todo This sets the global random seed to 42. Wouldn't this cause an issue, since this random seed will
+            #  in that case also be used for other random actions (even if it is in a different data generator for the validation test set.
             np.random.seed(42)
         spectrum_pairs = self._spectrum_pair_generator(batch_index)
         X, y = self.__data_generation(spectrum_pairs)
