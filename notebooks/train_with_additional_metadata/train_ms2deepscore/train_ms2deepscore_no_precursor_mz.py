@@ -5,9 +5,16 @@ from ms2deepscore.utils import load_pickled_file
 from ms2deepscore.train_new_model.visualize_results import create_all_plots
 
 
+import os
+from ms2deepscore.train_new_model.train_ms2deepscore import train_ms2deepscore_wrapper
+from ms2deepscore.utils import load_pickled_file
+from ms2deepscore.train_new_model.visualize_results import create_all_plots
+
+
 def create_file_name(additional_metadata,
                      base_dims,
-                     ionisation_mode):
+                     ionisation_mode,
+                     embedding_dims=None):
     binning_file_label = ""
     for metadata_generator in additional_metadata:
         binning_file_label += metadata_generator.metadata_field + "_"
@@ -18,7 +25,10 @@ def create_file_name(additional_metadata,
         neural_net_structure_label += str(layer) + "_"
     neural_net_structure_label += "layers"
 
-    model_folder_file_name = f"ms2deepscore_model_{ionisation_mode}_mode_{binning_file_label}{neural_net_structure_label}"
+    if embedding_dims:
+        neural_net_structure_label += f"_{str(embedding_dims)}_embedding"
+
+    model_folder_file_name = f"{ionisation_mode}_mode_{binning_file_label}{neural_net_structure_label}"
     print(f"The model will be stored in the folder: {model_folder_file_name}")
     return model_folder_file_name
 
@@ -47,10 +57,12 @@ def load_spectra(data_directory, ionisation_mode):
 def train_and_benchmark_wrapper(data_directory,
                                 additional_metadata,
                                 base_dims,
-                                ionisation_mode):
+                                ionisation_mode,
+                                embedding_dims=200):
     model_folder_file_name = create_file_name(additional_metadata,
                                               base_dims,
-                                              ionisation_mode)
+                                              ionisation_mode,
+                                              embedding_dims)
 
     model_folder_file_path = os.path.join(data_directory, "trained_models",
                                           model_folder_file_name)
@@ -62,7 +74,8 @@ def train_and_benchmark_wrapper(data_directory,
 
     train_ms2deepscore_wrapper(training_spectra, validation_spectra, model_folder_file_path,
                                base_dims=base_dims, additional_metadata=additional_metadata,
-                               tanimoto_scores_file_name=tanimoto_scores_file_name)
+                               tanimoto_scores_file_name=tanimoto_scores_file_name,
+                               embedding_dim=embedding_dims)
     create_all_plots(model_folder_file_name)
 
 

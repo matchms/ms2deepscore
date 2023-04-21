@@ -22,7 +22,7 @@ def create_file_name(additional_metadata,
     if embedding_dims:
         neural_net_structure_label += f"_{str(embedding_dims)}_embedding"
 
-    model_folder_file_name = f"ms2deepscore_model_{ionisation_mode}_mode_{binning_file_label}{neural_net_structure_label}"
+    model_folder_file_name = f"{ionisation_mode}_mode_{binning_file_label}{neural_net_structure_label}"
     print(f"The model will be stored in the folder: {model_folder_file_name}")
     return model_folder_file_name
 
@@ -71,6 +71,7 @@ def train_and_benchmark_wrapper(data_directory,
                                tanimoto_scores_file_name=tanimoto_scores_file_name,
                                embedding_dim=embedding_dims)
     create_all_plots(model_folder_file_name)
+
 
 if __name__ == "__main__":
     data_directory = "../../../../data/"
