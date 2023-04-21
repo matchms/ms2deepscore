@@ -1,10 +1,48 @@
 import numpy as np
 import pytest
+import string
+from matchms import Spectrum
 
 from ms2deepscore import SpectrumBinner
 from ms2deepscore.data_generators import DataGeneratorAllInchikeys
 from ms2deepscore.data_generators import DataGeneratorAllSpectrums
 from tests.test_user_worfklow import load_processed_spectrums, get_reference_scores
+
+
+def create_dummy_data():
+    """Create fake data to test generators.
+    """
+    peaks = np.array([100.0, 0.1])
+    spectrums = []
+
+    letters = list(string.ascii_uppercase[:10])
+
+    # Create fake similarities
+    similarities = {}
+    for i, letter1 in enumerate(letters):
+        for j, letter2 in enumerate(letters):
+            similarities[(letter1, letter2)] = (len(letters) - abs(i - j)) / len(letters)
+
+    tanimoto_fake = pd.DataFrame(similarities.values(),
+                                 index=similarities.keys()).unstack()
+
+    # Set the column and index names
+    similarities.columns = letters
+    similarities.index = letters
+
+    # Create fake spectra
+    for letter in letters:
+        dummy_inchikey = f"{14 * letter}-{10 * letter}-N"
+        spectrums.append(Spectrum(mz=peaks[0], intensities=peaks[1],
+                                  metadata={"inchikey": dummy_inchikey,
+                                        "compound_name": letter}))
+        spectrums.append(Spectrum(mz=peaks[0], intensities=peaks[1],
+                                  metadata={"inchikey": dummy_inchikey,
+                                        "compound_name": f"{letter}-2"}))
+
+    ms2ds_binner = SpectrumBinner(100, mz_min=10.0, mz_max=1000.0, peak_scaling=0.5)
+    binned_spectrums = ms2ds_binner.fit_transform(spectrums)
+    return binned_spectrums, tanimoto_fake
 
 
 def create_test_data():
