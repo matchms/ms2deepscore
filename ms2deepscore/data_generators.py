@@ -18,44 +18,6 @@ class SpectrumPair(NamedTuple):
     spectrum2: BinnedSpectrumType
 
 
-def clean_reference_scores_df(reference_scores_df):
-    validate_labels(reference_scores_df)
-    reference_scores_df = exclude_nans_from_labels(reference_scores_df)
-    reference_scores_df = transform_to_inchikey14(reference_scores_df)
-    check_duplicated_indexes(reference_scores_df)
-    return reference_scores_df
-
-
-def validate_labels(reference_scores_df: pd.DataFrame):
-    if set(reference_scores_df.index) != set(reference_scores_df.columns):
-        raise ValueError("index and columns of reference_scores_df are not identical")
-
-
-def transform_to_inchikey14(reference_scores_df: pd.DataFrame):
-    """Transform index and column names from potential full InChIKeys to InChIKey14"""
-    reference_scores_df.index = [x[:14] for x in reference_scores_df.index]
-    reference_scores_df.columns = [x[:14] for x in reference_scores_df.columns]
-    return reference_scores_df
-
-
-def exclude_nans_from_labels(reference_scores_df: pd.DataFrame):
-    """Exclude nans in reference_scores_df, exclude columns and rows if there is any NaN
-    value"""
-    clean_df = reference_scores_df.dropna(axis='rows')  # drop rows with any NaN
-    clean_df = clean_df[clean_df.index]  # drop corresponding columns
-    n_dropped = len(reference_scores_df) - len(clean_df)
-    if n_dropped > 0:
-        print(f"{n_dropped} nans among {len(reference_scores_df)} labels will be excluded.")
-    return clean_df
-
-
-def check_duplicated_indexes(reference_scores_df):
-    inchikeys = reference_scores_df.index
-    if len(set(inchikeys)) != len(inchikeys):
-        msg = f"Duplicate InChIKeys-14 detected in reference_scores_df: {list(inchikeys[inchikeys.duplicated()])}"
-        raise ValueError(msg)
-
-
 class DataGeneratorBase(Sequence):
     def __init__(self, binned_spectrums: List[BinnedSpectrumType],
                  reference_scores_df: pd.DataFrame, dim: int, **settings):
@@ -554,3 +516,41 @@ class Container:
             self.additional_inputs_right.append([float(self.spectrum_right.get(additional_input))])
 
         self.tanimoto_score = tanimoto_score
+
+
+def clean_reference_scores_df(reference_scores_df):
+    validate_labels(reference_scores_df)
+    reference_scores_df = exclude_nans_from_labels(reference_scores_df)
+    reference_scores_df = transform_to_inchikey14(reference_scores_df)
+    check_duplicated_indexes(reference_scores_df)
+    return reference_scores_df
+
+
+def validate_labels(reference_scores_df: pd.DataFrame):
+    if set(reference_scores_df.index) != set(reference_scores_df.columns):
+        raise ValueError("index and columns of reference_scores_df are not identical")
+
+
+def transform_to_inchikey14(reference_scores_df: pd.DataFrame):
+    """Transform index and column names from potential full InChIKeys to InChIKey14"""
+    reference_scores_df.index = [x[:14] for x in reference_scores_df.index]
+    reference_scores_df.columns = [x[:14] for x in reference_scores_df.columns]
+    return reference_scores_df
+
+
+def exclude_nans_from_labels(reference_scores_df: pd.DataFrame):
+    """Exclude nans in reference_scores_df, exclude columns and rows if there is any NaN
+    value"""
+    clean_df = reference_scores_df.dropna(axis='rows')  # drop rows with any NaN
+    clean_df = clean_df[clean_df.index]  # drop corresponding columns
+    n_dropped = len(reference_scores_df) - len(clean_df)
+    if n_dropped > 0:
+        print(f"{n_dropped} nans among {len(reference_scores_df)} labels will be excluded.")
+    return clean_df
+
+
+def check_duplicated_indexes(reference_scores_df):
+    inchikeys = reference_scores_df.index
+    if len(set(inchikeys)) != len(inchikeys):
+        msg = f"Duplicate InChIKeys-14 detected in reference_scores_df: {list(inchikeys[inchikeys.duplicated()])}"
+        raise ValueError(msg)
