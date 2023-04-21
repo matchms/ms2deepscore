@@ -22,6 +22,7 @@ def clean_reference_scores_df(reference_scores_df):
     validate_labels(reference_scores_df)
     reference_scores_df = exclude_nans_from_labels(reference_scores_df)
     reference_scores_df = transform_to_inchikey14(reference_scores_df)
+    check_duplicated_indexes(reference_scores_df)
     return reference_scores_df
 
 
@@ -46,6 +47,13 @@ def exclude_nans_from_labels(reference_scores_df: pd.DataFrame):
     if n_dropped > 0:
         print(f"{n_dropped} nans among {len(reference_scores_df)} labels will be excluded.")
     return clean_df
+
+
+def check_duplicated_indexes(reference_scores_df):
+    inchikeys = reference_scores_df.index
+    if len(set(inchikeys)) != len(inchikeys):
+        msg = f"Duplicate InChIKeys-14 detected in reference_scores_df: {list(inchikeys[inchikeys.duplicated()])}"
+        raise ValueError(msg)
 
 
 class DataGeneratorBase(Sequence):
@@ -102,26 +110,23 @@ class DataGeneratorBase(Sequence):
         """
         self.reference_scores_df = clean_reference_scores_df(reference_scores_df)
 
+        self.binned_spectrums = binned_spectrums
+        # Collect all inchikeys
+        self.spectrum_inchikeys = np.array([s.get("inchikey")[:14] for s in self.binned_spectrums])
+
         # Set all other settings to input (or otherwise to defaults):
         self._set_generator_parameters(**settings)
-        self.binned_spectrums = binned_spectrums
+
         self._collect_and_validate_inchikeys()
         self.dim = dim
         self.fixed_set = {}
 
-    def _collect_and_validate_inchikeys(self):
-        """Collect all inchikeys14 (first 14 characters) of all binned_spectrums
-        and check if all are present in the reference scores as well.
-        Check for duplicate inchikeys.
+    def _validate_indexes(self):
+        """Checks if all inchikeys of the BinnedSpectrum are in the reference_scores_df index.
         """
-        self.spectrum_inchikeys = np.array([s.get("inchikey")[:14] for s in self.binned_spectrums])
         for inchikey in np.unique(self.spectrum_inchikeys):
             assert inchikey in self.reference_scores_df.index, \
-                "InChIKey in given spectrum not found in reference scores"
-        inchikeys = self.reference_scores_df.index
-        if len(set(inchikeys)) != len(inchikeys):
-            msg = f"Duplicate InChIKeys-14 detected in reference_scores_df: {list(inchikeys[inchikeys.duplicated()])}"
-            raise ValueError(msg)
+                f"InChIKey {inchikey} in given spectrum not found in reference scores"
 
     def _set_generator_parameters(self, **settings):
         """Set parameter for data generator. Use below listed defaults unless other
