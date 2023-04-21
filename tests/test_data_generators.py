@@ -12,7 +12,7 @@ from tests.test_user_worfklow import load_processed_spectrums, get_reference_sco
 def create_dummy_data():
     """Create fake data to test generators.
     """
-    peaks = np.array([100.0, 0.1])
+    mz, intens = 100, 0.1
     spectrums = []
 
     letters = list(string.ascii_uppercase[:10])
@@ -31,14 +31,14 @@ def create_dummy_data():
     similarities.index = letters
 
     # Create fake spectra
-    for letter in letters:
+    for i, letter in enumerate(letters):
         dummy_inchikey = f"{14 * letter}-{10 * letter}-N"
-        spectrums.append(Spectrum(mz=peaks[0], intensities=peaks[1],
+        spectrums.append(Spectrum(mz=mz + (i+1) * 25, intensities=intens,
                                   metadata={"inchikey": dummy_inchikey,
-                                        "compound_name": letter}))
-        spectrums.append(Spectrum(mz=peaks[0], intensities=peaks[1],
+                                            "compound_name": letter}))
+        spectrums.append(Spectrum(mz=mz + (i+1) * 25, intensities=intens,
                                   metadata={"inchikey": dummy_inchikey,
-                                        "compound_name": f"{letter}-2"}))
+                                            "compound_name": f"{letter}-2"}))
 
     ms2ds_binner = SpectrumBinner(100, mz_min=10.0, mz_max=1000.0, peak_scaling=0.5)
     binned_spectrums = ms2ds_binner.fit_transform(spectrums)
@@ -52,9 +52,32 @@ def create_test_data():
     binned_spectrums = ms2ds_binner.fit_transform(spectrums)
     return binned_spectrums, tanimoto_scores_df
 
-
 def test_DataGeneratorAllInchikeys():
-    """Basic first test for DataGeneratorAllInchikeys"""
+    """Basic first test for DataGeneratorAllInchikeys using actual data.
+    """
+    binned_spectrums, tanimoto_scores_df = create_dummy_data()
+
+    # Define other parameters
+    batch_size = 10
+    dimension = 88
+
+    selected_inchikeys = tanimoto_scores_df.index[:80]
+    # Create generator
+    test_generator = DataGeneratorAllInchikeys(binned_spectrums=binned_spectrums,
+                                               selected_inchikeys=selected_inchikeys,
+                                               reference_scores_df=tanimoto_scores_df,
+                                               dim=dimension, batch_size=batch_size,
+                                               augment_removal_max=0.0,
+                                               augment_removal_intensity=0.0,
+                                               augment_intensity=0.0)
+
+    A, B = test_generator.__getitem__(0)
+    assert A[0].shape == A[1].shape == (10, 88), "Expected different data shape"
+
+
+def test_DataGeneratorAllInchikeys_real_data():
+    """Basic first test for DataGeneratorAllInchikeys using actual data.
+    """
     # Get test data
     binned_spectrums, tanimoto_scores_df = create_test_data()
 
