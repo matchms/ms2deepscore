@@ -411,17 +411,6 @@ class DataGeneratorAllSpectrums(DataGeneratorBase):
 
             np.random.shuffle(self.indexes)
 
-    @staticmethod
-    def _exclude_nans_from_labels(reference_scores_df: pd.DataFrame):
-        """Exclude nans in reference_scores_df, exclude columns and rows if there is any NaN
-        value"""
-        clean_df = reference_scores_df.dropna(axis='rows')  # drop rows with any NaN
-        clean_df = clean_df[clean_df.index]  # drop corresponding columns
-        n_dropped = len(reference_scores_df) - len(clean_df)
-        if n_dropped > 0:
-            print(f"{n_dropped} nans among {len(reference_scores_df)} labels will be excluded.")
-        return clean_df
-
     def _exclude_not_selected_inchikeys(self, reference_scores_df: pd.DataFrame) -> pd.DataFrame:
         """Exclude rows and columns of reference_scores_df for all InChIKeys which are not
         present in the binned_spectrums."""
