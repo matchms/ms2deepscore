@@ -1,4 +1,5 @@
 import numpy as np
+import pandas as pd
 import pytest
 import string
 from matchms import Spectrum
@@ -12,7 +13,7 @@ from tests.test_user_worfklow import load_processed_spectrums, get_reference_sco
 def create_dummy_data():
     """Create fake data to test generators.
     """
-    mz, intens = 100, 0.1
+    mz, intens = 100.0, 0.1
     spectrums = []
 
     letters = list(string.ascii_uppercase[:10])
@@ -26,19 +27,21 @@ def create_dummy_data():
     tanimoto_fake = pd.DataFrame(similarities.values(),
                                  index=similarities.keys()).unstack()
 
-    # Set the column and index names
-    similarities.columns = letters
-    similarities.index = letters
-
     # Create fake spectra
+    fake_inchikeys = []
     for i, letter in enumerate(letters):
         dummy_inchikey = f"{14 * letter}-{10 * letter}-N"
-        spectrums.append(Spectrum(mz=mz + (i+1) * 25, intensities=intens,
+        fake_inchikeys.append(dummy_inchikey)
+        spectrums.append(Spectrum(mz=np.array([mz + (i+1) * 25.0]), intensities=np.array([intens]),
                                   metadata={"inchikey": dummy_inchikey,
                                             "compound_name": letter}))
-        spectrums.append(Spectrum(mz=mz + (i+1) * 25, intensities=intens,
+        spectrums.append(Spectrum(mz=np.array([mz + (i+1) * 25.0]), intensities=np.array([intens]),
                                   metadata={"inchikey": dummy_inchikey,
                                             "compound_name": f"{letter}-2"}))
+
+    # Set the column and index names
+    tanimoto_fake.columns = fake_inchikeys
+    tanimoto_fake.index = fake_inchikeys
 
     ms2ds_binner = SpectrumBinner(100, mz_min=10.0, mz_max=1000.0, peak_scaling=0.5)
     binned_spectrums = ms2ds_binner.fit_transform(spectrums)
@@ -58,8 +61,8 @@ def test_DataGeneratorAllInchikeys():
     binned_spectrums, tanimoto_scores_df = create_dummy_data()
 
     # Define other parameters
-    batch_size = 10
-    dimension = 88
+    batch_size = 5
+    dimension = tanimoto_scores_df.shape[0]
 
     selected_inchikeys = tanimoto_scores_df.index[:80]
     # Create generator
@@ -72,7 +75,7 @@ def test_DataGeneratorAllInchikeys():
                                                augment_intensity=0.0)
 
     A, B = test_generator.__getitem__(0)
-    assert A[0].shape == A[1].shape == (10, 88), "Expected different data shape"
+    assert A[0].shape == A[1].shape == (batch_size, 88), "Expected different data shape"
 
 
 def test_DataGeneratorAllInchikeys_real_data():
@@ -96,7 +99,7 @@ def test_DataGeneratorAllInchikeys_real_data():
                                                augment_intensity=0.0)
 
     A, B = test_generator.__getitem__(0)
-    assert A[0].shape == A[1].shape == (10, 88), "Expected different data shape"
+    assert A[0].shape == A[1].shape == (batch_size, dimension), "Expected different data shape"
     assert B.shape[0] == 10, "Expected different label shape."
     assert test_generator.settings["num_turns"] == 1, "Expected different default."
     assert test_generator.settings["augment_intensity"] == 0.0, "Expected changed value."
