@@ -67,15 +67,15 @@ def test_DataGeneratorAllInchikeys():
     selected_inchikeys = tanimoto_scores_df.index[:80]
     # Create generator
     test_generator = DataGeneratorAllInchikeys(binned_spectrums=binned_spectrums,
-                                               selected_inchikeys=selected_inchikeys,
-                                               reference_scores_df=tanimoto_scores_df,
-                                               dim=dimension, batch_size=batch_size,
-                                               augment_removal_max=0.0,
-                                               augment_removal_intensity=0.0,
-                                               augment_intensity=0.0)
+                                                selected_inchikeys=selected_inchikeys,
+                                                reference_scores_df=tanimoto_scores_df,
+                                                dim=dimension, batch_size=batch_size,
+                                                augment_removal_max=0.0,
+                                                augment_removal_intensity=0.0,
+                                                augment_intensity=0.0)
 
     A, B = test_generator.__getitem__(0)
-    assert A[0].shape == A[1].shape == (batch_size, 88), "Expected different data shape"
+    assert A[0].shape == A[1].shape == (batch_size, dimension), "Expected different data shape"
 
 
 def test_DataGeneratorAllInchikeys_real_data():
