@@ -79,9 +79,20 @@ def test_DataGeneratorAllInchikeys():
     assert binned_spectrums[0].binned_peaks == {0: 0.1}, "Something went wrong with the binning"
     assert A[0].shape == A[1].shape == (batch_size, dimension), "Expected different data shape"
     assert set(test_generator.indexes) == set(list(range(10))), "Something wrong with generator indices"
-    # check if every inchikey was picked once (and only once):
+
+    # Test if every inchikey was picked once (and only once):
     assert (A[0] > 0).sum() == 10
     assert np.all((A[0] > 0).sum(axis=1) == (A[0] > 0).sum(axis=0))
+
+    # Test many cycles --> scores properly distributed into bins?
+    counts = []
+    repetitions = 100
+    total = batch_size * repetitions
+    for _ in range(repetitions):
+        for i, batch in enumerate(test_generator):
+            counts.extend(list(batch[1]))
+    assert (np.array(counts) > 0.5).sum() > 0.4 * total
+    assert (np.array(counts) <= 0.5).sum() > 0.4 * total
 
 
 def test_DataGeneratorAllInchikeys_real_data():
