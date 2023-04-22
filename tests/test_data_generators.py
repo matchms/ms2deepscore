@@ -61,7 +61,7 @@ def test_DataGeneratorAllInchikeys():
     binned_spectrums, tanimoto_scores_df = create_dummy_data()
 
     # Define other parameters
-    batch_size = 5
+    batch_size = 10
     dimension = tanimoto_scores_df.shape[0]
 
     selected_inchikeys = tanimoto_scores_df.index
