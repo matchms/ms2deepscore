@@ -3,7 +3,7 @@
 abstract: "Deep learning similarity measure for comparing MS/MS spectra with respect to their chemical similarity."
 authors:
   -
-    affiliation: "Netherlands eScience Center"
+    affiliation: "University of Applied Sciences Düsseldorf"
     family-names: Huber
     given-names: Florian
     orcid: https://orcid.org/0000-0002-3535-9406
@@ -28,6 +28,11 @@ authors:
     family-names: Joas
     given-names: David
     orcid: https://orcid.org/0000-0001-9567-2157
+  -
+    affiliation: "Netherlands eScience Center"
+    family-names: de Jonge
+    given-names: Niek
+    orcid: "https://orcid.org/0000-0002-3054-6210"
 
 cff-version: 1.2.0
 license: "Apache-2.0"

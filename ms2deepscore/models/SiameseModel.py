@@ -3,7 +3,6 @@ from typing import Tuple, Union
 import h5py
 from tensorflow import keras
 from tensorflow.keras.layers import BatchNormalization, Dense, Dropout, Input, concatenate  # pylint: disable=import-error
-from tensorflow.python.keras.saving import hdf5_format
 
 from ms2deepscore import SpectrumBinner
 
@@ -34,7 +33,7 @@ class SiameseModel:
         # Create (and train) a Siamese model
         model = SiameseModel(spectrum_binner, base_dims=(600, 500, 400), embedding_dim=400,
                              dropout_rate=0.2)
-        model.compile(loss='mse', optimizer=keras.optimizers.Adam(lr=0.001))
+        model.compile(loss='mse', optimizer=keras.optimizers.Adam(learning_rate=0.001))
         model.summary()
         model.fit(test_generator,
                   validation_data=test_generator,
@@ -112,8 +111,8 @@ class SiameseModel:
             Filename to specify where to store the model.
 
         """
-        with h5py.File(filename, mode='w') as f:
-            hdf5_format.save_model_to_hdf5(self.model, f)
+        self.model.save(filename, save_format="h5")
+        with h5py.File(filename, mode='a') as f:
             f.attrs['spectrum_binner'] = self.spectrum_binner.to_json()
             f.attrs['additional_input'] = self.additional_input
 

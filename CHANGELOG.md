@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.0] - 2023-04-18
+
+### Added
+
+- Functions to cover the full pipeline of training a new model [#129](https://github.com/matchms/ms2deepscore/pull/129)
+
+### Fixed
+
+- Tensorflow issues when saving/loading models [#123](https://github.com/matchms/ms2deepscore/issues/123)
+
+### Changed
+
+- `load_model()` functions now auto-detects if a model is multi_inputs or not
+- Python version support was changed to 3.8, 3.9, 3.10 (other versions should still work but are not systematically tested)
+
 ## [0.3.1] - 2023-01-06
 
 ### Changed
@@ -97,7 +112,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - This is the initial version of MS2DeepScore
 
-[Unreleased]: https://github.com/matchms/ms2deepscore/compare/0.3.1...HEAD
+[Unreleased]: https://github.com/matchms/ms2deepscore/compare/0.4.0...HEAD
+[0.4.0]: https://github.com/matchms/ms2deepscore/compare/0.3.1...0.3.1
 [0.3.1]: https://github.com/matchms/ms2deepscore/compare/0.3.1...0.3.1
 [0.3.0]: https://github.com/matchms/ms2deepscore/compare/0.2.3...0.3.0
 [0.2.3]: https://github.com/matchms/ms2deepscore/compare/0.2.2...0.2.3

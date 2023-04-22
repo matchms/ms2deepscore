@@ -1,7 +1,7 @@
 {
    "creators": [
       {
-         "affiliation": "Netherlands eScience Center", 
+         "affiliation": "University of Applied Sciences Düsseldorf", 
          "name": "Huber, Florian", 
          "orcid": "0000-0002-3535-9406"
       }, 
@@ -25,6 +25,11 @@
          "name": "Joas, David",
          "orcid": "0000-0001-9567-2157"
       }
+      {
+         "affiliation": "Netherlands eScience Center",
+         "name": "de Jonge, Niek",
+         "orcid": "0000-0002-3054-6210"
+      },
    ], 
    "description": "Deep learning based similarity measure of mass spectrometry data.", 
    "keywords": [
