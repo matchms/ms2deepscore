@@ -35,7 +35,7 @@ def create_dummy_data():
         spectrums.append(Spectrum(mz=np.array([mz + (i+1) * 25.0]), intensities=np.array([intens]),
                                   metadata={"inchikey": dummy_inchikey,
                                             "compound_name": letter}))
-        spectrums.append(Spectrum(mz=np.array([mz + (i+1) * 25.0]), intensities=np.array([intens]),
+        spectrums.append(Spectrum(mz=np.array([mz + (i+1) * 25.0]), intensities=np.array([2*intens]),
                                   metadata={"inchikey": dummy_inchikey,
                                             "compound_name": f"{letter}-2"}))
 
@@ -64,7 +64,7 @@ def test_DataGeneratorAllInchikeys():
     batch_size = 5
     dimension = tanimoto_scores_df.shape[0]
 
-    selected_inchikeys = tanimoto_scores_df.index[:80]
+    selected_inchikeys = tanimoto_scores_df.index
     # Create generator
     test_generator = DataGeneratorAllInchikeys(binned_spectrums=binned_spectrums,
                                                 selected_inchikeys=selected_inchikeys,
@@ -72,10 +72,16 @@ def test_DataGeneratorAllInchikeys():
                                                 dim=dimension, batch_size=batch_size,
                                                 augment_removal_max=0.0,
                                                 augment_removal_intensity=0.0,
-                                                augment_intensity=0.0)
+                                                augment_intensity=0.0,
+                                                augment_noise_max=0)
 
     A, B = test_generator.__getitem__(0)
+    assert binned_spectrums[0].binned_peaks == {0: 0.1}, "Something went wrong with the binning"
     assert A[0].shape == A[1].shape == (batch_size, dimension), "Expected different data shape"
+    assert set(test_generator.indexes) == set(list(range(10))), "Something wrong with generator indices"
+    # check if every inchikey was picked once (and only once):
+    assert (A[0] > 0).sum() == 10
+    assert np.all((A[0] > 0).sum(axis=1) == (A[0] > 0).sum(axis=0))
 
 
 def test_DataGeneratorAllInchikeys_real_data():
