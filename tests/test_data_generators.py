@@ -40,10 +40,10 @@ def create_dummy_data():
                                             "compound_name": f"{letter}-2"}))
 
     # Set the column and index names
-    tanimoto_fake.columns = fake_inchikeys
-    tanimoto_fake.index = fake_inchikeys
+    tanimoto_fake.columns = [x[:14] for x in fake_inchikeys]
+    tanimoto_fake.index = [x[:14] for x in fake_inchikeys]
 
-    ms2ds_binner = SpectrumBinner(100, mz_min=10.0, mz_max=1000.0, peak_scaling=0.5)
+    ms2ds_binner = SpectrumBinner(100, mz_min=10.0, mz_max=1000.0, peak_scaling=1)
     binned_spectrums = ms2ds_binner.fit_transform(spectrums)
     return binned_spectrums, tanimoto_fake
 
