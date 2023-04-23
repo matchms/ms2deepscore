@@ -5,8 +5,9 @@ import string
 from matchms import Spectrum
 
 from ms2deepscore import SpectrumBinner
-from ms2deepscore.data_generators import DataGeneratorAllInchikeys
-from ms2deepscore.data_generators import DataGeneratorAllSpectrums
+from ms2deepscore.data_generators import (DataGeneratorAllInchikeys,
+                                          DataGeneratorAllSpectrums,
+                                          DataGeneratorBase)
 from tests.test_user_worfklow import load_processed_spectrums, get_reference_scores
 
 
@@ -277,3 +278,42 @@ def test_DataGeneratorAllSpectrums_additional_inputs():
 
     assert len(batch_X) != len(batch_y), "Batchsizes from X and y are not the same."
     assert len(batch_X[0]) != 3, "There are not as many inputs as specified."
+
+
+# Test specific class methods
+# ---------------------------
+def test_validate_labels():
+    # Test case 1: reference_scores_df with different index and column names
+    ref_scores = pd.DataFrame({'A1': [0.5, 0.6], 'A2': [0.7, 0.8]}, index=['B1', 'B2'])
+    with pytest.raises(ValueError):
+        DataGeneratorBase._validate_labels(ref_scores)
+
+    # Test case 2: reference_scores_df with identical index and column names
+    ref_scores = pd.DataFrame({'A1': [0.5, 0.6], 'A2': [0.7, 0.8]}, index=['A1', 'A2'])
+    DataGeneratorBase._validate_labels(ref_scores)  # Should not raise ValueError
+
+
+def test_exclude_nans_from_labels():
+    # Create a sample DataFrame with NaN values
+    data = {
+        "A": [1, 2, np.nan, 4],
+        "B": [2, 3, 4, 5],
+        "C": [3, 4, 5, np.nan],
+        "D": [4, 5, 6, 7]
+    }
+    reference_scores_df = pd.DataFrame(data, index=["A", "B", "C", "D"])
+
+    # Call the _exclude_nans_from_labels method
+    clean_df = DataGeneratorBase._exclude_nans_from_labels(reference_scores_df)
+
+    # Expected DataFrame after removing rows and columns with NaN values
+    expected_data = {
+        "A": [1, 2],
+        "B": [2, 3]
+    }
+    expected_clean_df = pd.DataFrame(expected_data, index=["A", "B"])
+
+    # Check if the cleaned DataFrame is equal to the expected DataFrame
+    assert np.allclose(clean_df.values, expected_clean_df.values)
+    assert np.all(clean_df.index == clean_df.columns)
+    assert np.all(clean_df.index == ["A", "B"])
