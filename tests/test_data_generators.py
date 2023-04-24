@@ -36,9 +36,11 @@ def create_dummy_data():
         spectrums.append(Spectrum(mz=np.array([mz + (i+1) * 25.0]), intensities=np.array([intens]),
                                   metadata={"inchikey": dummy_inchikey,
                                             "compound_name": letter}))
-        spectrums.append(Spectrum(mz=np.array([mz + (i+1) * 25.0]), intensities=np.array([2*intens]),
-                                  metadata={"inchikey": dummy_inchikey,
-                                            "compound_name": f"{letter}-2"}))
+        # Generate a duplicated spectrum for half the inchikeys
+        if i > 5:
+            spectrums.append(Spectrum(mz=np.array([mz + (i+1) * 25.0]), intensities=np.array([2*intens]),
+                                      metadata={"inchikey": dummy_inchikey,
+                                                "compound_name": f"{letter}-2"}))
 
     # Set the column and index names
     tanimoto_fake.columns = [x[:14] for x in fake_inchikeys]
@@ -68,13 +70,13 @@ def test_DataGeneratorAllInchikeys():
     selected_inchikeys = tanimoto_scores_df.index
     # Create generator
     test_generator = DataGeneratorAllInchikeys(binned_spectrums=binned_spectrums,
-                                                selected_inchikeys=selected_inchikeys,
-                                                reference_scores_df=tanimoto_scores_df,
-                                                dim=dimension, batch_size=batch_size,
-                                                augment_removal_max=0.0,
-                                                augment_removal_intensity=0.0,
-                                                augment_intensity=0.0,
-                                                augment_noise_max=0)
+                                               selected_inchikeys=selected_inchikeys,
+                                               reference_scores_df=tanimoto_scores_df,
+                                               dim=dimension, batch_size=batch_size,
+                                               augment_removal_max=0.0,
+                                               augment_removal_intensity=0.0,
+                                               augment_intensity=0.0,
+                                               augment_noise_max=0)
 
     A, B = test_generator.__getitem__(0)
     assert binned_spectrums[0].binned_peaks == {0: 0.1}, "Something went wrong with the binning"
