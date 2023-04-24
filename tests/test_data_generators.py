@@ -56,6 +56,18 @@ def create_test_data():
     binned_spectrums = ms2ds_binner.fit_transform(spectrums)
     return binned_spectrums, tanimoto_scores_df
 
+
+def collect_results(generator, batch_size, dimension):
+    n_batches = len(generator)
+    X = np.zeros((batch_size, dimension, 2, n_batches))
+    y = np.zeros((batch_size, n_batches))
+    for i, batch in enumerate(generator):
+        X[:, :, 0, i] = batch[0][0]
+        X[:, :, 1, i] = batch[0][1]
+        y[:, i] = batch[1]
+    return X, y
+
+
 def test_DataGeneratorAllInchikeys():
     """Test DataGeneratorAllInchikeys using generated data.
     """
@@ -213,6 +225,31 @@ def test_DataGeneratorAllSpectrums_fixed_set():
     batch_size = 4
     dimension = 88
 
+    # Create generator that generates a fixed set every epoch
+    fixed_generator = DataGeneratorAllSpectrums(binned_spectrums=binned_spectrums[:8],
+                                                reference_scores_df=tanimoto_scores_df,
+                                                dim=dimension, batch_size=batch_size,
+                                                num_turns=5, use_fixed_set=True)
+
+    first_X, first_y = collect_results(fixed_generator, batch_size, dimension)
+    second_X, second_y = collect_results(fixed_generator, batch_size, dimension)
+    assert np.array_equal(first_X, second_X)
+    assert np.array_equal(first_y, second_y)
+    assert fixed_generator.settings["random_seed"] is None
+
+
+def test_DataGeneratorAllSpectrums_fixed_set_random_seed():
+    """
+    Test whether use_fixed_set=True toggles generating the same dataset on each epoch.
+    And if same random_seed leads to exactly the same output.
+    """
+    # Get test data
+    binned_spectrums, tanimoto_scores_df = create_test_data()
+
+    # Define other parameters
+    batch_size = 4
+    dimension = 88
+
     # Create normal generator
     normal_generator = DataGeneratorAllSpectrums(binned_spectrums=binned_spectrums[:8],
                                                  reference_scores_df=tanimoto_scores_df,
@@ -223,25 +260,16 @@ def test_DataGeneratorAllSpectrums_fixed_set():
     fixed_generator = DataGeneratorAllSpectrums(binned_spectrums=binned_spectrums[:8],
                                                 reference_scores_df=tanimoto_scores_df,
                                                 dim=dimension, batch_size=batch_size,
-                                                num_turns=5, use_fixed_set=True)
+                                                num_turns=5, use_fixed_set=True,
+                                                random_seed=0)
 
-    def collect_results(generator):
-        n_batches = len(generator)
-        X = np.zeros((batch_size, dimension, 2, n_batches))
-        y = np.zeros((batch_size, n_batches))
-        for i, batch in enumerate(generator):
-            X[:, :, 0, i] = batch[0][0]
-            X[:, :, 1, i] = batch[0][1]
-            y[:, i] = batch[1]
-        return X, y
-
-    first_X, first_y = collect_results(normal_generator)
-    second_X, second_y = collect_results(normal_generator)
+    first_X, first_y = collect_results(normal_generator, batch_size, dimension)
+    second_X, second_y = collect_results(normal_generator, batch_size, dimension)
     assert not np.array_equal(first_X, second_X)
     assert first_y.shape == (4, 2), "Expected different number of labels"
 
-    first_X, first_y = collect_results(fixed_generator)
-    second_X, second_y = collect_results(fixed_generator)
+    first_X, first_y = collect_results(fixed_generator, batch_size, dimension)
+    second_X, second_y = collect_results(fixed_generator, batch_size, dimension)
     assert np.array_equal(first_X, second_X)
     assert first_y.shape == (4, 10), "Expected different number of labels"
 
@@ -250,10 +278,12 @@ def test_DataGeneratorAllSpectrums_fixed_set():
     fixed_generator2 = DataGeneratorAllSpectrums(binned_spectrums=binned_spectrums[:8],
                                                  reference_scores_df=tanimoto_scores_df,
                                                  dim=dimension, batch_size=batch_size,
-                                                 num_turns=5, use_fixed_set=True)
-    first_X, first_y = collect_results(fixed_generator)
-    second_X, second_y = collect_results(fixed_generator2)
+                                                 num_turns=5, use_fixed_set=True,
+                                                 random_seed=0)
+    first_X, first_y = collect_results(fixed_generator, batch_size, dimension)
+    second_X, second_y = collect_results(fixed_generator2, batch_size, dimension)
     assert np.array_equal(first_X, second_X)
+
 
 def test_DataGeneratorAllSpectrums_additional_inputs():
     """
