@@ -69,6 +69,8 @@ class DataGeneratorBase(Sequence):
         use_fixed_set
             Toggles using a fixed dataset, if set to True the same dataset will be generated each
             epoch. Default is False.
+        random_seed
+            Specify random seed for reproducible random number generation.
         """
         self.reference_scores_df = _clean_reference_scores_df(reference_scores_df)
 
@@ -128,6 +130,8 @@ class DataGeneratorBase(Sequence):
         use_fixed_set
             Toggles using a fixed dataset, if set to True the same dataset will be generated each
             epoch. Default is False.
+        random_seed
+            Specify random seed for reproducible random number generation.
         additional_inputs
             Array of additional values to be used in training for e.g. ["precursor_mz", "parent_mass"]
         """
@@ -143,6 +147,7 @@ class DataGeneratorBase(Sequence):
             "augment_noise_max": 10,
             "augment_noise_intensity": 0.01,
             "use_fixed_set": False,
+            "random_seed": None,
             "additional_input": []
         }
 
@@ -156,8 +161,9 @@ class DataGeneratorBase(Sequence):
         assert 0.0 <= settings["augment_removal_intensity"] <= 1.0, "Expected value within [0,1]"
         if settings["use_fixed_set"] and settings["shuffle"]:
             warnings.warn('When using a fixed set, data will not be shuffled')
-        if settings["use_fixed_set"]:
-            np.random.seed(42)
+        if settings["random_seed"] is not None:
+            assert isinstance(settings["random_seed"], int), "Random seed must be integer number."
+            np.random.seed(settings["random_seed"])
         self.settings = settings
 
     def _find_match_in_range(self, inchikey1, target_score_range):
@@ -196,13 +202,12 @@ class DataGeneratorBase(Sequence):
         """
         if self.settings['use_fixed_set'] and batch_index in self.fixed_set:
             return self.fixed_set[batch_index]
-        if self.settings['use_fixed_set'] and batch_index == 0:
-            # todo This sets the global random seed to 42. Wouldn't this cause an issue, since this random seed will
-            #  in that case also be used for other random actions (even if it is in a different data generator for the validation test set.
-            np.random.seed(42)
+        if self.settings["random_seed"] is not None and batch_index == 0:
+            np.random.seed(self.settings["random_seed"])
         spectrum_pairs = self._spectrum_pair_generator(batch_index)
         X, y = self.__data_generation(spectrum_pairs)
         if self.settings['use_fixed_set']:
+            # Store batches for later epochs
             self.fixed_set[batch_index] = (X, y)
         return X, y
 
