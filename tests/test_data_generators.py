@@ -57,7 +57,7 @@ def create_test_data():
     return binned_spectrums, tanimoto_scores_df
 
 def test_DataGeneratorAllInchikeys():
-    """Basic first test for DataGeneratorAllInchikeys using actual data.
+    """Test DataGeneratorAllInchikeys using generated data.
     """
     binned_spectrums, tanimoto_scores_df = create_dummy_data()
 
