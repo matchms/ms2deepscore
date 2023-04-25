@@ -86,8 +86,9 @@ def test_DataGeneratorAllInchikeys():
     # Create generator
     test_generator = DataGeneratorAllInchikeys(binned_spectrums=binned_spectrums,
                                                selected_inchikeys=selected_inchikeys,
+                                               spectrum_binner=ms2ds_binner,
                                                reference_scores_df=tanimoto_scores_df,
-                                               dim=dimension, batch_size=batch_size,
+                                               batch_size=batch_size,
                                                augment_removal_max=0.0,
                                                augment_removal_intensity=0.0,
                                                augment_intensity=0.0,
@@ -126,7 +127,8 @@ def test_DataGeneratorAllSpectrums():
     test_generator = DataGeneratorAllSpectrums(binned_spectrums=binned_spectrums,
                                                selected_inchikeys=selected_inchikeys,
                                                reference_scores_df=tanimoto_scores_df,
-                                               dim=dimension, batch_size=batch_size,
+                                               spectrum_binner=ms2ds_binner,
+                                               batch_size=batch_size,
                                                augment_removal_max=0.0,
                                                augment_removal_intensity=0.0,
                                                augment_intensity=0.0,
@@ -159,6 +161,7 @@ def test_DataGeneratorAllInchikeys_real_data():
 
     # Define other parameters
     batch_size = 10
+    dimension = len(ms2ds_binner.known_bins)
 
     selected_inchikeys = tanimoto_scores_df.index[:80]
     # Create generator
@@ -195,7 +198,7 @@ def test_DataGeneratorAllSpectrumsRealData():
                                                augment_intensity=0.0)
 
     A, B = test_generator.__getitem__(0)
-    assert A[0].shape == A[1].shape == (10, 88), "Expected different data shape"
+    assert A[0].shape == A[1].shape == (10, dimension), "Expected different data shape"
     assert B.shape[0] == 10, "Expected different label shape."
     assert test_generator.settings["num_turns"] == 1, "Expected different default."
     assert test_generator.settings["augment_intensity"] == 0.0, "Expected changed value."
@@ -270,7 +273,7 @@ def test_DataGeneratorAllSpectrums_fixed_set():
     # Create generator that generates a fixed set every epoch
     fixed_generator = DataGeneratorAllSpectrums(binned_spectrums=binned_spectrums[:8],
                                                 reference_scores_df=tanimoto_scores_df,
-                                                dim=dimension, batch_size=batch_size,
+                                                spectrum_binner=ms2ds_binner, batch_size=batch_size,
                                                 num_turns=5, use_fixed_set=True)
 
     first_X, first_y = collect_results(fixed_generator, batch_size, dimension)
@@ -286,7 +289,7 @@ def test_DataGeneratorAllSpectrums_fixed_set_random_seed():
     And if same random_seed leads to exactly the same output.
     """
     # Get test data
-    binned_spectrums, tanimoto_scores_df = create_test_data()
+    binned_spectrums, tanimoto_scores_df, ms2ds_binner = create_test_data()
 
     # Define other parameters
     batch_size = 4
@@ -321,8 +324,8 @@ def test_DataGeneratorAllSpectrums_fixed_set_random_seed():
                                                  spectrum_binner=ms2ds_binner, batch_size=batch_size,
                                                  num_turns=5, use_fixed_set=True,
                                                  random_seed=0)
-    first_X, first_y = collect_results(fixed_generator)
-    second_X, second_y = collect_results(fixed_generator2)
+    first_X, first_y = collect_results(fixed_generator, batch_size, dimension)
+    second_X, second_y = collect_results(fixed_generator2, batch_size, dimension)
 
     assert np.array_equal(first_X, second_X)
 

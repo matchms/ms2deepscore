@@ -83,10 +83,6 @@ class DataGeneratorBase(Sequence):
 
         # Set all other settings to input (or otherwise to defaults):
         self._set_generator_parameters(**settings)
-        self.binned_spectrums = binned_spectrums
-        self.reference_scores_df = self._exclude_nans_from_labels(reference_scores_df)
-        self.reference_scores_df = self._transform_to_inchikey14(self.reference_scores_df)
-        self._collect_and_validate_inchikeys()
         self.dim = len(spectrum_binner.known_bins)
         additional_metadata = spectrum_binner.additional_metadata
         if len(additional_metadata) > 0:
