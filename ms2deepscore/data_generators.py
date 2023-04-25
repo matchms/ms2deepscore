@@ -259,6 +259,7 @@ class DataGeneratorBase(Sequence):
         inchikey) can have multiple measured spectrums in a binned spectrum dataset.
         """
         matching_spectrum_id = np.where(self.spectrum_inchikeys == inchikey)[0]
+        assert len(matching_spectrum_id) > 0, "No matching inchikey found (note: expected first 14 characters)"
         return self.binned_spectrums[np.random.choice(matching_spectrum_id)]
 
     def __data_generation(self, spectrum_pairs: Iterator[SpectrumPair]):
