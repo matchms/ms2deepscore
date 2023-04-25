@@ -48,7 +48,7 @@ def create_dummy_data():
 
     ms2ds_binner = SpectrumBinner(100, mz_min=10.0, mz_max=1000.0, peak_scaling=1)
     binned_spectrums = ms2ds_binner.fit_transform(spectrums)
-    return binned_spectrums, tanimoto_fake
+    return binned_spectrums, tanimoto_fake, ms2ds_binner
 
 
 def create_test_data():
@@ -61,11 +61,12 @@ def create_test_data():
 def test_DataGeneratorAllInchikeys():
     """Basic first test for DataGeneratorAllInchikeys using actual data.
     """
-    binned_spectrums, tanimoto_scores_df = create_dummy_data()
+    binned_spectrums, tanimoto_scores_df, ms2ds_binner = create_dummy_data()
+    assert binned_spectrums[0].binned_peaks == {0: 0.1}, "Something went wrong with the binning"
 
     # Define other parameters
-    batch_size = 6
-    dimension = tanimoto_scores_df.shape[0]
+    batch_size = 8
+    dimension = len(ms2ds_binner.known_bins)
 
     selected_inchikeys = tanimoto_scores_df.index
     # Create generator
@@ -79,13 +80,11 @@ def test_DataGeneratorAllInchikeys():
                                                augment_noise_max=0)
 
     x, y = test_generator.__getitem__(0)
-    assert binned_spectrums[0].binned_peaks == {0: 0.1}, "Something went wrong with the binning"
     assert x[0].shape == x[1].shape == (batch_size, dimension), "Expected different data shape"
-    assert set(test_generator.indexes) == set(list(range(10))), "Something wrong with generator indices"
+    assert set(test_generator.indexes) == set(list(range(dimension))), "Something wrong with generator indices"
 
     # Test if every inchikey was picked once (and only once):
-    assert (x[0] > 0).sum() == batch_size # I am not sure what this is actually checking? I think it counts the number of peaks?
-    assert np.all((x[0] > 0).sum(axis=1) == (x[0] > 0).sum(axis=0))
+    assert (x[0].sum(axis=0) > 0).sum() == batch_size # This works since each spectrum in the dummy set has one unique peak
 
     # Test many cycles --> scores properly distributed into bins?
     counts = []
@@ -101,11 +100,12 @@ def test_DataGeneratorAllInchikeys():
 def test_DataGeneratorAllSpectrums():
     """Basic first test for DataGeneratorAllInchikeys using actual data.
     """
-    binned_spectrums, tanimoto_scores_df = create_dummy_data()
+    binned_spectrums, tanimoto_scores_df, ms2ds_binner = create_dummy_data()
+    assert binned_spectrums[0].binned_peaks == {0: 0.1}, "Something went wrong with the binning"
 
     # Define other parameters
-    batch_size = 6 # Set the batch size to 6 to make sure it is a different number than the number of bins.
-    dimension = tanimoto_scores_df.shape[0]
+    batch_size = 8 # Set the batch size to 8 to make sure it is a different number than the number of bins.
+    dimension = len(ms2ds_binner.known_bins)
 
     selected_inchikeys = tanimoto_scores_df.index
     # Create generator
@@ -119,13 +119,12 @@ def test_DataGeneratorAllSpectrums():
                                                augment_noise_max=0)
 
     x, y = test_generator.__getitem__(0)
-    assert binned_spectrums[0].binned_peaks == {0: 0.1}, "Something went wrong with the binning"
     assert x[0].shape == x[1].shape == (batch_size, dimension), "Expected different data shape"
     assert set(test_generator.indexes) == set(list(range(len(binned_spectrums)))), "Something wrong with generator indices"
 
-    # Test if every inchikey was picked once (and only once):
-    assert (x[0] > 0).sum() == batch_size # I am not sure what this is actually checking? I think it counts the number of peaks?
-    assert np.all((x[0] > 0).sum(axis=1) == (x[0] > 0).sum(axis=0))
+    # Test if every inchikey not was picked only once
+    assert not (x[0].sum(axis=0) > 0).sum() == batch_size, \
+        "For each inchikey only one spectrum was picked instead of all spectra"
 
     # Test many cycles --> scores properly distributed into bins?
     counts = []
