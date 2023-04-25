@@ -71,9 +71,15 @@ class DataGeneratorBase(Sequence):
         use_fixed_set
             Toggles using a fixed dataset, if set to True the same dataset will be generated each
             epoch. Default is False.
+        random_seed
+            Specify random seed for reproducible random number generation.
         """
+        self.reference_scores_df = _clean_reference_scores_df(reference_scores_df)
 
-        self._validate_labels(reference_scores_df)
+        self.binned_spectrums = binned_spectrums
+        # Collect all inchikeys
+        self.spectrum_inchikeys = np.array([s.get("inchikey")[:14] for s in self.binned_spectrums])
+        self._validate_indexes()
 
         # Set all other settings to input (or otherwise to defaults):
         self._set_generator_parameters(**settings)
@@ -90,42 +96,12 @@ class DataGeneratorBase(Sequence):
             self.additional_metadata = ()
         self.fixed_set = {}
 
-    def _collect_and_validate_inchikeys(self):
-        """Collect all inchikeys14 (first 14 characters) of all binned_spectrums
-        and check if all are present in the reference scores as well.
-        Check for duplicate inchikeys.
+    def _validate_indexes(self):
+        """Checks if all inchikeys of the BinnedSpectrum are in the reference_scores_df index.
         """
-        self.spectrum_inchikeys = np.array([s.get("inchikey")[:14] for s in self.binned_spectrums])
         for inchikey in np.unique(self.spectrum_inchikeys):
             assert inchikey in self.reference_scores_df.index, \
-                f"InChIKey: {inchikey} in given spectrum not found in reference scores"
-        inchikeys = self.reference_scores_df.index
-        if len(set(inchikeys)) != len(inchikeys):
-            msg = f"Duplicate InChIKeys-14 detected in reference_scores_df: {list(inchikeys[inchikeys.duplicated()])}"
-            raise ValueError(msg)
-
-    @staticmethod
-    def _validate_labels(reference_scores_df: pd.DataFrame):
-        if set(reference_scores_df.index) != set(reference_scores_df.columns):
-            raise ValueError("index and columns of reference_scores_df are not identical")
-
-    @staticmethod
-    def _transform_to_inchikey14(reference_scores_df: pd.DataFrame):
-        """Transform index and column names from potential full InChIKeys to InChIKey14"""
-        reference_scores_df.index = [x[:14] for x in reference_scores_df.index]
-        reference_scores_df.columns = [x[:14] for x in reference_scores_df.columns]
-        return reference_scores_df
-
-    @staticmethod
-    def _exclude_nans_from_labels(reference_scores_df: pd.DataFrame):
-        """Exclude nans in reference_scores_df, exclude columns and rows if there is any NaN
-        value"""
-        clean_df = reference_scores_df.dropna(axis='rows')  # drop rows with any NaN
-        clean_df = clean_df[clean_df.index]  # drop corresponding columns
-        n_dropped = len(reference_scores_df) - len(clean_df)
-        if n_dropped > 0:
-            print(f"{n_dropped} nans among {len(reference_scores_df)} labels will be excluded.")
-        return clean_df
+                f"InChIKey {inchikey} in given spectrum not found in reference scores"
 
     def _set_generator_parameters(self, **settings):
         """Set parameter for data generator. Use below listed defaults unless other
@@ -165,6 +141,8 @@ class DataGeneratorBase(Sequence):
         use_fixed_set
             Toggles using a fixed dataset, if set to True the same dataset will be generated each
             epoch. Default is False.
+        random_seed
+            Specify random seed for reproducible random number generation.
         additional_inputs
             Array of additional values to be used in training for e.g. ["precursor_mz", "parent_mass"]
         """
@@ -179,7 +157,8 @@ class DataGeneratorBase(Sequence):
             augment_intensity=0.4,
             augment_noise_max=10,
             augment_noise_intensity=0.01,
-            use_fixed_set=False
+            use_fixed_set=False,
+            random_seed=None,
         )
 
         # Set default parameters or replace by **settings input
@@ -192,8 +171,9 @@ class DataGeneratorBase(Sequence):
         assert 0.0 <= settings["augment_removal_intensity"] <= 1.0, "Expected value within [0,1]"
         if settings["use_fixed_set"] and settings["shuffle"]:
             warnings.warn('When using a fixed set, data will not be shuffled')
-        if settings["use_fixed_set"]:
-            np.random.seed(42)
+        if settings["random_seed"] is not None:
+            assert isinstance(settings["random_seed"], int), "Random seed must be integer number."
+            np.random.seed(settings["random_seed"])
         self.settings = settings
 
     def _find_match_in_range(self, inchikey1, target_score_range):
@@ -232,11 +212,12 @@ class DataGeneratorBase(Sequence):
         """
         if self.settings['use_fixed_set'] and batch_index in self.fixed_set:
             return self.fixed_set[batch_index]
-        if self.settings['use_fixed_set'] and batch_index == 0:
-            np.random.seed(42)
+        if self.settings["random_seed"] is not None and batch_index == 0:
+            np.random.seed(self.settings["random_seed"])
         spectrum_pairs = self._spectrum_pair_generator(batch_index)
         X, y = self.__data_generation(spectrum_pairs)
         if self.settings['use_fixed_set']:
+            # Store batches for later epochs
             self.fixed_set[batch_index] = (X, y)
         return X, y
 
@@ -288,6 +269,7 @@ class DataGeneratorBase(Sequence):
         inchikey) can have multiple measured spectrums in a binned spectrum dataset.
         """
         matching_spectrum_id = np.where(self.spectrum_inchikeys == inchikey)[0]
+        assert len(matching_spectrum_id) > 0, "No matching inchikey found (note: expected first 14 characters)"
         return self.binned_spectrums[np.random.choice(matching_spectrum_id)]
 
     def __data_generation(self, spectrum_pairs: Iterator[SpectrumPair]):
@@ -415,17 +397,6 @@ class DataGeneratorAllSpectrums(DataGeneratorBase):
         if self.settings["shuffle"]:
 
             np.random.shuffle(self.indexes)
-
-    @staticmethod
-    def _exclude_nans_from_labels(reference_scores_df: pd.DataFrame):
-        """Exclude nans in reference_scores_df, exclude columns and rows if there is any NaN
-        value"""
-        clean_df = reference_scores_df.dropna(axis='rows')  # drop rows with any NaN
-        clean_df = clean_df[clean_df.index]  # drop corresponding columns
-        n_dropped = len(reference_scores_df) - len(clean_df)
-        if n_dropped > 0:
-            print(f"{n_dropped} nans among {len(reference_scores_df)} labels will be excluded.")
-        return clean_df
 
     def _exclude_not_selected_inchikeys(self, reference_scores_df: pd.DataFrame) -> pd.DataFrame:
         """Exclude rows and columns of reference_scores_df for all InChIKeys which are not
@@ -564,3 +535,41 @@ class Container:
             self.additional_inputs_right.append([float(self.spectrum_right.get(additional_input))])
 
         self.tanimoto_score = tanimoto_score
+
+
+def _clean_reference_scores_df(reference_scores_df):
+    _validate_labels(reference_scores_df)
+    reference_scores_df = _exclude_nans_from_labels(reference_scores_df)
+    reference_scores_df = _transform_to_inchikey14(reference_scores_df)
+    _check_duplicated_indexes(reference_scores_df)
+    return reference_scores_df
+
+
+def _validate_labels(reference_scores_df: pd.DataFrame):
+    if set(reference_scores_df.index) != set(reference_scores_df.columns):
+        raise ValueError("index and columns of reference_scores_df are not identical")
+
+
+def _transform_to_inchikey14(reference_scores_df: pd.DataFrame):
+    """Transform index and column names from potential full InChIKeys to InChIKey14"""
+    reference_scores_df.index = [x[:14] for x in reference_scores_df.index]
+    reference_scores_df.columns = [x[:14] for x in reference_scores_df.columns]
+    return reference_scores_df
+
+
+def _exclude_nans_from_labels(reference_scores_df: pd.DataFrame):
+    """Exclude nans in reference_scores_df, exclude columns and rows if there is any NaN
+    value"""
+    clean_df = reference_scores_df.dropna(axis='rows')  # drop rows with any NaN
+    clean_df = clean_df[clean_df.index]  # drop corresponding columns
+    n_dropped = len(reference_scores_df) - len(clean_df)
+    if n_dropped > 0:
+        print(f"{n_dropped} nans among {len(reference_scores_df)} labels will be excluded.")
+    return clean_df
+
+
+def _check_duplicated_indexes(reference_scores_df):
+    inchikeys = reference_scores_df.index
+    if len(set(inchikeys)) != len(inchikeys):
+        msg = f"Duplicate InChIKeys-14 detected in reference_scores_df: {list(inchikeys[inchikeys.duplicated()])}"
+        raise ValueError(msg)

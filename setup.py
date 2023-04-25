@@ -19,15 +19,15 @@ setup(
     description="Deep learning similarity measure for comparing MS/MS spectra.",
     long_description=readme,
     long_description_content_type='text/markdown',
-    author="Netherlands eScience Center",
-    author_email="f.huber@esciencecenter.nl",
+    author="Florian Huber (as part of the ms2deepscore developer team)",
+    author_email="florian.huber@hs-duesseldorf.de",
     url="https://github.com/iomega/ms2deepscore",
     packages=find_packages(),
     include_package_data=True,
     license="Apache Software License 2.0",
     zip_safe=False,
     test_suite="tests",
-    python_requires='>=3.7',
+    python_requires='>=3.8',
     install_requires=[
         "matchms>=0.14.0",
         "numba",
@@ -38,7 +38,8 @@ setup(
         "tensorflow;platform_machine!='arm64'",
         "tqdm",
     ],
-    extras_require={"dev": ["bump2version",
+    extras_require={"train": ["rdkit"],
+                    "dev": ["bump2version",
                             "isort>=4.2.5,<5",
                             "pylint!=2.15.7",
                             "prospector[with_pyroma]",
@@ -48,5 +49,5 @@ setup(
                             "sphinx_rtd_theme",
                             "sphinxcontrib-apidoc",
                             "yapf",],
-    }
+                    }
 )

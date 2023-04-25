@@ -26,8 +26,8 @@ Florian Huber, Sven van der Burg, Justin J.J. van der Hooft, Lars Ridder, 13, Ar
 ## Setup
 ### Requirements
 
-Python 3.7 or higher.  
-Tested with Tensorflow 2.4, 2.5, 2.8, and latest version.
+Python 3.8, 3.9, 3.10 (higher will likely work but is not tested systematically).  
+Tested with Tensorflow 2.4, 2.6, 2.8, and latest version.
 
 ### Installation
 Simply install using pip: `pip install ms2deepscore`
@@ -36,16 +36,23 @@ Simply install using pip: `pip install ms2deepscore`
 We recommend to create an Anaconda environment with
 
 ```
-conda create --name ms2deepscore python=3.8
+conda create --name ms2deepscore python=3.9
 conda activate ms2deepscore
 pip install ms2deepscore
 ```
 Alternatively, simply install in the environment of your choice by .
 
 
-Or, to also include the full [matchms](https://github.com/matchms/matchms) functionality:
+Or, to also include the full [matchms](https://github.com/matchms/matchms) functionality, including rdkit:
 ```
-conda create --name ms2deepscore python=3.8
+conda create --name ms2deepscore python=3.9
+conda activate ms2deepscore
+pip install ms2deepscore[chemistry]
+```
+
+Or, via conda:
+```
+conda create --name ms2deepscore python=3.9
 conda activate ms2deepscore
 conda install --channel bioconda --channel conda-forge matchms
 pip install ms2deepscore
