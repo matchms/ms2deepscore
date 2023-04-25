@@ -55,21 +55,21 @@ def train_ms2ds_model(binned_spectrums_training,
         binned_spectrums_training,
         selected_inchikeys=list({s.get("inchikey")[:14] for s in binned_spectrums_training}),
         reference_scores_df=tanimoto_df,
+        spectrum_binner=spectrum_binner,
         same_prob_bins=same_prob_bins,
         num_turns=2,
         augment_noise_max=10,
-        augment_noise_intensity=0.01,
-        spectrum_binner=spectrum_binner)
+        augment_noise_intensity=0.01)
 
     validation_generator = DataGeneratorAllSpectrums(
         binned_spectrums_val,
         selected_inchikeys=list({s.get("inchikey")[:14] for s in binned_spectrums_val}),
         reference_scores_df=tanimoto_df,
+        spectrum_binner=spectrum_binner,
         same_prob_bins=same_prob_bins,
         num_turns=10, # Number of pairs for each InChiKey14 during each epoch.
         # To prevent data augmentation
-        augment_removal_max=0, augment_removal_intensity=0, augment_intensity=0, augment_noise_max=0, use_fixed_set=True,
-        spectrum_binner=spectrum_binner
+        augment_removal_max=0, augment_removal_intensity=0, augment_intensity=0, augment_noise_max=0, use_fixed_set=True
     )
 
     model = SiameseModel(spectrum_binner, base_dims=base_dims,

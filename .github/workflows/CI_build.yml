@@ -8,14 +8,14 @@ on:
 jobs:
 
   thorough_check:
-    name: Thorough code check / python-3.8 / ubuntu-latest
+    name: Thorough code check / python-3.9 / ubuntu-latest
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
       - name: Set up Python
         uses: actions/setup-python@v1
         with:
-          python-version: 3.8
+          python-version: 3.9
       - name: Python info
         run: |
           which python
@@ -44,10 +44,10 @@ jobs:
       fail-fast: false
       matrix:
         os: ['ubuntu-latest', 'macos-latest', 'windows-latest']
-        python-version: ['3.7', '3.8']
+        python-version: ['3.8', '3.9', '3.10']
         exclude:
           # already tested in first_check job
-          - python-version: 3.8
+          - python-version: 3.9
             os: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
@@ -95,14 +95,14 @@ jobs:
           pip list
       - name: Run test with tensorflow version 2.4
         run: pytest
-      - name: Install Tensorflow version 2.5
+      - name: Install Tensorflow version 2.6
         run: |
-          pip install --upgrade "pandas<1.5.0"
-          pip install --upgrade "tensorflow>=2.5,<2.6"
+          pip install --upgrade "tensorflow>=2.6,<2.7"
+          pip install --upgrade "numpy>1.20,<1.24.0"
       - name: Show pip list
         run: |
           pip list
-      - name: Run test with tensorflow version 2.5
+      - name: Run test with tensorflow version 2.6
         run: pytest
       - name: Install Tensorflow version 2.8
         run: |

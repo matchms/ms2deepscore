@@ -126,7 +126,9 @@ class SpectrumBinner:
                                            disable=(not progress_bar))):
             assert 100*missing_fractions[i] <= self.allowed_missing_percentage, \
                 f"{100*missing_fractions[i]:.2f} of weighted spectrum is unknown to the model."
-            additional_metadata = {feature_generator.to_json(): feature_generator.generate_features(input_spectrums[i].metadata) for feature_generator in self.additional_metadata}
+            additional_metadata = \
+                {feature_generator.to_json(): feature_generator.generate_features(input_spectrums[i].metadata)
+                 for feature_generator in self.additional_metadata}
             spectrum = BinnedSpectrum(binned_peaks=create_peak_dict(peak_list),
                                       metadata={"inchikey": input_spectrums[i].get("inchikey"), **additional_metadata})
             spectrums_binned.append(spectrum)
