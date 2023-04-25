@@ -106,7 +106,7 @@ def test_DataGeneratorAllSpectrums():
     # Define other parameters
     batch_size = 8 # Set the batch size to 8 to make sure it is a different number than the number of bins.
     dimension = len(ms2ds_binner.known_bins)
-
+    np.random.seed(41) #Set the seed to make sure multiple spectra are selected every time.
     selected_inchikeys = tanimoto_scores_df.index
     # Create generator
     test_generator = DataGeneratorAllSpectrums(binned_spectrums=binned_spectrums,
