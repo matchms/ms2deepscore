@@ -1,4 +1,4 @@
-from typing import List, Dict, Union
+from typing import List, Union
 from matchms import Metadata
 import json
 from importlib import import_module

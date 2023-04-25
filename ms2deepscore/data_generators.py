@@ -142,20 +142,20 @@ class DataGeneratorBase(Sequence):
         additional_inputs
             Array of additional values to be used in training for e.g. ["precursor_mz", "parent_mass"]
         """
-        defaults = dict(
-            batch_size=32,
-            num_turns=1,
-            ignore_equal_pairs=True,
-            shuffle=True,
-            same_prob_bins=[(0, 0.5), (0.5, 1)],
-            augment_removal_max=0.3,
-            augment_removal_intensity=0.2,
-            augment_intensity=0.4,
-            augment_noise_max=10,
-            augment_noise_intensity=0.01,
-            use_fixed_set=False,
-            random_seed=None,
-        )
+        defaults = {
+            "batch_size": 32,
+            "num_turns": 1,
+            "ignore_equal_pairs": True,
+            "shuffle": True,
+            "same_prob_bins": [(0, 0.5), (0.5, 1)],
+            "augment_removal_max": 0.3,
+            "augment_removal_intensity": 0.2,
+            "augment_intensity": 0.4,
+            "augment_noise_max": 10,
+            "augment_noise_intensity": 0.01,
+            "use_fixed_set": False,
+            "random_seed": None,
+        }
 
         # Set default parameters or replace by **settings input
         for key, value in defaults.items():
@@ -285,7 +285,9 @@ class DataGeneratorBase(Sequence):
             y = []
             for container in container_list:
                 X[0].append(container.spectrum_values_left)
-                X[1].append(np.array(np.ravel(container.additional_inputs_left))) #Using ravel instead of squeeze, since squeeze returns 0D arrays when only one extra feature is given. This can give unexpected behaviour
+                # Using ravel instead of squeeze, since squeeze returns 0D arrays.
+                # This can give unexpected behaviour, when only one extra feature is given.
+                X[1].append(np.array(np.ravel(container.additional_inputs_left)))
                 X[2].append(container.spectrum_values_right)
                 X[3].append(np.array(np.ravel(container.additional_inputs_right)))
 
