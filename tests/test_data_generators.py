@@ -38,9 +38,11 @@ def create_dummy_data():
         spectrums.append(Spectrum(mz=np.array([mz + (i+1) * 25.0]), intensities=np.array([intens]),
                                   metadata={"inchikey": dummy_inchikey,
                                             "compound_name": letter}))
-        spectrums.append(Spectrum(mz=np.array([mz + (i+1) * 25.0]), intensities=np.array([2*intens]),
-                                  metadata={"inchikey": dummy_inchikey,
-                                            "compound_name": f"{letter}-2"}))
+        # Generate a duplicated spectrum for half the inchikeys
+        if i >= 5:
+            spectrums.append(Spectrum(mz=np.array([mz + (i+1) * 25.0]), intensities=np.array([2*intens]),
+                                      metadata={"inchikey": dummy_inchikey,
+                                                "compound_name": f"{letter}-2"}))
 
     # Set the column and index names
     tanimoto_fake.columns = [x[:14] for x in fake_inchikeys]
@@ -48,7 +50,7 @@ def create_dummy_data():
 
     ms2ds_binner = SpectrumBinner(100, mz_min=10.0, mz_max=1000.0, peak_scaling=1)
     binned_spectrums = ms2ds_binner.fit_transform(spectrums)
-    return binned_spectrums, tanimoto_fake
+    return binned_spectrums, tanimoto_fake, ms2ds_binner
 
 
 def create_test_data():
@@ -73,31 +75,70 @@ def collect_results(generator, batch_size, dimension):
 def test_DataGeneratorAllInchikeys():
     """Test DataGeneratorAllInchikeys using generated data.
     """
-    binned_spectrums, tanimoto_scores_df = create_dummy_data()
+    binned_spectrums, tanimoto_scores_df, ms2ds_binner = create_dummy_data()
+    assert binned_spectrums[0].binned_peaks == {0: 0.1}, "Something went wrong with the binning"
 
     # Define other parameters
-    batch_size = 10
-    dimension = tanimoto_scores_df.shape[0]
+    batch_size = 8
+    dimension = len(ms2ds_binner.known_bins)
 
     selected_inchikeys = tanimoto_scores_df.index
     # Create generator
     test_generator = DataGeneratorAllInchikeys(binned_spectrums=binned_spectrums,
-                                                selected_inchikeys=selected_inchikeys,
-                                                reference_scores_df=tanimoto_scores_df,
-                                                dim=dimension, batch_size=batch_size,
-                                                augment_removal_max=0.0,
-                                                augment_removal_intensity=0.0,
-                                                augment_intensity=0.0,
-                                                augment_noise_max=0)
+                                               selected_inchikeys=selected_inchikeys,
+                                               reference_scores_df=tanimoto_scores_df,
+                                               dim=dimension, batch_size=batch_size,
+                                               augment_removal_max=0.0,
+                                               augment_removal_intensity=0.0,
+                                               augment_intensity=0.0,
+                                               augment_noise_max=0)
 
-    A, B = test_generator.__getitem__(0)
-    assert binned_spectrums[0].binned_peaks == {0: 0.1}, "Something went wrong with the binning"
-    assert A[0].shape == A[1].shape == (batch_size, dimension), "Expected different data shape"
-    assert set(test_generator.indexes) == set(list(range(10))), "Something wrong with generator indices"
+    x, y = test_generator.__getitem__(0)
+    assert x[0].shape == x[1].shape == (batch_size, dimension), "Expected different data shape"
+    assert set(test_generator.indexes) == set(list(range(dimension))), "Something wrong with generator indices"
 
     # Test if every inchikey was picked once (and only once):
-    assert (A[0] > 0).sum() == 10
-    assert np.all((A[0] > 0).sum(axis=1) == (A[0] > 0).sum(axis=0))
+    assert (x[0].sum(axis=0) > 0).sum() == batch_size # This works since each spectrum in the dummy set has one unique peak
+
+    # Test many cycles --> scores properly distributed into bins?
+    counts = []
+    repetitions = 100
+    total = batch_size * repetitions
+    for _ in range(repetitions):
+        for i, batch in enumerate(test_generator):
+            counts.extend(list(batch[1]))
+    assert (np.array(counts) > 0.5).sum() > 0.4 * total
+    assert (np.array(counts) <= 0.5).sum() > 0.4 * total
+
+
+def test_DataGeneratorAllSpectrums():
+    """Basic first test for DataGeneratorAllInchikeys using actual data.
+    """
+    binned_spectrums, tanimoto_scores_df, ms2ds_binner = create_dummy_data()
+    assert binned_spectrums[0].binned_peaks == {0: 0.1}, "Something went wrong with the binning"
+
+    # Define other parameters
+    batch_size = 8 # Set the batch size to 8 to make sure it is a different number than the number of bins.
+    dimension = len(ms2ds_binner.known_bins)
+    np.random.seed(41) #Set the seed to make sure multiple spectra are selected every time.
+    selected_inchikeys = tanimoto_scores_df.index
+    # Create generator
+    test_generator = DataGeneratorAllSpectrums(binned_spectrums=binned_spectrums,
+                                               selected_inchikeys=selected_inchikeys,
+                                               reference_scores_df=tanimoto_scores_df,
+                                               dim=dimension, batch_size=batch_size,
+                                               augment_removal_max=0.0,
+                                               augment_removal_intensity=0.0,
+                                               augment_intensity=0.0,
+                                               augment_noise_max=0)
+
+    x, y = test_generator.__getitem__(0)
+    assert x[0].shape == x[1].shape == (batch_size, dimension), "Expected different data shape"
+    assert set(test_generator.indexes) == set(list(range(len(binned_spectrums)))), "Something wrong with generator indices"
+
+    # Test if every inchikey not was picked only once
+    assert not (x[0].sum(axis=0) > 0).sum() == batch_size, \
+        "For each inchikey only one spectrum was picked instead of all spectra"
 
     # Test many cycles --> scores properly distributed into bins?
     counts = []
@@ -136,7 +177,7 @@ def test_DataGeneratorAllInchikeys_real_data():
     assert test_generator.settings["augment_intensity"] == 0.0, "Expected changed value."
 
 
-def test_DataGeneratorAllSpectrums():
+def test_DataGeneratorAllSpectrumsRealData():
     """Basic first test for DataGeneratorAllSpectrums"""
     # Get test data
     binned_spectrums, tanimoto_scores_df, ms2ds_binner = create_test_data()
