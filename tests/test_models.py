@@ -2,12 +2,9 @@ import os
 from pathlib import Path
 from packaging import version
 import numpy as np
-import tensorflow as tf
-from tensorflow import keras
-if version.parse(tf.__version__) >= version.parse("2.11"):
-    AdamOptimizer = keras.optimizers.legacy.Adam
-else:
-    AdamOptimizer = keras.optimizers.Adam
+import torch
+import torch.nn as nn
+import torch.optim as optim
 from ms2deepscore import SpectrumBinner
 from ms2deepscore.data_generators import DataGeneratorAllInchikeys, DataGeneratorAllSpectrums
 from ms2deepscore.models import SiameseModel, load_model
@@ -20,19 +17,19 @@ def get_test_binner_and_generator():
     """Load test data and create instance of SpectrumBinner and data generator."""
     # Get test data
     spectrums = load_processed_spectrums()
-    tanimoto_scores_df = get_reference_scores()
+    reference_scores_df = get_reference_scores()
     spectrum_binner = SpectrumBinner(400, mz_min=10.0, mz_max=500.0, peak_scaling=0.5)
     binned_spectrums = spectrum_binner.fit_transform(spectrums)
 
     dimension = len(spectrum_binner.known_bins)
     same_prob_bins = [(0, 0.5), (0.5, 1)]
-    selected_inchikeys = tanimoto_scores_df.index[:60]
+    selected_inchikeys = reference_scores_df.index[:60]
 
     # Create generator
     return spectrum_binner, \
         DataGeneratorAllInchikeys(binned_spectrums=binned_spectrums,
                                   selected_inchikeys=selected_inchikeys,
-                                  reference_scores_df=tanimoto_scores_df,
+                                  reference_scores_df=reference_scores_df,
                                   dim=dimension, same_prob_bins=same_prob_bins)
 
 
@@ -40,8 +37,8 @@ def test_siamese_model():
     spectrum_binner, test_generator = get_test_binner_and_generator()
     model = SiameseModel(spectrum_binner, base_dims=(200, 200, 200),
                          embedding_dim=200, dropout_rate=0.2)
-    model.compile(loss='mse', optimizer=AdamOptimizer(learning_rate=0.001))
-    model.summary()
+    optimizer = optim.Adam(model.parameters(), lr=0.001)
+    criterion = nn.MSELoss()
     model.fit(test_generator,
               validation_data=test_generator,
               epochs=2)
