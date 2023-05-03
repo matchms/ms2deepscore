@@ -5,7 +5,7 @@ from typing import List, Iterator, NamedTuple
 
 import numpy as np
 import pandas as pd
-from tensorflow.keras.utils import Sequence  # pylint: disable=import-error
+import torch
 
 from .typing import BinnedSpectrumType
 
@@ -18,9 +18,9 @@ class SpectrumPair(NamedTuple):
     spectrum2: BinnedSpectrumType
 
 
-class DataGeneratorBase(Sequence):
+class DataGeneratorBase(torch.utils.data.Dataset):
     def __init__(self, binned_spectrums: List[BinnedSpectrumType],
-                 reference_scores_df: pd.DataFrame, dim: int, **settings):
+                 reference_scores_df: pd.DataFrame, dim: int, **settings)
         """Base for data generator generating data for a siamese model.
 
         Parameters
@@ -195,21 +195,17 @@ class DataGeneratorBase(Sequence):
         return inchikey2
 
     def __getitem__(self, batch_index: int):
-        """Generate one batch of data.
-
-        If use_fixed_set=True we try retrieving the batch from self.fixed_set (or store it if
-        this is the first epoch). This ensures a fixed set of data is generated each epoch.
-        """
-        if self.settings['use_fixed_set'] and batch_index in self.fixed_set:
-            return self.fixed_set[batch_index]
-        if self.settings["random_seed"] is not None and batch_index == 0:
-            np.random.seed(self.settings["random_seed"])
         spectrum_pairs = self._spectrum_pair_generator(batch_index)
         X, y = self.__data_generation(spectrum_pairs)
-        if self.settings['use_fixed_set']:
-            # Store batches for later epochs
-            self.fixed_set[batch_index] = (X, y)
-        return X, y
+
+        if len(self.settings.get("additional_input")) > 0:
+            return (torch.tensor(X[0]).float(), torch.tensor(X[1]).float(),
+                    torch.tensor(X[2]).float(), torch.tensor(X[3]).float()), torch.tensor(y).float()
+        else:
+            return (torch.tensor(X[0]).float(), torch.tensor(X[1]).float()), torch.tensor(y).float()
+
+    def __len__(self):
+        return self.settings["batch_size"]
 
     def _data_augmentation(self, spectrum_binned):
         """Data augmentation.
