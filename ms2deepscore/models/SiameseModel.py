@@ -1,44 +1,33 @@
 from pathlib import Path
 from typing import Tuple, Union
 import h5py
-from tensorflow import keras
-from tensorflow.keras.layers import BatchNormalization, Dense, Dropout, Input, concatenate  # pylint: disable=import-error
-
+import torch
+import torch.nn as nn
+import torch.optim as optim
 from ms2deepscore import SpectrumBinner
 
 
-class SiameseModel:
+class SiameseModel(nn.Module):
     """
-    Class for training and evaluating a siamese neural network, implemented in Tensorflow Keras.
+    Class for training and evaluating a siamese neural network, implemented in Pytorch.
     It consists of a dense 'base' network that produces an embedding for each of the 2 inputs. The
     'head' model computes the cosine similarity between the embeddings.
-
-    Mimics keras.Model API.
-
+    Mimics PyTorch nn.Module API.
     For example:
-
     .. code-block:: python
-
         # Import data and reference scores --> spectrums & tanimoto_scores_df
-
         # Create binned spectrums
         spectrum_binner = SpectrumBinner(1000, mz_min=10.0, mz_max=1000.0, peak_scaling=0.5)
         binned_spectrums = spectrum_binner.fit_transform(spectrums)
-
         # Create generator
         dimension = len(spectrum_binner.known_bins)
         test_generator = DataGeneratorAllSpectrums(binned_spectrums, tanimoto_scores_df,
                                                    dim=dimension)
-
         # Create (and train) a Siamese model
         model = SiameseModel(spectrum_binner, base_dims=(600, 500, 400), embedding_dim=400,
                              dropout_rate=0.2)
-        model.compile(loss='mse', optimizer=keras.optimizers.Adam(learning_rate=0.001))
-        model.summary()
-        model.fit(test_generator,
-                  validation_data=test_generator,
-                  epochs=50)
-
+        optimizer = optim.Adam(model.parameters(), lr=0.001)
+        model.train_model(test_generator, test_generator, optimizer, epochs=50)
     """
 
     def __init__(self,
@@ -49,34 +38,9 @@ class SiameseModel:
                  dropout_in_first_layer: bool = False,
                  l1_reg: float = 1e-6,
                  l2_reg: float = 1e-6,
-                 keras_model: keras.Model = None,
+                 pytorch_model: nn.Module = None,
                  additional_input=0):
-        """
-        Construct SiameseModel
-
-        Parameters
-        ----------
-        spectrum_binner
-            SpectrumBinner which is used to bin the spectra data for the model training.
-        base_dims
-            Tuple of integers depicting the dimensions of the desired hidden
-            layers of the base model
-        embedding_dim
-            Dimension of the embedding (i.e. the output of the base model)
-        dropout_rate
-            Dropout rate to be used in the base model.
-        dropout_in_first_layer
-            Set to True if dropout should be part of first dense layer as well. Default is False.
-        l1_reg
-            L1 regularization rate. Default is 1e-6.
-        l2_reg
-            L2 regularization rate. Default is 1e-6.
-        keras_model
-            When provided, this keras model will be used to construct the SiameseModel instance.
-            Default is None.
-        additional_input
-            Shape of additional inputs to be used in the model. Default is 0.
-        """
+        super(SiameseModel, self).__init__()
         # pylint: disable=too-many-arguments
         assert spectrum_binner.known_bins is not None, \
             "spectrum_binner does not contain known bins (run .fit_transform() on training data first!)"
@@ -84,7 +48,7 @@ class SiameseModel:
         self.input_dim = len(spectrum_binner.known_bins)
         self.additional_input = additional_input
 
-        if keras_model is None:
+        if pytorch_model is None:
             # Create base model
             self.base = self.get_base_model(input_dim=self.input_dim,
                                             base_dims=base_dims,
@@ -95,23 +59,32 @@ class SiameseModel:
                                             l2_reg=l2_reg,
                                             additional_input=additional_input)
             # Create head model
-            self.model = self._get_head_model(input_dim=self.input_dim,
-                                              additional_input=additional_input,
-                                              base_model=self.base)
+            self.head = self._get_head_model(input_dim=self.input_dim,
+                                             additional_input=additional_input,
+                                             base_model=self.base)
         else:
-            self._construct_from_keras_model(keras_model)
+            self._construct_from_pytorch_model(pytorch_model)
+
+    def forward(self, input_a, input_b, input_a_2=None, input_b_2=None):
+        if self.additional_input > 0:
+            embedding_a = self.base(input_a, input_a_2)
+            embedding_b = self.base(input_b, input_b_2)
+        else:
+            embedding_a = self.base(input_a)
+            embedding_b = self.base(input_b)
+
+        cosine_similarity = self.head(embedding_a, embedding_b)
+        return cosine_similarity
 
     def save(self, filename: Union[str, Path]):
         """
         Save model to file.
-
         Parameters
         ----------
         filename
             Filename to specify where to store the model.
-
         """
-        self.model.save(filename, save_format="h5")
+        torch.save(self.state_dict(), filename)
         with h5py.File(filename, mode='a') as f:
             f.attrs['spectrum_binner'] = self.spectrum_binner.to_json()
             f.attrs['additional_input'] = self.additional_input
@@ -124,10 +97,8 @@ class SiameseModel:
                        dropout_in_first_layer: bool = False,
                        l1_reg: float = 1e-6,
                        l2_reg: float = 1e-6,
-                       dropout_always_on: bool = False,
-                       additional_input=0) -> keras.Model:
-        """Create base model for Siamaese network.
-
+                       additional_input=0) -> nn.Module:
+        """Create base model for Siamese network.
         Parameters
         ----------
         input_dim : int
@@ -145,95 +116,135 @@ class SiameseModel:
             L1 regularization rate. Default is 1e-6.
         l2_reg
             L2 regularization rate. Default is 1e-6.
-        dropout_always_on
-            Default is False in which case dropout layers will only be active during
-            model training, but switched off during inference. When set to True,
-            dropout layers will always be on, which is used for ensembling via
-            Monte Carlo dropout.
         additional_input
-            Default is 0, shape of additional inputs 
+            Default is 0, shape of additional inputs
         """
         # pylint: disable=too-many-arguments, disable=too-many-locals
 
+        layers = []
         dropout_starting_layer = 0 if dropout_in_first_layer else 1
-        base_input = Input(shape=input_dim, name='base_input')
-        if (additional_input > 0):
-            side_input = Input(shape=additional_input, name="additional_input")
-            model_input = concatenate([base_input, side_input], axis=1)
+
+        if additional_input > 0:
+            layers.append(nn.Linear(input_dim + additional_input, base_dims[0]))
         else:
-            model_input = base_input
+            layers.append(nn.Linear(input_dim, base_dims[0]))
 
         for i, dim in enumerate(base_dims):
-            if i == 0:  # L1 and L2 regularization only in 1st layer
-                model_layer = Dense(dim, activation='relu', name='dense'+str(i+1),
-                                    kernel_regularizer=keras.regularizers.l1_l2(l1=l1_reg, l2=l2_reg))(model_input)
-            else:
-                model_layer = Dense(dim, activation='relu', name='dense'+str(i+1))(model_layer)
+            layers.append(nn.ReLU())
+            if i >= dropout_starting_layer:
+                layers.append(nn.Dropout(dropout_rate))
+            if i < len(base_dims) - 1:
+                layers.append(nn.Linear(dim, base_dims[i + 1]))
 
-            model_layer = BatchNormalization(name='normalization'+str(i+1))(model_layer)
-            if dropout_always_on and i >= dropout_starting_layer:
-                model_layer = Dropout(dropout_rate, name='dropout'+str(i+1))(model_layer, training=True)
-            elif i >= dropout_starting_layer:
-                model_layer = Dropout(dropout_rate, name='dropout'+str(i+1))(model_layer)
+        layers.append(nn.Linear(base_dims[-1], embedding_dim))
+        layers.append(nn.ReLU())
 
-        embedding = Dense(embedding_dim, activation='relu', name='embedding')(model_layer)
-        if additional_input > 0:
-            return keras.Model(inputs=[base_input, side_input], outputs=[embedding], name='base')
+        return nn.Sequential(*layers)
 
-        return keras.Model(inputs=[base_input], outputs=[embedding], name='base')
-
-    @staticmethod
-    def _get_head_model(input_dim: int,
+    def _get_head_model(self, input_dim: int,
                         additional_input: int,
-                        base_model: keras.Model):
-        input_a = Input(shape=input_dim, name="input_a")
-        input_b = Input(shape=input_dim, name="input_b")
+                        base_model: nn.Module):
+        class CosineSimilarity(nn.Module):
+            def forward(self, x1, x2):
+                return nn.functional.cosine_similarity(x1, x2, dim=-1, eps=1e-8)
 
-        if additional_input > 0:
-            input_a_2 = Input(shape=additional_input, name="input_a_2")
-            input_b_2 = Input(shape=additional_input, name="input_b_2")
-            inputs = [input_a, input_a_2, input_b, input_b_2]
+        return CosineSimilarity()
 
-            embedding_a = base_model([input_a, input_a_2])
-            embedding_b = base_model([input_b, input_b_2])
-        else:
-            embedding_a = base_model(input_a)
-            embedding_b = base_model(input_b)
-            inputs = [input_a, input_b]
+    def _construct_from_pytorch_model(self, pytorch_model):
+        def valid_pytorch_model(given_model):
+            assert isinstance(given_model, nn.Module), "Expected valid PyTorch model as input."
+            assert len(list(given_model.children())) > 0, "Expected more layers"
 
-        cosine_similarity = keras.layers.Dot(axes=(1, 1),
-                                             normalize=True,
-                                             name="cosine_similarity")([embedding_a, embedding_b])
+        valid_pytorch_model(pytorch_model)
+        self.base = list(pytorch_model.children())[0]
+        self.head = list(pytorch_model.children())[1]
 
-        return keras.Model(inputs=inputs, outputs=[cosine_similarity], name='head')
+    def train_model(self, train_generator, validation_generator, optimizer, epochs=50):
+        self.train()
+        criterion = nn.MSELoss()
 
-    def _construct_from_keras_model(self, keras_model):
-        def valid_keras_model(given_model):
-            assert given_model.layers, "Expected valid keras model as input."
-            assert len(given_model.layers) > 2, "Expected more layers"
-            if self.additional_input > 0:
-                assert keras_model.layers[4], "Expected more layers for base model"
-            else: 
-                assert len(keras_model.layers[2].layers) > 1, "Expected more layers for base model"
+        for epoch in range(epochs):
+            running_loss = 0.0
+            for i, data in enumerate(train_generator, 0):
+                # Get the inputs
+                inputs_a, inputs_b, labels = data
+                if self.additional_input > 0:
+                    inputs_a, inputs_a_2 = inputs_a
+                    inputs_b, inputs_b_2 = inputs_b
 
-        valid_keras_model(keras_model)
-        self.base = keras_model.layers[2]
-        if self.additional_input > 0:
-            self.base = keras_model.layers[4]
-        self.model = keras_model
+                # Zero the parameter gradients
+                optimizer.zero_grad()
 
-    def compile(self, *args, **kwargs):
-        self.model.compile(*args, **kwargs)
+                # Forward
+                if self.additional_input > 0:
+                    embeddings_a = self.base(inputs_a, inputs_a_2)
+                    embeddings_b = self.base(inputs_b, inputs_b_2)
+                else:
+                    embeddings_a = self.base(inputs_a)
+                    embeddings_b = self.base(inputs_b)
 
-    def fit(self, *args, **kwargs):
-        self.model.fit(*args, **kwargs)
+                outputs = self.head(embeddings_a, embeddings_b)
 
-    def load_weights(self, checkpoint_path):
-        self.model.load_weights(checkpoint_path)
+                # Compute loss
+                loss = criterion(outputs, labels)
 
-    def summary(self):
-        self.base.summary()
-        self.model.summary()
+                # Backward
+                loss.backward()
 
-    def evaluate(self, *args, **kwargs):
-        return self.model.evaluate(*args, **kwargs)
+                # Optimize
+                optimizer.step()
+
+                # Print statistics
+                running_loss += loss.item()
+
+            # Compute validation loss
+            validation_loss = 0.0
+            with torch.no_grad():
+                for data in validation_generator:
+                    inputs_a, inputs_b, labels = data
+
+                    if self.additional_input > 0:
+                        inputs_a, inputs_a_2 = inputs_a
+                        inputs_b, inputs_b_2 = inputs_b
+
+                    if self.additional_input > 0:
+                        embeddings_a = self.base(inputs_a, inputs_a_2)
+                        embeddings_b = self.base(inputs_b, inputs_b_2)
+                    else:
+                        embeddings_a = self.base(inputs_a)
+                        embeddings_b = self.base(inputs_b)
+
+                    outputs = self.head(embeddings_a, embeddings_b)
+                    loss = criterion(outputs, labels)
+                    validation_loss += loss.item()
+
+            # Print epoch summary
+            print(f'Epoch {epoch + 1}, Loss: {running_loss / i}, Validation Loss: {validation_loss / len(validation_generator)}')
+
+    def load(self, checkpoint_path):
+        self.load_state_dict(torch.load(checkpoint_path))
+
+    def evaluate(self, test_generator):
+        self.eval()
+        mse_loss = 0
+        criterion = nn.MSELoss()
+
+        with torch.no_grad():
+            for data in test_generator:
+                inputs_a, inputs_b, labels = data
+
+                if self.additional_input > 0:
+                    inputs_a, inputs_a_2 = inputs_a
+                    inputs_b, inputs_b_2 = inputs_b
+
+                if self.additional_input > 0:
+                    embeddings_a = self.base(inputs_a, inputs_a_2)
+                    embeddings_b = self.base(inputs_b, inputs_b_2)
+                else:
+                    embeddings_a = self.base(inputs_a)
+                    embeddings_b = self.base(inputs_b)
+
+                outputs = self.head(embeddings_a, embeddings_b)
+                mse_loss += criterion(outputs, labels).item()
+
+        return mse_loss / len(test_generator)
