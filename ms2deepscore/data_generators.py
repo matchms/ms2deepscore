@@ -20,7 +20,7 @@ class SpectrumPair(NamedTuple):
 
 class DataGeneratorBase(torch.utils.data.Dataset):
     def __init__(self, binned_spectrums: List[BinnedSpectrumType],
-                 reference_scores_df: pd.DataFrame, dim: int, **settings)
+                 reference_scores_df: pd.DataFrame, dim: int, **settings):
         """Base for data generator generating data for a siamese model.
 
         Parameters
