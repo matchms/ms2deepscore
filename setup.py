@@ -29,6 +29,7 @@ setup(
     test_suite="tests",
     python_requires='>=3.8',
     install_requires=[
+        "h5py",
         "matchms>=0.14.0",
         "numba",
         "numpy>= 1.20.3",
