@@ -2,7 +2,6 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 import pytest
-from tensorflow import keras
 from matchms.importing import load_from_mgf
 
 from ms2deepscore import SpectrumBinner
@@ -54,22 +53,26 @@ def test_user_workflow():
     # Create (and train) a Siamese model
     model = SiameseModel(spectrum_binner, base_dims=(200, 200, 200), embedding_dim=200,
                          dropout_rate=0.2)
-    model.compile(loss='mse', optimizer=keras.optimizers.Adam(learning_rate=0.001))
+    model.compile(optimizer='adam', learning_rate=0.001)
     model.summary()
     model.fit(test_generator,
               validation_data=test_generator,
               epochs=2)
 
-    # TODO: Add splitting data into training/validation/test
-    # TODO: or load pretrained model instead
+    # Save and load the model
+    model.save("test_siamese_model.pth")
+    loaded_model = SiameseModel.load("test_siamese_model.pth")
 
-    # calculate similarities (pair)
-    similarity_measure = MS2DeepScore(model)
+    # calculate similarities (pair) using the loaded model
+    similarity_measure = MS2DeepScore(loaded_model)
     score = similarity_measure.pair(spectrums[0], spectrums[1])
     assert 0 < score < 1, "Expected score > 0 and < 1"
     assert isinstance(score, float), "Expected score to be float"
 
-    # calculate similarities (matrix)
+    # calculate similarities (matrix) using the loaded model
     scores = similarity_measure.matrix(spectrums[:10], spectrums[:10])
     assert scores.shape == (10, 10), "Expected different score array shape"
     assert np.allclose([scores[i, i] for i in range(10)], 1.0), "Expected diagonal values to be approx 1.0"
+
+    # Remove the saved model file
+    Path("test_siamese_model.pth").unlink()
