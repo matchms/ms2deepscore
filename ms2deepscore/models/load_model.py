@@ -1,8 +1,5 @@
 from pathlib import Path
 from typing import Union
-import h5py
-from tensorflow import keras
-
 from ms2deepscore.SpectrumBinner import SpectrumBinner
 from .SiameseModel import SiameseModel
 
@@ -24,14 +21,4 @@ def load_model(filename: Union[str, Path]) -> SiameseModel:
         Filename. Expecting saved SiameseModel.
 
     """
-    additional_input = 0
-    with h5py.File(filename, mode='r') as f:
-        binner_json = f.attrs['spectrum_binner']
-        keras_model = keras.models.load_model(f)
-
-        # models with multiple inputs have different shapes
-        if "additional_input" in f.attrs:
-            additional_input = f.attrs['additional_input']
-
-    spectrum_binner = SpectrumBinner.from_json(binner_json)
-    return SiameseModel(spectrum_binner, keras_model=keras_model, additional_input=additional_input)
+    return SiameseModel.load(filename)
