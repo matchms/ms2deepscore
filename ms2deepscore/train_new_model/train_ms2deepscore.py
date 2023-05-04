@@ -5,7 +5,9 @@ This script is not needed for normally running MS2Deepscore, it is only needed t
 import os
 from typing import List, Dict, Optional
 import numpy as np
-import tensorflow as tf
+import torch
+import torch.nn as nn
+import torch.optim as optim
 from matplotlib import pyplot as plt
 from matchms import Spectrum
 from ms2deepscore import SpectrumBinner
@@ -54,20 +56,49 @@ def train_ms2ds_model(training_spectra,
     model = SiameseModel(spectrum_binner, base_dims=(500, 500),
                          embedding_dim=200, dropout_rate=0.2)
 
-    model.compile(loss='mse', optimizer=tf.keras.optimizers.Adam(learning_rate=0.001),
-                  metrics=["mae", tf.keras.metrics.RootMeanSquaredError()])
-    # Save best model and include early stopping
-    checkpointer = tf.keras.callbacks.ModelCheckpoint(
-        filepath=output_model_file_name, monitor='val_loss', mode="min",
-        verbose=1, save_best_only=True)
-    earlystopper_scoring_net = tf.keras.callbacks.EarlyStopping(monitor='val_loss', mode="min", patience=10, verbose=1)
-    # Fit model and save history
-    history = model.model.fit(training_generator, validation_data=validation_generator,
-                              epochs=epochs, verbose=1,
-                              callbacks=[checkpointer, earlystopper_scoring_net])
-    model.load_weights(output_model_file_name)
-    model.save(output_model_file_name)
-    return history.history
+    optimizer = optim.Adam(model.parameters(), lr=0.001)
+    criterion = nn.MSELoss()
+
+    # Training loop with early stopping
+    min_val_loss = float("inf")
+    patience = 10
+    epochs_since_best = 0
+
+    for epoch in range(epochs):
+        # Training phase
+        model.train()
+        for inputs, targets in training_generator:
+            optimizer.zero_grad()
+            outputs = model(inputs)
+            loss = criterion(outputs, targets)
+            loss.backward()
+            optimizer.step()
+
+        # Validation phase
+        model.eval()
+        val_losses = []
+        with torch.no_grad():
+            for inputs, targets in validation_generator:
+                outputs = model(inputs)
+                val_loss = criterion(outputs, targets)
+                val_losses.append(val_loss.item())
+        mean_val_loss = np.mean(val_losses)
+
+        # Early stopping and saving the best model
+        if mean_val_loss < min_val_loss:
+            min_val_loss = mean_val_loss
+            torch.save(model.state_dict(), output_model_file_name)
+            epochs_since_best = 0
+        else:
+            epochs_since_best += 1
+            if epochs_since_best >= patience:
+                print("Early stopping due to no improvement in validation loss.")
+                break
+
+    # Load the best model and save it
+    model.load_state_dict(torch.load(output_model_file_name))
+    torch.save(model, output_model_file_name)
+    return mean_val_loss
 
 
 def plot_history(history: Dict[str, List[float]],
@@ -92,8 +123,9 @@ def train_ms2deepscore_wrapper(training_spectra: List[Spectrum],
     assert not os.path.isfile(output_model_file_name), "The MS2Deepscore output model file name already exists"
     all_spectra = training_spectra + validation_spectra
     tanimoto_score_df = calculate_tanimoto_scores_unique_inchikey(all_spectra, all_spectra)
-    history = train_ms2ds_model(training_spectra, validation_spectra,
-                                tanimoto_score_df, output_model_file_name,
-                                epochs)
-    print(f"The training history is: {history}")
-    plot_history(history, ms2ds_history_file_name)
+    mean_val_loss = train_ms2ds_model(training_spectra, validation_spectra,
+                                      tanimoto_score_df, output_model_file_name,
+                                      epochs)
+    print(f"The best validation loss is: {mean_val_loss}")
+    # Note: The history plotting function has been removed as PyTorch does not store training history by default.
+    # You may implement custom history tracking and plotting if desired.
