@@ -3,8 +3,12 @@ from matplotlib import pyplot as plt
 from matplotlib.colors import LinearSegmentedColormap
 
 
-def create_histograms_plot(reference_scores, comparison_scores, n_bins=10, hist_resolution=100,
-                          ref_score_name="Tanimoto similarity", compare_score_name="MS2DeepScore"):
+def create_histograms_plot(reference_scores,
+                           comparison_scores,
+                           n_bins=10,
+                           hist_resolution=100,
+                           ref_score_name="Tanimoto similarity",
+                           compare_score_name="MS2DeepScore"):
     """
     Plot histograms to compare reference and comparison scores.
 
@@ -25,14 +29,22 @@ def create_histograms_plot(reference_scores, comparison_scores, n_bins=10, hist_
 
     """
     # pylint: disable=too-many-arguments
-    histograms, used_bins, bin_content = calculate_histograms(reference_scores, comparison_scores,
-                                                              n_bins, hist_resolution)
+    histograms, used_bins, bin_content = calculate_histograms(reference_scores,
+                                                              comparison_scores,
+                                                              n_bins,
+                                                              hist_resolution)
+    plot_histograms(histograms,
+                    used_bins, 
+                    bin_content,
+                    xlabel=compare_score_name,
+                    ylabel=ref_score_name)
 
-    plot_histograms(histograms, used_bins, bin_content, xlabel=compare_score_name, ylabel=ref_score_name)
 
-
-def plot_histograms(histograms, y_score_bins, bin_content=None,
-                    xlabel="MS2DeepScore", ylabel="Tanimoto similarity"):
+def plot_histograms(histograms,
+                    y_score_bins,
+                    bin_content=None,
+                    xlabel="MS2DeepScore",
+                    ylabel="Tanimoto similarity"):
     """Create histogram based score comparison.
     """
 
@@ -63,7 +75,10 @@ def plot_histograms(histograms, y_score_bins, bin_content=None,
     plt.xlim([0, 1])
 
 
-def calculate_histograms(reference_scores, comparison_scores, n_bins=10, hist_resolution=100):
+def calculate_histograms(reference_scores,
+                         comparison_scores,
+                         n_bins=10,
+                         hist_resolution=100):
     """Calcualte a series of histograms, one for every bin."""
     hist_bins = np.linspace(0, 1, hist_resolution)
     hist_bins = np.concatenate((hist_bins, np.array([2.0])))
@@ -85,8 +100,11 @@ def calculate_histograms(reference_scores, comparison_scores, n_bins=10, hist_re
     return histograms, used_bins, bin_content
 
 
-def create_confusion_matrix_plot(reference_scores, comparison_scores, n_bins=5,
-                                 ref_score_name="Tanimoto similarity", compare_score_name="MS2DeepScore",
+def create_confusion_matrix_plot(reference_scores,
+                                 comparison_scores,
+                                 n_bins=5,
+                                 ref_score_name="Tanimoto similarity",
+                                 compare_score_name="MS2DeepScore",
                                  max_square_size=5000,
                                  lower_bound=0, upper_bound=1,
                                  color_by_reference_fraction=True):
@@ -127,9 +145,14 @@ def create_confusion_matrix_plot(reference_scores, comparison_scores, n_bins=5,
     return fig
 
 
-def plot_confusion_like_matrix(confusion_like_matrix_scatter, confusion_like_matrix,
-                              xlabel, ylabel, max_size=5000,
-                              lower_bound=0, upper_bound=1, color_by_reference_fraction=True):
+def plot_confusion_like_matrix(confusion_like_matrix_scatter,
+                               confusion_like_matrix,
+                               xlabel,
+                               ylabel,
+                               max_size=5000,
+                               lower_bound=0,
+                               upper_bound=1,
+                               color_by_reference_fraction=True):
     """Do the actual plotting"""
     # pylint: disable=too-many-arguments
     summed_tanimoto = []
@@ -168,8 +191,10 @@ def plot_confusion_like_matrix(confusion_like_matrix_scatter, confusion_like_mat
     return fig
 
 
-def derive_scatter_data(reference_scores, comparison_scores,
-                        lower_bound, upper_bound,
+def derive_scatter_data(reference_scores,
+                        comparison_scores,
+                        lower_bound,
+                        upper_bound,
                         n_bins_x, n_bins_y):
     """Helper function to collect actual scatter plot data"""
     # pylint: disable=too-many-arguments
