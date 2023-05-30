@@ -123,12 +123,12 @@ def create_all_plots(model_folder_name):
 
     tanimoto_df = load_pickled_file(os.path.join(data_dir, "tanimoto_scores/validation_tanimoto_scores.pickle"))
 
+    benchmark_wrapper(positive_validation_spectra, positive_validation_spectra,
+                      benchmarking_results_folder, tanimoto_df, similarity_score, "positive_positive")
     benchmark_wrapper(negative_validation_spectra, negative_validation_spectra,
                       benchmarking_results_folder, tanimoto_df, similarity_score, "negative_negative")
     benchmark_wrapper(negative_validation_spectra, positive_validation_spectra,
                       benchmarking_results_folder, tanimoto_df, similarity_score, "negative_positive")
-    benchmark_wrapper(positive_validation_spectra, positive_validation_spectra,
-                      benchmarking_results_folder, tanimoto_df, similarity_score, "positive_positive")
     benchmark_wrapper(positive_validation_spectra+negative_validation_spectra,
                       positive_validation_spectra+negative_validation_spectra,
                       benchmarking_results_folder, tanimoto_df, similarity_score, "both_both")
