@@ -36,7 +36,7 @@ def train_ms2ds_model(training_spectra,
         binned_spectrums_training,
         selected_inchikeys=list({s.get("inchikey")[:14] for s in training_spectra}),
         reference_scores_df=tanimoto_df,
-        dim=len(spectrum_binner.known_bins), # The number of bins created
+        spectrum_binner=spectrum_binner,
         same_prob_bins=same_prob_bins,
         num_turns=2,
         augment_noise_max=10,
@@ -46,7 +46,7 @@ def train_ms2ds_model(training_spectra,
         binned_spectrums_val,
         selected_inchikeys=list({s.get("inchikey")[:14] for s in binned_spectrums_val}),
         reference_scores_df=tanimoto_df,
-        dim=len(spectrum_binner.known_bins),  # The number of bins created
+        spectrum_binner=spectrum_binner,
         same_prob_bins=same_prob_bins,
         num_turns=10, # Number of pairs for each InChiKey14 during each epoch.
         # To prevent data augmentation

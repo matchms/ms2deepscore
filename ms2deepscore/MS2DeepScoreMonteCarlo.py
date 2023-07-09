@@ -71,7 +71,7 @@ class MS2DeepScoreMonteCarlo(BaseSimilarity):
             Default is False.
         """
         self.model = model
-        self.multi_inputs = (model.additional_input > 0)
+        self.multi_inputs = (model.nr_of_additional_inputs > 0)
         self.n_ensembles = n_ensembles
         assert average_type in ["median", "mean"], \
             "Non supported input for average_type. Must be 'median' or 'mean'."

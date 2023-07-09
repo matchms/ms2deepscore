@@ -54,8 +54,7 @@ class MS2DeepScore(BaseSimilarity):
             Default is False.
         """
         self.model = model
-        self.multi_inputs = (model.additional_input > 0)
-        # TODO: later maybe also check against SpectrumBinner
+        self.multi_inputs = (model.nr_of_additional_inputs > 0)
         if self.multi_inputs:
             self.input_vector_dim = [self.model.base.input_shape[0][1], self.model.base.input_shape[1][1]]
         else:

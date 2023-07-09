@@ -40,13 +40,37 @@ class SiameseModel(nn.Module):
                  l2_reg: float = 1e-6,
                  pytorch_model: nn.Module = None,
                  additional_input=0):
-        super(SiameseModel, self).__init__()
+        """
+        Construct SiameseModel
+
+        Parameters
+        ----------
+        spectrum_binner
+            SpectrumBinner which is used to bin the spectra data for the model training.
+        base_dims
+            Tuple of integers depicting the dimensions of the desired hidden
+            layers of the base model
+        embedding_dim
+            Dimension of the embedding (i.e. the output of the base model)
+        dropout_rate
+            Dropout rate to be used in the base model.
+        dropout_in_first_layer
+            Set to True if dropout should be part of first dense layer as well. Default is False.
+        l1_reg
+            L1 regularization rate. Default is 1e-6.
+        l2_reg
+            L2 regularization rate. Default is 1e-6.
+        pytorch_model
+            When provided, this pytorch model will be used to construct the SiameseModel instance.
+            Default is None.
+        """
         # pylint: disable=too-many-arguments
+        super(SiameseModel, self).__init__()
         assert spectrum_binner.known_bins is not None, \
             "spectrum_binner does not contain known bins (run .fit_transform() on training data first!)"
         self.spectrum_binner = spectrum_binner
         self.input_dim = len(spectrum_binner.known_bins)
-        self.additional_input = additional_input
+        self.nr_of_additional_inputs = len(self.spectrum_binner.additional_metadata)
 
         if pytorch_model is None:
             # Create base model
@@ -57,7 +81,7 @@ class SiameseModel(nn.Module):
                                             dropout_in_first_layer=dropout_in_first_layer,
                                             l1_reg=l1_reg,
                                             l2_reg=l2_reg,
-                                            additional_input=additional_input)
+                                            additional_input=self.nr_of_additional_inputs)
             # Create head model
             self.head = self._get_head_model(input_dim=self.input_dim,
                                              additional_input=additional_input,
@@ -87,7 +111,7 @@ class SiameseModel(nn.Module):
         torch.save(self.state_dict(), filename)
         with h5py.File(filename, mode='a') as f:
             f.attrs['spectrum_binner'] = self.spectrum_binner.to_json()
-            f.attrs['additional_input'] = self.additional_input
+            f.attrs['additional_input'] = self.nr_of_additional_inputs
 
     @staticmethod
     def get_base_model(input_dim: int,

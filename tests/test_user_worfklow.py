@@ -47,7 +47,7 @@ def test_user_workflow():
     dimension = len(spectrum_binner.known_bins)
     same_prob_bins = [(0, 0.5), (0.5, 1)]
     test_generator = DataGeneratorAllSpectrums(binned_spectrums, tanimoto_scores_df,
-                                               dim=dimension,
+                                               spectrum_binner=spectrum_binner,
                                                same_prob_bins=same_prob_bins)
 
     # Create (and train) a Siamese model

@@ -30,9 +30,9 @@ def test_error_duplicate_inchikeys():
         DataGeneratorAllInchikeys(binned_spectrums=binned_spectrums,
                                   selected_inchikeys=selected_inchikeys,
                                   reference_scores_df=tanimoto_scores_df,
-                                  dim=dimension)
+                                  spectrum_binner=spectrum_binner)
 
     with pytest.raises(ValueError):
         DataGeneratorAllSpectrums(binned_spectrums=binned_spectrums,
                                   reference_scores_df=tanimoto_scores_df,
-                                  dim=dimension)
+                                  spectrum_binner=spectrum_binner)
