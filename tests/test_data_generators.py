@@ -5,6 +5,7 @@ import string
 from matchms import Spectrum
 
 from ms2deepscore import SpectrumBinner
+from ms2deepscore.MetadataFeatureGenerator import StandardScaler, CategoricalToBinary
 from ms2deepscore.data_generators import (DataGeneratorAllInchikeys,
                                           DataGeneratorAllSpectrums,
                                           _exclude_nans_from_labels,
@@ -57,7 +58,7 @@ def create_test_data():
     tanimoto_scores_df = get_reference_scores()
     ms2ds_binner = SpectrumBinner(100, mz_min=10.0, mz_max=1000.0, peak_scaling=0.5)
     binned_spectrums = ms2ds_binner.fit_transform(spectrums)
-    return binned_spectrums, tanimoto_scores_df
+    return binned_spectrums, tanimoto_scores_df, ms2ds_binner
 
 
 def collect_results(generator, batch_size, dimension):
@@ -85,8 +86,9 @@ def test_DataGeneratorAllInchikeys():
     # Create generator
     test_generator = DataGeneratorAllInchikeys(binned_spectrums=binned_spectrums,
                                                selected_inchikeys=selected_inchikeys,
+                                               spectrum_binner=ms2ds_binner,
                                                reference_scores_df=tanimoto_scores_df,
-                                               dim=dimension, batch_size=batch_size,
+                                               batch_size=batch_size,
                                                augment_removal_max=0.0,
                                                augment_removal_intensity=0.0,
                                                augment_intensity=0.0,
@@ -125,7 +127,8 @@ def test_DataGeneratorAllSpectrums():
     test_generator = DataGeneratorAllSpectrums(binned_spectrums=binned_spectrums,
                                                selected_inchikeys=selected_inchikeys,
                                                reference_scores_df=tanimoto_scores_df,
-                                               dim=dimension, batch_size=batch_size,
+                                               spectrum_binner=ms2ds_binner,
+                                               batch_size=batch_size,
                                                augment_removal_max=0.0,
                                                augment_removal_intensity=0.0,
                                                augment_intensity=0.0,
@@ -154,18 +157,18 @@ def test_DataGeneratorAllInchikeys_real_data():
     """Basic first test for DataGeneratorAllInchikeys using actual data.
     """
     # Get test data
-    binned_spectrums, tanimoto_scores_df = create_test_data()
+    binned_spectrums, tanimoto_scores_df, ms2ds_binner = create_test_data()
 
     # Define other parameters
     batch_size = 10
-    dimension = 88
+    dimension = len(ms2ds_binner.known_bins)
 
     selected_inchikeys = tanimoto_scores_df.index[:80]
     # Create generator
     test_generator = DataGeneratorAllInchikeys(binned_spectrums=binned_spectrums,
                                                selected_inchikeys=selected_inchikeys,
                                                reference_scores_df=tanimoto_scores_df,
-                                               dim=dimension, batch_size=batch_size,
+                                               spectrum_binner=ms2ds_binner, batch_size=batch_size,
                                                augment_removal_max=0.0,
                                                augment_removal_intensity=0.0,
                                                augment_intensity=0.0)
@@ -180,7 +183,7 @@ def test_DataGeneratorAllInchikeys_real_data():
 def test_DataGeneratorAllSpectrumsRealData():
     """Basic first test for DataGeneratorAllSpectrums"""
     # Get test data
-    binned_spectrums, tanimoto_scores_df = create_test_data()
+    binned_spectrums, tanimoto_scores_df, ms2ds_binner = create_test_data()
 
     # Define other parameters
     batch_size = 10
@@ -189,13 +192,13 @@ def test_DataGeneratorAllSpectrumsRealData():
     # Create generator
     test_generator = DataGeneratorAllSpectrums(binned_spectrums=binned_spectrums[:150],
                                                reference_scores_df=tanimoto_scores_df,
-                                               dim=dimension, batch_size=batch_size,
+                                               spectrum_binner=ms2ds_binner, batch_size=batch_size,
                                                augment_removal_max=0.0,
                                                augment_removal_intensity=0.0,
                                                augment_intensity=0.0)
 
     A, B = test_generator.__getitem__(0)
-    assert A[0].shape == A[1].shape == (10, 88), "Expected different data shape"
+    assert A[0].shape == A[1].shape == (10, dimension), "Expected different data shape"
     assert B.shape[0] == 10, "Expected different label shape."
     assert test_generator.settings["num_turns"] == 1, "Expected different default."
     assert test_generator.settings["augment_intensity"] == 0.0, "Expected changed value."
@@ -204,7 +207,7 @@ def test_DataGeneratorAllSpectrumsRealData():
 def test_DataGeneratorAllSpectrums_no_inchikey_leaking():
     """Test if non-selected InChIKeys are correctly removed"""
     # Get test data
-    binned_spectrums, tanimoto_scores_df = create_test_data()
+    binned_spectrums, tanimoto_scores_df, ms2ds_binner = create_test_data()
 
     # Define other parameters
     batch_size = 8
@@ -213,7 +216,7 @@ def test_DataGeneratorAllSpectrums_no_inchikey_leaking():
     # Create generator
     test_generator = DataGeneratorAllSpectrums(binned_spectrums=binned_spectrums[:8],
                                                reference_scores_df=tanimoto_scores_df,
-                                               dim=dimension, batch_size=batch_size,
+                                               spectrum_binner=ms2ds_binner, batch_size=batch_size,
                                                augment_removal_max=0.0,
                                                augment_removal_intensity=0.0,
                                                augment_intensity=0.0)
@@ -246,12 +249,12 @@ def test_DataGeneratorAllSpectrums_no_inchikey_leaking():
 
 def test_DataGeneratorAllSpectrums_asymmetric_label_input():
     # Create generator
-    binned_spectrums, tanimoto_scores_df = create_test_data()
+    binned_spectrums, tanimoto_scores_df, ms2ds_binner = create_test_data()
     asymmetric_scores_df = tanimoto_scores_df.iloc[:, 2:]
     with pytest.raises(ValueError) as msg:
         _ = DataGeneratorAllSpectrums(binned_spectrums=binned_spectrums,
                                       reference_scores_df=asymmetric_scores_df,
-                                      dim=101)
+                                      spectrum_binner=ms2ds_binner)
     assert "index and columns of reference_scores_df are not identical" in str(msg), \
         "Expected different ValueError"
 
@@ -261,7 +264,7 @@ def test_DataGeneratorAllSpectrums_fixed_set():
     Test whether use_fixed_set=True toggles generating the same dataset on each epoch.
     """
     # Get test data
-    binned_spectrums, tanimoto_scores_df = create_test_data()
+    binned_spectrums, tanimoto_scores_df, ms2ds_binner = create_test_data()
 
     # Define other parameters
     batch_size = 4
@@ -270,7 +273,7 @@ def test_DataGeneratorAllSpectrums_fixed_set():
     # Create generator that generates a fixed set every epoch
     fixed_generator = DataGeneratorAllSpectrums(binned_spectrums=binned_spectrums[:8],
                                                 reference_scores_df=tanimoto_scores_df,
-                                                dim=dimension, batch_size=batch_size,
+                                                spectrum_binner=ms2ds_binner, batch_size=batch_size,
                                                 num_turns=5, use_fixed_set=True)
 
     first_X, first_y = collect_results(fixed_generator, batch_size, dimension)
@@ -286,7 +289,7 @@ def test_DataGeneratorAllSpectrums_fixed_set_random_seed():
     And if same random_seed leads to exactly the same output.
     """
     # Get test data
-    binned_spectrums, tanimoto_scores_df = create_test_data()
+    binned_spectrums, tanimoto_scores_df, ms2ds_binner = create_test_data()
 
     # Define other parameters
     batch_size = 4
@@ -295,15 +298,14 @@ def test_DataGeneratorAllSpectrums_fixed_set_random_seed():
     # Create normal generator
     normal_generator = DataGeneratorAllSpectrums(binned_spectrums=binned_spectrums[:8],
                                                  reference_scores_df=tanimoto_scores_df,
-                                                 dim=dimension, batch_size=batch_size,
+                                                 spectrum_binner=ms2ds_binner, batch_size=batch_size,
                                                  use_fixed_set=False)
 
     # Create generator that generates a fixed set every epoch
     fixed_generator = DataGeneratorAllSpectrums(binned_spectrums=binned_spectrums[:8],
                                                 reference_scores_df=tanimoto_scores_df,
-                                                dim=dimension, batch_size=batch_size,
-                                                num_turns=5, use_fixed_set=True,
-                                                random_seed=0)
+                                                spectrum_binner=ms2ds_binner, batch_size=batch_size,
+                                                num_turns=5, use_fixed_set=True, random_seed=0)
 
     first_X, first_y = collect_results(normal_generator, batch_size, dimension)
     second_X, second_y = collect_results(normal_generator, batch_size, dimension)
@@ -319,11 +321,12 @@ def test_DataGeneratorAllSpectrums_fixed_set_random_seed():
     # fixed set
     fixed_generator2 = DataGeneratorAllSpectrums(binned_spectrums=binned_spectrums[:8],
                                                  reference_scores_df=tanimoto_scores_df,
-                                                 dim=dimension, batch_size=batch_size,
+                                                 spectrum_binner=ms2ds_binner, batch_size=batch_size,
                                                  num_turns=5, use_fixed_set=True,
                                                  random_seed=0)
     first_X, first_y = collect_results(fixed_generator, batch_size, dimension)
     second_X, second_y = collect_results(fixed_generator2, batch_size, dimension)
+
     assert np.array_equal(first_X, second_X)
 
 
@@ -331,25 +334,31 @@ def test_DataGeneratorAllSpectrums_additional_inputs():
     """
     Test if additional input parameter works as intended 
     """
-    
     # Get test data
     spectrums = load_processed_spectrums()
     tanimoto_scores_df = get_reference_scores()
-    ms2ds_binner = SpectrumBinner(100, mz_min=10.0, mz_max=1000.0, peak_scaling=0.5, 
-                                    additional_metadata=["parent_mass", "precursor_mz"])
-    binned_spectrums = ms2ds_binner.fit_transform(spectrums)
 
+    # Run for two test cases.
+    # Testing a single and multiple inputs is important, since numpy can do weird things with 1D arrays of len= 1
+    test_cases = [(StandardScaler("precursor_mz", mean=0, std=1000), ),
+                  (StandardScaler("precursor_mz", mean=0, std=1000),
+                   CategoricalToBinary("ionmode", entries_becoming_one="negative", entries_becoming_zero="positive"))]
+    for additional_feature_types in test_cases:
 
-    # Define other parameters
-    batch_size = 4
-    dimension = 88
-    additional_input=["precursor_mz", "parent_mass"]
-    data_generator = DataGeneratorAllSpectrums(binned_spectrums, tanimoto_scores_df,
-                                           dim=dimension, additional_input=additional_input)
-    batch_X, batch_y = data_generator.__getitem__(0)
+        # additional_feature_types = ()
+        ms2ds_binner = SpectrumBinner(100, mz_min=10.0, mz_max=1000.0, peak_scaling=0.5,
+                                      additional_metadata=additional_feature_types)
+        binned_spectrums = ms2ds_binner.fit_transform(spectrums)
 
-    assert len(batch_X) != len(batch_y), "Batchsizes from X and y are not the same."
-    assert len(batch_X[0]) != 3, "There are not as many inputs as specified."
+        # Define other parameters
+        batch_size = 4
+        data_generator = DataGeneratorAllSpectrums(binned_spectrums, tanimoto_scores_df,
+                                                   spectrum_binner=ms2ds_binner, batch_size=batch_size)
+        batch_X, batch_y = data_generator.__getitem__(0)
+        for batch_X_values in batch_X:
+            assert len(batch_X_values) == len(batch_y) == batch_size, "Batchsizes from X and y are not the same."
+        assert len(batch_X[1][0]) == len(additional_feature_types) == len(batch_X[3][0]), "There are not as many inputs as specified."
+
 
 
 # Test specific class methods

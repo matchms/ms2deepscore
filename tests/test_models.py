@@ -11,6 +11,7 @@ else:
 from ms2deepscore import SpectrumBinner
 from ms2deepscore.data_generators import DataGeneratorAllInchikeys, DataGeneratorAllSpectrums
 from ms2deepscore.models import SiameseModel, load_model
+from ms2deepscore.MetadataFeatureGenerator import StandardScaler
 from tests.test_user_worfklow import load_processed_spectrums, get_reference_scores
 
 TEST_RESOURCES_PATH = Path(__file__).parent / 'resources'
@@ -33,13 +34,12 @@ def get_test_binner_and_generator():
         DataGeneratorAllInchikeys(binned_spectrums=binned_spectrums,
                                   selected_inchikeys=selected_inchikeys,
                                   reference_scores_df=tanimoto_scores_df,
-                                  dim=dimension, same_prob_bins=same_prob_bins)
+                                  spectrum_binner=spectrum_binner, same_prob_bins=same_prob_bins)
 
 
 def test_siamese_model():
     spectrum_binner, test_generator = get_test_binner_and_generator()
-    model = SiameseModel(spectrum_binner, base_dims=(200, 200, 200),
-                         embedding_dim=200, dropout_rate=0.2)
+    model = SiameseModel(spectrum_binner, base_dims=(200, 200, 200), embedding_dim=200, dropout_rate=0.2)
     model.compile(loss='mse', optimizer=AdamOptimizer(learning_rate=0.001))
     model.summary()
     model.fit(test_generator,
@@ -66,8 +66,7 @@ def test_siamese_model():
 
 def test_siamese_model_different_architecture():
     spectrum_binner, test_generator = get_test_binner_and_generator()
-    model = SiameseModel(spectrum_binner, base_dims=(200, 200, 100, 100, 100),
-                         embedding_dim=100, dropout_rate=0.2)
+    model = SiameseModel(spectrum_binner, base_dims=(200, 200, 100, 100, 100), embedding_dim=100, dropout_rate=0.2)
     model.compile(loss='mse', optimizer=AdamOptimizer(learning_rate=0.001))
     assert len(model.model.layers) == 4, "Expected different number of layers"
     assert len(model.model.layers[2].layers) == len(model.base.layers) == 16, \
@@ -78,8 +77,8 @@ def test_siamese_model_different_architecture():
 
 def test_siamese_model_dropout_in_first_layer():
     spectrum_binner, test_generator = get_test_binner_and_generator()
-    model = SiameseModel(spectrum_binner, base_dims=(200, 200, 100, 100, 100),
-                         embedding_dim=100, dropout_rate=0.2, dropout_in_first_layer=True)
+    model = SiameseModel(spectrum_binner, base_dims=(200, 200, 100, 100, 100), embedding_dim=100, dropout_rate=0.2,
+                         dropout_in_first_layer=True)
     model.compile(loss='mse', optimizer=AdamOptimizer(learning_rate=0.001))
     assert len(model.model.layers) == 4, "Expected different number of layers"
     assert len(model.model.layers[2].layers) == len(model.base.layers) == 17, \
@@ -90,8 +89,7 @@ def test_siamese_model_dropout_in_first_layer():
 
 def test_siamese_model_different_regularization_rates():
     spectrum_binner, test_generator = get_test_binner_and_generator()
-    model = SiameseModel(spectrum_binner, base_dims=(200,),
-                         embedding_dim=100, l1_reg=1e-7, l2_reg=1e-5)
+    model = SiameseModel(spectrum_binner, base_dims=(200,), embedding_dim=100, l1_reg=1e-7, l2_reg=1e-5)
     np.testing.assert_array_almost_equal(model.base.layers[1].kernel_regularizer.l1, 1e-7), \
         "Expected different L1 regularization rate"
     np.testing.assert_array_almost_equal(model.base.layers[1].kernel_regularizer.l2, 1e-5), \
@@ -123,8 +121,7 @@ def test_load_model():
 def test_save_and_load_model(tmp_path):
     """Test saving and loading a model."""
     spectrum_binner, test_generator = get_test_binner_and_generator()
-    model = SiameseModel(spectrum_binner, base_dims=(200, 200, 200),
-                         embedding_dim=200, dropout_rate=0.2)
+    model = SiameseModel(spectrum_binner, base_dims=(200, 200, 200), embedding_dim=200, dropout_rate=0.2)
     model.compile(loss='mse', optimizer=AdamOptimizer(learning_rate=0.001))
     model.summary()
     model.fit(test_generator,
@@ -153,14 +150,14 @@ def get_test_binner_and_generator_additional_inputs():
     # Get test data
     spectrums = load_processed_spectrums()
     tanimoto_scores_df = get_reference_scores()
-    additional_inputs=["precursor_mz", "parent_mass"]
-    spectrum_binner = SpectrumBinner(1000, mz_min=10.0, mz_max=1000.0, peak_scaling=0.5, 
-                                        additional_metadata=additional_inputs)
+    additional_inputs=(StandardScaler("precursor_mz", mean=0, std=1000), StandardScaler("precursor_mz", mean=0, std=100), )
+    spectrum_binner = SpectrumBinner(1000, mz_min=10.0, mz_max=1000.0, peak_scaling=0.5,
+                                     additional_metadata=additional_inputs)
     binned_spectrums = spectrum_binner.fit_transform(spectrums)
 
     dimension = len(spectrum_binner.known_bins)
     data_generator = DataGeneratorAllSpectrums(binned_spectrums, tanimoto_scores_df,
-                                           dim=dimension, additional_input=additional_inputs)
+                                               spectrum_binner=spectrum_binner, additional_input=additional_inputs)
 
     # Create generator
     return spectrum_binner, data_generator
@@ -172,15 +169,14 @@ def test_save_and_load_model_additional_inputs(tmp_path):
     # generic retrieval of the input shape of additional inputs
     input, _ = test_generator[0]
 
-    additional_input = len(input[1][0])
     spectrum_length = len(input[0][0])
+    nr_of_additional_input = len(input[1][0])
 
-    model = SiameseModel(spectrum_binner, base_dims=(200, 200, 200),
-                         embedding_dim=200, dropout_rate=0.2, additional_input=2)
+    model = SiameseModel(spectrum_binner, base_dims=(200, 200, 200), embedding_dim=200, dropout_rate=0.2)
     model.compile(loss='mse', optimizer=AdamOptimizer(learning_rate=0.001))
     model.summary()
     
-    assert model.base.layers[2].input_shape == [(None, spectrum_length), (None, additional_input)], \
+    assert model.base.layers[2].input_shape == [(None, spectrum_length), (None, nr_of_additional_input)], \
                                     "Concatenate Layer has a false input shape"
     model.fit(test_generator,
               validation_data=test_generator,
@@ -201,3 +197,4 @@ def test_save_and_load_model_additional_inputs(tmp_path):
         "Imported and original model weights should be the same"
     assert model.model.to_json() == model_import.model.to_json(), \
         "Expect same architecture for original and imported model"
+    assert model.spectrum_binner.additional_metadata == (StandardScaler("precursor_mz", mean=0, std=1000), StandardScaler("precursor_mz", mean=0, std=100), )

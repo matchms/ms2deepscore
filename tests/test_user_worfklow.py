@@ -48,12 +48,11 @@ def test_user_workflow():
     dimension = len(spectrum_binner.known_bins)
     same_prob_bins = [(0, 0.5), (0.5, 1)]
     test_generator = DataGeneratorAllSpectrums(binned_spectrums, tanimoto_scores_df,
-                                               dim=dimension,
+                                               spectrum_binner=spectrum_binner,
                                                same_prob_bins=same_prob_bins)
 
     # Create (and train) a Siamese model
-    model = SiameseModel(spectrum_binner, base_dims=(200, 200, 200), embedding_dim=200,
-                         dropout_rate=0.2)
+    model = SiameseModel(spectrum_binner, base_dims=(200, 200, 200), embedding_dim=200, dropout_rate=0.2)
     model.compile(loss='mse', optimizer=keras.optimizers.Adam(learning_rate=0.001))
     model.summary()
     model.fit(test_generator,

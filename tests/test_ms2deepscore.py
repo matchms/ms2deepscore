@@ -92,7 +92,7 @@ def test_MS2DeepScore_score_additional_input_feature():
     inputs = similarity_measure._create_input_vector(binned_spectrum0)
     assert isinstance(inputs, list), "Expected inputs to be list"
     assert inputs[0].shape == (1, 543), "Expected different vector shape"
-    assert inputs[1].shape == (1, model.additional_input), "Expected different shape for additional_input"
+    assert inputs[1].shape == (1, model.nr_of_additional_inputs), "Expected different shape for additional_input"
     assert isinstance(inputs[0], np.ndarray), "Expected vector to be numpy array"
     assert inputs[0][0, 92] == 0.0, "Expected different entries"
     assert similarity_measure.multi_inputs

@@ -49,8 +49,7 @@ class SiameseModel:
                  dropout_in_first_layer: bool = False,
                  l1_reg: float = 1e-6,
                  l2_reg: float = 1e-6,
-                 keras_model: keras.Model = None,
-                 additional_input=0):
+                 keras_model: keras.Model = None):
         """
         Construct SiameseModel
 
@@ -74,15 +73,13 @@ class SiameseModel:
         keras_model
             When provided, this keras model will be used to construct the SiameseModel instance.
             Default is None.
-        additional_input
-            Shape of additional inputs to be used in the model. Default is 0.
         """
         # pylint: disable=too-many-arguments
         assert spectrum_binner.known_bins is not None, \
             "spectrum_binner does not contain known bins (run .fit_transform() on training data first!)"
         self.spectrum_binner = spectrum_binner
         self.input_dim = len(spectrum_binner.known_bins)
-        self.additional_input = additional_input
+        self.nr_of_additional_inputs = len(self.spectrum_binner.additional_metadata)
 
         if keras_model is None:
             # Create base model
@@ -93,10 +90,10 @@ class SiameseModel:
                                             dropout_in_first_layer=dropout_in_first_layer,
                                             l1_reg=l1_reg,
                                             l2_reg=l2_reg,
-                                            additional_input=additional_input)
+                                            additional_input=self.nr_of_additional_inputs)
             # Create head model
             self.model = self._get_head_model(input_dim=self.input_dim,
-                                              additional_input=additional_input,
+                                              additional_input=self.nr_of_additional_inputs,
                                               base_model=self.base)
         else:
             self._construct_from_keras_model(keras_model)
@@ -114,7 +111,7 @@ class SiameseModel:
         self.model.save(filename, save_format="h5")
         with h5py.File(filename, mode='a') as f:
             f.attrs['spectrum_binner'] = self.spectrum_binner.to_json()
-            f.attrs['additional_input'] = self.additional_input
+            f.attrs['additional_input'] = self.nr_of_additional_inputs
 
     @staticmethod
     def get_base_model(input_dim: int,
@@ -211,14 +208,14 @@ class SiameseModel:
         def valid_keras_model(given_model):
             assert given_model.layers, "Expected valid keras model as input."
             assert len(given_model.layers) > 2, "Expected more layers"
-            if self.additional_input > 0:
+            if self.nr_of_additional_inputs > 0:
                 assert keras_model.layers[4], "Expected more layers for base model"
             else: 
                 assert len(keras_model.layers[2].layers) > 1, "Expected more layers for base model"
 
         valid_keras_model(keras_model)
         self.base = keras_model.layers[2]
-        if self.additional_input > 0:
+        if self.nr_of_additional_inputs > 0:
             self.base = keras_model.layers[4]
         self.model = keras_model
 
