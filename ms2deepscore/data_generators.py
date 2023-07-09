@@ -1,4 +1,4 @@
-""" Data generators for training/inference with siamese Keras model.
+""" Data generators for training/inference with siamese pytorch model.
 """
 import warnings
 from typing import List, Iterator, NamedTuple, Optional
