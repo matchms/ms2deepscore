@@ -85,8 +85,11 @@ jobs:
           python --version
       - name: Install Tensorflow version 2.6
         run: |
-          pip install --upgrade "tensorflow>=2.6,<2.7"
-          pip install --upgrade "numpy>1.20,<1.24.0"
+          python -m pip install --upgrade pip
+          pip install "tensorflow>=2.6,<2.7"
+      - name: Install other dependencies
+        run: |
+          pip install -e .[dev,train]
       - name: Show pip list
         run: |
           pip list
