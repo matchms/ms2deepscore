@@ -573,8 +573,8 @@ class DataGeneratorIonisationMode(DataGeneratorBase):
         return int(self.settings["num_turns"]) * int(np.floor(len(self.reference_scores_df) / self.settings["batch_size"]))
 
     def _select_positive_and_negative_mode(self):
-        self.positive_binned_spectra = [s for s in self.binned_spectrums if s.get("ionmode") is "positive"]
-        self.negative_binned_spectra = [s for s in self.binned_spectrums if s.get("ionmode") is "negative"]
+        self.positive_binned_spectra = [s for s in self.binned_spectrums if s.get("ionmode") == "positive"]
+        self.negative_binned_spectra = [s for s in self.binned_spectrums if s.get("ionmode") == "negative"]
         self.positive_spectrum_inchikeys = np.array([s.get("inchikey")[:14] for s in self.positive_binned_spectrums])
         self.negative_spectrum_inchikeys = np.array([s.get("inchikey")[:14] for s in self.negative_binned_spectrums])
 
@@ -586,7 +586,6 @@ class DataGeneratorIonisationMode(DataGeneratorBase):
         """
         same_prob_bins = self.settings["same_prob_bins"]
         batch_size = self.settings["batch_size"]
-        ionisation_modes = ["positive", "negative"]
 
         # Go through all indexes
         indexes = self.indexes[batch_index * batch_size:(batch_index + 1) * batch_size]
