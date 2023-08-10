@@ -10,7 +10,7 @@ import tensorflow as tf
 from matplotlib import pyplot as plt
 from matchms import Spectrum
 from ms2deepscore import SpectrumBinner
-from ms2deepscore.data_generators import DataGeneratorAllInchikeys, DataGeneratorAllSpectrums
+from ms2deepscore.data_generators import DataGeneratorAllInchikeys
 from ms2deepscore.models import SiameseModel
 from ms2deepscore.train_new_model.calculate_tanimoto_matrix import calculate_tanimoto_scores_unique_inchikey
 from ms2deepscore.utils import save_pickled_file, return_non_existing_file_name, load_pickled_file
@@ -26,7 +26,7 @@ def bin_spectra(training_spectra: List[Spectrum],
                                      additional_metadata=additional_metadata)
     binned_spectrums_training = spectrum_binner.fit_transform(training_spectra)
     # Bin validation spectra using the binner based on the training spectra.
-    # Peaks that do not occur in the training spectra will not be binned in the validaiton spectra.
+    # Peaks that do not occur in the training spectra will not be binned in the validation spectra.
     binned_spectrums_val = spectrum_binner.transform(validation_spectra)
     if save_folder:
         if not os.path.exists(save_folder):
@@ -51,7 +51,7 @@ def train_ms2ds_model(binned_spectrums_training,
 
     same_prob_bins = list(zip(np.linspace(0, 0.9, 10), np.linspace(0.1, 1, 10)))
 
-    training_generator = DataGeneratorAllSpectrums(
+    training_generator = DataGeneratorAllInchikeys(
         binned_spectrums_training,
         selected_inchikeys=list({s.get("inchikey")[:14] for s in binned_spectrums_training}),
         reference_scores_df=tanimoto_df,
@@ -61,7 +61,7 @@ def train_ms2ds_model(binned_spectrums_training,
         augment_noise_max=10,
         augment_noise_intensity=0.01)
 
-    validation_generator = DataGeneratorAllSpectrums(
+    validation_generator = DataGeneratorAllInchikeys(
         binned_spectrums_val,
         selected_inchikeys=list({s.get("inchikey")[:14] for s in binned_spectrums_val}),
         reference_scores_df=tanimoto_df,
