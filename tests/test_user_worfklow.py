@@ -5,7 +5,7 @@ import pytest
 from matchms.importing import load_from_mgf
 
 from ms2deepscore import SpectrumBinner
-from ms2deepscore.data_generators import DataGeneratorAllSpectrums
+from ms2deepscore.data_generators import DataGeneratorAllInchikeys
 from ms2deepscore.models import SiameseModel
 from ms2deepscore import MS2DeepScore
 
@@ -46,7 +46,7 @@ def test_user_workflow():
     # Create generator
     dimension = len(spectrum_binner.known_bins)
     same_prob_bins = [(0, 0.5), (0.5, 1)]
-    test_generator = DataGeneratorAllSpectrums(binned_spectrums, tanimoto_scores_df,
+    test_generator = DataGeneratorAllInchikeys(binned_spectrums, tanimoto_scores_df,
                                                spectrum_binner=spectrum_binner,
                                                same_prob_bins=same_prob_bins)
 

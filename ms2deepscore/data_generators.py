@@ -6,6 +6,7 @@ from typing import List, Iterator, NamedTuple, Optional
 import numpy as np
 import pandas as pd
 import torch
+from torch.utils.data import Dataset
 
 from ms2deepscore.SpectrumBinner import SpectrumBinner
 from .typing import BinnedSpectrumType
@@ -19,7 +20,7 @@ class SpectrumPair(NamedTuple):
     spectrum2: BinnedSpectrumType
 
 
-class DataGeneratorBase(torch.utils.data.Dataset):
+class DataGeneratorBase(Dataset):
     def __init__(self, binned_spectrums: List[BinnedSpectrumType],
                  reference_scores_df: pd.DataFrame,
                  spectrum_binner: SpectrumBinner, **settings):
@@ -79,6 +80,8 @@ class DataGeneratorBase(torch.utils.data.Dataset):
         self.binned_spectrums = binned_spectrums
         # Collect all inchikeys
         self.spectrum_inchikeys = np.array([s.get("inchikey")[:14] for s in self.binned_spectrums])
+        self.unique_inchikeys = np.unique(self.spectrum_inchikeys)
+        self.inchikey_to_idx = {inchikey: np.where(self.spectrum_inchikeys == inchikey)[0] for inchikey in self.unique_inchikeys}
         self._validate_indexes()
 
         # Set all other settings to input (or otherwise to defaults):
@@ -200,18 +203,23 @@ class DataGeneratorBase(torch.utils.data.Dataset):
             extend_range += 0.1
         return inchikey2
 
-    def __getitem__(self, batch_index: int):
-        spectrum_pairs = self._spectrum_pair_generator(batch_index)
+    def __getitem__(self, index: int):
+        """Get one data point."""
+        if self.settings['use_fixed_set'] and index in self.fixed_set:
+            return self.fixed_set[index]
+        if self.settings["random_seed"] is not None and index == 0:
+            np.random.seed(self.settings["random_seed"])
+        spectrum_pairs = self._spectrum_pair_generator(index)
         X, y = self.__data_generation(spectrum_pairs)
-
-        if len(self.settings.get("additional_input")) > 0:
-            return (torch.tensor(X[0]).float(), torch.tensor(X[1]).float(),
-                    torch.tensor(X[2]).float(), torch.tensor(X[3]).float()), torch.tensor(y).float()
-        else:
-            return (torch.tensor(X[0]).float(), torch.tensor(X[1]).float()), torch.tensor(y).float()
+        if self.settings['use_fixed_set']:
+            # Store batches for later epochs
+            self.fixed_set[index] = (X, y)
+        return [torch.from_numpy(X[0]), torch.from_numpy(X[1])], torch.from_numpy(y)  # Convert numpy arrays to torch tensors
 
     def __len__(self):
-        return self.settings["batch_size"]
+        """Returns the total number of samples in the dataset."""
+        # return self.settings["batch_size"]
+        return len(self.unique_inchikeys)
 
     def _data_augmentation(self, spectrum_binned):
         """Data augmentation.
@@ -308,105 +316,9 @@ class DataGeneratorBase(torch.utils.data.Dataset):
         raise NotImplementedError()
 
 
-class DataGeneratorAllSpectrums(DataGeneratorBase):
-    """Generates data for training a siamese Keras model
-    This generator will provide training data by picking each training spectrum
-    in binned_spectrums num_turns times in every epoch and pairing it with a randomly chosen
-    other spectrum that corresponds to a reference score as defined in same_prob_bins.
-    """
-
-    def __init__(self, binned_spectrums: List[BinnedSpectrumType],
-                 reference_scores_df: pd.DataFrame, spectrum_binner: SpectrumBinner, **settings):
-        """Generates data for training a siamese Keras model.
-        Parameters
-        ----------
-        binned_spectrums
-            List of BinnedSpectrum objects with the binned peak positions and intensities.
-        reference_scores_df
-            Pandas DataFrame with reference similarity scores (=labels) for compounds identified
-            by inchikeys. Columns and index should be inchikeys, the value in a row x column
-            depicting the similarity score for that pair. Must be symmetric
-            (reference_scores_df[i,j] == reference_scores_df[j,i]) and column names should be
-            identical to the index and unique.
-        dim
-            Input vector dimension.
-        As part of **settings, defaults for the following parameters can be set:
-        batch_size
-            Number of pairs per batch. Default=32.
-        num_turns
-            Number of pairs for each InChiKey during each epoch. Default=1.
-        shuffle
-            Set to True to shuffle IDs every epoch. Default=True
-        ignore_equal_pairs
-            Set to True to ignore pairs of two identical spectra. Default=True
-        same_prob_bins
-            List of tuples that define ranges of the true label to be trained with
-            equal frequencies. Default is set to [(0, 0.5), (0.5, 1)], which means
-            that pairs with scores <=0.5 will be picked as often as pairs with scores
-            > 0.5.
-        augment_removal_max
-            Maximum fraction of peaks (if intensity < below augment_removal_intensity)
-            to be removed randomly. Default is set to 0.2, which means that between
-            0 and 20% of all peaks with intensities < augment_removal_intensity
-            will be removed.
-        augment_removal_intensity
-            Specifying that only peaks with intensities < max_intensity will be removed.
-        augment_intensity
-            Change peak intensities by a random number between 0 and augment_intensity.
-            Default=0.1, which means that intensities are multiplied by 1+- a random
-            number within [0, 0.1].
-        """
-        super().__init__(binned_spectrums, reference_scores_df, spectrum_binner, **settings)
-        self.reference_scores_df = self._exclude_not_selected_inchikeys(self.reference_scores_df)
-        self.on_epoch_end()
-
-    def __len__(self):
-        """Denotes the number of batches per epoch"""
-        # TODO: this means we don't see all data every epoch, because the last half-empty batch
-        #  is omitted. I guess that is expected behavior? --> Yes, with the shuffling in each epoch that seem OK to me (and makes the code easier).
-        return int(self.settings["num_turns"]) * int(np.floor(len(self.binned_spectrums) / self.settings["batch_size"]))
-
-    def _spectrum_pair_generator(self, batch_index: int) -> Iterator[SpectrumPair]:
-        """
-        Generate spectrum pairs for batch. For each 'source' spectrum, get the inchikey and
-        find an inchikey in the desired target score range. Then randomly get a spectrums for
-        the maching inchikey.
-        """
-        same_prob_bins = self.settings["same_prob_bins"]
-        batch_size = self.settings["batch_size"]
-        indexes = self.indexes[batch_index * batch_size:(batch_index+1)*batch_size]
-        for index in indexes:
-            spectrum1 = self.binned_spectrums[index]
-            inchikey1 = spectrum1.get("inchikey")[:14]
-
-            # Randomly pick the desired target score range and pick matching ID
-            target_score_range = same_prob_bins[np.random.choice(np.arange(len(same_prob_bins)))]
-            inchikey2 = self._find_match_in_range(inchikey1, target_score_range)
-            spectrum2 = self._get_spectrum_with_inchikey(inchikey2)
-            yield SpectrumPair(spectrum1, spectrum2)
-
-    def on_epoch_end(self):
-        """Updates indexes after each epoch"""
-        self.indexes = np.tile(np.arange(len(self.binned_spectrums)), int(self.settings["num_turns"]))
-        if self.settings["shuffle"]:
-
-            np.random.shuffle(self.indexes)
-
-    def _exclude_not_selected_inchikeys(self, reference_scores_df: pd.DataFrame) -> pd.DataFrame:
-        """Exclude rows and columns of reference_scores_df for all InChIKeys which are not
-        present in the binned_spectrums."""
-        inchikeys_in_selection = {s.get("inchikey")[:14] for s in self.binned_spectrums}
-        clean_df = reference_scores_df.loc[reference_scores_df.index.isin(inchikeys_in_selection),
-                                           reference_scores_df.columns.isin(inchikeys_in_selection)]
-        n_dropped = len(self.reference_scores_df) - len(clean_df)
-        if n_dropped > 0:
-            print(
-                f"{len(clean_df)} out of {len(self.reference_scores_df)} InChIKeys found in selected spectrums.")
-        return clean_df
-
-
 class DataGeneratorAllInchikeys(DataGeneratorBase):
-    """Generates data for training a siamese Keras model
+    """Generates data for training a siamese pytorch model
+
     This generator will provide training data by picking each training InchiKey
     listed in *selected_inchikeys* num_turns times in every epoch. It will then randomly
     pick one the spectra corresponding to this InchiKey (if multiple) and pair it
