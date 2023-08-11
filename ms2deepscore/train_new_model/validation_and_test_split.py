@@ -4,7 +4,6 @@ from matchms import Spectrum
 import random
 from tqdm import tqdm
 from ms2deepscore.utils import save_pickled_file, load_pickled_file
-from matchms.importing.load_spectra import load_spectra
 
 
 def select_unique_inchikeys(spectra):

@@ -76,6 +76,9 @@ def train_ms2ds_model(
     base_dims=(500, 500),
     embedding_dim=200,
 ):
+    """Full workflow to train a MS2DeepScore model.
+    """
+    # pylint: disable=too-many-arguments
     assert not os.path.isfile(
         output_model_file_name
     ), "The MS2Deepscore output model file name already exists"
@@ -181,6 +184,7 @@ def train_ms2deepscore_wrapper(
     :param tanimoto_scores_file_name: The file location of precalculated tanimoto scores.
     If None, these will be calculated.
     """
+    # pylint: disable=too-many-arguments, too-many-locals
     # creates a folder if it does not yet exist.
     if not os.path.exists(output_folder):
         assert not os.path.isfile(output_folder), "The folder specified is a file"
@@ -232,7 +236,7 @@ def train_ms2deepscore_wrapper(
     ms2ds_history_file_name = return_non_existing_file_name(
         os.path.join(output_folder, "history.txt")
     )
-    with open(ms2ds_history_file_name, "w") as f:
+    with open(ms2ds_history_file_name, "w", encoding="utf-8") as f:
         f.write(str(history))
     # Save plot of history
     ms2ds_history_plot_file_name = return_non_existing_file_name(

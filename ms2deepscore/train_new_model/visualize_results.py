@@ -70,10 +70,8 @@ def benchmark_wrapper(
     ms2ds_model,
     file_name,
 ):
-    if val_spectra_1 == val_spectra_2:
-        is_symmetric = True
-    else:
-        is_symmetric = False
+    # pylint: disable=too-many-arguments, too-many-locals
+    is_symmetric = (val_spectra_1 == val_spectra_2)
 
     # Create predictions
     predictions_file_name = os.path.join(
@@ -120,7 +118,7 @@ def benchmark_wrapper(
     averages_summary_file = os.path.join(
         benchmarking_results_folder, "RMSE_and_MAE.txt"
     )
-    with open(averages_summary_file, "a") as f:
+    with open(averages_summary_file, "a", encoding="uft-8") as f:
         f.write(summary)
     print(summary)
 
@@ -199,3 +197,4 @@ def create_all_plots(model_folder_name):
         similarity_score,
         "both_both",
     )
+    return None
