@@ -25,6 +25,7 @@ def jaccard_similarity_matrix_cherrypicking(
     scores
         Sparse array (List of lists) with cherrypicked scores.
     """
+    # pylint: disable=too-many-arguments, too-many-locals
     size = fingerprints.shape[0]
     if random_seed is not None:
         np.random.seed(random_seed)
@@ -89,7 +90,7 @@ def compute_jaccard_similarity_matrix_cherrypicking(
                 idx_selected = idx[:max_pairs_per_bin]
             scores_data.extend(scores_row[idx_selected])
             scores_i.extend(len(idx_selected) * [i])
-            scores_j.extend([x for x in idx_selected])
+            scores_j.extend(list(idx_selected))
     print(max_pairs_global)
         
     return scores_data, scores_i, scores_j
