@@ -1,8 +1,10 @@
 import numpy as np
 import pytest
-from ms2deepscore.vector_operations import cosine_similarity, cosine_similarity_matrix
-from ms2deepscore.vector_operations import mean_pooling, median_pooling
-from ms2deepscore.vector_operations import iqr_pooling, std_pooling
+
+from ms2deepscore.vector_operations import (cosine_similarity,
+                                            cosine_similarity_matrix,
+                                            iqr_pooling, mean_pooling,
+                                            median_pooling, std_pooling)
 
 
 @pytest.mark.parametrize("numba_compiled", [True, False])

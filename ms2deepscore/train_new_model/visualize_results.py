@@ -1,10 +1,12 @@
 import os
+
 import numpy as np
 from matplotlib import pyplot as plt
-from ms2deepscore.models import load_model
-from ms2deepscore.utils import load_pickled_file, save_pickled_file
+
 from ms2deepscore import MS2DeepScore
+from ms2deepscore.models import load_model
 from ms2deepscore.plotting import create_histograms_plot
+from ms2deepscore.utils import load_pickled_file, save_pickled_file
 
 
 def get_tanimoto_indexes(tanimoto_df, spectra):

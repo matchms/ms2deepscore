@@ -1,12 +1,10 @@
 import pytest
 from matchms import Metadata
-from ms2deepscore.MetadataFeatureGenerator import (
-    MetadataFeatureGenerator,
-    StandardScaler,
-    OneHotEncoder,
-    CategoricalToBinary,
-    )
 
+from ms2deepscore.MetadataFeatureGenerator import (CategoricalToBinary,
+                                                   MetadataFeatureGenerator,
+                                                   OneHotEncoder,
+                                                   StandardScaler)
 
 
 @pytest.fixture

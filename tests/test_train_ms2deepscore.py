@@ -1,13 +1,18 @@
 import os
-from pathlib import Path
-import pytest
 import pickle
-from ms2deepscore.models import SiameseModel
-from ms2deepscore import BinnedSpectrum, SpectrumBinner
-from ms2deepscore.models.load_model import load_model as load_ms2deepscore_model
-from ms2deepscore.train_new_model.train_ms2deepscore import train_ms2ds_model, train_ms2deepscore_wrapper, bin_spectra
+from pathlib import Path
+
+import pytest
 from matchms.importing import load_from_mgf
-from ms2deepscore.train_new_model.calculate_tanimoto_matrix import calculate_tanimoto_scores_unique_inchikey
+
+from ms2deepscore import BinnedSpectrum, SpectrumBinner
+from ms2deepscore.models import SiameseModel
+from ms2deepscore.models.load_model import \
+    load_model as load_ms2deepscore_model
+from ms2deepscore.train_new_model.calculate_tanimoto_matrix import \
+    calculate_tanimoto_scores_unique_inchikey
+from ms2deepscore.train_new_model.train_ms2deepscore import (
+    bin_spectra, train_ms2deepscore_wrapper, train_ms2ds_model)
 
 TEST_RESOURCES_PATH = Path(__file__).parent / 'resources'
 

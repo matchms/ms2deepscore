@@ -1,11 +1,13 @@
 import os
 from pathlib import Path
 
-from ms2deepscore import SpectrumBinner
-from ms2deepscore.data_generators import DataGeneratorAllSpectrums, DataGeneratorAllInchikeys
-from tests.test_user_worfklow import load_processed_spectrums, get_reference_scores
-
 import pytest
+
+from ms2deepscore import SpectrumBinner
+from ms2deepscore.data_generators import (DataGeneratorAllInchikeys,
+                                          DataGeneratorAllSpectrums)
+from tests.test_user_worfklow import (get_reference_scores,
+                                      load_processed_spectrums)
 
 
 def test_error_duplicate_inchikeys():

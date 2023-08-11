@@ -1,9 +1,11 @@
 from pathlib import Path
 from typing import Union
+
 import h5py
 from tensorflow import keras
 
 from ms2deepscore.SpectrumBinner import SpectrumBinner
+
 from .SiameseModel import SiameseModel
 
 

@@ -5,11 +5,11 @@ new models
 from collections import Counter
 from typing import List
 
+import numpy as np
 import pandas as pd
 from matchms import Spectrum
-import numpy as np
-
-from matchms.similarity.vector_similarity_functions import jaccard_similarity_matrix
+from matchms.similarity.vector_similarity_functions import \
+    jaccard_similarity_matrix
 from rdkit import Chem
 from tqdm import tqdm
 

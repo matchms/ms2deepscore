@@ -1,13 +1,13 @@
 from typing import List, Tuple
+
 import numpy as np
 from matchms import Spectrum
 from matchms.similarity.BaseSimilarity import BaseSimilarity
 from tqdm import tqdm
 
-from .vector_operations import cosine_similarity_matrix
-from .vector_operations import mean_pooling, median_pooling
-from .vector_operations import std_pooling, iqr_pooling
 from .typing import BinnedSpectrumType
+from .vector_operations import (cosine_similarity_matrix, iqr_pooling,
+                                mean_pooling, median_pooling, std_pooling)
 
 
 class MS2DeepScoreMonteCarlo(BaseSimilarity):

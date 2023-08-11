@@ -1,7 +1,7 @@
 import numba
 import numpy as np
-from scipy.sparse import lil_array, coo_array
 from matchms.similarity.vector_similarity_functions import jaccard_index
+from scipy.sparse import coo_array, lil_array
 
 
 def jaccard_similarity_matrix_cherrypicking(

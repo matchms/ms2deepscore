@@ -1,8 +1,11 @@
 import numpy as np
 import pytest
 from matchms import Spectrum
+
 from ms2deepscore import SpectrumBinner
-from ms2deepscore.MetadataFeatureGenerator import CategoricalToBinary, StandardScaler
+from ms2deepscore.MetadataFeatureGenerator import (CategoricalToBinary,
+                                                   StandardScaler)
+
 
 def test_SpectrumBinner():
     """Test if default initalization works"""

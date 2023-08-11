@@ -1,16 +1,19 @@
+import string
+
 import numpy as np
 import pandas as pd
 import pytest
-import string
 from matchms import Spectrum
 
 from ms2deepscore import SpectrumBinner
-from ms2deepscore.MetadataFeatureGenerator import StandardScaler, CategoricalToBinary
 from ms2deepscore.data_generators import (DataGeneratorAllInchikeys,
                                           DataGeneratorAllSpectrums,
                                           _exclude_nans_from_labels,
                                           _validate_labels)
-from tests.test_user_worfklow import load_processed_spectrums, get_reference_scores
+from ms2deepscore.MetadataFeatureGenerator import (CategoricalToBinary,
+                                                   StandardScaler)
+from tests.test_user_worfklow import (get_reference_scores,
+                                      load_processed_spectrums)
 
 
 def create_dummy_data():

@@ -1,18 +1,22 @@
 import os
 from pathlib import Path
-from packaging import version
+
 import numpy as np
 import tensorflow as tf
+from packaging import version
 from tensorflow import keras
+
 if version.parse(tf.__version__) >= version.parse("2.11"):
     AdamOptimizer = keras.optimizers.legacy.Adam
 else:
     AdamOptimizer = keras.optimizers.Adam
 from ms2deepscore import SpectrumBinner
-from ms2deepscore.data_generators import DataGeneratorAllInchikeys, DataGeneratorAllSpectrums
-from ms2deepscore.models import SiameseModel, load_model
+from ms2deepscore.data_generators import (DataGeneratorAllInchikeys,
+                                          DataGeneratorAllSpectrums)
 from ms2deepscore.MetadataFeatureGenerator import StandardScaler
-from tests.test_user_worfklow import load_processed_spectrums, get_reference_scores
+from ms2deepscore.models import SiameseModel, load_model
+from tests.test_user_worfklow import (get_reference_scores,
+                                      load_processed_spectrums)
 
 TEST_RESOURCES_PATH = Path(__file__).parent / 'resources'
 
