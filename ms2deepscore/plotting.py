@@ -232,10 +232,12 @@ def tanimoto_dependent_losses(scores, scores_ref, ref_score_bins):
 
 def plot_rmse_per_bin(predicted_scores, true_scores):
     ref_score_bins = np.linspace(0, 1.0, 11)
-    bin_content, bounds, rmses, maes = tanimoto_dependent_losses(predicted_scores,
-                                                                 true_scores, ref_score_bins)
+    bin_content, bounds, rmses, _ = tanimoto_dependent_losses(
+        predicted_scores,
+        true_scores,
+        ref_score_bins)
 
-    fig, (ax1, ax2) = plt.subplots(2, 1, sharex=True, figsize=(4, 5), dpi=120)
+    _, (ax1, ax2) = plt.subplots(2, 1, sharex=True, figsize=(4, 5), dpi=120)
 
     ax1.plot(np.arange(len(rmses)), rmses, "o:", color="crimson")
     ax1.set_title('RMSE')

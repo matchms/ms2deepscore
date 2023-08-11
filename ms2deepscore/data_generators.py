@@ -365,9 +365,10 @@ class DataGeneratorAllSpectrums(DataGeneratorBase):
         self.on_epoch_end()
 
     def __len__(self):
-        """Denotes the number of batches per epoch"""
-        # TODO: this means we don't see all data every epoch, because the last half-empty batch
-        #  is omitted. I guess that is expected behavior? --> Yes, with the shuffling in each epoch that seem OK to me (and makes the code easier).
+        """Denotes the number of batches per epoch.
+        NB1: self.reference_scores_df only contains 'selected' inchikeys, see `self._data_selection`.
+        NB2: We don't see all data every epoch, because the last half-empty batch is omitted.
+        """
         return int(self.settings["num_turns"]) * int(np.floor(len(self.binned_spectrums) / self.settings["batch_size"]))
 
     def _spectrum_pair_generator(self, batch_index: int) -> Iterator[SpectrumPair]:
