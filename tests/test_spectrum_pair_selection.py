@@ -59,9 +59,20 @@ def test_global_bias(fingerprints):
 
 def test_global_bias_not_possible(fingerprints):
     bins = np.array([(0, 0.5), (0.5, 0.8), (0.8, 1.0)])
-    data, _, _ = compute_jaccard_similarity_matrix_cherrypicking(fingerprints,
-                                                                 selections_bins=bins,
-                                                                 max_pairs_per_bin=2)
+    # Test uncompiled function
+    data, _, _ = compute_jaccard_similarity_matrix_cherrypicking.py_func(
+        fingerprints,
+        selections_bins=bins,
+        max_pairs_per_bin=2)
+    data = np.array(data)
+    assert (data <= 0.5).sum() == ((data>0.5) & (data<=0.8)).sum() == 16
+    assert (data>0.8).sum() == 8
+
+    # Test compiled function
+    data, _, _ = compute_jaccard_similarity_matrix_cherrypicking(
+        fingerprints,
+        selections_bins=bins,
+        max_pairs_per_bin=2)
     data = np.array(data)
     assert (data <= 0.5).sum() == ((data>0.5) & (data<=0.8)).sum() == 16
     assert (data>0.8).sum() == 8
