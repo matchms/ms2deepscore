@@ -1,10 +1,8 @@
 import string
-
 import numpy as np
 import pandas as pd
 import pytest
 from matchms import Spectrum
-
 from ms2deepscore import SpectrumBinner
 from ms2deepscore.data_generators import (DataGeneratorAllInchikeys,
                                           DataGeneratorAllSpectrums,

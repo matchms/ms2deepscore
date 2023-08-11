@@ -1,8 +1,6 @@
 import os
-
 import numpy as np
 from matplotlib import pyplot as plt
-
 from ms2deepscore import MS2DeepScore
 from ms2deepscore.models import load_model
 from ms2deepscore.plotting import create_histograms_plot

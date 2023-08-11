@@ -1,8 +1,6 @@
 import os
 from pathlib import Path
-
 import pytest
-
 from ms2deepscore import SpectrumBinner
 from ms2deepscore.data_generators import (DataGeneratorAllInchikeys,
                                           DataGeneratorAllSpectrums)

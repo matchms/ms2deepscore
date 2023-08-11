@@ -5,12 +5,10 @@ This script is not needed for normally running MS2Deepscore, it is only needed t
 import os
 from os import PathLike
 from typing import Dict, List, Optional, Union
-
 import numpy as np
 import tensorflow as tf
 from matchms import Spectrum
 from matplotlib import pyplot as plt
-
 from ms2deepscore import SpectrumBinner
 from ms2deepscore.data_generators import DataGeneratorAllInchikeys
 from ms2deepscore.models import SiameseModel

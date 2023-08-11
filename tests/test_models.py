@@ -1,10 +1,10 @@
 import os
 from pathlib import Path
-
 import numpy as np
 import tensorflow as tf
 from packaging import version
 from tensorflow import keras
+
 
 if version.parse(tf.__version__) >= version.parse("2.11"):
     AdamOptimizer = keras.optimizers.legacy.Adam
@@ -17,6 +17,7 @@ from ms2deepscore.MetadataFeatureGenerator import StandardScaler
 from ms2deepscore.models import SiameseModel, load_model
 from tests.test_user_worfklow import (get_reference_scores,
                                       load_processed_spectrums)
+
 
 TEST_RESOURCES_PATH = Path(__file__).parent / 'resources'
 

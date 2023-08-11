@@ -1,10 +1,8 @@
 import os
 import random
 from typing import List, Tuple
-
 from matchms import Spectrum
 from tqdm import tqdm
-
 from ms2deepscore.utils import load_pickled_file, save_pickled_file
 
 

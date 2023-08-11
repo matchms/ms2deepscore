@@ -1,6 +1,5 @@
 import numpy as np
 import pytest
-
 from ms2deepscore.spectrum_pair_selection import (
     compute_jaccard_similarity_matrix_cherrypicking,
     jaccard_similarity_matrix_cherrypicking)

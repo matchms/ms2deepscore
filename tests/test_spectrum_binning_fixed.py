@@ -1,7 +1,6 @@
 import numpy as np
 import pytest
 from matchms import Spectrum
-
 from ms2deepscore.spectrum_binning_fixed import (bin_number_array_fixed,
                                                  create_peak_list_fixed,
                                                  set_d_bins_fixed,
