@@ -365,9 +365,10 @@ class DataGeneratorAllSpectrums(DataGeneratorBase):
         self.on_epoch_end()
 
     def __len__(self):
-        """Denotes the number of batches per epoch"""
-        # TODO: this means we don't see all data every epoch, because the last half-empty batch
-        #  is omitted. I guess that is expected behavior? --> Yes, with the shuffling in each epoch that seem OK to me (and makes the code easier).
+        """Denotes the number of batches per epoch.
+        NB1: self.reference_scores_df only contains 'selected' inchikeys, see `self._data_selection`.
+        NB2: We don't see all data every epoch, because the last half-empty batch is omitted.
+        """
         return int(self.settings["num_turns"]) * int(np.floor(len(self.binned_spectrums) / self.settings["batch_size"]))
 
     def _spectrum_pair_generator(self, batch_index: int) -> Iterator[SpectrumPair]:
@@ -382,7 +383,6 @@ class DataGeneratorAllSpectrums(DataGeneratorBase):
         for index in indexes:
             spectrum1 = self.binned_spectrums[index]
             inchikey1 = spectrum1.get("inchikey")[:14]
-
             # Randomly pick the desired target score range and pick matching ID
             target_score_range = same_prob_bins[np.random.choice(np.arange(len(same_prob_bins)))]
             inchikey2 = self._find_match_in_range(inchikey1, target_score_range)
@@ -393,7 +393,6 @@ class DataGeneratorAllSpectrums(DataGeneratorBase):
         """Updates indexes after each epoch"""
         self.indexes = np.tile(np.arange(len(self.binned_spectrums)), int(self.settings["num_turns"]))
         if self.settings["shuffle"]:
-
             np.random.shuffle(self.indexes)
 
     def _exclude_not_selected_inchikeys(self, reference_scores_df: pd.DataFrame) -> pd.DataFrame:
@@ -476,7 +475,6 @@ class DataGeneratorAllInchikeys(DataGeneratorBase):
         This is expected behavior, with the shuffling this is OK.
         """
         return int(self.settings["num_turns"]) * int(np.floor(len(self.reference_scores_df) / self.settings["batch_size"]))
-
     def _spectrum_pair_generator(self, batch_index: int) -> Iterator[SpectrumPair]:
         """
         Generate spectrum pairs for batch. For each 'source' inchikey pick an inchikey in the
@@ -486,7 +484,6 @@ class DataGeneratorAllInchikeys(DataGeneratorBase):
         batch_size = self.settings["batch_size"]
         # Go through all indexes
         indexes = self.indexes[batch_index * batch_size:(batch_index + 1) * batch_size]
-
         for index in indexes:
             inchikey1 = self.reference_scores_df.index[index]
             # Randomly pick the desired target score range and pick matching inchikey
@@ -495,14 +492,12 @@ class DataGeneratorAllInchikeys(DataGeneratorBase):
             spectrum1 = self._get_spectrum_with_inchikey(inchikey1)
             spectrum2 = self._get_spectrum_with_inchikey(inchikey2)
             yield SpectrumPair(spectrum1, spectrum2)
-
     @ staticmethod
     def _data_selection(reference_scores_df, selected_inchikeys):
         """
         Select labeled data to generate from based on `selected_inchikeys`
         """
         return reference_scores_df.loc[selected_inchikeys, selected_inchikeys]
-
     def on_epoch_end(self):
         """Updates indexes after each epoch"""
         self.indexes = np.tile(np.arange(len(self.reference_scores_df)), int(self.settings["num_turns"]))
@@ -514,7 +509,6 @@ class Container:
     """
     Helper class for DataGenerator
     """
-
     def __init__(self, spectrum_pair, tanimoto_score, dim, _data_augmentation, additional_inputs=None):
         self.spectrum_left = spectrum_pair[0]
         self.spectrum_right = spectrum_pair[1]
@@ -522,16 +516,13 @@ class Container:
         self.spectrum_values_right = np.zeros((dim, ))
         self.idx_left, self.values_left = _data_augmentation(self.spectrum_left.binned_peaks)
         self.idx_right, self.values_right = _data_augmentation(self.spectrum_right.binned_peaks)
-
         self.spectrum_values_left[self.idx_left] = self.values_left
         self.spectrum_values_right[self.idx_right] = self.values_right
-
         self.additional_inputs_left = []
         self.additional_inputs_right = []
         for additional_input in additional_inputs:
             self.additional_inputs_left.append([float(self.spectrum_left.get(additional_input))])
             self.additional_inputs_right.append([float(self.spectrum_right.get(additional_input))])
-
         self.tanimoto_score = tanimoto_score
 
 

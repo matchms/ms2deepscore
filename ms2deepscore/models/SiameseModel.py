@@ -83,18 +83,10 @@ class SiameseModel:
 
         if keras_model is None:
             # Create base model
-            self.base = self.get_base_model(input_dim=self.input_dim,
-                                            base_dims=base_dims,
-                                            embedding_dim=embedding_dim,
-                                            dropout_rate=dropout_rate,
-                                            dropout_in_first_layer=dropout_in_first_layer,
-                                            l1_reg=l1_reg,
-                                            l2_reg=l2_reg,
-                                            additional_input=self.nr_of_additional_inputs)
+            self.base = self.get_base_model(base_dims=base_dims, embedding_dim=embedding_dim, dropout_rate=dropout_rate,
+                                            dropout_in_first_layer=dropout_in_first_layer, l1_reg=l1_reg, l2_reg=l2_reg)
             # Create head model
-            self.model = self._get_head_model(input_dim=self.input_dim,
-                                              additional_input=self.nr_of_additional_inputs,
-                                              base_model=self.base)
+            self.model = self._get_head_model()
         else:
             self._construct_from_keras_model(keras_model)
 
@@ -113,22 +105,18 @@ class SiameseModel:
             f.attrs['spectrum_binner'] = self.spectrum_binner.to_json()
             f.attrs['additional_input'] = self.nr_of_additional_inputs
 
-    @staticmethod
-    def get_base_model(input_dim: int,
+    def get_base_model(self,
                        base_dims: Tuple[int, ...] = (600, 500, 500),
                        embedding_dim: int = 400,
                        dropout_rate: float = 0.25,
                        dropout_in_first_layer: bool = False,
                        l1_reg: float = 1e-6,
                        l2_reg: float = 1e-6,
-                       dropout_always_on: bool = False,
-                       additional_input=0) -> keras.Model:
+                       dropout_always_on: bool = False) -> keras.Model:
         """Create base model for Siamaese network.
 
         Parameters
         ----------
-        input_dim : int
-            Dimension of the input vectors.
         base_dims
             Tuple of integers depicting the dimensions of the desired hidden
             layers of the base model
@@ -147,15 +135,13 @@ class SiameseModel:
             model training, but switched off during inference. When set to True,
             dropout layers will always be on, which is used for ensembling via
             Monte Carlo dropout.
-        additional_input
-            Default is 0, shape of additional inputs 
         """
         # pylint: disable=too-many-arguments, disable=too-many-locals
 
         dropout_starting_layer = 0 if dropout_in_first_layer else 1
-        base_input = Input(shape=input_dim, name='base_input')
-        if (additional_input > 0):
-            side_input = Input(shape=additional_input, name="additional_input")
+        base_input = Input(shape=self.input_dim, name='base_input')
+        if self.nr_of_additional_inputs > 0:
+            side_input = Input(shape=self.nr_of_additional_inputs, name="additional_input")
             model_input = concatenate([base_input, side_input], axis=1)
         else:
             model_input = base_input
@@ -174,28 +160,26 @@ class SiameseModel:
                 model_layer = Dropout(dropout_rate, name='dropout'+str(i+1))(model_layer)
 
         embedding = Dense(embedding_dim, activation='relu', name='embedding')(model_layer)
-        if additional_input > 0:
+        if self.nr_of_additional_inputs > 0:
             return keras.Model(inputs=[base_input, side_input], outputs=[embedding], name='base')
 
         return keras.Model(inputs=[base_input], outputs=[embedding], name='base')
 
-    @staticmethod
-    def _get_head_model(input_dim: int,
-                        additional_input: int,
-                        base_model: keras.Model):
-        input_a = Input(shape=input_dim, name="input_a")
-        input_b = Input(shape=input_dim, name="input_b")
+    def _get_head_model(self):
 
-        if additional_input > 0:
-            input_a_2 = Input(shape=additional_input, name="input_a_2")
-            input_b_2 = Input(shape=additional_input, name="input_b_2")
+        input_a = Input(shape=self.input_dim, name="input_a")
+        input_b = Input(shape=self.input_dim, name="input_b")
+
+        if self.nr_of_additional_inputs > 0:
+            input_a_2 = Input(shape=self.nr_of_additional_inputs, name="input_a_2")
+            input_b_2 = Input(shape=self.nr_of_additional_inputs, name="input_b_2")
             inputs = [input_a, input_a_2, input_b, input_b_2]
 
-            embedding_a = base_model([input_a, input_a_2])
-            embedding_b = base_model([input_b, input_b_2])
+            embedding_a = self.base([input_a, input_a_2])
+            embedding_b = self.base([input_b, input_b_2])
         else:
-            embedding_a = base_model(input_a)
-            embedding_b = base_model(input_b)
+            embedding_a = self.base(input_a)
+            embedding_b = self.base(input_b)
             inputs = [input_a, input_b]
 
         cosine_similarity = keras.layers.Dot(axes=(1, 1),

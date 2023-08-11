@@ -109,12 +109,8 @@ class MS2DeepScoreMonteCarlo(BaseSimilarity):
         dropout_in_first_layer = ('dropout' in self.model.base.layers[3].name)
 
         # re-build base network with dropout layers always on
-        base = self.model.get_base_model(input_dim=self.input_vector_dim,
-                                         base_dims=base_dims,
-                                         embedding_dim=self.output_vector_dim,
-                                         dropout_rate=dropout_rate,
-                                         dropout_always_on=True,
-                                         dropout_in_first_layer=dropout_in_first_layer)
+        base = self.model.get_base_model(base_dims=base_dims, embedding_dim=self.output_vector_dim, dropout_rate=dropout_rate,
+                                         dropout_in_first_layer=dropout_in_first_layer, dropout_always_on=True)
         base.set_weights(self.model.base.get_weights())
         return base
 

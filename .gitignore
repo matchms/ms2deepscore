@@ -32,6 +32,7 @@ output/
 models_trained/
 computed_results/
 notebooks/.ipynb_checkpoints/
+notebooks/train_with_additional_metadata
 __pycache__/
 
 
