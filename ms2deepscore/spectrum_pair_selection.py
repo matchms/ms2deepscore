@@ -25,7 +25,7 @@ def jaccard_similarity_matrix_cherrypicking(
     scores
         Sparse array (List of lists) with cherrypicked scores.
     """
-    # pylint: disable=too-many-arguments, too-many-locals
+    # pylint: disable=too-many-arguments
     size = fingerprints.shape[0]
     if random_seed is not None:
         np.random.seed(random_seed)
@@ -61,6 +61,7 @@ def compute_jaccard_similarity_matrix_cherrypicking(
     scores
         Sparse array (List of lists) with cherrypicked scores.
     """
+    # pylint: disable=too-many-locals
     size = fingerprints.shape[0]
     scores_data = []
     scores_i = []
