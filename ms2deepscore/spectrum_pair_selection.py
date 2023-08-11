@@ -6,7 +6,7 @@ from scipy.sparse import coo_array, lil_array
 
 def jaccard_similarity_matrix_cherrypicking(
     fingerprints: np.ndarray,
-    selections_bins: np.ndarray = np.array([(x/10, x/10 + 0.1) for x in range(0, 10)]),
+    selection_bins: np.ndarray = np.array([(x/10, x/10 + 0.1) for x in range(0, 10)]),
     max_pairs_per_bin: int = 20,
     include_diagonal: bool = True,
     fix_global_bias: bool = True,
@@ -19,6 +19,21 @@ def jaccard_similarity_matrix_cherrypicking(
     ----------
     fingerprints
         Fingerprint vectors as 2D numpy array.
+    selection_bins
+        List of tuples with upper and lower bound for score bins.
+        The goal is to pick equal numbers of pairs for each score bin.
+        Sidenote: bins do not have to be of equal size, nor do they have to cover the entire
+        range of the used scores.
+    max_pairs_per_bin
+        Specifies the desired maximum number of pairs to be added for each score bin.
+    include_diagonal
+        Set to False if pairs with two equal compounds/fingerprints should be excluded.
+    fix_global_bias
+        Default is True in which case the function aims to get the same amount of pairs for
+        each bin globally. This means it add more than max_pairs_par_bin for some bins and/or
+        some compounds to compensate for lack of such scores in other compounds.
+    random_seed
+        Set to integer if the randomness of the pair selection should be reproducible.
 
     Returns
     -------
@@ -31,7 +46,7 @@ def jaccard_similarity_matrix_cherrypicking(
         np.random.seed(random_seed)
     data, i, j = compute_jaccard_similarity_matrix_cherrypicking(
         fingerprints,
-        selections_bins,
+        selection_bins,
         max_pairs_per_bin,
         include_diagonal,
         fix_global_bias,
@@ -43,7 +58,7 @@ def jaccard_similarity_matrix_cherrypicking(
 @numba.njit
 def compute_jaccard_similarity_matrix_cherrypicking(
     fingerprints: np.ndarray,
-    selections_bins: np.ndarray = np.array([(x/10, x/10 + 0.1) for x in range(0, 10)]),
+    selection_bins: np.ndarray = np.array([(x/10, x/10 + 0.1) for x in range(0, 10)]),
     max_pairs_per_bin: int = 20,
     include_diagonal: bool = True,
     fix_global_bias: bool = True,
@@ -55,6 +70,19 @@ def compute_jaccard_similarity_matrix_cherrypicking(
     ----------
     fingerprints
         Fingerprint vectors as 2D numpy array.
+    selection_bins
+        List of tuples with upper and lower bound for score bins.
+        The goal is to pick equal numbers of pairs for each score bin.
+        Sidenote: bins do not have to be of equal size, nor do they have to cover the entire
+        range of the used scores.
+    max_pairs_per_bin
+        Specifies the desired maximum number of pairs to be added for each score bin.
+    include_diagonal
+        Set to False if pairs with two equal compounds/fingerprints should be excluded.
+    fix_global_bias
+        Default is True in which case the function aims to get the same amount of pairs for
+        each bin globally. This means it add more than max_pairs_par_bin for some bins and/or
+        some compounds to compensate for lack of such scores in other compounds.
 
     Returns
     -------
@@ -67,7 +95,7 @@ def compute_jaccard_similarity_matrix_cherrypicking(
     scores_i = []
     scores_j = []
     # keep track of total bias across bins
-    max_pairs_global = len(selections_bins) * [max_pairs_per_bin]
+    max_pairs_global = len(selection_bins) * [max_pairs_per_bin]
     for i in range(size):
         scores_row = np.zeros(size)
         for j in range(size):
@@ -76,7 +104,7 @@ def compute_jaccard_similarity_matrix_cherrypicking(
             scores_row[j] = jaccard_index(fingerprints[i, :], fingerprints[j, :])
         
         # Cherrypicking
-        for bin_number, selection_bin in enumerate(selections_bins):
+        for bin_number, selection_bin in enumerate(selection_bins):
             # Indices of scores within the current bin
             idx = np.where((scores_row > selection_bin[0]) & (scores_row <= selection_bin[1]))[0]
 
