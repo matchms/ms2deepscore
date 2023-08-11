@@ -64,11 +64,10 @@ def compute_jaccard_similarity_matrix_cherrypicking(
     scores_data = []
     scores_i = []
     scores_j = []
-    scores_row = np.zeros(size)
-    
     # keep track of total bias across bins
     max_pairs_global = len(selections_bins) * [max_pairs_per_bin]
     for i in range(size):
+        scores_row = np.zeros(size)
         for j in range(size):
             if i == j and not include_diagonal:
                 continue
