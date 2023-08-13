@@ -2,12 +2,45 @@ from typing import List, Tuple
 from collections import Counter
 import numba
 import numpy as np
+from matchms import Spectrum
+from matchms.filtering import add_fingerprint
 from matchms.similarity.vector_similarity_functions import jaccard_index
 from scipy.sparse import coo_array, lil_array
 
 
-def compute_spectrum_pairs(spectrums):
-    pass
+def compute_spectrum_pairs(spectrums,
+                           selection_bins: np.ndarray = np.array([(x/10, x/10 + 0.1) for x in range(0, 10)]),
+                           max_pairs_per_bin: int = 20,
+                           include_diagonal: bool = True,
+                           fix_global_bias: bool = True,
+                           fingerprint_type: str = "daylight",
+                           nbits: int = 2048):
+    """Function to compute the compound similarities (Tanimoto) and collect a well-balanced set of pairs.
+
+    TODO: describe method and arguments
+    """
+    # pylint: disable=too-many-arguments
+    spectra_selected, inchikeys14_unique = select_inchi_for_unique_inchikeys(spectrums)
+    print(f"Selected {len(spectra_selected)} spectra with unique inchikeys (out of {len(spectrums)} spectra)")
+    # Compute fingerprints using matchms
+    spectra_selected = [add_fingerprint(s, fingerprint_type, nbits) for s in spectra_selected]
+
+    # Ignore missing / not-computed fingerprints
+    fingerprints = [s.get("fingerprint") for s in spectra_selected]
+    idx = np.array([i for i, x in enumerate(fingerprints) if x is not None]).astype(int)
+    if len(idx) == 0:
+        raise ValueError("No fingerprints could be computed")
+    if len(idx) < len(fingerprints):
+        print(f"Successfully generated fingerprints for {len(idx)} of {len(fingerprints)} spectra")
+    fingerprints = [fingerprints[i] for i in idx]
+    inchikeys14_unique = [inchikeys14_unique[i] for i in idx]
+    spectra_selected = [spectra_selected[i] for i in idx]
+    return compute_jaccard_similarity_matrix_cherrypicking(
+        np.array(fingerprints),
+        selection_bins,
+        max_pairs_per_bin,
+        include_diagonal,
+        fix_global_bias)
 
 
 def select_inchi_for_unique_inchikeys(
@@ -141,7 +174,7 @@ def compute_jaccard_similarity_matrix_cherrypicking(
             if i == j and not include_diagonal:
                 continue
             scores_row[j] = jaccard_index(fingerprints[i, :], fingerprints[j, :])
-        
+
         # Cherrypicking
         for bin_number, selection_bin in enumerate(selection_bins):
             # Indices of scores within the current bin
@@ -160,5 +193,5 @@ def compute_jaccard_similarity_matrix_cherrypicking(
             scores_i.extend(len(idx_selected) * [i])
             scores_j.extend(list(idx_selected))
     print(max_pairs_global)
-        
+
     return scores_data, scores_i, scores_j

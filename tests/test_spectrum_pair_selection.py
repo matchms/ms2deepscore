@@ -3,6 +3,7 @@ import pytest
 from matchms import Spectrum
 from ms2deepscore.spectrum_pair_selection import (
     compute_jaccard_similarity_matrix_cherrypicking,
+    compute_spectrum_pairs,
     jaccard_similarity_matrix_cherrypicking,
     select_inchi_for_unique_inchikeys
     )
@@ -30,6 +31,27 @@ def fingerprints():
         [0, 1, 1, 1, 1, 0],
         [0, 0, 1, 1, 1, 0],
     ], dtype=bool)
+
+
+@pytest.fixture
+def spectrums():
+    metadata = {"precursor_mz": 101.1,
+                "inchikey": "ABCABCABCABCAB-nonsense",
+                "inchi": "InChI=1/C6H8O6/c7-1-2(8)5-3(9)4(10)6(11)12-5/h2,5,7-10H,1H2/t2-,5+/m0/s1"}
+    spectrum_1 = Spectrum(mz=np.array([100.]),
+                          intensities=np.array([0.7]),
+                          metadata=metadata)
+    spectrum_2 = Spectrum(mz=np.array([90.]),
+                          intensities=np.array([0.4]),
+                          metadata=metadata)
+    spectrum_3 = Spectrum(mz=np.array([90.]),
+                          intensities=np.array([0.4]),
+                          metadata=metadata)
+    spectrum_4 = Spectrum(mz=np.array([90.]),
+                          intensities=np.array([0.4]),
+                          metadata={"inchikey": 14 * "X",
+                                    "inchi": "InChI=1S/C8H10N4O2/c1-10-4-9-6-5(10)7(13)12(3)8(14)11(6)2/h4H,1-3H3"})
+    return [spectrum_1, spectrum_2, spectrum_3, spectrum_4]
 
 
 def test_basic_functionality(simple_fingerprints):
@@ -81,31 +103,23 @@ def test_global_bias_not_possible(fingerprints):
     assert (data>0.8).sum() == 8
 
 
-def test_select_inchi_for_unique_inchikeys():
-    metadata = {"precursor_mz": 101.1,
-                "inchikey": "ABCABCABCABCAB-nonsense",
-                "inchi": "InChI=1/C6H8O6/c7-1-2(8)5-3(9)4(10)6(11)12-5/h2,5,7-10H,1H2/t2-,5+/m0/s1"}
-    spectrum_1 = Spectrum(mz=np.array([100.]),
-                          intensities=np.array([0.7]),
-                          metadata=metadata)
-    spectrum_2 = Spectrum(mz=np.array([90.]),
-                          intensities=np.array([0.4]),
-                          metadata=metadata)
-    metadata["inchikey"] = "ABCABCABCABCAB-nonsense2"
-    spectrum_3 = Spectrum(mz=np.array([90.]),
-                          intensities=np.array([0.4]),
-                          metadata=metadata)
-    spectrum_4 = Spectrum(mz=np.array([90.]),
-                          intensities=np.array([0.4]),
-                          metadata={"inchikey": "ABCABCABCABCAB-nonsense2",
-                                    "inchi": "InChI=1/C666H8O6/c7-1-2(8)5-3(9)4(10)6(11)12-5/h2,5,7-10H,1H2/t2-,5+/m0/s1"})
-    (spectrums_selected, inchikey14s) = select_inchi_for_unique_inchikeys([spectrum_1, spectrum_2, spectrum_3, spectrum_4])
+def test_select_inchi_for_unique_inchikeys(spectrums):
+    spectrums[2].set("inchikey", "ABCABCABCABCAB-nonsense2")
+    spectrums[3].set("inchikey", "ABCABCABCABCAB-nonsense3")
+    (spectrums_selected, inchikey14s) = select_inchi_for_unique_inchikeys(spectrums)
     assert inchikey14s == ['ABCABCABCABCAB']
     assert spectrums_selected[0].get("inchi").startswith("InChI=1/C6H8O6/")
 
+
+def test_select_inchi_for_unique_inchikeys_two_inchikeys(spectrums):
     # Test for two different inchikeys
-    spectrum_4.set("inchikey", 14 * "X")
-    spectrums = [spectrum_1, spectrum_2, spectrum_3, spectrum_4, spectrum_4]
     (spectrums_selected, inchikey14s) = select_inchi_for_unique_inchikeys(spectrums)
     assert inchikey14s == ['ABCABCABCABCAB', 'XXXXXXXXXXXXXX']
-    assert [s.get("inchi")[:15] for s in spectrums_selected] == ['InChI=1/C6H8O6/', 'InChI=1/C666H8O']
+    assert [s.get("inchi")[:15] for s in spectrums_selected] == ['InChI=1/C6H8O6/', 'InChI=1S/C8H10N']
+
+
+def test_compute_spectrum_pairs(spectrums):
+    a, b, c = compute_spectrum_pairs(spectrums)
+    assert b == [0, 0, 1, 1]
+    assert c == [1, 0, 0, 1]
+    assert np.allclose(a, [0.1665089877010407, 1.0, 0.1665089877010407, 1.0])
