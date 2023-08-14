@@ -1,11 +1,13 @@
 import numpy as np
 import pytest
+from scipy.sparse import coo_array
 from matchms import Spectrum
 from ms2deepscore.spectrum_pair_selection import (
     compute_jaccard_similarity_matrix_cherrypicking,
     compute_spectrum_pairs,
     jaccard_similarity_matrix_cherrypicking,
-    select_inchi_for_unique_inchikeys
+    select_inchi_for_unique_inchikeys,
+    SelectedCompoundPairs
     )
 
 
@@ -52,6 +54,15 @@ def spectrums():
                           metadata={"inchikey": 14 * "X",
                                     "inchi": "InChI=1S/C8H10N4O2/c1-10-4-9-6-5(10)7(13)12(3)8(14)11(6)2/h4H,1-3H3"})
     return [spectrum_1, spectrum_2, spectrum_3, spectrum_4]
+
+
+@pytest.fixture
+def dummy_data():
+    data = np.array([0.5, 0.7, 0.3, 0.9, 0.8, 0.2, 0.6, 1.0])
+    row = np.array([0, 1, 1, 1, 3, 4, 5, 6])  # 2 missing on purpose
+    col = np.array([0, 2, 3, 4, 6, 5, 2, 6])
+    inchikeys = ["Inchikey0", "Inchikey1", "Inchikey2", "Inchikey3", "Inchikey4", "Inchikey5", "Inchikey6"]
+    return data, row, col, inchikeys
 
 
 def test_basic_functionality(simple_fingerprints):
@@ -136,3 +147,51 @@ def test_compute_spectrum_pairs_vary_parameters(spectrums):
     assert scores.shape == (2, 2)
     assert len(scores.row) == 4
     assert np.allclose(scores.data, [1.0, 1.0, 1.0, 1.0])
+
+
+# Test SelectedCompoundPairs class
+def test_SCP_initialization(dummy_data):
+    data, row, col, inchikeys = dummy_data
+    coo = coo_array((data, (row, col)))
+    scp = SelectedCompoundPairs(coo, inchikeys)
+
+    assert len(scp._cols) == len(inchikeys)
+    assert len(scp._scores) == len(inchikeys)
+    assert scp._idx_to_inchikey[0] == "Inchikey0"
+    assert scp._inchikey_to_idx["Inchikey0"] == 0
+
+
+def test_SCP_shuffle(dummy_data):
+    data, row, col, inchikeys = dummy_data
+    coo = coo_array((data, (row, col)))
+    scp = SelectedCompoundPairs(coo, inchikeys)
+
+    original_cols = [r.copy() for r in scp._cols]
+    original_scores = [s.copy() for s in scp._scores]
+
+    scp.shuffle()
+
+    # Check that the data has been shuffled
+    assert not all(np.array_equal(o, n) for o, n in zip(original_cols, scp._cols))
+    assert not all(np.array_equal(o, n) for o, n in zip(original_scores, scp._scores))
+
+
+def test_SCP_next_pair_for_inchikey(dummy_data):
+    data, row, col, inchikeys = dummy_data
+    coo = coo_array((data, (row, col)))
+    scp = SelectedCompoundPairs(coo, inchikeys)
+
+    score, inchikey2 = scp.next_pair_for_inchikey("Inchikey1")
+    assert score == 0.7
+    assert inchikey2 == "Inchikey2"
+
+    score, inchikey2 = scp.next_pair_for_inchikey("Inchikey1")
+    assert scp._row_generator_index[1] == 2
+    assert score == 0.3
+    assert inchikey2 == "Inchikey3"
+
+    # Test wrap around
+    scp._row_generator_index[1] = 0
+    score, inchikey2 = scp.next_pair_for_inchikey("Inchikey1")
+    assert score == 0.7
+    assert inchikey2 == "Inchikey2"

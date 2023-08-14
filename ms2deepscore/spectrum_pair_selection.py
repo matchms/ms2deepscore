@@ -5,7 +5,7 @@ import numpy as np
 from matchms import Spectrum
 from matchms.filtering import add_fingerprint
 from matchms.similarity.vector_similarity_functions import jaccard_index
-from scipy.sparse import coo_array, lil_array
+from scipy.sparse import coo_array
 
 
 def compute_spectrum_pairs(spectrums,
@@ -195,3 +195,58 @@ def select_inchi_for_unique_inchikeys(
         spectra_selected.append(list_of_spectra[ID].clone())
 
     return spectra_selected, inchikeys14_unique
+
+
+class SelectedCompoundPairs:
+    """Class to store sparse ("cherrypicked") compound pairs and their respective scores.
+
+    This is meant to be used with the results of the `compute_spectrum_pairs()` function.
+    The therein selected (cherrypicked) scores are stored similar to a list-of-lists format.
+    
+    """
+    def __init__(self, coo_array, inchikeys):
+        self._scores = []
+        self._cols = []
+
+        self._idx_to_inchikey = {idx: key for idx, key in enumerate(inchikeys)}
+        self._inchikey_to_idx = {key: idx for idx, key in enumerate(inchikeys)}
+
+        for row_idx in self._idx_to_inchikey.keys():
+            row_mask = (coo_array.row == row_idx)
+            self._cols.append(coo_array.col[row_mask])
+            self._scores.append(coo_array.data[row_mask])
+
+        # Initialize counter for each column
+        self._row_generator_index = np.zeros(len(self._idx_to_inchikey), dtype=int)
+
+    def shuffle(self):
+        """Shuffle all scores for all inchikeys."""
+        for i in range(len(self._scores)):
+            self._shuffle_row(i)
+
+    def _shuffle_row(self, row_index):
+        """Shuffle the column and scores of row with row_index."""
+        permutation = np.random.permutation(len(self._cols[row_index]))
+        self._cols[row_index] = self._cols[row_index][permutation]
+        self._scores[row_index] = self._scores[row_index][permutation]
+
+    def next_pair_for_inchikey(self, inchikey):
+        row_idx = self._inchikey_to_idx[inchikey]
+
+        # Retrieve the next pair
+        col_idx = self._cols[row_idx][self._row_generator_index[row_idx]]
+        score = self._scores[row_idx][self._row_generator_index[row_idx]]
+
+        # Update the counter, wrapping around if necessary
+        self._row_generator_index[row_idx] += 1
+        if self._row_generator_index[row_idx] >= len(self._cols[row_idx]):
+            self._row_generator_index[row_idx] = 0
+
+        return score, self._idx_to_inchikey[col_idx]
+
+    @property
+    def scores(self):
+        return self._scores
+
+    def __str__(self):
+        return f"SelectedCompoundPairs with {len(self._scores)} columns."
