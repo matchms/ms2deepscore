@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Models can now be trained on selected metadata entries in addition to the spectrum peaks [#128](https://github.com/matchms/ms2deepscore/pull/128).
+- New `MetadataFeatureGenerator` class to handle additional metadata more robustly [#128](https://github.com/matchms/ms2deepscore/pull/128)
+- Workflow scripts for training a new MS2DeepScore model [#124](https://github.com/matchms/ms2deepscore/pull/124). The ease of training MS2Deepscore models is improved, including standard settings and splitting validation and training data.
+
+### Changed
+
+- In SiameseModel, the attributes are not passed as an argument but instead used by the class.
+- Improved plotting functionality. Some additional plotting options were added and plots previously created in notebooks are now functions.
+
+
 ## [0.4.0] - 2023-04-25
 
 ### Added
