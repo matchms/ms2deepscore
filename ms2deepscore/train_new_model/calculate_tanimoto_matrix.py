@@ -1,8 +1,7 @@
 """
-This script is not needed for normally running MS2Query, it is only needed to generate a new library or to train
-new models
+This script contains wrapper function to train a MS2DeepScore model.
+TODO: Should better be using matchms functions (which are now only available as part of a filter)
 """
-from collections import Counter
 from typing import List
 import numpy as np
 import pandas as pd
