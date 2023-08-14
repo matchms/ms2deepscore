@@ -130,7 +130,8 @@ def test_select_inchi_for_unique_inchikeys_two_inchikeys(spectrums):
 
 
 def test_compute_spectrum_pairs(spectrums):
-    scores = compute_spectrum_pairs(spectrums)
+    scores, inchikeys = compute_spectrum_pairs(spectrums)
+    assert inchikeys == ['ABCABCABCABCAB', 'XXXXXXXXXXXXXX']
     assert np.allclose(scores.row, [0, 0, 1, 1])
     assert np.allclose(scores.col, [1, 0, 0, 1])
     assert np.allclose(scores.data, [0.1665089877010407, 1.0, 0.1665089877010407, 1.0])
@@ -138,12 +139,12 @@ def test_compute_spectrum_pairs(spectrums):
 
 def test_compute_spectrum_pairs_vary_parameters(spectrums):
     # max_pairs_per_bin = 1
-    scores = compute_spectrum_pairs(spectrums, max_pairs_per_bin=1, nbits=10)
+    scores, _ = compute_spectrum_pairs(spectrums, max_pairs_per_bin=1, nbits=10)
     assert scores.shape == (2, 2)
     assert len(scores.row) == 2
     assert np.allclose(scores.data, [1.0, 1.0])
     # max_pairs_per_bin = 2
-    scores = compute_spectrum_pairs(spectrums, max_pairs_per_bin=2, nbits=10)
+    scores, _ = compute_spectrum_pairs(spectrums, max_pairs_per_bin=2, nbits=10)
     assert scores.shape == (2, 2)
     assert len(scores.row) == 4
     assert np.allclose(scores.data, [1.0, 1.0, 1.0, 1.0])

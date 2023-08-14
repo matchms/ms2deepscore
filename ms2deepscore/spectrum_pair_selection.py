@@ -88,6 +88,7 @@ def compute_spectrum_pairs(spectrums,
     # pylint: disable=too-many-arguments
     spectra_selected, inchikeys14_unique = select_inchi_for_unique_inchikeys(spectrums)
     print(f"Selected {len(spectra_selected)} spectra with unique inchikeys (out of {len(spectrums)} spectra)")
+
     # Compute fingerprints using matchms
     spectra_selected = [add_fingerprint(s, fingerprint_type, nbits) for s in spectra_selected]
 
@@ -101,13 +102,15 @@ def compute_spectrum_pairs(spectrums,
     fingerprints = [fingerprints[i] for i in idx]
     inchikeys14_unique = [inchikeys14_unique[i] for i in idx]
     spectra_selected = [spectra_selected[i] for i in idx]
-    return jaccard_similarity_matrix_cherrypicking(
+
+    # Compute and return selected scores
+    scores_sparse = jaccard_similarity_matrix_cherrypicking(
         np.array(fingerprints),
         selection_bins,
         max_pairs_per_bin,
         include_diagonal,
         fix_global_bias)
-
+    return scores_sparse, inchikeys14_unique #, spectra_selected
 
 
 def jaccard_similarity_matrix_cherrypicking(
