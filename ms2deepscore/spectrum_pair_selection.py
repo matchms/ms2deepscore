@@ -59,6 +59,13 @@ class SelectedCompoundPairs:
 
         return score, self._idx_to_inchikey[col_idx]
 
+    def generator(self):
+        """Infinite generator to loop through all inchikeys."""
+        while True:
+            for inchikey in self._inchikey_to_idx.keys():
+                score, inchikey2 = self.next_pair_for_inchikey(inchikey)
+                yield inchikey, score, inchikey2
+
     @property
     def scores(self):
         return self._scores

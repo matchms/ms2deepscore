@@ -195,3 +195,23 @@ def test_SCP_next_pair_for_inchikey(dummy_data):
     score, inchikey2 = scp.next_pair_for_inchikey("Inchikey1")
     assert score == 0.7
     assert inchikey2 == "Inchikey2"
+
+
+def test_SCP_generator(dummy_data):
+    data, row, col, inchikeys = dummy_data
+    coo = coo_array((data, (row, col)))
+    scp = SelectedCompoundPairs(coo, inchikeys)
+
+    gen = scp.generator()
+
+    # Fetch first pair
+    inchikey1, score, inchikey2 = next(gen)
+    assert inchikey1 == "Inchikey0"
+    assert score in data  # as the data could be shuffled, we're ensuring score is within the list of scores
+    assert inchikey2 in inchikeys
+
+    # Fetch another pair to test the looping
+    inchikey1, score, inchikey2 = next(gen)
+    assert inchikey1 in inchikeys
+    assert score in data
+    assert inchikey2 in inchikeys
