@@ -164,7 +164,7 @@ def test_SCP_initialization(dummy_data):
 def test_SCP_shuffle(dummy_data):
     data, row, col, inchikeys = dummy_data
     coo = coo_array((data, (row, col)))
-    scp = SelectedCompoundPairs(coo, inchikeys)
+    scp = SelectedCompoundPairs(coo, inchikeys, shuffling=False)
 
     original_cols = [r.copy() for r in scp._cols]
     original_scores = [s.copy() for s in scp._scores]
@@ -179,7 +179,7 @@ def test_SCP_shuffle(dummy_data):
 def test_SCP_next_pair_for_inchikey(dummy_data):
     data, row, col, inchikeys = dummy_data
     coo = coo_array((data, (row, col)))
-    scp = SelectedCompoundPairs(coo, inchikeys)
+    scp = SelectedCompoundPairs(coo, inchikeys, shuffling=False)
 
     score, inchikey2 = scp.next_pair_for_inchikey("Inchikey1")
     assert score == 0.7

@@ -13,7 +13,7 @@ class SelectedCompoundPairs:
 
     This is meant to be used with the results of the `compute_spectrum_pairs()` function.
     The therein selected (cherrypicked) scores are stored similar to a list-of-lists format.
-    
+
     """
     def __init__(self, coo_array, inchikeys, shuffling: bool = True):
         self._scores = []
