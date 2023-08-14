@@ -35,45 +35,12 @@ def compute_spectrum_pairs(spectrums,
     fingerprints = [fingerprints[i] for i in idx]
     inchikeys14_unique = [inchikeys14_unique[i] for i in idx]
     spectra_selected = [spectra_selected[i] for i in idx]
-    return compute_jaccard_similarity_matrix_cherrypicking(
+    return jaccard_similarity_matrix_cherrypicking(
         np.array(fingerprints),
         selection_bins,
         max_pairs_per_bin,
         include_diagonal,
         fix_global_bias)
-
-
-def select_inchi_for_unique_inchikeys(
-    list_of_spectra: List['Spectrum']
-) -> Tuple[List['Spectrum'], List[str]]:
-    """Select spectra with most frequent inchi for unique inchikeys.
-
-    Method needed to calculate Tanimoto scores.
-    """
-    # Extract inchi's and inchikeys from spectra metadata
-    inchikeys_list = [s.get("inchikey") for s in list_of_spectra]
-    inchi_list = [s.get("inchi") for s in list_of_spectra]
-
-    inchi_array = np.array(inchi_list)
-    inchikeys14_array = np.array([x[:14] for x in inchikeys_list])
-
-    # Find unique inchikeys
-    inchikeys14_unique = sorted(set(inchikeys14_array))
-
-    spectra_selected = []
-    for inchikey14 in inchikeys14_unique:
-        # Indices of matching inchikeys
-        idx = np.where(inchikeys14_array == inchikey14)[0]
-
-        # Find the most frequent inchi for the inchikey
-        most_common_inchi = Counter(inchi_array[idx]).most_common(1)[0][0]
-
-        # ID of the spectrum with the most frequent inchi
-        ID = idx[np.where(inchi_array[idx] == most_common_inchi)[0][0]]
-
-        spectra_selected.append(list_of_spectra[ID].clone())
-
-    return spectra_selected, inchikeys14_unique
 
 
 def jaccard_similarity_matrix_cherrypicking(
@@ -83,7 +50,7 @@ def jaccard_similarity_matrix_cherrypicking(
     include_diagonal: bool = True,
     fix_global_bias: bool = True,
     random_seed: int = None,
-) -> np.ndarray:
+) -> coo_array:
     """Returns matrix of jaccard indices between all-vs-all vectors of references
     and queries.
 
@@ -123,8 +90,8 @@ def jaccard_similarity_matrix_cherrypicking(
         include_diagonal,
         fix_global_bias,
     )
-    scores_sparse = coo_array((np.array(data), (np.array(i), np.array(j))), shape=(size, size))
-    return lil_array(scores_sparse)
+    return coo_array((np.array(data), (np.array(i), np.array(j))),
+                      shape=(size, size))
 
 
 @numba.njit
@@ -195,3 +162,36 @@ def compute_jaccard_similarity_matrix_cherrypicking(
     print(max_pairs_global)
 
     return scores_data, scores_i, scores_j
+
+
+def select_inchi_for_unique_inchikeys(
+    list_of_spectra: List['Spectrum']
+) -> Tuple[List['Spectrum'], List[str]]:
+    """Select spectra with most frequent inchi for unique inchikeys.
+
+    Method needed to calculate Tanimoto scores.
+    """
+    # Extract inchi's and inchikeys from spectra metadata
+    inchikeys_list = [s.get("inchikey") for s in list_of_spectra]
+    inchi_list = [s.get("inchi") for s in list_of_spectra]
+
+    inchi_array = np.array(inchi_list)
+    inchikeys14_array = np.array([x[:14] for x in inchikeys_list])
+
+    # Find unique inchikeys
+    inchikeys14_unique = sorted(set(inchikeys14_array))
+
+    spectra_selected = []
+    for inchikey14 in inchikeys14_unique:
+        # Indices of matching inchikeys
+        idx = np.where(inchikeys14_array == inchikey14)[0]
+
+        # Find the most frequent inchi for the inchikey
+        most_common_inchi = Counter(inchi_array[idx]).most_common(1)[0][0]
+
+        # ID of the spectrum with the most frequent inchi
+        ID = idx[np.where(inchi_array[idx] == most_common_inchi)[0][0]]
+
+        spectra_selected.append(list_of_spectra[ID].clone())
+
+    return spectra_selected, inchikeys14_unique
