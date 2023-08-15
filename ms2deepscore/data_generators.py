@@ -16,14 +16,6 @@ class SpectrumPair(NamedTuple):
     """
     spectrum1: BinnedSpectrumType
     spectrum2: BinnedSpectrumType
-
-
-class SpectrumScorePair(NamedTuple):
-    """
-    Represents a pair of binned spectrums
-    """
-    spectrum1: BinnedSpectrumType
-    spectrum2: BinnedSpectrumType
     score: float
 
 
@@ -219,7 +211,7 @@ class DataGeneratorBase(Sequence):
         if self.settings["random_seed"] is not None and batch_index == 0:
             np.random.seed(self.settings["random_seed"])
         spectrum_pairs = self._spectrum_pair_generator(batch_index)
-        X, y = self.__data_generation(spectrum_pairs)
+        X, y = self._data_generation(spectrum_pairs)
         if self.settings['use_fixed_set']:
             # Store batches for later epochs
             self.fixed_set[batch_index] = (X, y)
@@ -276,13 +268,11 @@ class DataGeneratorBase(Sequence):
         assert len(matching_spectrum_id) > 0, "No matching inchikey found (note: expected first 14 characters)"
         return self.binned_spectrums[np.random.choice(matching_spectrum_id)]
 
-    def __data_generation(self, spectrum_pairs: Iterator[SpectrumPair]):
+    def _data_generation(self, spectrum_pairs: Iterator[SpectrumPair]):
         """Generates data containing batch_size samples"""
         container_list = []
         for pair in spectrum_pairs:
             container_list.append(Container(pair,
-                                            self.reference_scores_df[pair[0].get(
-                                                "inchikey")[:14]][pair[1].get("inchikey")[:14]],
                                             self.dim,
                                             self._data_augmentation,
                                             self.additional_metadata))
@@ -395,7 +385,8 @@ class DataGeneratorAllSpectrums(DataGeneratorBase):
             target_score_range = same_prob_bins[np.random.choice(np.arange(len(same_prob_bins)))]
             inchikey2 = self._find_match_in_range(inchikey1, target_score_range)
             spectrum2 = self._get_spectrum_with_inchikey(inchikey2)
-            yield SpectrumPair(spectrum1, spectrum2)
+            score = self.reference_scores_df[inchikey1][inchikey2]
+            yield SpectrumPair(spectrum1, spectrum2, score)
 
     def on_epoch_end(self):
         """Updates indexes after each epoch"""
@@ -483,6 +474,7 @@ class DataGeneratorAllInchikeys(DataGeneratorBase):
         This is expected behavior, with the shuffling this is OK.
         """
         return int(self.settings["num_turns"]) * int(np.floor(len(self.reference_scores_df) / self.settings["batch_size"]))
+
     def _spectrum_pair_generator(self, batch_index: int) -> Iterator[SpectrumPair]:
         """
         Generate spectrum pairs for batch. For each 'source' inchikey pick an inchikey in the
@@ -499,13 +491,16 @@ class DataGeneratorAllInchikeys(DataGeneratorBase):
             inchikey2 = self._find_match_in_range(inchikey1, target_score_range)
             spectrum1 = self._get_spectrum_with_inchikey(inchikey1)
             spectrum2 = self._get_spectrum_with_inchikey(inchikey2)
-            yield SpectrumPair(spectrum1, spectrum2)
+            score = self.reference_scores_df[inchikey1][inchikey2]
+            yield SpectrumPair(spectrum1, spectrum2, score)
+
     @ staticmethod
     def _data_selection(reference_scores_df, selected_inchikeys):
         """
         Select labeled data to generate from based on `selected_inchikeys`
         """
         return reference_scores_df.loc[selected_inchikeys, selected_inchikeys]
+
     def on_epoch_end(self):
         """Updates indexes after each epoch"""
         self.indexes = np.tile(np.arange(len(self.reference_scores_df)), int(self.settings["num_turns"]))
@@ -549,47 +544,11 @@ class DataGeneratorCherrypicked(DataGeneratorBase):
         if self.settings["random_seed"] is not None and batch_index == 0:
             np.random.seed(self.settings["random_seed"])
         spectrum_pairs = self._spectrum_pair_generator(batch_index)
-        X, y = self.__data_generation(spectrum_pairs)
+        X, y = self._data_generation(spectrum_pairs)
         if self.settings['use_fixed_set']:
             # Store batches for later epochs
             self.fixed_set[batch_index] = (X, y)
         return X, y
-
-    def __data_generation(self, spectrum_pairs: Iterator[SpectrumPair]):
-        """Generates data containing batch_size samples"""
-        container_list = []
-        for pair in spectrum_pairs:
-            container_list.append(Container((pair[0], pair[1]),
-                                            pair[2],
-                                            self.dim,
-                                            self._data_augmentation,
-                                            self.additional_metadata))
-
-        # multi input
-        if len(self.additional_metadata) > 0:
-            X = [[], [], [], []]
-            y = []
-            for container in container_list:
-                X[0].append(container.spectrum_values_left)
-                # Using ravel instead of squeeze, since squeeze returns 0D arrays.
-                # This can give unexpected behaviour, when only one extra feature is given.
-                X[1].append(np.array(np.ravel(container.additional_inputs_left)))
-                X[2].append(container.spectrum_values_right)
-                X[3].append(np.array(np.ravel(container.additional_inputs_right)))
-
-                y.append(container.tanimoto_score)
-
-            # important to return lists of arrays
-            return [np.array(X[0]), np.array(X[1]), np.array(X[2]), np.array(X[3])], np.asarray(y).astype('float32')
-
-        # else
-        X = [[], []]
-        y = []
-        for container in container_list:
-            X[0].append(container.spectrum_values_left)
-            X[1].append(container.spectrum_values_right)
-            y.append(container.tanimoto_score)
-        return [np.array(X[0]), np.array(X[1])], np.asarray(y).astype('float32')
 
     def __len__(self):
         return int(self.settings["num_turns"])\
@@ -604,7 +563,7 @@ class DataGeneratorCherrypicked(DataGeneratorBase):
             score, inchikey2 = self.selected_compound_pairs.next_pair_for_inchikey(inchikey1)
             spectrum1 = self._get_spectrum_with_inchikey(inchikey1)
             spectrum2 = self._get_spectrum_with_inchikey(inchikey2)
-            yield SpectrumScorePair(spectrum1, spectrum2, score)
+            yield SpectrumPair(spectrum1, spectrum2, score)
 
     def on_epoch_end(self):
         """Updates indexes after each epoch"""
@@ -617,7 +576,7 @@ class Container:
     """
     Helper class for DataGenerator
     """
-    def __init__(self, spectrum_pair, tanimoto_score, dim, _data_augmentation, additional_inputs=None):
+    def __init__(self, spectrum_pair, dim, _data_augmentation, additional_inputs=None):
         self.spectrum_left = spectrum_pair[0]
         self.spectrum_right = spectrum_pair[1]
         self.spectrum_values_left = np.zeros((dim, ))
@@ -631,7 +590,7 @@ class Container:
         for additional_input in additional_inputs:
             self.additional_inputs_left.append([float(self.spectrum_left.get(additional_input))])
             self.additional_inputs_right.append([float(self.spectrum_right.get(additional_input))])
-        self.tanimoto_score = tanimoto_score
+        self.tanimoto_score = spectrum_pair[2]
 
 
 def _clean_reference_scores_df(reference_scores_df):
