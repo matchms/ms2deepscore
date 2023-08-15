@@ -70,6 +70,14 @@ class SelectedCompoundPairs:
     def scores(self):
         return self._scores
 
+    @property
+    def idx_to_inchikey(self):
+        return self._idx_to_inchikey
+
+    @property
+    def inchikey_to_idx(self):
+        return self._inchikey_to_idx
+
     def __str__(self):
         return f"SelectedCompoundPairs with {len(self._scores)} columns."
 
@@ -230,8 +238,10 @@ def compute_jaccard_similarity_matrix_cherrypicking(
             scores_data.extend(scores_row[idx_selected])
             scores_i.extend(len(idx_selected) * [i])
             scores_j.extend(list(idx_selected))
+    # Output biases in scores
+    print("Counted cases of fewer than max_pairs_per_bin usage:")
+    max_pairs_global = [x - max_pairs_per_bin for x in max_pairs_global]
     print(max_pairs_global)
-
     return scores_data, scores_i, scores_j
 
 

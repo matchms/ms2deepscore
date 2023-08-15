@@ -596,13 +596,11 @@ class DataGeneratorCherrypicked(DataGeneratorBase):
             * int(np.floor(len(self.selected_compound_pairs.scores) / self.settings["batch_size"]))
 
     def _spectrum_pair_generator(self, batch_index: int) -> Iterator[SpectrumPair]:
-        
-        same_prob_bins = self.settings["same_prob_bins"]
+        """Use the provided SelectedCompoundPairs object to pick pairs."""
         batch_size = self.settings["batch_size"]
-        
         indexes = self.indexes[batch_index * batch_size:(batch_index + 1) * batch_size]
         for index in indexes:
-            inchikey1 = self.selected_compound_pairs._idx_to_inchikey[index]
+            inchikey1 = self.selected_compound_pairs.idx_to_inchikey[index]
             score, inchikey2 = self.selected_compound_pairs.next_pair_for_inchikey(inchikey1)
             spectrum1 = self._get_spectrum_with_inchikey(inchikey1)
             spectrum2 = self._get_spectrum_with_inchikey(inchikey2)
