@@ -6,6 +6,7 @@ import numpy as np
 import pandas as pd
 from tensorflow.keras.utils import Sequence  # pylint: disable=import-error
 from ms2deepscore.SpectrumBinner import SpectrumBinner
+from ms2deepscore.spectrum_pair_selection import SelectedCompoundPairs
 from .typing import BinnedSpectrumType
 
 
@@ -15,6 +16,15 @@ class SpectrumPair(NamedTuple):
     """
     spectrum1: BinnedSpectrumType
     spectrum2: BinnedSpectrumType
+
+
+class SpectrumScorePair(NamedTuple):
+    """
+    Represents a pair of binned spectrums
+    """
+    spectrum1: BinnedSpectrumType
+    spectrum2: BinnedSpectrumType
+    score: float
 
 
 class DataGeneratorBase(Sequence):
@@ -499,6 +509,108 @@ class DataGeneratorAllInchikeys(DataGeneratorBase):
     def on_epoch_end(self):
         """Updates indexes after each epoch"""
         self.indexes = np.tile(np.arange(len(self.reference_scores_df)), int(self.settings["num_turns"]))
+        if self.settings["shuffle"]:
+            np.random.shuffle(self.indexes)
+
+
+class DataGeneratorCherrypicked(DataGeneratorBase):
+
+    def __init__(self, binned_spectrums: List[BinnedSpectrumType],
+                 selected_compound_pairs: SelectedCompoundPairs,
+                 spectrum_binner: SpectrumBinner,
+                 **settings):
+        
+        self.binned_spectrums = binned_spectrums
+        # Collect all inchikeys
+        self.spectrum_inchikeys = np.array([s.get("inchikey")[:14] for s in self.binned_spectrums])
+        # self._validate_indexes()
+
+        # Set all other settings to input (or otherwise to defaults):
+        self._set_generator_parameters(**settings)
+        self.dim = len(spectrum_binner.known_bins)
+        additional_metadata = spectrum_binner.additional_metadata
+        if len(additional_metadata) > 0:
+            self.additional_metadata = \
+                [additional_feature_type.to_json() for additional_feature_type in additional_metadata]
+        else:
+            self.additional_metadata = ()
+        self.fixed_set = {}
+        self.selected_compound_pairs = selected_compound_pairs
+        self.on_epoch_end()
+
+    def __getitem__(self, batch_index: int):
+        """Generate one batch of data.
+
+        If use_fixed_set=True we try retrieving the batch from self.fixed_set (or store it if
+        this is the first epoch). This ensures a fixed set of data is generated each epoch.
+        """
+        if self.settings['use_fixed_set'] and batch_index in self.fixed_set:
+            return self.fixed_set[batch_index]
+        if self.settings["random_seed"] is not None and batch_index == 0:
+            np.random.seed(self.settings["random_seed"])
+        spectrum_pairs = self._spectrum_pair_generator(batch_index)
+        X, y = self.__data_generation(spectrum_pairs)
+        if self.settings['use_fixed_set']:
+            # Store batches for later epochs
+            self.fixed_set[batch_index] = (X, y)
+        return X, y
+
+    def __data_generation(self, spectrum_pairs: Iterator[SpectrumPair]):
+        """Generates data containing batch_size samples"""
+        container_list = []
+        for pair in spectrum_pairs:
+            container_list.append(Container((pair[0], pair[1]),
+                                            pair[2],
+                                            self.dim,
+                                            self._data_augmentation,
+                                            self.additional_metadata))
+
+        # multi input
+        if len(self.additional_metadata) > 0:
+            X = [[], [], [], []]
+            y = []
+            for container in container_list:
+                X[0].append(container.spectrum_values_left)
+                # Using ravel instead of squeeze, since squeeze returns 0D arrays.
+                # This can give unexpected behaviour, when only one extra feature is given.
+                X[1].append(np.array(np.ravel(container.additional_inputs_left)))
+                X[2].append(container.spectrum_values_right)
+                X[3].append(np.array(np.ravel(container.additional_inputs_right)))
+
+                y.append(container.tanimoto_score)
+
+            # important to return lists of arrays
+            return [np.array(X[0]), np.array(X[1]), np.array(X[2]), np.array(X[3])], np.asarray(y).astype('float32')
+
+        # else
+        X = [[], []]
+        y = []
+        for container in container_list:
+            X[0].append(container.spectrum_values_left)
+            X[1].append(container.spectrum_values_right)
+            y.append(container.tanimoto_score)
+        return [np.array(X[0]), np.array(X[1])], np.asarray(y).astype('float32')
+
+    def __len__(self):
+        return int(self.settings["num_turns"])\
+            * int(np.floor(len(self.selected_compound_pairs.scores) / self.settings["batch_size"]))
+
+    def _spectrum_pair_generator(self, batch_index: int) -> Iterator[SpectrumPair]:
+        
+        same_prob_bins = self.settings["same_prob_bins"]
+        batch_size = self.settings["batch_size"]
+        
+        indexes = self.indexes[batch_index * batch_size:(batch_index + 1) * batch_size]
+        for index in indexes:
+            inchikey1 = self.selected_compound_pairs._idx_to_inchikey[index]
+            score, inchikey2 = self.selected_compound_pairs.next_pair_for_inchikey(inchikey1)
+            spectrum1 = self._get_spectrum_with_inchikey(inchikey1)
+            spectrum2 = self._get_spectrum_with_inchikey(inchikey2)
+            yield SpectrumScorePair(spectrum1, spectrum2, score)
+
+    def on_epoch_end(self):
+        """Updates indexes after each epoch"""
+        self.indexes = np.tile(np.arange(len(self.selected_compound_pairs.scores)), int(self.settings["num_turns"]))
         if self.settings["shuffle"]:
             np.random.shuffle(self.indexes)
 

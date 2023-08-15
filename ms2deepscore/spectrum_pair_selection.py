@@ -76,7 +76,7 @@ class SelectedCompoundPairs:
 
 def compute_spectrum_pairs(spectrums,
                            selection_bins: np.ndarray = np.array([(x/10, x/10 + 0.1) for x in range(0, 10)]),
-                           max_pairs_per_bin: int = 20,
+                           max_pairs_per_bin: int = 10,
                            include_diagonal: bool = True,
                            fix_global_bias: bool = True,
                            fingerprint_type: str = "daylight",
@@ -90,7 +90,8 @@ def compute_spectrum_pairs(spectrums,
     print(f"Selected {len(spectra_selected)} spectra with unique inchikeys (out of {len(spectrums)} spectra)")
 
     # Compute fingerprints using matchms
-    spectra_selected = [add_fingerprint(s, fingerprint_type, nbits) for s in spectra_selected]
+    spectra_selected = [add_fingerprint(s, fingerprint_type, nbits)\
+                        if s.get("fingerprint") is None else s for s in spectra_selected]
 
     # Ignore missing / not-computed fingerprints
     fingerprints = [s.get("fingerprint") for s in spectra_selected]
