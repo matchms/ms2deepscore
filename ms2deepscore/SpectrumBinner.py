@@ -69,7 +69,7 @@ class SpectrumBinner:
                               binner_dict["mz_max"], binner_dict["mz_min"],
                               binner_dict["peak_scaling"],
                               binner_dict["allowed_missing_percentage"])
-        if "additional_metadata" in binner_dict:
+        if "additional_metadata" in binner_dict and binner_dict.get("additional_metadata") is not None:
             spectrum_binner.additional_metadata = load_from_json(binner_dict["additional_metadata"])
         spectrum_binner.peak_to_position = {int(key): value for key, value in binner_dict["peak_to_position"].items()}
         spectrum_binner.known_bins = binner_dict["known_bins"]
