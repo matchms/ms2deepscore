@@ -330,8 +330,8 @@ class DataGeneratorAllSpectrums(DataGeneratorBase):
             depicting the similarity score for that pair. Must be symmetric
             (reference_scores_df[i,j] == reference_scores_df[j,i]) and column names should be
             identical to the index and unique.
-        dim
-            Input vector dimension.
+        spectrum_binner
+            SpectrumBinner which was used to convert the data to the binned_spectrums.
         As part of **settings, defaults for the following parameters can be set:
         batch_size
             Number of pairs per batch. Default=32.
@@ -433,8 +433,8 @@ class DataGeneratorAllInchikeys(DataGeneratorBase):
             (reference_scores_df[i,j] == reference_scores_df[j,i]) and column names should be identical to the index.
         selected_inchikeys
             List of inchikeys to use for training.
-        dim
-            Input vector dimension.
+        spectrum_binner
+            SpectrumBinner which was used to convert the data to the binned_spectrums.
         As part of **settings, defaults for the following parameters can be set:
         batch_size
             Number of pairs per batch. Default=32.
@@ -514,7 +514,43 @@ class DataGeneratorCherrypicked(DataGeneratorBase):
                  selected_compound_pairs: SelectedCompoundPairs,
                  spectrum_binner: SpectrumBinner,
                  **settings):
-        
+        """Generates data for training a siamese Keras model.
+
+        Parameters
+        ----------
+        binned_spectrums
+            List of BinnedSpectrum objects with the binned peak positions and intensities.
+        selected_compound_pairs
+            SelectedCompoundPairs object which contains selected compounds pairs and the
+            respective similarity scores.
+        spectrum_binner
+            SpectrumBinner which was used to convert the data to the binned_spectrums.
+        As part of **settings, defaults for the following parameters can be set:
+        batch_size
+            Number of pairs per batch. Default=32.
+        num_turns
+            Number of pairs for each InChiKey during each epoch. Default=1.
+        shuffle
+            Set to True to shuffle IDs every epoch. Default=True
+        ignore_equal_pairs
+            Set to True to ignore pairs of two identical spectra. Default=True
+        same_prob_bins
+            List of tuples that define ranges of the true label to be trained with
+            equal frequencies. Default is set to [(0, 0.5), (0.5, 1)], which means
+            that pairs with scores <=0.5 will be picked as often as pairs with scores
+            > 0.5.
+        augment_removal_max
+            Maximum fraction of peaks (if intensity < below augment_removal_intensity)
+            to be removed randomly. Default is set to 0.2, which means that between
+            0 and 20% of all peaks with intensities < augment_removal_intensity
+            will be removed.
+        augment_removal_intensity
+            Specifying that only peaks with intensities < max_intensity will be removed.
+        augment_intensity
+            Change peak intensities by a random number between 0 and augment_intensity.
+            Default=0.1, which means that intensities are multiplied by 1+- a random
+            number within [0, 0.1].
+        """
         self.binned_spectrums = binned_spectrums
         # Collect all inchikeys
         self.spectrum_inchikeys = np.array([s.get("inchikey")[:14] for s in self.binned_spectrums])

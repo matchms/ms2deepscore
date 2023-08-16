@@ -15,7 +15,20 @@ class SelectedCompoundPairs:
     The therein selected (cherrypicked) scores are stored similar to a list-of-lists format.
 
     """
-    def __init__(self, coo_array, inchikeys, shuffling: bool = True):
+    def __init__(self, sparse_score_array, inchikeys, shuffling: bool = True):
+        """
+        Parameters
+        ----------
+        sparse_score_array
+            Scipy COO-style sparse array which stores the similarity scores.
+            Meant to be used with the results of the compute_spectrum_pairs() function.
+        inchikeys
+            List or Array of the inchikeys in the order of the sparse_score_array.
+            Meant to be used with the results of the compute_spectrum_pairs() function.
+        shuffling
+            Default is True in which case the selected pairs for each inchikey will be
+            shuffled.
+        """
         self._scores = []
         self._cols = []
         self.shuffling = shuffling
@@ -23,9 +36,9 @@ class SelectedCompoundPairs:
         self._inchikey_to_idx = {key: idx for idx, key in enumerate(inchikeys)}
 
         for row_idx in self._idx_to_inchikey.keys():
-            row_mask = (coo_array.row == row_idx)
-            self._cols.append(coo_array.col[row_mask])
-            self._scores.append(coo_array.data[row_mask])
+            row_mask = (sparse_score_array.row == row_idx)
+            self._cols.append(sparse_score_array.col[row_mask])
+            self._scores.append(sparse_score_array.data[row_mask])
 
         # Initialize counter for each column
         self._row_generator_index = np.zeros(len(self._idx_to_inchikey), dtype=int)
