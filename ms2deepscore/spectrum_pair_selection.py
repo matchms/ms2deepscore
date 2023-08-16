@@ -173,14 +173,46 @@ def jaccard_similarity_matrix_cherrypicking(
                       shape=(size, size))
 
 
-@numba.njit
+# @numba.njit
 def compute_jaccard_similarity_matrix_cherrypicking(
     fingerprints: np.ndarray,
     selection_bins: np.ndarray = np.array([(x/10, x/10 + 0.1) for x in range(0, 10)]),
     max_pairs_per_bin: int = 20,
+    include_diagonal: bool = True):
+    """For each inchikey for each bin matches are stored within this bin """
+    # pylint: disable=too-many-locals
+    size = fingerprints.shape[0]
+    # initialize storing scores
+    selected_pairs_per_bin = [[] for _ in range(len(selection_bins))]
+
+    # keep track of total bias across bins
+    max_pairs_global = len(selection_bins) * [max_pairs_per_bin]
+    for i in range(size):
+        scores_row = np.zeros(size)
+        for j in range(size):
+            if i == j and not include_diagonal:
+                continue
+            scores_row[j] = jaccard_index(fingerprints[i, :], fingerprints[j, :])
+
+        # Cherrypicking
+        for bin_number, selection_bin in enumerate(selection_bins):
+            selected_pairs_per_bin[bin_number].append([])
+            # Indices of scores within the current bin
+            idx = np.where((scores_row > selection_bin[0]) & (scores_row <= selection_bin[1]))[0]
+            # Randomly select up to max_pairs_per_bin scores within the bin
+            #if len(idx) > 0:
+            np.random.shuffle(idx)
+            idx_selected = idx[:max_pairs_global[bin_number]]
+            for index in idx_selected:
+                selected_pairs_per_bin[bin_number][i].append((index, scores_row[index]))
+    return selected_pairs_per_bin
+
+
+def fix_bias(fingerprints: np.ndarray,
+    selection_bins: np.ndarray = np.array([(x/10, x/10 + 0.1) for x in range(0, 10)]),
+    max_pairs_per_bin: int = 20,
     include_diagonal: bool = True,
-    fix_global_bias: bool = True,
-) -> np.ndarray:
+    fix_global_bias: bool = True):
     """Returns matrix of jaccard indices between all-vs-all vectors of references
     and queries.
 
@@ -207,42 +239,58 @@ def compute_jaccard_similarity_matrix_cherrypicking(
     scores
         Sparse array (List of lists) with cherrypicked scores.
     """
-    # pylint: disable=too-many-locals
-    size = fingerprints.shape[0]
-    scores_data = []
-    scores_i = []
-    scores_j = []
-    # keep track of total bias across bins
-    max_pairs_global = len(selection_bins) * [max_pairs_per_bin]
-    for i in range(size):
-        scores_row = np.zeros(size)
-        for j in range(size):
-            if i == j and not include_diagonal:
-                continue
-            scores_row[j] = jaccard_index(fingerprints[i, :], fingerprints[j, :])
+    if fix_global_bias:
+        # todo make the nr of times the max pair is used a variable, with as option "inf" meaning it will store everything it finds for each bin. (for anyone without memory constraints and difficult bins)
+        max_pairs_per_bin = max_pairs_per_bin*2
+    selected_pairs_per_bin = compute_jaccard_similarity_matrix_cherrypicking(
+        fingerprints,
+        selection_bins,
+        max_pairs_per_bin,
+        include_diagonal)
+    if not fix_global_bias:
+        return selected_pairs_per_bin
 
-        # Cherrypicking
-        for bin_number, selection_bin in enumerate(selection_bins):
-            # Indices of scores within the current bin
-            idx = np.where((scores_row > selection_bin[0]) & (scores_row <= selection_bin[1]))[0]
-
-            # Randomly select up to max_pairs_per_bin scores within the bin
-            #if len(idx) > 0:
-            np.random.shuffle(idx)
-            if fix_global_bias:
-                idx_selected = idx[:max_pairs_global[bin_number]]
-                max_pairs_global[bin_number] += max_pairs_per_bin
-                max_pairs_global[bin_number] -= len(idx_selected)  # only remove actually found pairs
+    for bin_nr, scores_per_spectrum in enumerate(selected_pairs_per_bin):
+        nr_of_pairs_in_bin = []
+        for spectrum_i_idx, score_and_idx in enumerate(scores_per_spectrum):
+            nr_of_pairs_in_bin.append(len(score_and_idx))
+        difference, found_cut_off = find_correct_cut_off(nr_of_pairs_in_bin, max_pairs_per_bin)
+        # todo check if this works correctly
+        for spectrum_i_idx, score_and_idx in enumerate(scores_per_spectrum):
+            if spectrum_i_idx <= difference:
+                cut_off = found_cut_off
             else:
-                idx_selected = idx[:max_pairs_per_bin]
-            scores_data.extend(scores_row[idx_selected])
-            scores_i.extend(len(idx_selected) * [i])
-            scores_j.extend(list(idx_selected))
-    # Output biases in scores
-    print("Counted cases of fewer than max_pairs_per_bin usage:")
-    max_pairs_global = [x - max_pairs_per_bin for x in max_pairs_global]
-    print(max_pairs_global)
-    return scores_data, scores_i, scores_j
+                cut_off = found_cut_off - 1
+            # Remove excess pairs_per_bin
+            selected_pairs_per_bin[bin_nr][spectrum_i_idx] = score_and_idx[:cut_off]
+    #todo add a converter function that can convert this to the coo_array function
+    return selected_pairs_per_bin
+
+
+def try_cut_off(nr_of_pairs_in_bin_per_spectrum, cut_off):
+    total_nr_of_pairs = 0
+    for nr_of_pairs_in_bin in nr_of_pairs_in_bin_per_spectrum:
+        if nr_of_pairs_in_bin <= cut_off:
+            total_nr_of_pairs += nr_of_pairs_in_bin
+        else:
+            total_nr_of_pairs += cut_off
+    average_nr_of_pairs = total_nr_of_pairs / len(nr_of_pairs_in_bin_per_spectrum)
+    return average_nr_of_pairs
+
+
+def find_correct_cut_off(nr_of_pairs_in_bin_per_spectrum: List[int], expected_average_nr_of_pairs: int):
+    found_cut_off = False
+    for cut_off in range(expected_average_nr_of_pairs, expected_average_nr_of_pairs*2):
+        average_nr_of_pairs = try_cut_off(nr_of_pairs_in_bin_per_spectrum, cut_off)
+        if average_nr_of_pairs >= expected_average_nr_of_pairs:
+            found_cut_off = cut_off
+            break
+    assert found_cut_off, "Not enough pairs were found for one of the bins"
+    expected_nr_of_pairs = expected_average_nr_of_pairs*len(nr_of_pairs_in_bin_per_spectrum)
+    found_nr_of_pairs = average_nr_of_pairs*len(nr_of_pairs_in_bin_per_spectrum)
+    # to get the exact number of pairs expected
+    difference = found_nr_of_pairs - expected_nr_of_pairs
+    return difference, found_cut_off
 
 
 def select_inchi_for_unique_inchikeys(
