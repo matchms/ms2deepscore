@@ -251,14 +251,14 @@ def try_cut_off(nr_of_pairs_in_bin_per_spectrum: List[int],
 
     Parameters
     ----------
-    nr_of_pairs_per_spectrum : List[int]
+    nr_of_pairs_in_bin_per_spectrum: List[int]
         A list containing the number of pairs found for each InChIKey (for a single bin).
-    cut_off : int
+    cut_off: int
         The maximum number of pairs that should be stored.
     """
-    total_nr_of_pairs = sum(min(nr_of_pairs, cut_off) for nr_of_pairs in nr_of_pairs_per_spectrum)
+    total_nr_of_pairs = sum(min(nr_of_pairs, cut_off) for nr_of_pairs in nr_of_pairs_in_bin_per_spectrum)
 
-    num_spectra = len(nr_of_pairs_per_spectrum)
+    num_spectra = len(nr_of_pairs_in_bin_per_spectrum)
     if num_spectra == 0:
         return 0.0
 
