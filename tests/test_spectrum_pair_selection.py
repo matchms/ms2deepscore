@@ -3,11 +3,12 @@ import pytest
 from scipy.sparse import coo_array
 from matchms import Spectrum
 from ms2deepscore.spectrum_pair_selection import (
-    compute_jaccard_similarity_matrix_cherrypicking,
     compute_spectrum_pairs,
     jaccard_similarity_matrix_cherrypicking,
     select_inchi_for_unique_inchikeys,
-    SelectedCompoundPairs
+    SelectedCompoundPairs,
+    try_cut_off,
+    find_correct_max_nr_of_pairs
     )
 
 
@@ -216,3 +217,15 @@ def test_SCP_generator(dummy_data):
     assert inchikey1 in inchikeys
     assert score in data
     assert inchikey2 in inchikeys
+
+
+def test_try_cut_off():
+    average_nr_of_pairs = try_cut_off([2, 5, 7],
+                                      4)
+    assert round(average_nr_of_pairs, 3) == round(3.3333333, 3)
+
+
+def test_find_correct_max_nr_of_pairs():
+    difference, correct_max_nr_of_pairs = find_correct_max_nr_of_pairs([2, 5, 7, 9], 3)
+    assert correct_max_nr_of_pairs == 4
+    assert difference == 2

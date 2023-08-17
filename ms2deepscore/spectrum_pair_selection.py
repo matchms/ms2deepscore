@@ -268,7 +268,8 @@ def fix_bias(fingerprints: np.ndarray,
         nr_of_pairs_in_bin = []
         for spectrum_i_idx, score_and_idx in enumerate(scores_per_spectrum):
             nr_of_pairs_in_bin.append(len(score_and_idx))
-        difference, found_cut_off = find_correct_cut_off(nr_of_pairs_in_bin, max_pairs_per_bin)
+            # todo find better name for difference
+        difference, found_cut_off = find_correct_max_nr_of_pairs(nr_of_pairs_in_bin, average_pairs_per_bin)
         # todo check if this works correctly
         for spectrum_i_idx, score_and_idx in enumerate(scores_per_spectrum):
             if spectrum_i_idx <= difference:
@@ -281,7 +282,19 @@ def fix_bias(fingerprints: np.ndarray,
     return selected_pairs_per_bin
 
 
-def try_cut_off(nr_of_pairs_in_bin_per_spectrum, cut_off):
+def try_cut_off(nr_of_pairs_in_bin_per_spectrum: List[int],
+                cut_off: int) -> float:
+    """Calculate the average in a list if a cut_off is used.
+
+    e.g. nr_of_pairs_in_bin_per_spectrum = [2,5,7], cut_off = 4 -> [2,4,4] -> total_nr_of_pairs = 10, average = 3,33
+
+    :param nr_of_pairs_in_bin_per_spectrum:
+        A list with the number of pairs found for each inchikey (for one bin)
+    :param cut_off:
+        The maximum number of pairs that should be stored.
+    :return:
+        The average nr_of_pairs
+    """
     total_nr_of_pairs = 0
     for nr_of_pairs_in_bin in nr_of_pairs_in_bin_per_spectrum:
         if nr_of_pairs_in_bin <= cut_off:
@@ -292,19 +305,23 @@ def try_cut_off(nr_of_pairs_in_bin_per_spectrum, cut_off):
     return average_nr_of_pairs
 
 
-def find_correct_cut_off(nr_of_pairs_in_bin_per_spectrum: List[int], expected_average_nr_of_pairs: int):
-    found_cut_off = False
+def find_correct_max_nr_of_pairs(nr_of_pairs_in_bin_per_spectrum: List[int], expected_average_nr_of_pairs: int):
+    """Finds the max_nr_of_pairs that should be used to get the expected_average_nr_of_pairs"""
+    correct_max_nr_of_pairs = False
+    average_nr_of_pairs = 0
+    # Try cut_offs until the nr_of_pairs found is higher than expected_average_nr_of_pairs
     for cut_off in range(expected_average_nr_of_pairs, max(nr_of_pairs_in_bin_per_spectrum)):
         average_nr_of_pairs = try_cut_off(nr_of_pairs_in_bin_per_spectrum, cut_off)
         if average_nr_of_pairs >= expected_average_nr_of_pairs:
-            found_cut_off = cut_off
+            correct_max_nr_of_pairs = cut_off
             break
-    assert found_cut_off, "Not enough pairs were found for one of the bins"
+    assert correct_max_nr_of_pairs, "Not enough pairs were found for one of the bins, try increasing the max_oversampling_rate"
     expected_nr_of_pairs = expected_average_nr_of_pairs*len(nr_of_pairs_in_bin_per_spectrum)
     found_nr_of_pairs = average_nr_of_pairs*len(nr_of_pairs_in_bin_per_spectrum)
-    # to get the exact number of pairs expected
+    # to get the exact average_nr_of_pairs expected, the cut_off will need to be 1 lower for part of the inchikeys.
     difference = found_nr_of_pairs - expected_nr_of_pairs
-    return difference, found_cut_off
+    assert 0 < difference < len(nr_of_pairs_in_bin_per_spectrum)
+    return difference, correct_max_nr_of_pairs
 
 
 def select_inchi_for_unique_inchikeys(
