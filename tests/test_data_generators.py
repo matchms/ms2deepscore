@@ -12,7 +12,7 @@ from ms2deepscore.data_generators import (DataGeneratorAllInchikeys,
 from ms2deepscore.MetadataFeatureGenerator import (CategoricalToBinary,
                                                    StandardScaler)
 from ms2deepscore.spectrum_pair_selection import (SelectedCompoundPairs,
-                                                  compute_spectrum_pairs)
+                                                  select_spectrum_pairs_wrapper)
 from tests.test_user_worfklow import (get_reference_scores,
                                       load_processed_spectrums)
 
@@ -114,12 +114,11 @@ def test_DataGeneratorCherrypicked():
     binned_spectrums = ms2ds_binner.fit_transform(spectrums)
     dimension = len(ms2ds_binner.known_bins)
 
-    scores_selected, inchikeys14 = compute_spectrum_pairs(
+    scp = select_spectrum_pairs_wrapper(
         spectrums,
         selection_bins=np.array([(x/4, x/4 + 0.25) for x in range(0, 4)]),
-        max_pairs_per_bin=1)
-    scp = SelectedCompoundPairs(scores_selected, inchikeys14)
-        # Create generator
+        average_pairs_per_bin=1)
+    # Create generator
     test_generator = DataGeneratorCherrypicked(binned_spectrums=binned_spectrums,
                                                 spectrum_binner=ms2ds_binner,
                                                 selected_compound_pairs=scp,
