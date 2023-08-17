@@ -8,7 +8,8 @@ from ms2deepscore.spectrum_pair_selection import (
     select_inchi_for_unique_inchikeys,
     SelectedCompoundPairs,
     try_cut_off,
-    find_correct_max_nr_of_pairs
+    find_correct_max_nr_of_pairs,
+    fix_bias
     )
 
 
@@ -219,13 +220,40 @@ def test_SCP_generator(dummy_data):
     assert inchikey2 in inchikeys
 
 
-def test_try_cut_off():
-    average_nr_of_pairs = try_cut_off([2, 5, 7],
-                                      4)
-    assert round(average_nr_of_pairs, 3) == round(3.3333333, 3)
+@pytest.mark.parametrize("nr_of_pairs_in_bin_per_spectrum, cut_off, expected_average_nr_of_pairs", [
+    [[2, 5, 7], 4, 3.333333],
+    [[2, 2, 2, 2], 2, 2],
+    [[2, 2, 2, 2], 5, 2],
+])
+def test_try_cut_off(nr_of_pairs_in_bin_per_spectrum, cut_off, expected_average_nr_of_pairs):
+    average_nr_of_pairs = try_cut_off(nr_of_pairs_in_bin_per_spectrum,
+                                      cut_off)
+    assert round(average_nr_of_pairs, 3) == round(expected_average_nr_of_pairs, 3)
 
 
-def test_find_correct_max_nr_of_pairs():
-    difference, correct_max_nr_of_pairs = find_correct_max_nr_of_pairs([2, 5, 7, 9], 3)
-    assert correct_max_nr_of_pairs == 4
-    assert difference == 2
+@pytest.mark.parametrize("nr_of_pairs_in_bin_per_spectrum, wanted_average_nr_of_pairs, expected_max_nr_of_pairs, expected_difference", [
+    [[2, 5, 7, 9], 3, 4, 2],
+    [[2, 2, 2, 2], 2, 2, 0],
+])
+def test_find_correct_max_nr_of_pairs(nr_of_pairs_in_bin_per_spectrum, wanted_average_nr_of_pairs,
+                                      expected_max_nr_of_pairs, expected_difference):
+    difference, correct_max_nr_of_pairs = find_correct_max_nr_of_pairs(nr_of_pairs_in_bin_per_spectrum,
+                                                                       wanted_average_nr_of_pairs)
+    assert correct_max_nr_of_pairs == expected_max_nr_of_pairs
+    assert difference == expected_difference
+
+
+def test_fix_bias():
+    expected_average = 2
+    results = fix_bias([[
+        [(1, 0.1), (2, 0.1), (3, 0.1)],
+        [(1, 0.1), (2, 0.1), (2, 0.1), (2, 0.1)],
+        [(1, 0.1), (2, 0.1), (3, 0.1)],
+        [],
+    ]], expected_average)
+    assert results == [[
+        [(1, 0.1), (2, 0.1)],
+        [(1, 0.1), (2, 0.1), (2, 0.1)],
+        [(1, 0.1), (2, 0.1), (3, 0.1)],
+        [],
+    ]]

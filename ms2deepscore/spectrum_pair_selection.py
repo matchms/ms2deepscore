@@ -222,12 +222,13 @@ def compute_jaccard_similarity_per_bin(
     return selected_pairs_per_bin
 
 
-def fix_bias(fingerprints: np.ndarray,
-             selection_bins: np.ndarray = np.array([(x/10, x/10 + 0.1) for x in range(0, 10)]),
-             max_pairs_per_bin: int = 20,
-             max_oversampling_rate = 2,
-             include_diagonal: bool = True,
-             fix_global_bias: bool = True):
+def compute_jaccard_similarity_wrapper(
+        fingerprints: np.ndarray,
+        selection_bins: np.ndarray = np.array([(x/10, x/10 + 0.1) for x in range(0, 10)]),
+        average_pairs_per_bin: int = 20,
+        max_oversampling_rate = 2,
+        include_diagonal: bool = True,
+        fix_global_bias: bool = True):
     """Returns matrix of jaccard indices between all-vs-all vectors of references
     and queries.
 
@@ -255,7 +256,9 @@ def fix_bias(fingerprints: np.ndarray,
         Sparse array (List of lists) with cherrypicked scores.
     """
     if fix_global_bias:
-        max_pairs_per_bin = max_pairs_per_bin*max_oversampling_rate
+        max_pairs_per_bin = average_pairs_per_bin*max_oversampling_rate
+    else:
+        max_pairs_per_bin = average_pairs_per_bin
     selected_pairs_per_bin = compute_jaccard_similarity_per_bin(
         fingerprints,
         selection_bins,
@@ -263,21 +266,29 @@ def fix_bias(fingerprints: np.ndarray,
         include_diagonal)
     if not fix_global_bias:
         return selected_pairs_per_bin
+    selected_pairs_per_bin = fix_bias(selected_pairs_per_bin, average_pairs_per_bin)
+    return selected_pairs_per_bin
 
+
+def fix_bias(selected_pairs_per_bin, expected_average_pairs_per_bin):
+    """Corrects for bias and """
     for bin_nr, scores_per_spectrum in enumerate(selected_pairs_per_bin):
+        # Calculate the nr_of_pairs_in_bin_per_spectrum
         nr_of_pairs_in_bin = []
         for spectrum_i_idx, score_and_idx in enumerate(scores_per_spectrum):
             nr_of_pairs_in_bin.append(len(score_and_idx))
-            # todo find better name for difference
-        difference, found_cut_off = find_correct_max_nr_of_pairs(nr_of_pairs_in_bin, average_pairs_per_bin)
-        # todo check if this works correctly
+        # find the correct max_nr_of_pairs to get the average_pairs_per_bin
+        difference, max_nr_of_pairs = find_correct_max_nr_of_pairs(nr_of_pairs_in_bin, expected_average_pairs_per_bin)
+        # Use the new cut_of
         for spectrum_i_idx, score_and_idx in enumerate(scores_per_spectrum):
-            if spectrum_i_idx <= difference:
-                cut_off = found_cut_off
+            if difference > 0 and len(score_and_idx) >= max_nr_of_pairs:
+                cut_off = max_nr_of_pairs - 1
+                difference -= 1
             else:
-                cut_off = found_cut_off - 1
+                cut_off = max_nr_of_pairs
             # Remove excess pairs_per_bin
             selected_pairs_per_bin[bin_nr][spectrum_i_idx] = score_and_idx[:cut_off]
+        assert difference == 0
     #todo add a converter function that can convert this to the coo_array function
     return selected_pairs_per_bin
 
@@ -310,7 +321,7 @@ def find_correct_max_nr_of_pairs(nr_of_pairs_in_bin_per_spectrum: List[int], exp
     correct_max_nr_of_pairs = False
     average_nr_of_pairs = 0
     # Try cut_offs until the nr_of_pairs found is higher than expected_average_nr_of_pairs
-    for cut_off in range(expected_average_nr_of_pairs, max(nr_of_pairs_in_bin_per_spectrum)):
+    for cut_off in range(expected_average_nr_of_pairs, max(nr_of_pairs_in_bin_per_spectrum)+1):
         average_nr_of_pairs = try_cut_off(nr_of_pairs_in_bin_per_spectrum, cut_off)
         if average_nr_of_pairs >= expected_average_nr_of_pairs:
             correct_max_nr_of_pairs = cut_off
@@ -319,8 +330,9 @@ def find_correct_max_nr_of_pairs(nr_of_pairs_in_bin_per_spectrum: List[int], exp
     expected_nr_of_pairs = expected_average_nr_of_pairs*len(nr_of_pairs_in_bin_per_spectrum)
     found_nr_of_pairs = average_nr_of_pairs*len(nr_of_pairs_in_bin_per_spectrum)
     # to get the exact average_nr_of_pairs expected, the cut_off will need to be 1 lower for part of the inchikeys.
+    # todo find better name for difference
     difference = found_nr_of_pairs - expected_nr_of_pairs
-    assert 0 < difference < len(nr_of_pairs_in_bin_per_spectrum)
+    assert 0 <= difference < len(nr_of_pairs_in_bin_per_spectrum)
     return difference, correct_max_nr_of_pairs
 
 
