@@ -108,28 +108,30 @@ def compute_spectrum_pairs(spectrums,
         raise ValueError("No fingerprints could be computed")
     if len(idx) < len(fingerprints):
         print(f"Successfully generated fingerprints for {len(idx)} of {len(fingerprints)} spectra")
-    fingerprints = [fingerprints[i] for i in idx]
+    fingerprints = np.array([fingerprints[i] for i in idx])
     inchikeys14_unique = [inchikeys14_unique[i] for i in idx]
     spectra_selected = [spectra_selected[i] for i in idx]
 
     # Compute and return selected scores
-    scores_sparse = jaccard_similarity_matrix_cherrypicking(
-        np.array(fingerprints),
+    selected_pairs_per_bin = jaccard_similarity_matrix_cherrypicking(
+        fingerprints,
         selection_bins,
         max_pairs_per_bin,
         include_diagonal,
         fix_global_bias)
+    scores_sparse = convert_selected_pairs_per_bin_to_coo_array(selected_pairs_per_bin, fingerprints.shape[0])
     return scores_sparse, inchikeys14_unique #, spectra_selected
 
 
 def jaccard_similarity_matrix_cherrypicking(
     fingerprints: np.ndarray,
     selection_bins: np.ndarray = np.array([(x/10, x/10 + 0.1) for x in range(0, 10)]),
-    max_pairs_per_bin: int = 20,
+    average_pairs_per_bin: int = 20,
+    max_oversampling_rate = 2,
     include_diagonal: bool = True,
     fix_global_bias: bool = True,
     random_seed: int = None,
-) -> coo_array:
+) -> List[List[Tuple[int, float]]]:
     """Returns matrix of jaccard indices between all-vs-all vectors of references
     and queries.
 
@@ -159,18 +161,37 @@ def jaccard_similarity_matrix_cherrypicking(
         Sparse array (List of lists) with cherrypicked scores.
     """
     # pylint: disable=too-many-arguments
-    size = fingerprints.shape[0]
     if random_seed is not None:
         np.random.seed(random_seed)
-    data, i, j = compute_jaccard_similarity_matrix_cherrypicking(
-        fingerprints,
-        selection_bins,
-        max_pairs_per_bin,
-        include_diagonal,
-        fix_global_bias,
-    )
-    return coo_array((np.array(data), (np.array(i), np.array(j))),
-                      shape=(size, size))
+
+    if fix_global_bias:
+        max_pairs_per_bin = average_pairs_per_bin*max_oversampling_rate
+    else:
+        max_pairs_per_bin = average_pairs_per_bin
+
+    selected_pairs_per_bin = compute_jaccard_similarity_per_bin(fingerprints,
+                                                                selection_bins,
+                                                                max_pairs_per_bin,
+                                                                include_diagonal)
+    if fix_global_bias:
+        selected_pairs_per_bin = fix_bias(selected_pairs_per_bin, average_pairs_per_bin)
+    return selected_pairs_per_bin
+
+
+def convert_selected_pairs_per_bin_to_coo_array(selected_pairs_per_bin: List[List[Tuple[int, float]]], size):
+    data = []
+    inchikey_indexes_i = []
+    inchikey_indexes_j = []
+    for bin_idx, scores_per_inchikey in enumerate(selected_pairs_per_bin):
+        assert len(scores_per_inchikey) == size
+        for inchikey_idx_i, scores_list in enumerate(scores_per_inchikey):
+            for scores in scores_list:
+                inchikey_idx_j, score = scores
+                data.append(score)
+                inchikey_indexes_i.append(inchikey_idx_i)
+                inchikey_indexes_j.append(inchikey_idx_j)
+    return coo_array((np.array(data), (np.array(inchikey_indexes_i), np.array(inchikey_indexes_j))),
+                     shape=(size, size))
 
 
 @numba.njit
@@ -222,54 +243,6 @@ def compute_jaccard_similarity_per_bin(
     return selected_pairs_per_bin
 
 
-def compute_jaccard_similarity_wrapper(
-        fingerprints: np.ndarray,
-        selection_bins: np.ndarray = np.array([(x/10, x/10 + 0.1) for x in range(0, 10)]),
-        average_pairs_per_bin: int = 20,
-        max_oversampling_rate = 2,
-        include_diagonal: bool = True,
-        fix_global_bias: bool = True):
-    """Returns matrix of jaccard indices between all-vs-all vectors of references
-    and queries.
-
-    Parameters
-    ----------
-    fingerprints
-        Fingerprint vectors as 2D numpy array.
-    selection_bins
-        List of tuples with upper and lower bound for score bins.
-        The goal is to pick equal numbers of pairs for each score bin.
-        Sidenote: bins do not have to be of equal size, nor do they have to cover the entire
-        range of the used scores.
-    max_pairs_per_bin
-        Specifies the desired maximum number of pairs to be added for each score bin.
-    include_diagonal
-        Set to False if pairs with two equal compounds/fingerprints should be excluded.
-    fix_global_bias
-        Default is True in which case the function aims to get the same amount of pairs for
-        each bin globally. This means it add more than max_pairs_par_bin for some bins and/or
-        some compounds to compensate for lack of such scores in other compounds.
-
-    Returns
-    -------
-    scores
-        Sparse array (List of lists) with cherrypicked scores.
-    """
-    if fix_global_bias:
-        max_pairs_per_bin = average_pairs_per_bin*max_oversampling_rate
-    else:
-        max_pairs_per_bin = average_pairs_per_bin
-    selected_pairs_per_bin = compute_jaccard_similarity_per_bin(
-        fingerprints,
-        selection_bins,
-        max_pairs_per_bin,
-        include_diagonal)
-    if not fix_global_bias:
-        return selected_pairs_per_bin
-    selected_pairs_per_bin = fix_bias(selected_pairs_per_bin, average_pairs_per_bin)
-    return selected_pairs_per_bin
-
-
 def fix_bias(selected_pairs_per_bin, expected_average_pairs_per_bin):
     """Corrects for bias and """
     for bin_nr, scores_per_spectrum in enumerate(selected_pairs_per_bin):
@@ -289,7 +262,6 @@ def fix_bias(selected_pairs_per_bin, expected_average_pairs_per_bin):
             # Remove excess pairs_per_bin
             selected_pairs_per_bin[bin_nr][spectrum_i_idx] = score_and_idx[:cut_off]
         assert difference == 0
-    #todo add a converter function that can convert this to the coo_array function
     return selected_pairs_per_bin
 
 
