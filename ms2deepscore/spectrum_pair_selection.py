@@ -253,23 +253,36 @@ def try_cut_off(nr_of_pairs_in_bin_per_spectrum: List[int],
 
 
 def find_correct_max_nr_of_pairs(nr_of_pairs_in_bin_per_spectrum: List[int], expected_average_nr_of_pairs: int):
-    """Finds the max_nr_of_pairs that should be used to get the expected_average_nr_of_pairs"""
-    correct_max_nr_of_pairs = False
+    """
+    Find the maximum number of pairs that should be used to achieve the expected average number of pairs.
+    
+    Parameters
+    ----------
+    nr_of_pairs_in_bin_per_spectrum: List[int]
+        A list containing the number of pairs found for each InChIKey (for a single bin).
+    expected_average_nr_of_pairs: int
+        The average number of pairs that are expected to be found.
+    """
+    max_pairs_for_expected_avg = None
     average_nr_of_pairs = 0
+
     # Try cut_offs until the nr_of_pairs found is higher than expected_average_nr_of_pairs
-    for cut_off in range(expected_average_nr_of_pairs, max(nr_of_pairs_in_bin_per_spectrum)+1):
+    for cut_off in range(expected_average_nr_of_pairs, max(nr_of_pairs_in_bin_per_spectrum) + 1):
         average_nr_of_pairs = try_cut_off(nr_of_pairs_in_bin_per_spectrum, cut_off)
         if average_nr_of_pairs >= expected_average_nr_of_pairs:
             correct_max_nr_of_pairs = cut_off
             break
-    assert correct_max_nr_of_pairs, "Not enough pairs were found for one of the bins, try increasing the max_oversampling_rate"
-    expected_nr_of_pairs = expected_average_nr_of_pairs*len(nr_of_pairs_in_bin_per_spectrum)
-    found_nr_of_pairs = average_nr_of_pairs*len(nr_of_pairs_in_bin_per_spectrum)
-    # to get the exact average_nr_of_pairs expected, the cut_off will need to be 1 lower for part of the inchikeys.
-    # todo find better name for difference
-    difference = found_nr_of_pairs - expected_nr_of_pairs
-    assert 0 <= difference < len(nr_of_pairs_in_bin_per_spectrum)
-    return difference, correct_max_nr_of_pairs
+
+    assert max_pairs_for_expected_avg, ("Not enough pairs were found for one of the bins,"
+                                        " consider increasing the max_oversampling_rate")
+
+    total_expected_pairs = expected_average_nr_of_pairs * len(nr_of_pairs_in_bin_per_spectrum)
+    total_found_pairs = average_nr_of_pairs * len(nr_of_pairs_in_bin_per_spectrum)
+
+    pair_difference = total_found_pairs - total_expected_pairs
+    assert 0 <= pair_difference < len(nr_of_pairs_per_spectrum)
+
+    return pair_difference, max_pairs_for_expected_avg
 
 
 def select_inchi_for_unique_inchikeys(
