@@ -120,13 +120,13 @@ def test_DataGeneratorCherrypicked():
         average_pairs_per_bin=1)
     # Create generator
     test_generator = DataGeneratorCherrypicked(binned_spectrums=binned_spectrums,
-                                                spectrum_binner=ms2ds_binner,
-                                                selected_compound_pairs=scp,
-                                                batch_size=batch_size,
-                                                augment_removal_max=0.0,
-                                                augment_removal_intensity=0.0,
-                                                augment_intensity=0.0,
-                                                augment_noise_max=0)
+                                               spectrum_binner=ms2ds_binner,
+                                               selected_compound_pairs=scp,
+                                               batch_size=batch_size,
+                                               augment_removal_max=0.0,
+                                               augment_removal_intensity=0.0,
+                                               augment_intensity=0.0,
+                                               augment_noise_max=0)
 
     x, y = test_generator.__getitem__(0)
     assert x[0].shape == x[1].shape == (batch_size, dimension), "Expected different data shape"

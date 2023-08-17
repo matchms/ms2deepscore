@@ -1,6 +1,5 @@
 from collections import Counter
 from typing import List, Tuple
-import numba
 import numpy as np
 from matchms import Spectrum
 from matchms.filtering import add_fingerprint
@@ -101,8 +100,8 @@ def compute_fingerprints(spectrums,
         print(f"Successfully generated fingerprints for {len(idx)} of {len(fingerprints)} spectra")
     fingerprints = np.array([fingerprints[i] for i in idx])
     inchikeys14_unique = [inchikeys14_unique[i] for i in idx]
-    spectra_selected = [spectra_selected[i] for i in idx]
-    return fingerprints, inchikeys14_unique, spectra_selected
+    # spectra_selected = [spectra_selected[i] for i in idx]
+    return fingerprints, inchikeys14_unique #, spectra_selected
 
 
 def select_spectrum_pairs_wrapper(
@@ -123,9 +122,9 @@ def select_spectrum_pairs_wrapper(
         Sparse array (List of lists) with cherrypicked scores.
     """
     # pylint: disable=too-many-arguments
-    fingerprints, inchikeys14_unique, spectra_selected = compute_fingerprints(spectrums,
-                                                                              fingerprint_type,
-                                                                              nbits)
+    fingerprints, inchikeys14_unique = compute_fingerprints(spectrums,
+                                                            fingerprint_type,
+                                                            nbits)
     if random_seed is not None:
         np.random.seed(random_seed)
 
@@ -148,7 +147,7 @@ def convert_selected_pairs_per_bin_to_coo_array(selected_pairs_per_bin: List[Lis
     data = []
     inchikey_indexes_i = []
     inchikey_indexes_j = []
-    for bin_idx, scores_per_inchikey in enumerate(selected_pairs_per_bin):
+    for scores_per_inchikey in selected_pairs_per_bin:
         assert len(scores_per_inchikey) == size
         for inchikey_idx_i, scores_list in enumerate(scores_per_inchikey):
             for scores in scores_list:
@@ -182,7 +181,6 @@ def compute_jaccard_similarity_per_bin(
         A list were the indexes are the bin numbers. This contains Lists were the index is the spectrum_i index.
         This list contains a Tuple, with first the spectrum_j index and second the score.
     """
-    # pylint: disable=too-many-locals
     size = fingerprints.shape[0]
     # initialize storing scores
     selected_pairs_per_bin = [[] for _ in range(len(selection_bins))]
