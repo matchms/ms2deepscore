@@ -82,21 +82,12 @@ class SelectedCompoundPairs:
         return f"SelectedCompoundPairs with {len(self._scores)} columns."
 
 
-def compute_spectrum_pairs(spectrums,
-                           selection_bins: np.ndarray = np.array([(x/10, x/10 + 0.1) for x in range(0, 10)]),
-                           max_pairs_per_bin: int = 10,
-                           include_diagonal: bool = True,
-                           fix_global_bias: bool = True,
-                           fingerprint_type: str = "daylight",
-                           nbits: int = 2048):
-    """Function to compute the compound similarities (Tanimoto) and collect a well-balanced set of pairs.
-
-    TODO: describe method and arguments
-    """
-    # pylint: disable=too-many-arguments
+def compute_fingerprints(spectrums,
+                         fingerprint_type: str = "daylight",
+                         nbits: int = 2048):
+    """Calculates fingerprints and removes spectra for which no fingerprint could be created"""
     spectra_selected, inchikeys14_unique = select_inchi_for_unique_inchikeys(spectrums)
     print(f"Selected {len(spectra_selected)} spectra with unique inchikeys (out of {len(spectrums)} spectra)")
-
     # Compute fingerprints using matchms
     spectra_selected = [add_fingerprint(s, fingerprint_type, nbits)\
                         if s.get("fingerprint") is None else s for s in spectra_selected]
@@ -111,49 +102,20 @@ def compute_spectrum_pairs(spectrums,
     fingerprints = np.array([fingerprints[i] for i in idx])
     inchikeys14_unique = [inchikeys14_unique[i] for i in idx]
     spectra_selected = [spectra_selected[i] for i in idx]
-
-    # Compute and return selected scores
-    selected_pairs_per_bin = jaccard_similarity_matrix_cherrypicking(
-        fingerprints,
-        selection_bins,
-        max_pairs_per_bin,
-        include_diagonal,
-        fix_global_bias)
-    scores_sparse = convert_selected_pairs_per_bin_to_coo_array(selected_pairs_per_bin, fingerprints.shape[0])
-    return scores_sparse, inchikeys14_unique #, spectra_selected
+    return fingerprints, inchikeys14_unique, spectra_selected
 
 
-def jaccard_similarity_matrix_cherrypicking(
-    fingerprints: np.ndarray,
-    selection_bins: np.ndarray = np.array([(x/10, x/10 + 0.1) for x in range(0, 10)]),
-    average_pairs_per_bin: int = 20,
-    max_oversampling_rate = 2,
-    include_diagonal: bool = True,
-    fix_global_bias: bool = True,
-    random_seed: int = None,
-) -> List[List[Tuple[int, float]]]:
-    """Returns matrix of jaccard indices between all-vs-all vectors of references
-    and queries.
-
-    Parameters
-    ----------
-    fingerprints
-        Fingerprint vectors as 2D numpy array.
-    selection_bins
-        List of tuples with upper and lower bound for score bins.
-        The goal is to pick equal numbers of pairs for each score bin.
-        Sidenote: bins do not have to be of equal size, nor do they have to cover the entire
-        range of the used scores.
-    max_pairs_per_bin
-        Specifies the desired maximum number of pairs to be added for each score bin.
-    include_diagonal
-        Set to False if pairs with two equal compounds/fingerprints should be excluded.
-    fix_global_bias
-        Default is True in which case the function aims to get the same amount of pairs for
-        each bin globally. This means it add more than max_pairs_par_bin for some bins and/or
-        some compounds to compensate for lack of such scores in other compounds.
-    random_seed
-        Set to integer if the randomness of the pair selection should be reproducible.
+def select_spectrum_pairs_wrapper(
+        spectrums,
+        selection_bins: np.ndarray = np.array([(x/10, x/10 + 0.1) for x in range(0, 10)]),
+        fingerprint_type: str = "daylight",
+        nbits: int = 2048,
+        average_pairs_per_bin: int = 20,
+        max_oversampling_rate = 2,
+        include_diagonal: bool = True,
+        fix_global_bias: bool = True,
+        random_seed: int = None) -> SelectedCompoundPairs:
+    """Returns a SelectedCompoundPairs object containing equally balanced pairs over the different bins
 
     Returns
     -------
@@ -161,6 +123,9 @@ def jaccard_similarity_matrix_cherrypicking(
         Sparse array (List of lists) with cherrypicked scores.
     """
     # pylint: disable=too-many-arguments
+    fingerprints, inchikeys14_unique, spectra_selected = compute_fingerprints(spectrums,
+                                                                              fingerprint_type,
+                                                                              nbits)
     if random_seed is not None:
         np.random.seed(random_seed)
 
@@ -175,7 +140,8 @@ def jaccard_similarity_matrix_cherrypicking(
                                                                 include_diagonal)
     if fix_global_bias:
         selected_pairs_per_bin = fix_bias(selected_pairs_per_bin, average_pairs_per_bin)
-    return selected_pairs_per_bin
+    scores_sparse = convert_selected_pairs_per_bin_to_coo_array(selected_pairs_per_bin, fingerprints.shape[0])
+    return SelectedCompoundPairs(scores_sparse, inchikeys14_unique)
 
 
 def convert_selected_pairs_per_bin_to_coo_array(selected_pairs_per_bin: List[List[Tuple[int, float]]], size):
@@ -193,8 +159,8 @@ def convert_selected_pairs_per_bin_to_coo_array(selected_pairs_per_bin: List[Lis
     return coo_array((np.array(data), (np.array(inchikey_indexes_i), np.array(inchikey_indexes_j))),
                      shape=(size, size))
 
-
-@numba.njit
+# todo refactor so numba.njit can be used again
+# @numba.njit
 def compute_jaccard_similarity_per_bin(
         fingerprints: np.ndarray,
         selection_bins: np.ndarray = np.array([(x/10, x/10 + 0.1) for x in range(0, 10)]),

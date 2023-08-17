@@ -3,8 +3,6 @@ import pytest
 from scipy.sparse import coo_array
 from matchms import Spectrum
 from ms2deepscore.spectrum_pair_selection import (
-    compute_spectrum_pairs,
-    jaccard_similarity_matrix_cherrypicking,
     select_inchi_for_unique_inchikeys,
     SelectedCompoundPairs,
     try_cut_off,
@@ -93,13 +91,14 @@ def test_compute_jaccard_similarity_per_bin_correct_counts(fingerprints):
     assert np.all(matrix_histogram[0] == expected_histogram)
 
 
-@pytest.mark.parametrize("average_pairs_per_bin", [1,2])
+@pytest.mark.parametrize("average_pairs_per_bin", [1, 2])
 def test_global_bias(fingerprints, average_pairs_per_bin):
     bins = np.array([(0, 0.35), (0.35, 0.65), (0.65, 1.0)])
-    selected_pairs_per_bin = jaccard_similarity_matrix_cherrypicking(fingerprints,
-                                                                     selection_bins=bins,
-                                                                     average_pairs_per_bin=average_pairs_per_bin,
-                                                                     max_oversampling_rate=8)
+
+    selected_pairs_per_bin = compute_jaccard_similarity_per_bin(fingerprints,
+                                                                selection_bins=bins,
+                                                                max_pairs_per_bin=10)
+    selected_pairs_per_bin = fix_bias(selected_pairs_per_bin, average_pairs_per_bin)
     matrix = convert_selected_pairs_per_bin_to_coo_array(selected_pairs_per_bin, fingerprints.shape[0])
     dense_matrix = matrix.todense()
     # Check if in each bin the nr of pairs is equal to the nr_of_fingerprints
