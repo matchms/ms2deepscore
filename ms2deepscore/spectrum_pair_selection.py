@@ -270,7 +270,7 @@ def find_correct_max_nr_of_pairs(nr_of_pairs_in_bin_per_spectrum: List[int], exp
     for cut_off in range(expected_average_nr_of_pairs, max(nr_of_pairs_in_bin_per_spectrum) + 1):
         average_nr_of_pairs = try_cut_off(nr_of_pairs_in_bin_per_spectrum, cut_off)
         if average_nr_of_pairs >= expected_average_nr_of_pairs:
-            correct_max_nr_of_pairs = cut_off
+            max_pairs_for_expected_avg = cut_off
             break
 
     assert max_pairs_for_expected_avg, ("Not enough pairs were found for one of the bins,"
@@ -280,7 +280,7 @@ def find_correct_max_nr_of_pairs(nr_of_pairs_in_bin_per_spectrum: List[int], exp
     total_found_pairs = average_nr_of_pairs * len(nr_of_pairs_in_bin_per_spectrum)
 
     pair_difference = total_found_pairs - total_expected_pairs
-    assert 0 <= pair_difference < len(nr_of_pairs_per_spectrum)
+    assert 0 <= pair_difference < len(nr_of_pairs_in_bin_per_spectrum)
 
     return pair_difference, max_pairs_for_expected_avg
 
