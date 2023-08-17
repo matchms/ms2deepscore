@@ -223,10 +223,11 @@ def compute_jaccard_similarity_per_bin(
 
 
 def fix_bias(fingerprints: np.ndarray,
-    selection_bins: np.ndarray = np.array([(x/10, x/10 + 0.1) for x in range(0, 10)]),
-    max_pairs_per_bin: int = 20,
-    include_diagonal: bool = True,
-    fix_global_bias: bool = True):
+             selection_bins: np.ndarray = np.array([(x/10, x/10 + 0.1) for x in range(0, 10)]),
+             max_pairs_per_bin: int = 20,
+             max_oversampling_rate = 2,
+             include_diagonal: bool = True,
+             fix_global_bias: bool = True):
     """Returns matrix of jaccard indices between all-vs-all vectors of references
     and queries.
 
@@ -254,8 +255,7 @@ def fix_bias(fingerprints: np.ndarray,
         Sparse array (List of lists) with cherrypicked scores.
     """
     if fix_global_bias:
-        # todo make the nr of times the max pair is used a variable, with as option "inf" meaning it will store everything it finds for each bin. (for anyone without memory constraints and difficult bins)
-        max_pairs_per_bin = max_pairs_per_bin*2
+        max_pairs_per_bin = max_pairs_per_bin*max_oversampling_rate
     selected_pairs_per_bin = compute_jaccard_similarity_per_bin(
         fingerprints,
         selection_bins,
@@ -294,7 +294,7 @@ def try_cut_off(nr_of_pairs_in_bin_per_spectrum, cut_off):
 
 def find_correct_cut_off(nr_of_pairs_in_bin_per_spectrum: List[int], expected_average_nr_of_pairs: int):
     found_cut_off = False
-    for cut_off in range(expected_average_nr_of_pairs, expected_average_nr_of_pairs*2):
+    for cut_off in range(expected_average_nr_of_pairs, max(nr_of_pairs_in_bin_per_spectrum)):
         average_nr_of_pairs = try_cut_off(nr_of_pairs_in_bin_per_spectrum, cut_off)
         if average_nr_of_pairs >= expected_average_nr_of_pairs:
             found_cut_off = cut_off
