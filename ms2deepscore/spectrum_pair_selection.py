@@ -173,13 +173,28 @@ def jaccard_similarity_matrix_cherrypicking(
                       shape=(size, size))
 
 
-# @numba.njit
-def compute_jaccard_similarity_matrix_cherrypicking(
-    fingerprints: np.ndarray,
-    selection_bins: np.ndarray = np.array([(x/10, x/10 + 0.1) for x in range(0, 10)]),
-    max_pairs_per_bin: int = 20,
-    include_diagonal: bool = True):
-    """For each inchikey for each bin matches are stored within this bin """
+@numba.njit
+def compute_jaccard_similarity_per_bin(
+        fingerprints: np.ndarray,
+        selection_bins: np.ndarray = np.array([(x/10, x/10 + 0.1) for x in range(0, 10)]),
+        max_pairs_per_bin: int = 20,
+        include_diagonal: bool = True) -> List[List[Tuple[int, float]]]:
+    """For each inchikey for each bin matches are stored within this bin
+
+    fingerprints
+        Fingerprint vectors as 2D numpy array.
+    selection_bins
+        List of tuples with upper and lower bound for score bins.
+        The goal is to pick equal numbers of pairs for each score bin.
+        Sidenote: bins do not have to be of equal size, nor do they have to cover the entire
+        range of the used scores.
+    max_pairs_per_bin
+        Specifies the desired maximum number of pairs to be added for each score bin.
+
+    returns:
+        A list were the indexes are the bin numbers. This contains Lists were the index is the spectrum_i index.
+        This list contains a Tuple, with first the spectrum_j index and second the score.
+    """
     # pylint: disable=too-many-locals
     size = fingerprints.shape[0]
     # initialize storing scores
@@ -194,13 +209,12 @@ def compute_jaccard_similarity_matrix_cherrypicking(
                 continue
             scores_row[j] = jaccard_index(fingerprints[i, :], fingerprints[j, :])
 
-        # Cherrypicking
+        # Select pairs per bin with a maximum of max_pairs_per_bin
         for bin_number, selection_bin in enumerate(selection_bins):
             selected_pairs_per_bin[bin_number].append([])
             # Indices of scores within the current bin
             idx = np.where((scores_row > selection_bin[0]) & (scores_row <= selection_bin[1]))[0]
             # Randomly select up to max_pairs_per_bin scores within the bin
-            #if len(idx) > 0:
             np.random.shuffle(idx)
             idx_selected = idx[:max_pairs_global[bin_number]]
             for index in idx_selected:
@@ -242,7 +256,7 @@ def fix_bias(fingerprints: np.ndarray,
     if fix_global_bias:
         # todo make the nr of times the max pair is used a variable, with as option "inf" meaning it will store everything it finds for each bin. (for anyone without memory constraints and difficult bins)
         max_pairs_per_bin = max_pairs_per_bin*2
-    selected_pairs_per_bin = compute_jaccard_similarity_matrix_cherrypicking(
+    selected_pairs_per_bin = compute_jaccard_similarity_per_bin(
         fingerprints,
         selection_bins,
         max_pairs_per_bin,
