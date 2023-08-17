@@ -164,6 +164,7 @@ def test_SCP_shuffle(dummy_data):
     original_cols = [r.copy() for r in scp._cols]
     original_scores = [s.copy() for s in scp._scores]
 
+    np.random.seed(7)
     scp.shuffle()
 
     # Check that the data has been shuffled
