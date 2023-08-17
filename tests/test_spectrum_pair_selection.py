@@ -1,16 +1,11 @@
 import numpy as np
 import pytest
-from scipy.sparse import coo_array
 from matchms import Spectrum
+from scipy.sparse import coo_array
 from ms2deepscore.spectrum_pair_selection import (
-    select_inchi_for_unique_inchikeys,
-    SelectedCompoundPairs,
-    try_cut_off,
-    find_correct_max_nr_of_pairs,
-    fix_bias,
-    compute_jaccard_similarity_per_bin,
-    convert_selected_pairs_per_bin_to_coo_array
-    )
+    SelectedCompoundPairs, compute_jaccard_similarity_per_bin,
+    convert_selected_pairs_per_bin_to_coo_array, find_correct_max_nr_of_pairs,
+    fix_bias, select_inchi_for_unique_inchikeys, try_cut_off)
 
 
 @pytest.fixture

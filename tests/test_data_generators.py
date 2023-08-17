@@ -4,15 +4,15 @@ import pandas as pd
 import pytest
 from matchms import Spectrum
 from ms2deepscore import SpectrumBinner
-from ms2deepscore.data_generators import (DataGeneratorCherrypicked,
-                                          DataGeneratorAllInchikeys,
+from ms2deepscore.data_generators import (DataGeneratorAllInchikeys,
                                           DataGeneratorAllSpectrums,
+                                          DataGeneratorCherrypicked,
                                           _exclude_nans_from_labels,
                                           _validate_labels)
 from ms2deepscore.MetadataFeatureGenerator import (CategoricalToBinary,
                                                    StandardScaler)
-from ms2deepscore.spectrum_pair_selection import (compute_spectrum_pairs,
-    SelectedCompoundPairs)
+from ms2deepscore.spectrum_pair_selection import (SelectedCompoundPairs,
+                                                  compute_spectrum_pairs)
 from tests.test_user_worfklow import (get_reference_scores,
                                       load_processed_spectrums)
 

@@ -1,5 +1,5 @@
-from typing import List, Tuple
 from collections import Counter
+from typing import List, Tuple
 import numba
 import numpy as np
 from matchms import Spectrum
