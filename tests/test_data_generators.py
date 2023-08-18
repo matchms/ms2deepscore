@@ -11,8 +11,8 @@ from ms2deepscore.data_generators import (DataGeneratorAllInchikeys,
                                           _validate_labels)
 from ms2deepscore.MetadataFeatureGenerator import (CategoricalToBinary,
                                                    StandardScaler)
-from ms2deepscore.spectrum_pair_selection import (SelectedCompoundPairs,
-                                                  select_spectrum_pairs_wrapper)
+from ms2deepscore.spectrum_pair_selection import (
+    SelectedCompoundPairs, select_spectrum_pairs_wrapper)
 from tests.test_user_worfklow import (get_reference_scores,
                                       load_processed_spectrums)
 
