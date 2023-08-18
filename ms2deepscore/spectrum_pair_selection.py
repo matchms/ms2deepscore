@@ -208,14 +208,26 @@ def compute_jaccard_similarity_per_bin(
 
 
 def fix_bias(selected_pairs_per_bin, expected_average_pairs_per_bin):
-    """Corrects for bias and """
+    """
+    Adjusts the selected pairs for each bin to align with the expected average pairs per bin.
+    
+    This function modifies the number of pairs in each bin to be closer to the 
+    expected average pairs per bin by truncating or extending the pairs.
+    
+    Parameters
+    ----------
+    selected_pairs_per_bin: list of list
+        The list containing bins and for each bin, the list of pairs for each spectrum.
+    expected_average_pairs_per_bin: int
+        The expected average number of pairs per bin.
+    """
     for bin_nr, scores_per_spectrum in enumerate(selected_pairs_per_bin):
         # Calculate the nr_of_pairs_in_bin_per_spectrum
-        nr_of_pairs_in_bin = []
-        for spectrum_i_idx, score_and_idx in enumerate(scores_per_spectrum):
-            nr_of_pairs_in_bin.append(len(score_and_idx))
-        # find the correct max_nr_of_pairs to get the average_pairs_per_bin
+        nr_of_pairs_in_bin = [len(score_and_idx) for score_and_idx in scores_per_spectrum]
+
+        # Find the correct max_nr_of_pairs to get the average_pairs_per_bin
         difference, max_nr_of_pairs = find_correct_max_nr_of_pairs(nr_of_pairs_in_bin, expected_average_pairs_per_bin)
+
         # Use the new cut_of
         for spectrum_i_idx, score_and_idx in enumerate(scores_per_spectrum):
             if difference > 0 and len(score_and_idx) >= max_nr_of_pairs:
@@ -233,23 +245,24 @@ def try_cut_off(nr_of_pairs_in_bin_per_spectrum: List[int],
                 cut_off: int) -> float:
     """Calculate the average in a list if a cut_off is used.
 
-    e.g. nr_of_pairs_in_bin_per_spectrum = [2,5,7], cut_off = 4 -> [2,4,4] -> total_nr_of_pairs = 10, average = 3,33
+    For example:
+    If nr_of_pairs_per_spectrum = [2,5,7] and cut_off = 4, then the result will be:
+    [2,4,4], total number of pairs = 10, and the average = 3.33.
 
-    :param nr_of_pairs_in_bin_per_spectrum:
-        A list with the number of pairs found for each inchikey (for one bin)
-    :param cut_off:
+    Parameters
+    ----------
+    nr_of_pairs_in_bin_per_spectrum: List[int]
+        A list containing the number of pairs found for each InChIKey (for a single bin).
+    cut_off: int
         The maximum number of pairs that should be stored.
-    :return:
-        The average nr_of_pairs
     """
-    total_nr_of_pairs = 0
-    for nr_of_pairs_in_bin in nr_of_pairs_in_bin_per_spectrum:
-        if nr_of_pairs_in_bin <= cut_off:
-            total_nr_of_pairs += nr_of_pairs_in_bin
-        else:
-            total_nr_of_pairs += cut_off
-    average_nr_of_pairs = total_nr_of_pairs / len(nr_of_pairs_in_bin_per_spectrum)
-    return average_nr_of_pairs
+    total_nr_of_pairs = sum(min(nr_of_pairs, cut_off) for nr_of_pairs in nr_of_pairs_in_bin_per_spectrum)
+
+    num_spectra = len(nr_of_pairs_in_bin_per_spectrum)
+    if num_spectra == 0:
+        return 0.0
+
+    return total_nr_of_pairs / num_spectra
 
 
 def find_correct_max_nr_of_pairs(nr_of_pairs_in_bin_per_spectrum: List[int], expected_average_nr_of_pairs: int):
