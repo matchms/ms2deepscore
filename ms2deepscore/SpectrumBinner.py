@@ -1,15 +1,14 @@
 import json
 from typing import List, Tuple
-from tqdm import tqdm
 from matchms.typing import SpectrumType
-
+from tqdm import tqdm
+from ms2deepscore.MetadataFeatureGenerator import (MetadataFeatureGenerator,
+                                                   load_from_json)
 from .BinnedSpectrum import BinnedSpectrum
+from .spectrum_binning_fixed import (create_peak_list_fixed, set_d_bins_fixed,
+                                     unique_peaks_fixed)
 from .typing import BinnedSpectrumType
-from .spectrum_binning_fixed import create_peak_list_fixed
-from .spectrum_binning_fixed import set_d_bins_fixed
-from .spectrum_binning_fixed import unique_peaks_fixed
 from .utils import create_peak_dict
-from ms2deepscore.MetadataFeatureGenerator import MetadataFeatureGenerator, load_from_json
 
 
 class SpectrumBinner:
@@ -70,7 +69,7 @@ class SpectrumBinner:
                               binner_dict["mz_max"], binner_dict["mz_min"],
                               binner_dict["peak_scaling"],
                               binner_dict["allowed_missing_percentage"])
-        if "additional_metadata" in binner_dict:
+        if "additional_metadata" in binner_dict and binner_dict.get("additional_metadata") is not None:
             spectrum_binner.additional_metadata = load_from_json(binner_dict["additional_metadata"])
         spectrum_binner.peak_to_position = {int(key): value for key, value in binner_dict["peak_to_position"].items()}
         spectrum_binner.known_bins = binner_dict["known_bins"]

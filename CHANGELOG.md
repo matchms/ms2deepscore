@@ -7,8 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.0] - 2023-08-18
+
 ### Added
 
+- New `DataGeneratorCherrypicked` as alternative to former data generators [#145](https://github.com/matchms/ms2deepscore/pull/145). This will work better for large datasets and also tried to counteract biases in the chemical similarity scores.
 - Models can now be trained on selected metadata entries in addition to the spectrum peaks [#128](https://github.com/matchms/ms2deepscore/pull/128).
 - New `MetadataFeatureGenerator` class to handle additional metadata more robustly [#128](https://github.com/matchms/ms2deepscore/pull/128)
 - Workflow scripts for training a new MS2DeepScore model [#124](https://github.com/matchms/ms2deepscore/pull/124). The ease of training MS2Deepscore models is improved, including standard settings and splitting validation and training data.
@@ -17,6 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - In SiameseModel, the attributes are not passed as an argument but instead used by the class.
 - Improved plotting functionality. Some additional plotting options were added and plots previously created in notebooks are now functions.
+- Linting (code and imports) [#145](https://github.com/matchms/ms2deepscore/pull/145).
 
 
 ## [0.4.0] - 2023-04-25
@@ -125,7 +129,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - This is the initial version of MS2DeepScore
 
-[Unreleased]: https://github.com/matchms/ms2deepscore/compare/0.4.0...HEAD
+[Unreleased]: https://github.com/matchms/ms2deepscore/compare/0.5.0...HEAD
+[0.5.0]: https://github.com/matchms/ms2deepscore/compare/0.4.0...0.5.0
 [0.4.0]: https://github.com/matchms/ms2deepscore/compare/0.3.1...0.4.0
 [0.3.1]: https://github.com/matchms/ms2deepscore/compare/0.3.1...0.3.1
 [0.3.0]: https://github.com/matchms/ms2deepscore/compare/0.2.3...0.3.0

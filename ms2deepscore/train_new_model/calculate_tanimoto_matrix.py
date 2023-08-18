@@ -1,17 +1,16 @@
 """
-This script is not needed for normally running MS2Query, it is only needed to generate a new library or to train
-new models
+This script contains wrapper function to train a MS2DeepScore model.
+TODO: Should better be using matchms functions (which are now only available as part of a filter)
 """
-from collections import Counter
 from typing import List
-
+import numpy as np
 import pandas as pd
 from matchms import Spectrum
-import numpy as np
-
-from matchms.similarity.vector_similarity_functions import jaccard_similarity_matrix
+from matchms.similarity.vector_similarity_functions import \
+    jaccard_similarity_matrix
 from rdkit import Chem
 from tqdm import tqdm
+from ..spectrum_pair_selection import select_inchi_for_unique_inchikeys
 
 
 def calculate_tanimoto_scores_unique_inchikey(
@@ -43,39 +42,6 @@ def calculate_tanimoto_scores_unique_inchikey(
         tanimoto_scores, index=unique_inchikeys_1, columns=unique_inchikeys_2
     )
     return tanimoto_df
-
-
-def select_inchi_for_unique_inchikeys(
-    list_of_spectra: List[Spectrum],
-) -> (List[Spectrum], List[str]):
-    """ "Select spectra with most frequent inchi for unique inchikeys
-
-    Method needed to calculate tanimoto scores"""
-    # Select all inchi's and inchikeys from spectra metadata
-    inchikeys_list = []
-    inchi_list = []
-    for s in list_of_spectra:
-        inchikeys_list.append(s.get("inchikey"))
-        inchi_list.append(s.get("inchi"))
-    inchi_array = np.array(inchi_list)
-    inchikeys14_array = np.array([x[:14] for x in inchikeys_list])
-
-    # Select unique inchikeys
-    inchikeys14_unique = sorted(list({x[:14] for x in inchikeys_list}))
-
-    spectra_with_most_frequent_inchi_per_unique_inchikey = []
-    for inchikey14 in inchikeys14_unique:
-        # Select inchis for inchikey14
-        idx = np.where(inchikeys14_array == inchikey14)[0]
-        inchis_for_inchikey14 = [list_of_spectra[i].get("inchi") for i in idx]
-        # Select the most frequent inchi per inchikey
-        inchi = Counter(inchis_for_inchikey14).most_common(1)[0][0]
-        # Store the ID of the spectrum with the most frequent inchi
-        ID = idx[np.where(inchi_array[idx] == inchi)[0][0]]
-        spectra_with_most_frequent_inchi_per_unique_inchikey.append(
-            list_of_spectra[ID].clone()
-        )
-    return spectra_with_most_frequent_inchi_per_unique_inchikey, inchikeys14_unique
 
 
 def calculate_tanimoto_scores_from_smiles(

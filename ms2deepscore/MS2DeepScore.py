@@ -3,10 +3,8 @@ import numpy as np
 from matchms import Spectrum
 from matchms.similarity.BaseSimilarity import BaseSimilarity
 from tqdm import tqdm
-
-from .vector_operations import cosine_similarity
-from .vector_operations import cosine_similarity_matrix
 from .typing import BinnedSpectrumType
+from .vector_operations import cosine_similarity, cosine_similarity_matrix
 
 
 class MS2DeepScore(BaseSimilarity):

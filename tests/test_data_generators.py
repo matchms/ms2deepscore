@@ -1,16 +1,20 @@
+import string
 import numpy as np
 import pandas as pd
 import pytest
-import string
 from matchms import Spectrum
-
 from ms2deepscore import SpectrumBinner
-from ms2deepscore.MetadataFeatureGenerator import StandardScaler, CategoricalToBinary
 from ms2deepscore.data_generators import (DataGeneratorAllInchikeys,
                                           DataGeneratorAllSpectrums,
+                                          DataGeneratorCherrypicked,
                                           _exclude_nans_from_labels,
                                           _validate_labels)
-from tests.test_user_worfklow import load_processed_spectrums, get_reference_scores
+from ms2deepscore.MetadataFeatureGenerator import (CategoricalToBinary,
+                                                   StandardScaler)
+from ms2deepscore.spectrum_pair_selection import (SelectedCompoundPairs,
+                                                  select_spectrum_pairs_wrapper)
+from tests.test_user_worfklow import (get_reference_scores,
+                                      load_processed_spectrums)
 
 
 def create_dummy_data():
@@ -70,6 +74,80 @@ def collect_results(generator, batch_size, dimension):
         X[:, :, 1, i] = batch[0][1]
         y[:, i] = batch[1]
     return X, y
+
+
+def test_DataGeneratorCherrypicked():
+    """Test DataGeneratorCherrypicked using generated data.
+    """
+    # Define other parameters
+    batch_size = 8
+    mz, intens = 100.0, 0.1
+    spectrums = []
+    num_of_unique_inchikeys = 15
+    letters = list(string.ascii_uppercase[:num_of_unique_inchikeys])
+    letters += letters
+
+    def generate_binary_vector(n):
+        binary_vector = np.zeros(10, dtype=int)
+        binary_vector[i % 3] = 1
+        binary_vector[i % 5 + 3] = 1
+        binary_vector[i % 4] = 1
+        binary_vector[i % 10] = 1
+        binary_vector[8 - i // 9] = 1
+        binary_vector[6 - i // 15] = 1
+        return binary_vector
+
+    # Create fake spectra
+    fake_inchikeys = []
+    for i, letter in enumerate(letters):
+        dummy_inchikey = f"{14 * letter}-{10 * letter}-N"
+        fingerprint = generate_binary_vector(i)
+        fake_inchikeys.append(dummy_inchikey)
+        spectrums.append(Spectrum(mz=np.array([mz + (i+1) * 25.0]), intensities=np.array([intens]),
+                                metadata={"precursor_mz": 111.1,
+                                            "inchikey": dummy_inchikey,
+                                            "compound_name": letter,
+                                            "fingerprint": fingerprint,
+                                            }))
+
+    ms2ds_binner = SpectrumBinner(100, mz_min=10.0, mz_max=1000.0, peak_scaling=1)
+    binned_spectrums = ms2ds_binner.fit_transform(spectrums)
+    dimension = len(ms2ds_binner.known_bins)
+
+    scp = select_spectrum_pairs_wrapper(
+        spectrums,
+        selection_bins=np.array([(x/4, x/4 + 0.25) for x in range(0, 4)]),
+        average_pairs_per_bin=1)
+    # Create generator
+    test_generator = DataGeneratorCherrypicked(binned_spectrums=binned_spectrums,
+                                               spectrum_binner=ms2ds_binner,
+                                               selected_compound_pairs=scp,
+                                               batch_size=batch_size,
+                                               augment_removal_max=0.0,
+                                               augment_removal_intensity=0.0,
+                                               augment_intensity=0.0,
+                                               augment_noise_max=0)
+
+    x, y = test_generator.__getitem__(0)
+    assert x[0].shape == x[1].shape == (batch_size, dimension), "Expected different data shape"
+    assert y.shape[0] == batch_size
+    assert set(test_generator.indexes) == set(list(range(num_of_unique_inchikeys))), "Something wrong with generator indices"
+
+    # Test many cycles --> scores properly distributed into bins?
+    counts = []
+    repetitions = 100
+    total = batch_size * repetitions
+    for _ in range(repetitions):
+        for i, batch in enumerate(test_generator):
+            counts.extend(list(batch[1]))
+    assert len(counts) == total
+    assert (np.array(counts) > 0.5).sum() > 0.4 * total
+    assert (np.array(counts) <= 0.5).sum() > 0.4 * total
+    # Check mostly equal distribution accross all four bins:
+    assert (np.array(counts) <= 0.25).sum() > 0.22 * total
+    assert ((np.array(counts) > 0.25) & (np.array(counts) <= 0.5)).sum() > 0.22 * total
+    assert ((np.array(counts) > 0.5) & (np.array(counts) <= 0.75)).sum() > 0.22 * total
+    assert (np.array(counts) > 0.75).sum() > 0.22 * total
 
 
 def test_DataGeneratorAllInchikeys():

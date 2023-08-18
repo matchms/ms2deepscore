@@ -1,12 +1,11 @@
 """ Data generators for training/inference with siamese Keras model.
 """
 import warnings
-from typing import List, Iterator, NamedTuple, Optional
-
+from typing import Iterator, List, NamedTuple, Optional
 import numpy as np
 import pandas as pd
 from tensorflow.keras.utils import Sequence  # pylint: disable=import-error
-
+from ms2deepscore.spectrum_pair_selection import SelectedCompoundPairs
 from ms2deepscore.SpectrumBinner import SpectrumBinner
 from .typing import BinnedSpectrumType
 
@@ -17,6 +16,7 @@ class SpectrumPair(NamedTuple):
     """
     spectrum1: BinnedSpectrumType
     spectrum2: BinnedSpectrumType
+    score: float
 
 
 class DataGeneratorBase(Sequence):
@@ -211,7 +211,7 @@ class DataGeneratorBase(Sequence):
         if self.settings["random_seed"] is not None and batch_index == 0:
             np.random.seed(self.settings["random_seed"])
         spectrum_pairs = self._spectrum_pair_generator(batch_index)
-        X, y = self.__data_generation(spectrum_pairs)
+        X, y = self._data_generation(spectrum_pairs)
         if self.settings['use_fixed_set']:
             # Store batches for later epochs
             self.fixed_set[batch_index] = (X, y)
@@ -268,13 +268,11 @@ class DataGeneratorBase(Sequence):
         assert len(matching_spectrum_id) > 0, "No matching inchikey found (note: expected first 14 characters)"
         return self.binned_spectrums[np.random.choice(matching_spectrum_id)]
 
-    def __data_generation(self, spectrum_pairs: Iterator[SpectrumPair]):
+    def _data_generation(self, spectrum_pairs: Iterator[SpectrumPair]):
         """Generates data containing batch_size samples"""
         container_list = []
         for pair in spectrum_pairs:
             container_list.append(Container(pair,
-                                            self.reference_scores_df[pair[0].get(
-                                                "inchikey")[:14]][pair[1].get("inchikey")[:14]],
                                             self.dim,
                                             self._data_augmentation,
                                             self.additional_metadata))
@@ -332,8 +330,8 @@ class DataGeneratorAllSpectrums(DataGeneratorBase):
             depicting the similarity score for that pair. Must be symmetric
             (reference_scores_df[i,j] == reference_scores_df[j,i]) and column names should be
             identical to the index and unique.
-        dim
-            Input vector dimension.
+        spectrum_binner
+            SpectrumBinner which was used to convert the data to the binned_spectrums.
         As part of **settings, defaults for the following parameters can be set:
         batch_size
             Number of pairs per batch. Default=32.
@@ -387,7 +385,8 @@ class DataGeneratorAllSpectrums(DataGeneratorBase):
             target_score_range = same_prob_bins[np.random.choice(np.arange(len(same_prob_bins)))]
             inchikey2 = self._find_match_in_range(inchikey1, target_score_range)
             spectrum2 = self._get_spectrum_with_inchikey(inchikey2)
-            yield SpectrumPair(spectrum1, spectrum2)
+            score = self.reference_scores_df[inchikey1][inchikey2]
+            yield SpectrumPair(spectrum1, spectrum2, score)
 
     def on_epoch_end(self):
         """Updates indexes after each epoch"""
@@ -434,8 +433,8 @@ class DataGeneratorAllInchikeys(DataGeneratorBase):
             (reference_scores_df[i,j] == reference_scores_df[j,i]) and column names should be identical to the index.
         selected_inchikeys
             List of inchikeys to use for training.
-        dim
-            Input vector dimension.
+        spectrum_binner
+            SpectrumBinner which was used to convert the data to the binned_spectrums.
         As part of **settings, defaults for the following parameters can be set:
         batch_size
             Number of pairs per batch. Default=32.
@@ -475,6 +474,7 @@ class DataGeneratorAllInchikeys(DataGeneratorBase):
         This is expected behavior, with the shuffling this is OK.
         """
         return int(self.settings["num_turns"]) * int(np.floor(len(self.reference_scores_df) / self.settings["batch_size"]))
+
     def _spectrum_pair_generator(self, batch_index: int) -> Iterator[SpectrumPair]:
         """
         Generate spectrum pairs for batch. For each 'source' inchikey pick an inchikey in the
@@ -491,16 +491,119 @@ class DataGeneratorAllInchikeys(DataGeneratorBase):
             inchikey2 = self._find_match_in_range(inchikey1, target_score_range)
             spectrum1 = self._get_spectrum_with_inchikey(inchikey1)
             spectrum2 = self._get_spectrum_with_inchikey(inchikey2)
-            yield SpectrumPair(spectrum1, spectrum2)
+            score = self.reference_scores_df[inchikey1][inchikey2]
+            yield SpectrumPair(spectrum1, spectrum2, score)
+
     @ staticmethod
     def _data_selection(reference_scores_df, selected_inchikeys):
         """
         Select labeled data to generate from based on `selected_inchikeys`
         """
         return reference_scores_df.loc[selected_inchikeys, selected_inchikeys]
+
     def on_epoch_end(self):
         """Updates indexes after each epoch"""
         self.indexes = np.tile(np.arange(len(self.reference_scores_df)), int(self.settings["num_turns"]))
+        if self.settings["shuffle"]:
+            np.random.shuffle(self.indexes)
+
+
+class DataGeneratorCherrypicked(DataGeneratorBase):
+
+    def __init__(self, binned_spectrums: List[BinnedSpectrumType],
+                 selected_compound_pairs: SelectedCompoundPairs,
+                 spectrum_binner: SpectrumBinner,
+                 **settings):
+        """Generates data for training a siamese Keras model.
+
+        Parameters
+        ----------
+        binned_spectrums
+            List of BinnedSpectrum objects with the binned peak positions and intensities.
+        selected_compound_pairs
+            SelectedCompoundPairs object which contains selected compounds pairs and the
+            respective similarity scores.
+        spectrum_binner
+            SpectrumBinner which was used to convert the data to the binned_spectrums.
+        As part of **settings, defaults for the following parameters can be set:
+        batch_size
+            Number of pairs per batch. Default=32.
+        num_turns
+            Number of pairs for each InChiKey during each epoch. Default=1.
+        shuffle
+            Set to True to shuffle IDs every epoch. Default=True
+        ignore_equal_pairs
+            Set to True to ignore pairs of two identical spectra. Default=True
+        same_prob_bins
+            List of tuples that define ranges of the true label to be trained with
+            equal frequencies. Default is set to [(0, 0.5), (0.5, 1)], which means
+            that pairs with scores <=0.5 will be picked as often as pairs with scores
+            > 0.5.
+        augment_removal_max
+            Maximum fraction of peaks (if intensity < below augment_removal_intensity)
+            to be removed randomly. Default is set to 0.2, which means that between
+            0 and 20% of all peaks with intensities < augment_removal_intensity
+            will be removed.
+        augment_removal_intensity
+            Specifying that only peaks with intensities < max_intensity will be removed.
+        augment_intensity
+            Change peak intensities by a random number between 0 and augment_intensity.
+            Default=0.1, which means that intensities are multiplied by 1+- a random
+            number within [0, 0.1].
+        """
+        self.binned_spectrums = binned_spectrums
+        # Collect all inchikeys
+        self.spectrum_inchikeys = np.array([s.get("inchikey")[:14] for s in self.binned_spectrums])
+        # self._validate_indexes()
+
+        # Set all other settings to input (or otherwise to defaults):
+        self._set_generator_parameters(**settings)
+        self.dim = len(spectrum_binner.known_bins)
+        additional_metadata = spectrum_binner.additional_metadata
+        if len(additional_metadata) > 0:
+            self.additional_metadata = \
+                [additional_feature_type.to_json() for additional_feature_type in additional_metadata]
+        else:
+            self.additional_metadata = ()
+        self.fixed_set = {}
+        self.selected_compound_pairs = selected_compound_pairs
+        self.on_epoch_end()
+
+    def __getitem__(self, batch_index: int):
+        """Generate one batch of data.
+
+        If use_fixed_set=True we try retrieving the batch from self.fixed_set (or store it if
+        this is the first epoch). This ensures a fixed set of data is generated each epoch.
+        """
+        if self.settings['use_fixed_set'] and batch_index in self.fixed_set:
+            return self.fixed_set[batch_index]
+        if self.settings["random_seed"] is not None and batch_index == 0:
+            np.random.seed(self.settings["random_seed"])
+        spectrum_pairs = self._spectrum_pair_generator(batch_index)
+        X, y = self._data_generation(spectrum_pairs)
+        if self.settings['use_fixed_set']:
+            # Store batches for later epochs
+            self.fixed_set[batch_index] = (X, y)
+        return X, y
+
+    def __len__(self):
+        return int(self.settings["num_turns"])\
+            * int(np.floor(len(self.selected_compound_pairs.scores) / self.settings["batch_size"]))
+
+    def _spectrum_pair_generator(self, batch_index: int) -> Iterator[SpectrumPair]:
+        """Use the provided SelectedCompoundPairs object to pick pairs."""
+        batch_size = self.settings["batch_size"]
+        indexes = self.indexes[batch_index * batch_size:(batch_index + 1) * batch_size]
+        for index in indexes:
+            inchikey1 = self.selected_compound_pairs.idx_to_inchikey[index]
+            score, inchikey2 = self.selected_compound_pairs.next_pair_for_inchikey(inchikey1)
+            spectrum1 = self._get_spectrum_with_inchikey(inchikey1)
+            spectrum2 = self._get_spectrum_with_inchikey(inchikey2)
+            yield SpectrumPair(spectrum1, spectrum2, score)
+
+    def on_epoch_end(self):
+        """Updates indexes after each epoch"""
+        self.indexes = np.tile(np.arange(len(self.selected_compound_pairs.scores)), int(self.settings["num_turns"]))
         if self.settings["shuffle"]:
             np.random.shuffle(self.indexes)
 
@@ -509,7 +612,7 @@ class Container:
     """
     Helper class for DataGenerator
     """
-    def __init__(self, spectrum_pair, tanimoto_score, dim, _data_augmentation, additional_inputs=None):
+    def __init__(self, spectrum_pair, dim, _data_augmentation, additional_inputs=None):
         self.spectrum_left = spectrum_pair[0]
         self.spectrum_right = spectrum_pair[1]
         self.spectrum_values_left = np.zeros((dim, ))
@@ -523,7 +626,7 @@ class Container:
         for additional_input in additional_inputs:
             self.additional_inputs_left.append([float(self.spectrum_left.get(additional_input))])
             self.additional_inputs_right.append([float(self.spectrum_right.get(additional_input))])
-        self.tanimoto_score = tanimoto_score
+        self.tanimoto_score = spectrum_pair[2]
 
 
 def _clean_reference_scores_df(reference_scores_df):

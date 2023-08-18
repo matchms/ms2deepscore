@@ -1,10 +1,7 @@
 import numpy as np
-from ms2deepscore.plotting import (
-    create_confusion_matrix_plot,
-    create_histograms_plot,
-    plot_histograms,
-    calculate_histograms
-)
+from ms2deepscore.plotting import (calculate_histograms,
+                                   create_confusion_matrix_plot,
+                                   create_histograms_plot, plot_histograms)
 
 
 mock_reference_scores = np.random.random((100, 100))

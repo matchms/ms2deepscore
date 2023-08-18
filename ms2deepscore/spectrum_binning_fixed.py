@@ -2,8 +2,8 @@
 """
 from typing import List
 import numpy as np
-from tqdm import tqdm
 from matchms import Spectrum
+from tqdm import tqdm
 
 
 def create_peak_list_fixed(spectrums, peaks_vocab, d_bins,

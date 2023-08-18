@@ -1,9 +1,9 @@
 import os
+import random
 from typing import List, Tuple
 from matchms import Spectrum
-import random
 from tqdm import tqdm
-from ms2deepscore.utils import save_pickled_file, load_pickled_file
+from ms2deepscore.utils import load_pickled_file, save_pickled_file
 
 
 def select_unique_inchikeys(spectra):

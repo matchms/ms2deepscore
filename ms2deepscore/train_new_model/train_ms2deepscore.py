@@ -4,22 +4,19 @@ This script is not needed for normally running MS2Deepscore, it is only needed t
 
 import os
 from os import PathLike
-from typing import List, Dict, Optional, Union
+from typing import Dict, List, Optional, Union
 import numpy as np
 import tensorflow as tf
-from matplotlib import pyplot as plt
 from matchms import Spectrum
+from matplotlib import pyplot as plt
 from ms2deepscore import SpectrumBinner
 from ms2deepscore.data_generators import DataGeneratorAllInchikeys
 from ms2deepscore.models import SiameseModel
-from ms2deepscore.train_new_model.calculate_tanimoto_matrix import (
-    calculate_tanimoto_scores_unique_inchikey,
-)
-from ms2deepscore.utils import (
-    save_pickled_file,
-    return_non_existing_file_name,
-    load_pickled_file,
-)
+from ms2deepscore.train_new_model.calculate_tanimoto_matrix import \
+    calculate_tanimoto_scores_unique_inchikey
+from ms2deepscore.utils import (load_pickled_file,
+                                return_non_existing_file_name,
+                                save_pickled_file)
 
 
 def bin_spectra(

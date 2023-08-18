@@ -2,10 +2,10 @@ import os
 import numpy as np
 import pytest
 from matchms import Spectrum
-from ms2deepscore.spectrum_binning_linear import bin_number_array_linear
-from ms2deepscore.spectrum_binning_linear import create_peak_list_linear
-from ms2deepscore.spectrum_binning_linear import set_d_bins_linear
-from ms2deepscore.spectrum_binning_linear import unique_peaks_linear
+from ms2deepscore.spectrum_binning_linear import (bin_number_array_linear,
+                                                  create_peak_list_linear,
+                                                  set_d_bins_linear,
+                                                  unique_peaks_linear)
 
 
 def test_create_peak_list_linear():

@@ -2,8 +2,8 @@ from pathlib import Path
 from typing import Tuple, Union
 import h5py
 from tensorflow import keras
-from tensorflow.keras.layers import BatchNormalization, Dense, Dropout, Input, concatenate  # pylint: disable=import-error
-
+from tensorflow.keras.layers import (  # pylint: disable=import-error
+    BatchNormalization, Dense, Dropout, Input, concatenate)
 from ms2deepscore import SpectrumBinner
 
 
