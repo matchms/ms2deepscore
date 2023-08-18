@@ -4,15 +4,15 @@ import pandas as pd
 import pytest
 from matchms import Spectrum
 from ms2deepscore import SpectrumBinner
-from ms2deepscore.data_generators import (DataGeneratorCherrypicked,
-                                          DataGeneratorAllInchikeys,
+from ms2deepscore.data_generators import (DataGeneratorAllInchikeys,
                                           DataGeneratorAllSpectrums,
+                                          DataGeneratorCherrypicked,
                                           _exclude_nans_from_labels,
                                           _validate_labels)
 from ms2deepscore.MetadataFeatureGenerator import (CategoricalToBinary,
                                                    StandardScaler)
-from ms2deepscore.spectrum_pair_selection import (compute_spectrum_pairs,
-    SelectedCompoundPairs)
+from ms2deepscore.spectrum_pair_selection import (SelectedCompoundPairs,
+                                                  select_spectrum_pairs_wrapper)
 from tests.test_user_worfklow import (get_reference_scores,
                                       load_processed_spectrums)
 
@@ -114,20 +114,19 @@ def test_DataGeneratorCherrypicked():
     binned_spectrums = ms2ds_binner.fit_transform(spectrums)
     dimension = len(ms2ds_binner.known_bins)
 
-    scores_selected, inchikeys14 = compute_spectrum_pairs(
+    scp = select_spectrum_pairs_wrapper(
         spectrums,
         selection_bins=np.array([(x/4, x/4 + 0.25) for x in range(0, 4)]),
-        max_pairs_per_bin=1)
-    scp = SelectedCompoundPairs(scores_selected, inchikeys14)
-        # Create generator
+        average_pairs_per_bin=1)
+    # Create generator
     test_generator = DataGeneratorCherrypicked(binned_spectrums=binned_spectrums,
-                                                spectrum_binner=ms2ds_binner,
-                                                selected_compound_pairs=scp,
-                                                batch_size=batch_size,
-                                                augment_removal_max=0.0,
-                                                augment_removal_intensity=0.0,
-                                                augment_intensity=0.0,
-                                                augment_noise_max=0)
+                                               spectrum_binner=ms2ds_binner,
+                                               selected_compound_pairs=scp,
+                                               batch_size=batch_size,
+                                               augment_removal_max=0.0,
+                                               augment_removal_intensity=0.0,
+                                               augment_intensity=0.0,
+                                               augment_noise_max=0)
 
     x, y = test_generator.__getitem__(0)
     assert x[0].shape == x[1].shape == (batch_size, dimension), "Expected different data shape"
