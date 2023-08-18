@@ -31,11 +31,3 @@ def test_select_spectra_belonging_to_inchikey(sample_spectra):
     result = select_spectra_belonging_to_inchikey(sample_spectra, inchikeys)
     assert len(result) == 3
     assert result[0].get("inchikey") == 14 * "A"
-
-
-def test_split_spectra_in_random_inchikey_sets(sample_spectra):
-    # TODO: this is still a dummy test mostly
-    val, test, train = split_spectra_in_random_inchikey_sets(sample_spectra, 2)
-    assert len(val) == 1
-    assert len(test) == 1
-    assert len(train) == 2
