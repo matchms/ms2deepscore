@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.0] - 2023-08-18
+
 ### Added
 
 - New `DataGeneratorCherrypicked` as alternative to former data generators [#145](https://github.com/matchms/ms2deepscore/pull/145). This will work better for large datasets and also tried to counteract biases in the chemical similarity scores.
@@ -127,7 +129,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - This is the initial version of MS2DeepScore
 
-[Unreleased]: https://github.com/matchms/ms2deepscore/compare/0.4.0...HEAD
+[Unreleased]: https://github.com/matchms/ms2deepscore/compare/0.5.0...HEAD
+[0.5.0]: https://github.com/matchms/ms2deepscore/compare/0.4.0...0.5.0
 [0.4.0]: https://github.com/matchms/ms2deepscore/compare/0.3.1...0.4.0
 [0.3.1]: https://github.com/matchms/ms2deepscore/compare/0.3.1...0.3.1
 [0.3.0]: https://github.com/matchms/ms2deepscore/compare/0.2.3...0.3.0
