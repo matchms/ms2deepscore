@@ -4,7 +4,7 @@ from matplotlib import pyplot as plt
 from ms2deepscore import MS2DeepScore
 from ms2deepscore.models import load_model
 from ms2deepscore.plotting import create_histograms_plot
-from ms2deepscore.utils import load_pickled_file, save_pickled_file
+from ms2deepscore.utils import load_pickled_file, save_pickled_file, create_dir_if_missing
 
 
 def get_tanimoto_indexes(tanimoto_df, spectra):
@@ -123,10 +123,10 @@ def benchmark_wrapper(
     print(summary)
 
 
-def create_all_plots(model_folder_name):
-    data_dir = "../../../../data/"
-    model_folder = f"../../../../data/trained_models/{model_folder_name}"
-
+def create_all_plots(data_dir,
+                     model_folder):
+    model_folder = os.path.join(data_dir, model_folder)
+    # todo Maybe replace with load_val_and_train in wrapper functions
     positive_validation_spectra = load_pickled_file(
         os.path.join(
             data_dir,
@@ -144,21 +144,15 @@ def create_all_plots(model_folder_name):
 
     # Check if the model already finished training
     if not os.path.exists(os.path.join(model_folder, "history.txt")):
-        print(f"Did not plot since {model_folder_name} did not yet finish training")
+        print(f"Did not plot since {model_folder} did not yet finish training")
         return None
 
     # Create benchmarking results folder
     benchmarking_results_folder = os.path.join(model_folder, "benchmarking_results")
-    if not os.path.exists(benchmarking_results_folder):
-        assert not os.path.isfile(
-            benchmarking_results_folder
-        ), "The folder specified is a file"
-        os.mkdir(benchmarking_results_folder)
+    create_dir_if_missing(benchmarking_results_folder)
 
     # Load in MS2Deepscore model
-    ms2deepscore_model = load_model(
-        os.path.join(model_folder, "ms2deepscore_model.hdf5")
-    )
+    ms2deepscore_model = load_model(os.path.join(model_folder, "ms2deepscore_model.hdf5"))
     similarity_score = MS2DeepScore(ms2deepscore_model)
 
     tanimoto_df = load_pickled_file(
