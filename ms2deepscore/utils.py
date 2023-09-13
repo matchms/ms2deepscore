@@ -39,3 +39,10 @@ def return_non_existing_file_name(file_name):
         new_file_name = f"{file_name_base}({i}){file_extension}"
     print(f"Instead the file will be stored in {new_file_name}")
     return new_file_name
+
+
+def create_dir_if_missing(folder):
+    """Checks if the folder already exists otherwise create the folder"""
+    if not os.path.isdir(folder):
+        assert not os.path.isfile(folder), f"{folder} is expected to be a folder but a file was found"
+        os.mkdir(folder)
