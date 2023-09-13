@@ -113,8 +113,8 @@ def compute_fingerprints(spectrums,
         print(f"Successfully generated fingerprints for {len(idx)} of {len(fingerprints)} spectra")
     fingerprints = np.array([fingerprints[i] for i in idx])
     inchikeys14_unique = [inchikeys14_unique[i] for i in idx]
-    # spectra_selected = [spectra_selected[i] for i in idx]
-    return fingerprints, inchikeys14_unique #, spectra_selected
+    spectra_selected = [spectra_selected[i] for i in idx]
+    return fingerprints, inchikeys14_unique, spectra_selected
 
 
 def select_spectrum_pairs_wrapper(
@@ -126,7 +126,7 @@ def select_spectrum_pairs_wrapper(
         max_oversampling_rate = 2,
         include_diagonal: bool = True,
         fix_global_bias: bool = True,
-        random_seed: int = None) -> SelectedCompoundPairs:
+        random_seed: int = None) -> Tuple[SelectedCompoundPairs, List[Spectrum]]:
     """Returns a SelectedCompoundPairs object containing equally balanced pairs over the different bins
 
     Returns
@@ -135,7 +135,7 @@ def select_spectrum_pairs_wrapper(
         Sparse array (List of lists) with cherrypicked scores.
     """
     # pylint: disable=too-many-arguments
-    fingerprints, inchikeys14_unique = compute_fingerprints(spectrums,
+    fingerprints, inchikeys14_unique, spectra_selected = compute_fingerprints(spectrums,
                                                             fingerprint_type,
                                                             nbits)
     if random_seed is not None:
@@ -153,7 +153,7 @@ def select_spectrum_pairs_wrapper(
     if fix_global_bias:
         selected_pairs_per_bin = fix_bias(selected_pairs_per_bin, average_pairs_per_bin)
     scores_sparse = convert_selected_pairs_per_bin_to_coo_array(selected_pairs_per_bin, fingerprints.shape[0])
-    return SelectedCompoundPairs(scores_sparse, inchikeys14_unique)
+    return SelectedCompoundPairs(scores_sparse, inchikeys14_unique), spectra_selected
 
 
 def convert_selected_pairs_per_bin_to_coo_array(selected_pairs_per_bin: List[List[Tuple[int, float]]], size):

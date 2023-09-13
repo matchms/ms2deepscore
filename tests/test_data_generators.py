@@ -114,7 +114,7 @@ def test_DataGeneratorCherrypicked():
     binned_spectrums = ms2ds_binner.fit_transform(spectrums)
     dimension = len(ms2ds_binner.known_bins)
 
-    scp = select_spectrum_pairs_wrapper(
+    scp, spectrums = select_spectrum_pairs_wrapper(
         spectrums,
         selection_bins=np.array([(x/4, x/4 + 0.25) for x in range(0, 4)]),
         average_pairs_per_bin=1)
