@@ -1,6 +1,5 @@
 """
 This script contains wrapper function to train a MS2DeepScore model.
-TODO: Should better be using matchms functions (which are now only available as part of a filter)
 """
 from typing import List
 import numpy as np
@@ -12,6 +11,7 @@ from rdkit import Chem
 from tqdm import tqdm
 from ..spectrum_pair_selection import select_inchi_for_unique_inchikeys
 
+#todo remove, since not needed anymore with the spectrum_pair_selection.select_spectrum_pairs_wrapper
 
 def calculate_tanimoto_scores_unique_inchikey(
     list_of_spectra_1: List[Spectrum], list_of_spectra_2: List[Spectrum]
@@ -66,8 +66,7 @@ def calculate_tanimoto_scores_from_smiles(
 
 
 def get_fingerprint(smiles: str):
-    fingerprint = np.array(Chem.RDKFingerprint(Chem.MolFromSmiles(smiles), fpSize=2048))
-    assert isinstance(
-        fingerprint, np.ndarray
-    ), f"Fingerprint for 1 spectrum could not be set smiles is {smiles}"
+    mol = Chem.MolFromSmiles(smiles)
+    assert mol is not None, f"Fingerprint for 1 spectrum could not be set smiles is {smiles}"
+    fingerprint = np.array(Chem.RDKFingerprint(mol, fpSize=2048))
     return fingerprint
