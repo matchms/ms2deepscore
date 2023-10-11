@@ -118,7 +118,7 @@ def compute_fingerprints(spectrums,
 
 
 def select_spectrum_pairs_wrapper(
-        spectrums,
+        spectrums: List[Spectrum],
         selection_bins: np.ndarray = np.array([(x/10, x/10 + 0.1) for x in range(0, 10)]),
         fingerprint_type: str = "daylight",
         nbits: int = 2048,
@@ -129,17 +129,35 @@ def select_spectrum_pairs_wrapper(
         random_seed: int = None) -> Tuple[SelectedCompoundPairs, List[Spectrum]]:
     """Returns a SelectedCompoundPairs object containing equally balanced pairs over the different bins
 
+    spectrums:
+        A list of spectra
+    selection_bins:
+        The tanimoto score bins that should be used. Default is 10 bins equally spread between 0 and 1.
+    fingerprint_type:
+        The fingerprint type that should be used for tanimoto score calculations.
+    average_pairs_per_bin:
+        The aimed average number of pairs of spectra per spectrum in each bin.
+    max_oversampling_rate:
+        The max oversampling rate is used to reduce memory load.
+        Since some spectra will have less than the average_pairs_per_bin, we can compensate by selecting more pairs for
+        other spectra in this bin. For each spectrum initially max_oversampling_rate*average_pairs_per_bin is selected.
+        If the max_oversampling_rate is too low, no good division can be created for the spectra.
+        If the max_oversampling_rate is high the memory load on your system will be higher.
+    include_diagonal:
+        determines if a spectrum can be matched against itself when selection pairs.
+
     Returns
     -------
     scores
         Sparse array (List of lists) with cherrypicked scores.
     """
     # pylint: disable=too-many-arguments
-    fingerprints, inchikeys14_unique, spectra_selected = compute_fingerprints(spectrums,
-                                                            fingerprint_type,
-                                                            nbits)
     if random_seed is not None:
         np.random.seed(random_seed)
+
+    fingerprints, inchikeys14_unique, spectra_selected = compute_fingerprints(spectrums,
+                                                                              fingerprint_type,
+                                                                              nbits)
 
     if fix_global_bias:
         max_pairs_per_bin = average_pairs_per_bin*max_oversampling_rate
@@ -178,7 +196,8 @@ def compute_jaccard_similarity_per_bin(
         selection_bins: np.ndarray = np.array([(x/10, x/10 + 0.1) for x in range(0, 10)]),
         max_pairs_per_bin: int = 20,
         include_diagonal: bool = True) -> List[List[Tuple[int, float]]]:
-    """For each inchikey for each bin matches are stored within this bin
+    """For each inchikey for each bin matches are stored within this bin.
+    The max pairs per bin specifies how many pairs are selected per bin. This helps reduce the memory load.
 
     fingerprints
         Fingerprint vectors as 2D numpy array.
@@ -200,23 +219,31 @@ def compute_jaccard_similarity_per_bin(
 
     # keep track of total bias across bins
     max_pairs_global = len(selection_bins) * [max_pairs_per_bin]
-    for i in range(size):
-        scores_row = np.zeros(size)
-        for j in range(size):
-            if i == j and not include_diagonal:
+
+    # loop over the fingerprints
+    for idx_fingerprint_i in range(size):
+        fingerprint_i = fingerprints[idx_fingerprint_i, :]
+
+        # Calculate all tanimoto scores for 1 fingerprint
+        tanimoto_scores = np.zeros(size)
+        for idx_fingerprint_j in range(size):
+            if idx_fingerprint_i == idx_fingerprint_j and not include_diagonal:
+                # skip matching fingerprint score against itself.
                 continue
-            scores_row[j] = jaccard_index(fingerprints[i, :], fingerprints[j, :])
+            fingerprint_j = fingerprints[idx_fingerprint_j, :]
+            tanimoto_score = jaccard_index(fingerprint_i, fingerprint_j)
+            tanimoto_scores[idx_fingerprint_j] = tanimoto_score
 
         # Select pairs per bin with a maximum of max_pairs_per_bin
         for bin_number, selection_bin in enumerate(selection_bins):
             selected_pairs_per_bin[bin_number].append([])
             # Indices of scores within the current bin
-            idx = np.where((scores_row > selection_bin[0]) & (scores_row <= selection_bin[1]))[0]
+            idx = np.where((tanimoto_scores > selection_bin[0]) & (tanimoto_scores <= selection_bin[1]))[0]
             # Randomly select up to max_pairs_per_bin scores within the bin
             np.random.shuffle(idx)
             idx_selected = idx[:max_pairs_global[bin_number]]
             for index in idx_selected:
-                selected_pairs_per_bin[bin_number][i].append((index, scores_row[index]))
+                selected_pairs_per_bin[bin_number][idx_fingerprint_i].append((index, tanimoto_scores[index]))
     return selected_pairs_per_bin
 
 
@@ -238,7 +265,7 @@ def fix_bias(selected_pairs_per_bin, expected_average_pairs_per_bin):
         # Calculate the nr_of_pairs_in_bin_per_spectrum
         nr_of_pairs_in_bin = [len(score_and_idx) for score_and_idx in scores_per_spectrum]
 
-        # Find the correct max_nr_of_pairs to get the average_pairs_per_bin
+        # Find the correct max_nr_of_pairs to get the average_pairs_per_bin.
         difference, max_nr_of_pairs = find_correct_max_nr_of_pairs(nr_of_pairs_in_bin, expected_average_pairs_per_bin)
 
         # Use the new cut_of
