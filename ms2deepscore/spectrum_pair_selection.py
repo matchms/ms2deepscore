@@ -125,7 +125,6 @@ def select_spectrum_pairs_wrapper(
         average_pairs_per_bin: int = 20,
         max_oversampling_rate = 2,
         include_diagonal: bool = True,
-        fix_global_bias: bool = True,
         random_seed: int = None) -> Tuple[SelectedCompoundPairs, List[Spectrum]]:
     """Returns a SelectedCompoundPairs object containing equally balanced pairs over the different bins
 
@@ -159,17 +158,13 @@ def select_spectrum_pairs_wrapper(
                                                                               fingerprint_type,
                                                                               nbits)
 
-    if fix_global_bias:
-        max_pairs_per_bin = average_pairs_per_bin*max_oversampling_rate
-    else:
-        max_pairs_per_bin = average_pairs_per_bin
+    max_pairs_per_bin = average_pairs_per_bin*max_oversampling_rate
 
     selected_pairs_per_bin = compute_jaccard_similarity_per_bin(fingerprints,
                                                                 selection_bins,
                                                                 max_pairs_per_bin,
                                                                 include_diagonal)
-    if fix_global_bias:
-        selected_pairs_per_bin = fix_bias(selected_pairs_per_bin, average_pairs_per_bin)
+    selected_pairs_per_bin = fix_bias(selected_pairs_per_bin, average_pairs_per_bin)
     scores_sparse = convert_selected_pairs_per_bin_to_coo_array(selected_pairs_per_bin, fingerprints.shape[0])
     return SelectedCompoundPairs(scores_sparse, inchikeys14_unique), spectra_selected
 
