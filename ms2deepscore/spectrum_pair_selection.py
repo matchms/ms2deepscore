@@ -123,7 +123,7 @@ def select_spectrum_pairs_wrapper(
         fingerprint_type: str = "daylight",
         nbits: int = 2048,
         average_pairs_per_bin: int = 20,
-        max_oversampling_rate = 2,
+        max_pairs_per_bin: Optional[int] = 100,
         include_diagonal: bool = True,
         random_seed: int = None) -> Tuple[SelectedCompoundPairs, List[Spectrum]]:
     """Returns a SelectedCompoundPairs object containing equally balanced pairs over the different bins
@@ -136,12 +136,13 @@ def select_spectrum_pairs_wrapper(
         The fingerprint type that should be used for tanimoto score calculations.
     average_pairs_per_bin:
         The aimed average number of pairs of spectra per spectrum in each bin.
-    max_oversampling_rate:
-        The max oversampling rate is used to reduce memory load.
+    max_pairs_per_bin:
+        The max_pairs_per_bin is used to reduce memory load.
         Since some spectra will have less than the average_pairs_per_bin, we can compensate by selecting more pairs for
-        other spectra in this bin. For each spectrum initially max_oversampling_rate*average_pairs_per_bin is selected.
+        other spectra in this bin. For each spectrum initially max_pairs_per_bin is selected.
         If the max_oversampling_rate is too low, no good division can be created for the spectra.
         If the max_oversampling_rate is high the memory load on your system will be higher.
+        If None, all pairs will be initially stored.
     include_diagonal:
         determines if a spectrum can be matched against itself when selection pairs.
 
@@ -157,8 +158,6 @@ def select_spectrum_pairs_wrapper(
     fingerprints, inchikeys14_unique, spectra_selected = compute_fingerprints(spectrums,
                                                                               fingerprint_type,
                                                                               nbits)
-
-    max_pairs_per_bin = average_pairs_per_bin*max_oversampling_rate
 
     selected_pairs_per_bin = compute_jaccard_similarity_per_bin(fingerprints,
                                                                 selection_bins,
