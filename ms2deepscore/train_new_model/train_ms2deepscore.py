@@ -57,14 +57,15 @@ def bin_spectra(
 
 
 def train_ms2ds_model(
-    training_spectra,
-    validation_spectra,
-    additional_metadata,
-    results_folder,
-    epochs=150,
-    base_dims=(500, 500),
-    embedding_dim=200,
-):
+        training_spectra,
+        validation_spectra,
+        additional_metadata,
+        results_folder,
+        epochs=150,
+        base_dims=(500, 500),
+        embedding_dim=200,
+        average_pairs_per_bin=20,
+        max_pairs_per_bin=100):
     """Full workflow to train a MS2DeepScore model.
     """
     # pylint: disable=too-many-arguments
@@ -78,8 +79,9 @@ def train_ms2ds_model(
     create_dir_if_missing(binned_spectra_folder)
 
     selected_compound_pairs_training, selected_training_spectra = select_spectrum_pairs_wrapper(
-        training_spectra)
-    selected_compound_pair_val, selected_validation_spectra = select_spectrum_pairs_wrapper(validation_spectra)
+        training_spectra, average_pairs_per_bin=average_pairs_per_bin, max_pairs_per_bin=max_pairs_per_bin)
+    selected_compound_pair_val, selected_validation_spectra = select_spectrum_pairs_wrapper(
+        validation_spectra, average_pairs_per_bin=average_pairs_per_bin, max_pairs_per_bin=max_pairs_per_bin)
 
     # Created binned spectra.
     binned_spectrums_training, binned_spectrums_val, spectrum_binner = \
@@ -153,7 +155,7 @@ def train_ms2ds_model(
     with open(ms2ds_history_file_name, "w", encoding="utf-8") as f:
         f.write(str(history))
     # Save plot of history
-    plot_history(history, ms2ds_history_plot_file_name)
+    plot_history(history.history, ms2ds_history_plot_file_name)
 
 
 def plot_history(history: Dict[str, List[float]], file_name: Optional[str] = None):
