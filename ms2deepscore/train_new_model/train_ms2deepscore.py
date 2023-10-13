@@ -13,7 +13,7 @@ from ms2deepscore.data_generators import DataGeneratorCherrypicked
 from ms2deepscore.models import SiameseModel
 from ms2deepscore.utils import (return_non_existing_file_name,
                                 save_pickled_file, create_dir_if_missing)
-from ms2deepscore.spectrum_pair_selection import select_spectrum_pairs_wrapper
+from ms2deepscore.spectrum_pair_selection import select_compound_pairs_wrapper
 
 
 def bin_spectra(
@@ -78,10 +78,12 @@ def train_ms2ds_model(
     binned_spectra_folder = os.path.join(results_folder, "binned_spectra")
     create_dir_if_missing(binned_spectra_folder)
 
-    selected_compound_pairs_training, selected_training_spectra = select_spectrum_pairs_wrapper(
-        training_spectra, average_pairs_per_bin=average_pairs_per_bin, max_pairs_per_bin=max_pairs_per_bin)
-    selected_compound_pair_val, selected_validation_spectra = select_spectrum_pairs_wrapper(
-        validation_spectra, average_pairs_per_bin=average_pairs_per_bin, max_pairs_per_bin=max_pairs_per_bin)
+    selected_compound_pairs_training, selected_training_spectra = select_compound_pairs_wrapper(training_spectra,
+                                                                                                average_pairs_per_bin=average_pairs_per_bin,
+                                                                                                max_pairs_per_bin=max_pairs_per_bin)
+    selected_compound_pair_val, selected_validation_spectra = select_compound_pairs_wrapper(validation_spectra,
+                                                                                            average_pairs_per_bin=average_pairs_per_bin,
+                                                                                            max_pairs_per_bin=max_pairs_per_bin)
 
     # Created binned spectra.
     binned_spectrums_training, binned_spectrums_val, spectrum_binner = \

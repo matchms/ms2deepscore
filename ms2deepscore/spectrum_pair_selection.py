@@ -117,7 +117,7 @@ def compute_fingerprints(spectrums,
     return fingerprints, inchikeys14_unique, spectra_selected
 
 
-def select_spectrum_pairs_wrapper(
+def select_compound_pairs_wrapper(
         spectrums: List[Spectrum],
         selection_bins: np.ndarray = np.array([(x/10, x/10 + 0.1) for x in range(0, 10)]),
         fingerprint_type: str = "daylight",
