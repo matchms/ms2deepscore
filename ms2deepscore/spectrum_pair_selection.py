@@ -1,5 +1,5 @@
 from collections import Counter
-from typing import List, Tuple
+from typing import List, Tuple, Optional
 import numpy as np
 from matchms import Spectrum
 from matchms.filtering import add_fingerprint
@@ -188,7 +188,7 @@ def convert_selected_pairs_per_bin_to_coo_array(selected_pairs_per_bin: List[Lis
 def compute_jaccard_similarity_per_bin(
         fingerprints: np.ndarray,
         selection_bins: np.ndarray = np.array([(x/10, x/10 + 0.1) for x in range(0, 10)]),
-        max_pairs_per_bin: int = 20,
+        max_pairs_per_bin: Optional[int] = None,
         include_diagonal: bool = True) -> List[List[Tuple[int, float]]]:
     """For each inchikey for each bin matches are stored within this bin.
     The max pairs per bin specifies how many pairs are selected per bin. This helps reduce the memory load.
@@ -202,6 +202,7 @@ def compute_jaccard_similarity_per_bin(
         range of the used scores.
     max_pairs_per_bin
         Specifies the desired maximum number of pairs to be added for each score bin.
+        Set to None to select everything (more memory intensive)
 
     returns:
         A list were the indexes are the bin numbers. This contains Lists were the index is the spectrum_i index.
@@ -210,9 +211,6 @@ def compute_jaccard_similarity_per_bin(
     size = fingerprints.shape[0]
     # initialize storing scores
     selected_pairs_per_bin = [[] for _ in range(len(selection_bins))]
-
-    # keep track of total bias across bins
-    max_pairs_global = len(selection_bins) * [max_pairs_per_bin]
 
     # loop over the fingerprints
     for idx_fingerprint_i in range(size):
@@ -235,7 +233,7 @@ def compute_jaccard_similarity_per_bin(
             idx = np.where((tanimoto_scores > selection_bin[0]) & (tanimoto_scores <= selection_bin[1]))[0]
             # Randomly select up to max_pairs_per_bin scores within the bin
             np.random.shuffle(idx)
-            idx_selected = idx[:max_pairs_global[bin_number]]
+            idx_selected = idx[:max_pairs_per_bin]
             for index in idx_selected:
                 selected_pairs_per_bin[bin_number][idx_fingerprint_i].append((index, tanimoto_scores[index]))
     return selected_pairs_per_bin
@@ -255,81 +253,30 @@ def fix_bias(selected_pairs_per_bin, expected_average_pairs_per_bin):
     expected_average_pairs_per_bin: int
         The expected average number of pairs per bin.
     """
-    for bin_nr, scores_per_spectrum in enumerate(selected_pairs_per_bin):
-        # Calculate the nr_of_pairs_in_bin_per_spectrum
-        nr_of_pairs_in_bin = [len(score_and_idx) for score_and_idx in scores_per_spectrum]
+    new_selected_pairs_per_bin = []
+    for bin_nr, scores_per_compound in enumerate(selected_pairs_per_bin):
+        new_selected_pairs_per_bin.append([])
+        # Calculate the nr_of_pairs_in_bin_per_compound
+        nr_of_pairs_in_bin_per_compound = [len(score_and_idx) for score_and_idx in scores_per_compound]
 
-        # Find the correct max_nr_of_pairs to get the average_pairs_per_bin.
-        difference, max_nr_of_pairs = find_correct_max_nr_of_pairs(nr_of_pairs_in_bin, expected_average_pairs_per_bin)
-
-        # Use the new cut_of
-        for spectrum_i_idx, score_and_idx in enumerate(scores_per_spectrum):
-            if difference > 0 and len(score_and_idx) >= max_nr_of_pairs:
-                cut_off = max_nr_of_pairs - 1
-                difference -= 1
-            else:
-                cut_off = max_nr_of_pairs
-            # Remove excess pairs_per_bin
-            selected_pairs_per_bin[bin_nr][spectrum_i_idx] = score_and_idx[:cut_off]
-        assert difference == 0
-    return selected_pairs_per_bin
+        cut_offs_to_use = get_nr_of_pairs_needed_to_fix_bias(nr_of_pairs_in_bin_per_compound,
+                                                             expected_average_pairs_per_bin)
+        if sum(cut_offs_to_use)/len(cut_offs_to_use) != expected_average_pairs_per_bin:
+            print(f"For bin {bin_nr} the expected average number of pairs: {expected_average_pairs_per_bin} "
+                  f"does not match the actual average number of pairs: {sum(cut_offs_to_use)/len(cut_offs_to_use)}")
+        for i, cut_off in enumerate(cut_offs_to_use):
+            new_selected_pairs_per_bin[bin_nr].append(scores_per_compound[i][:cut_off])
+    return new_selected_pairs_per_bin
 
 
-def try_cut_off(nr_of_pairs_in_bin_per_spectrum: List[int],
-                cut_off: int) -> float:
-    """Calculate the average in a list if a cut_off is used.
-
-    For example:
-    If nr_of_pairs_per_spectrum = [2,5,7] and cut_off = 4, then the result will be:
-    [2,4,4], total number of pairs = 10, and the average = 3.33.
-
-    Parameters
-    ----------
-    nr_of_pairs_in_bin_per_spectrum: List[int]
-        A list containing the number of pairs found for each InChIKey (for a single bin).
-    cut_off: int
-        The maximum number of pairs that should be stored.
-    """
-    total_nr_of_pairs = sum(min(nr_of_pairs, cut_off) for nr_of_pairs in nr_of_pairs_in_bin_per_spectrum)
-
-    num_spectra = len(nr_of_pairs_in_bin_per_spectrum)
-    if num_spectra == 0:
-        return 0.0
-
-    return total_nr_of_pairs / num_spectra
-
-
-def find_correct_max_nr_of_pairs(nr_of_pairs_in_bin_per_spectrum: List[int], expected_average_nr_of_pairs: int):
-    """
-    Find the maximum number of pairs that should be used to achieve the expected average number of pairs.
-    
-    Parameters
-    ----------
-    nr_of_pairs_in_bin_per_spectrum: List[int]
-        A list containing the number of pairs found for each InChIKey (for a single bin).
-    expected_average_nr_of_pairs: int
-        The average number of pairs that are expected to be found.
-    """
-    max_pairs_for_expected_avg = None
-    average_nr_of_pairs = 0
-
-    # Try cut_offs until the nr_of_pairs found is higher than expected_average_nr_of_pairs
-    for cut_off in range(expected_average_nr_of_pairs, max(nr_of_pairs_in_bin_per_spectrum) + 1):
-        average_nr_of_pairs = try_cut_off(nr_of_pairs_in_bin_per_spectrum, cut_off)
-        if average_nr_of_pairs >= expected_average_nr_of_pairs:
-            max_pairs_for_expected_avg = cut_off
-            break
-
-    assert max_pairs_for_expected_avg, ("Not enough pairs were found for one of the bins,"
-                                        " consider increasing the max_oversampling_rate")
-
-    total_expected_pairs = expected_average_nr_of_pairs * len(nr_of_pairs_in_bin_per_spectrum)
-    total_found_pairs = average_nr_of_pairs * len(nr_of_pairs_in_bin_per_spectrum)
-
-    pair_difference = total_found_pairs - total_expected_pairs
-    assert 0 <= pair_difference < len(nr_of_pairs_in_bin_per_spectrum)
-
-    return pair_difference, max_pairs_for_expected_avg
+def get_nr_of_pairs_needed_to_fix_bias(nr_of_pairs_in_bin_per_compound: List[int],
+                                       expected_average_pairs_per_bin: int
+                                       ):
+    """Calculates how many pairs should be selected to get the exact number o """
+    used_cut_offs = nr_of_pairs_in_bin_per_compound[:]
+    while expected_average_pairs_per_bin < sum(used_cut_offs)/len(used_cut_offs):
+        used_cut_offs[used_cut_offs.index(max(used_cut_offs))] -= 1
+    return used_cut_offs
 
 
 def select_inchi_for_unique_inchikeys(
