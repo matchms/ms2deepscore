@@ -21,8 +21,15 @@ def bin_spectra(
     validation_spectra: List[Spectrum],
     additional_metadata=(),
     save_folder=None):
-    assert not os.path.exists(save_folder), "The binned spectra folder already exists"
-    create_dir_if_missing(save_folder)
+    """Bins spectra and stores binner and binned spectra in the specified folder.
+    training_spectra:
+        Spectra will be binned and will be used to decide which bins are used.
+    validation_spectra:
+        These spectra are binned based on the bins determined for the training_spectra.
+    additional_metadata:
+        Additional metadata that should be used in training the model. e.g. precursor_mz
+    save_folder:
+        The folder that will save the spectra if provided."""
 
     # Bin training spectra
     spectrum_binner = SpectrumBinner(
@@ -39,6 +46,7 @@ def bin_spectra(
     binned_spectrums_val = spectrum_binner.transform(validation_spectra)
 
     if save_folder:
+        create_dir_if_missing(save_folder)
         save_pickled_file(binned_spectrums_training, return_non_existing_file_name(
                 os.path.join(save_folder, "binned_training_spectra.pickle")), )
         save_pickled_file(binned_spectrums_val, return_non_existing_file_name(
