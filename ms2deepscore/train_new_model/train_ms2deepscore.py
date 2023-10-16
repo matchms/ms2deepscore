@@ -147,7 +147,7 @@ def train_ms2ds_model(
 
     # Save history
     with open(ms2ds_history_file_name, "w", encoding="utf-8") as f:
-        f.write(str(history))
+        f.write(str(history.history))
     # Save plot of history
     plot_history(history.history, ms2ds_history_plot_file_name)
 
