@@ -5,6 +5,7 @@ from matchms import Spectrum
 from matchms.filtering import add_fingerprint
 from matchms.similarity.vector_similarity_functions import jaccard_index
 from scipy.sparse import coo_array
+from ms2deepscore.train_new_model.SettingMS2Deepscore import SettingsMS2Deepscore
 
 
 class SelectedCompoundPairs:
@@ -119,32 +120,15 @@ def compute_fingerprints(spectrums,
 
 def select_compound_pairs_wrapper(
         spectrums: List[Spectrum],
-        selection_bins: np.ndarray = np.array([(x/10, x/10 + 0.1) for x in range(0, 10)]),
-        fingerprint_type: str = "daylight",
-        nbits: int = 2048,
-        average_pairs_per_bin: int = 20,
-        max_pairs_per_bin: Optional[int] = 100,
-        include_diagonal: bool = True,
-        random_seed: int = None) -> Tuple[SelectedCompoundPairs, List[Spectrum]]:
+        settings: SettingsMS2Deepscore
+        ) -> Tuple[SelectedCompoundPairs, List[Spectrum]]:
     """Returns a SelectedCompoundPairs object containing equally balanced pairs over the different bins
 
     spectrums:
         A list of spectra
-    selection_bins:
-        The tanimoto score bins that should be used. Default is 10 bins equally spread between 0 and 1.
-    fingerprint_type:
-        The fingerprint type that should be used for tanimoto score calculations.
-    average_pairs_per_bin:
-        The aimed average number of pairs of spectra per spectrum in each bin.
-    max_pairs_per_bin:
-        The max_pairs_per_bin is used to reduce memory load.
-        Since some spectra will have less than the average_pairs_per_bin, we can compensate by selecting more pairs for
-        other spectra in this bin. For each spectrum initially max_pairs_per_bin is selected.
-        If the max_oversampling_rate is too low, no good division can be created for the spectra.
-        If the max_oversampling_rate is high the memory load on your system will be higher.
-        If None, all pairs will be initially stored.
-    include_diagonal:
-        determines if a spectrum can be matched against itself when selection pairs.
+    settings:
+        The settings that should be used for selecting the compound pairs wrapper. The settings should be specified as a
+        SettingsMS2Deepscore object.
 
     Returns
     -------
@@ -152,18 +136,18 @@ def select_compound_pairs_wrapper(
         Sparse array (List of lists) with cherrypicked scores.
     """
     # pylint: disable=too-many-arguments
-    if random_seed is not None:
-        np.random.seed(random_seed)
+    if settings.random_seed is not None:
+        np.random.seed(settings.random_seed)
 
     fingerprints, inchikeys14_unique, spectra_selected = compute_fingerprints(spectrums,
-                                                                              fingerprint_type,
-                                                                              nbits)
+                                                                              settings.fingerprint_type,
+                                                                              settings.nbits)
 
     selected_pairs_per_bin = compute_jaccard_similarity_per_bin(fingerprints,
-                                                                selection_bins,
-                                                                max_pairs_per_bin,
-                                                                include_diagonal)
-    selected_pairs_per_bin = fix_bias(selected_pairs_per_bin, average_pairs_per_bin)
+                                                                settings.tanimoto_bins,
+                                                                settings.max_pairs_per_bin,
+                                                                settings.include_diagonal)
+    selected_pairs_per_bin = fix_bias(selected_pairs_per_bin, settings.average_pairs_per_bin)
     scores_sparse = convert_selected_pairs_per_bin_to_coo_array(selected_pairs_per_bin, fingerprints.shape[0])
     return SelectedCompoundPairs(scores_sparse, inchikeys14_unique), spectra_selected
 

@@ -75,18 +75,13 @@ def train_ms2ds_model(
     create_dir_if_missing(binned_spectra_folder)
 
     selected_compound_pairs_training, selected_training_spectra = select_compound_pairs_wrapper(
-        training_spectra, average_pairs_per_bin=settings.average_pairs_per_bin,
-        max_pairs_per_bin=settings.max_pairs_per_bin)
+        training_spectra, settings=settings)
     selected_compound_pair_val, selected_validation_spectra = select_compound_pairs_wrapper(
-        validation_spectra,
-        average_pairs_per_bin=settings.average_pairs_per_bin,
-        max_pairs_per_bin=settings.max_pairs_per_bin)
+        validation_spectra, settings=settings)
 
     # Created binned spectra.
     binned_spectrums_training, binned_spectrums_val, spectrum_binner = \
         bin_spectra(selected_training_spectra, selected_validation_spectra, settings.additional_metadata, binned_spectra_folder)
-
-    same_prob_bins = list(zip(np.linspace(0, 0.9, 10), np.linspace(0.1, 1, 10)))
 
     training_generator = DataGeneratorCherrypicked(
         binned_spectrums_training,
@@ -95,7 +90,6 @@ def train_ms2ds_model(
         ),
         selected_compound_pairs=selected_compound_pairs_training,
         spectrum_binner=spectrum_binner,
-        same_prob_bins=same_prob_bins,
         num_turns=2,
         augment_noise_max=10,
         augment_noise_intensity=0.01,
@@ -106,7 +100,6 @@ def train_ms2ds_model(
         selected_inchikeys=list({s.get("inchikey")[:14] for s in binned_spectrums_val}),
         selected_compound_pairs=selected_compound_pair_val,
         spectrum_binner=spectrum_binner,
-        same_prob_bins=same_prob_bins,
         num_turns=10,  # Number of pairs for each InChiKey14 during each epoch.
         # To prevent data augmentation
         augment_removal_max=0,
@@ -120,12 +113,12 @@ def train_ms2ds_model(
         spectrum_binner,
         base_dims=settings.base_dims,
         embedding_dim=settings.embedding_dim,
-        dropout_rate=0.2,
+        dropout_rate=settings.dropout_rate,
     )
 
     model.compile(
         loss="mse",
-        optimizer=tf.keras.optimizers.Adam(learning_rate=0.001),
+        optimizer=tf.keras.optimizers.Adam(learning_rate=settings.learning_rate),
         metrics=["mae", tf.keras.metrics.RootMeanSquaredError()],
     )
     # Save best model and include early stopping
