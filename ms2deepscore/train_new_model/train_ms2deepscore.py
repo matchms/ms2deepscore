@@ -11,9 +11,10 @@ from matplotlib import pyplot as plt
 from ms2deepscore import SpectrumBinner
 from ms2deepscore.data_generators import DataGeneratorCherrypicked
 from ms2deepscore.models import SiameseModel
-from ms2deepscore.utils import (return_non_existing_file_name,
-                                save_pickled_file, create_dir_if_missing)
 from ms2deepscore.spectrum_pair_selection import select_compound_pairs_wrapper
+from ms2deepscore.utils import (create_dir_if_missing,
+                                return_non_existing_file_name,
+                                save_pickled_file)
 
 
 def bin_spectra(

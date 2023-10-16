@@ -1,10 +1,13 @@
 """Contains wrapper functions that automatically store and load intermediate processed spectra
 reducing the amount of rerunning that is necessary"""
 import os
-from ms2deepscore.train_new_model.split_positive_and_negative_mode import split_pos_and_neg
+from ms2deepscore.train_new_model.split_positive_and_negative_mode import \
+    split_pos_and_neg
 from ms2deepscore.train_new_model.train_ms2deepscore import train_ms2ds_model
-from ms2deepscore.train_new_model.validation_and_test_split import split_spectra_in_random_inchikey_sets
-from ms2deepscore.utils import save_pickled_file, load_pickled_file, create_dir_if_missing
+from ms2deepscore.train_new_model.validation_and_test_split import \
+    split_spectra_in_random_inchikey_sets
+from ms2deepscore.utils import (create_dir_if_missing, load_pickled_file,
+                                save_pickled_file)
 
 
 def store_or_load_neg_pos_spectra(data_directory):

@@ -1,5 +1,5 @@
 from collections import Counter
-from typing import List, Tuple, Optional
+from typing import List, Optional, Tuple
 import numpy as np
 from matchms import Spectrum
 from matchms.filtering import add_fingerprint

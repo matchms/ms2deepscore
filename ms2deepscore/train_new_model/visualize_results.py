@@ -4,7 +4,8 @@ from matplotlib import pyplot as plt
 from ms2deepscore import MS2DeepScore
 from ms2deepscore.models import load_model
 from ms2deepscore.plotting import create_histograms_plot
-from ms2deepscore.utils import load_pickled_file, save_pickled_file, create_dir_if_missing
+from ms2deepscore.utils import (create_dir_if_missing, load_pickled_file,
+                                save_pickled_file)
 
 
 def get_tanimoto_indexes(tanimoto_df, spectra):
