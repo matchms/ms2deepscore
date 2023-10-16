@@ -4,7 +4,6 @@ This script is not needed for normally running MS2Deepscore, it is only needed t
 
 import os
 from typing import Dict, List, Optional
-import numpy as np
 import tensorflow as tf
 from matchms import Spectrum
 from matplotlib import pyplot as plt

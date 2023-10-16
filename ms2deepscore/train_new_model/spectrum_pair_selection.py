@@ -136,7 +136,6 @@ def select_compound_pairs_wrapper(
     scores
         Sparse array (List of lists) with cherrypicked scores.
     """
-    # pylint: disable=too-many-arguments
     if settings.random_seed is not None:
         np.random.seed(settings.random_seed)
 
