@@ -24,7 +24,6 @@ def create_all_plots(data_dir,
     # Check if the model already finished training
     if not os.path.exists(os.path.join(model_folder, "history.txt")):
         print(f"Did not plot since {model_folder} did not yet finish training")
-        return None
 
     # Create benchmarking results folder
     benchmarking_results_folder = os.path.join(model_folder, "benchmarking_results")
@@ -58,6 +57,7 @@ def benchmark_wrapper(val_spectra_1: List[Spectrum],
         ms2ds_model: The loaded ms2deepscore model
         file_name_prefix: The prefix used to create all file names.
     """
+    # pylint: disable=too-many-locals
     # Create predictions
     predictions_file_name = os.path.join(benchmarking_results_folder, f"{file_name_prefix}_predictions.pickle")
     if os.path.exists(predictions_file_name):
