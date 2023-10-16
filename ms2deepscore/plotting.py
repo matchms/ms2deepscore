@@ -51,7 +51,7 @@ def plot_histograms(histograms,
     # Setup plotting stuff
     colors = ["crimson", "lightblue", "teal"]
     cmap1 = LinearSegmentedColormap.from_list("mycmap", colors)
-    plt.style.use('seaborn-white')
+    # plt.style.use('seaborn-white')
     shift = 0.7
     alpha = 1.0 #0.5
 
@@ -167,7 +167,7 @@ def plot_confusion_like_matrix(confusion_like_matrix_scatter,
     colors = 100*sizes/np.array(summed_tanimoto)  # color percentage
     sizes = sizes/np.max(sizes)
 
-    plt.style.use('seaborn-white')
+    # plt.style.use('seaborn-white')
     if color_by_reference_fraction:
         fig = plt.figure(figsize=(10, 8))
         plt.scatter([x[1] for x in confusion_like_matrix_scatter],
