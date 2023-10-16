@@ -9,7 +9,7 @@ from matchms.similarity.vector_similarity_functions import \
     jaccard_similarity_matrix
 from rdkit import Chem
 from tqdm import tqdm
-from ..spectrum_pair_selection import select_inchi_for_unique_inchikeys
+from ms2deepscore.train_new_model.spectrum_pair_selection import select_inchi_for_unique_inchikeys
 
 
 #todo remove, since not needed anymore with the spectrum_pair_selection.select_spectrum_pairs_wrapper
