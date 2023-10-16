@@ -6,9 +6,11 @@ from ms2deepscore import BinnedSpectrum, SpectrumBinner
 from ms2deepscore.models import SiameseModel
 from ms2deepscore.models.load_model import \
     load_model as load_ms2deepscore_model
+from ms2deepscore.train_new_model.SettingMS2Deepscore import \
+    SettingsMS2Deepscore
 from ms2deepscore.train_new_model.train_ms2deepscore import (bin_spectra,
                                                              train_ms2ds_model)
-from ms2deepscore.train_new_model.SettingMS2Deepscore import SettingsMS2Deepscore
+
 
 TEST_RESOURCES_PATH = Path(__file__).parent / 'resources'
 

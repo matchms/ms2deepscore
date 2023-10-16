@@ -5,7 +5,8 @@ from matchms import Spectrum
 from matchms.filtering import add_fingerprint
 from matchms.similarity.vector_similarity_functions import jaccard_index
 from scipy.sparse import coo_array
-from ms2deepscore.train_new_model.SettingMS2Deepscore import SettingsMS2Deepscore
+from ms2deepscore.train_new_model.SettingMS2Deepscore import \
+    SettingsMS2Deepscore
 
 
 class SelectedCompoundPairs:

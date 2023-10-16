@@ -1,5 +1,6 @@
 import pytest
-from ms2deepscore.train_new_model.SettingMS2Deepscore import SettingsMS2Deepscore
+from ms2deepscore.train_new_model.SettingMS2Deepscore import \
+    SettingsMS2Deepscore
 
 
 def test_initiate_settingsms2deepscore():
