@@ -208,6 +208,7 @@ def compute_jaccard_similarity_per_bin(
         A list were the indexes are the bin numbers. This contains Lists were the index is the spectrum_i index.
         This list contains a Tuple, with first the spectrum_j index and second the score.
     """
+    # pylint: disable=too-many-locals
     size = fingerprints.shape[0]
     # initialize storing scores
     selected_pairs_per_bin = [[] for _ in range(len(selection_bins))]

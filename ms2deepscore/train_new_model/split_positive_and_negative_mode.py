@@ -9,7 +9,7 @@ def split_pos_and_neg(spectra: List[Spectrum]):
     neg_spectra = []
     spectra_removed = 0
     for spectrum in tqdm(spectra,
-                         desc=f"Splitting pos and neg mode spectra"):
+                         desc="Splitting pos and neg mode spectra"):
         if spectrum is not None:
             ionmode = spectrum.get("ionmode")
             if ionmode == "positive":

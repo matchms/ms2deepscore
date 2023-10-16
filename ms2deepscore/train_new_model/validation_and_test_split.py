@@ -49,4 +49,3 @@ def split_spectra_in_random_inchikey_sets(
     assert len(spectra) == len(validation_spectra + test_spectra + train_spectra)
 
     return validation_spectra, test_spectra, train_spectra
-

@@ -97,14 +97,16 @@ def _create_model_file_name(additional_metadata,
 
 def load_train_val_data(data_directory, ionisation_mode):
     assert ionisation_mode in ("positive", "negative", "both")
-    pos_val_spectra, pos_train_spectra, pos_test_spectra, neg_val_spectra, neg_train_spectra, neg_test_spectra = \
+    pos_val_spectra, pos_train_spectra, _, neg_val_spectra, neg_train_spectra, _ = \
         split_validation_and_test_spectra(data_directory)
     if ionisation_mode == "positive":
         return pos_train_spectra, pos_val_spectra
     if ionisation_mode == "negative":
         return neg_train_spectra, neg_val_spectra
     if ionisation_mode == "both":
-        return pos_train_spectra + neg_train_spectra, pos_val_spectra + neg_val_spectra
+        training_spectra = pos_train_spectra + neg_train_spectra
+        validatation_spectra = pos_val_spectra + neg_val_spectra
+        return training_spectra, validatation_spectra
 
 
 def train_ms2deepscore_wrapper(data_directory,

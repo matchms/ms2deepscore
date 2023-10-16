@@ -70,6 +70,7 @@ def train_ms2ds_model(
     """Full workflow to train a MS2DeepScore model.
     """
     # pylint: disable=too-many-arguments
+    # pylint: disable=too-many-locals
 
     # Set file names and create dirs
     create_dir_if_missing(results_folder)
