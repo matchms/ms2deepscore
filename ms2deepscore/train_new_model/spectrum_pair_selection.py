@@ -141,7 +141,7 @@ def select_compound_pairs_wrapper(
 
     fingerprints, inchikeys14_unique, spectra_selected = compute_fingerprints(spectrums,
                                                                               settings.fingerprint_type,
-                                                                              settings.nbits)
+                                                                              settings.fingerprint_nbits)
 
     selected_pairs_per_bin = compute_jaccard_similarity_per_bin(fingerprints,
                                                                 settings.tanimoto_bins,
