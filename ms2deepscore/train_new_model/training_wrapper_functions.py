@@ -107,6 +107,7 @@ def load_train_val_data(data_directory, ionisation_mode):
         training_spectra = pos_train_spectra + neg_train_spectra
         validatation_spectra = pos_val_spectra + neg_val_spectra
         return training_spectra, validatation_spectra
+    return None, None
 
 
 def train_ms2deepscore_wrapper(data_directory,
