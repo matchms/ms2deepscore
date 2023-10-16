@@ -150,32 +150,6 @@ def test_select_inchi_for_unique_inchikeys_two_inchikeys(spectrums):
     assert [s.get("inchi")[:15] for s in spectrums_selected] == ['InChI=1/C6H8O6/', 'InChI=1S/C8H10N']
 
 
-def test_compute_spectrum_pairs(spectrums):
-    #todo add this test after further refactoring
-    pass
-    # scores, inchikeys = compute_spectrum_pairs(spectrums,
-    #                                            )
-    # assert inchikeys == ['ABCABCABCABCAB', 'XXXXXXXXXXXXXX']
-    # assert np.allclose(scores.row, [0, 0, 1, 1])
-    # assert np.allclose(scores.col, [1, 0, 0, 1])
-    # assert np.allclose(scores.data, [0.1665089877010407, 1.0, 0.1665089877010407, 1.0])
-
-
-def test_compute_spectrum_pairs_vary_parameters(spectrums):
-    #todo add this test after further refactoring
-    pass
-    # # max_pairs_per_bin = 1
-    # scores, _ = compute_spectrum_pairs(spectrums, max_pairs_per_bin=1, nbits=10)
-    # assert scores.shape == (2, 2)
-    # assert len(scores.row) == 2
-    # assert np.allclose(scores.data, [1.0, 1.0])
-    # # max_pairs_per_bin = 2
-    # scores, _ = compute_spectrum_pairs(spectrums, max_pairs_per_bin=2, nbits=10)
-    # assert scores.shape == (2, 2)
-    # assert len(scores.row) == 4
-    # assert np.allclose(scores.data, [1.0, 1.0, 1.0, 1.0])
-
-
 # Test SelectedCompoundPairs class
 def test_SCP_initialization(dummy_data):
     data, row, col, inchikeys = dummy_data
