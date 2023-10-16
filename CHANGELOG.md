@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - Added split_positive_and_negative_mode.py [#148](https://github.com/matchms/ms2deepscore/pull/148)
+- Added SettingMS2Deepscore [#151](https://github.com/matchms/ms2deepscore/pull/151)
 
 ### Changed
 - Change the max oversampling rate to max_pairs_per_bin [#148](https://github.com/matchms/ms2deepscore/pull/148)
