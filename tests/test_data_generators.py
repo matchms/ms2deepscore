@@ -13,6 +13,7 @@ from ms2deepscore.MetadataFeatureGenerator import (CategoricalToBinary,
                                                    StandardScaler)
 from ms2deepscore.train_new_model.spectrum_pair_selection import \
     select_compound_pairs_wrapper
+from ms2deepscore.train_new_model.SettingMS2Deepscore import SettingsMS2Deepscore
 from tests.test_user_worfklow import (get_reference_scores,
                                       load_processed_spectrums)
 
@@ -113,9 +114,9 @@ def test_DataGeneratorCherrypicked():
     ms2ds_binner = SpectrumBinner(100, mz_min=10.0, mz_max=1000.0, peak_scaling=1)
     binned_spectrums = ms2ds_binner.fit_transform(spectrums)
     dimension = len(ms2ds_binner.known_bins)
-
-    scp, spectrums = select_compound_pairs_wrapper(spectrums, selection_bins=np.array(
-        [(x / 4, x / 4 + 0.25) for x in range(0, 4)]), average_pairs_per_bin=1)
+    settings = SettingsMS2Deepscore({"tanimoto_bins": np.array([(x / 4, x / 4 + 0.25) for x in range(0, 4)]),
+                                     "average_pairs_per_bin": 1})
+    scp, spectrums = select_compound_pairs_wrapper(spectrums, settings)
     # Create generator
     test_generator = DataGeneratorCherrypicked(binned_spectrums=binned_spectrums,
                                                spectrum_binner=ms2ds_binner,
