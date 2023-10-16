@@ -8,7 +8,7 @@ from ms2deepscore.models.load_model import \
     load_model as load_ms2deepscore_model
 from ms2deepscore.train_new_model.train_ms2deepscore import (bin_spectra,
                                                              train_ms2ds_model)
-
+from ms2deepscore.train_new_model.SettingMS2Deepscore import SettingsMS2Deepscore
 
 TEST_RESOURCES_PATH = Path(__file__).parent / 'resources'
 
@@ -46,7 +46,9 @@ def test_bin_spectra(tmp_path):
 
 def test_train_wrapper_ms2ds_model(tmp_path):
     spectra = list(load_from_mgf(os.path.join(TEST_RESOURCES_PATH, "pesticides_processed.mgf")))
-    train_ms2ds_model(spectra, spectra, (), tmp_path, epochs=2, average_pairs_per_bin=2)
+    settings = SettingsMS2Deepscore({"epochs": 2,
+                                     "average_pairs_per_bin": 2})
+    train_ms2ds_model(spectra, spectra, tmp_path, settings)
 
     # check if model is saved
     model_file_name = os.path.join(tmp_path, "ms2deepscore_model.hdf5")

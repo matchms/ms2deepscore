@@ -8,7 +8,7 @@ from ms2deepscore.train_new_model.validation_and_test_split import \
     split_spectra_in_random_inchikey_sets
 from ms2deepscore.utils import (create_dir_if_missing, load_pickled_file,
                                 save_pickled_file)
-
+from ms2deepscore.train_new_model.SettingMS2Deepscore import SettingsMS2Deepscore
 
 def store_or_load_neg_pos_spectra(data_directory):
     assert os.path.isdir(data_directory)
@@ -111,15 +111,13 @@ def load_train_val_data(data_directory, ionisation_mode):
 
 
 def train_ms2deepscore_wrapper(data_directory,
-                               additional_metadata,
-                               base_dims,
                                ionisation_mode,
-                               embedding_dims=200,
+                               settings: SettingsMS2Deepscore
                                ):
     trained_models_folder = os.path.join(data_directory, "trained_models")
     create_dir_if_missing(trained_models_folder)
 
-    model_folder_file_name = _create_model_file_name(additional_metadata, base_dims, ionisation_mode, embedding_dims)
+    model_folder_file_name = _create_model_file_name(settings.additional_metadata, settings.base_dims, ionisation_mode, settings.embedding_dims)
     model_folder_file_path = os.path.join(trained_models_folder,
                                           model_folder_file_name)
     assert not os.path.exists(model_folder_file_path), \
@@ -129,7 +127,6 @@ def train_ms2deepscore_wrapper(data_directory,
     training_spectra, validation_spectra = load_train_val_data(data_directory,
                                                                ionisation_mode)
     # Train model
-    train_ms2ds_model(training_spectra, validation_spectra, additional_metadata, model_folder_file_path,
-                      epochs=150, base_dims=base_dims, embedding_dim=embedding_dims)
+    train_ms2ds_model(training_spectra, validation_spectra, model_folder_file_path, settings)
 
     return model_folder_file_name

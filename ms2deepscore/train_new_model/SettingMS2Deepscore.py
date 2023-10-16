@@ -5,6 +5,7 @@ class SettingsMS2Deepscore:
         self.embedding_dim = 200,
         self.average_pairs_per_bin = 20,
         self.max_pairs_per_bin = 100
+        self.additional_metadata = ()
 
         if settings:
             for key, value in settings.items():

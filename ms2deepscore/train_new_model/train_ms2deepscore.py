@@ -15,7 +15,7 @@ from ms2deepscore.train_new_model.spectrum_pair_selection import select_compound
 from ms2deepscore.utils import (create_dir_if_missing,
                                 return_non_existing_file_name,
                                 save_pickled_file)
-
+from ms2deepscore.train_new_model.SettingMS2Deepscore import SettingsMS2Deepscore
 
 def bin_spectra(
     training_spectra: List[Spectrum],
@@ -60,16 +60,10 @@ def bin_spectra(
 def train_ms2ds_model(
         training_spectra,
         validation_spectra,
-        additional_metadata,
         results_folder,
-        epochs=150,
-        base_dims=(500, 500),
-        embedding_dim=200,
-        average_pairs_per_bin=20,
-        max_pairs_per_bin=100):
+        settings: SettingsMS2Deepscore):
     """Full workflow to train a MS2DeepScore model.
     """
-    # pylint: disable=too-many-arguments
     # pylint: disable=too-many-locals
 
     # Set file names and create dirs
@@ -80,16 +74,17 @@ def train_ms2ds_model(
     binned_spectra_folder = os.path.join(results_folder, "binned_spectra")
     create_dir_if_missing(binned_spectra_folder)
 
-    selected_compound_pairs_training, selected_training_spectra = select_compound_pairs_wrapper(training_spectra,
-                                                                                                average_pairs_per_bin=average_pairs_per_bin,
-                                                                                                max_pairs_per_bin=max_pairs_per_bin)
-    selected_compound_pair_val, selected_validation_spectra = select_compound_pairs_wrapper(validation_spectra,
-                                                                                            average_pairs_per_bin=average_pairs_per_bin,
-                                                                                            max_pairs_per_bin=max_pairs_per_bin)
+    selected_compound_pairs_training, selected_training_spectra = select_compound_pairs_wrapper(
+        training_spectra, average_pairs_per_bin=settings.average_pairs_per_bin,
+        max_pairs_per_bin=settings.max_pairs_per_bin)
+    selected_compound_pair_val, selected_validation_spectra = select_compound_pairs_wrapper(
+        validation_spectra,
+        average_pairs_per_bin=settings.average_pairs_per_bin,
+        max_pairs_per_bin=settings.max_pairs_per_bin)
 
     # Created binned spectra.
     binned_spectrums_training, binned_spectrums_val, spectrum_binner = \
-        bin_spectra(selected_training_spectra, selected_validation_spectra, additional_metadata, binned_spectra_folder)
+        bin_spectra(selected_training_spectra, selected_validation_spectra, settings.additional_metadata, binned_spectra_folder)
 
     same_prob_bins = list(zip(np.linspace(0, 0.9, 10), np.linspace(0.1, 1, 10)))
 
@@ -123,8 +118,8 @@ def train_ms2ds_model(
 
     model = SiameseModel(
         spectrum_binner,
-        base_dims=base_dims,
-        embedding_dim=embedding_dim,
+        base_dims=settings.base_dims,
+        embedding_dim=settings.embedding_dim,
         dropout_rate=0.2,
     )
 
@@ -148,7 +143,7 @@ def train_ms2ds_model(
     history = model.model.fit(
         training_generator,
         validation_data=validation_generator,
-        epochs=epochs,
+        epochs=settings.epochs,
         verbose=1,
         callbacks=[checkpointer, earlystopper_scoring_net],
     )
