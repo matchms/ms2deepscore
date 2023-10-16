@@ -5,7 +5,8 @@ from matchms.similarity.vector_similarity_functions import jaccard_index
 from scipy.sparse import coo_array
 from ms2deepscore.train_new_model.SettingMS2Deepscore import \
     SettingsMS2Deepscore
-from ms2deepscore.train_new_model.tanimoto_score_calculation import compute_fingerprints_for_training
+from ms2deepscore.train_new_model.tanimoto_score_calculation import \
+    compute_fingerprints_for_training
 
 
 class SelectedCompoundPairs:
