@@ -532,13 +532,6 @@ class DataGeneratorCherrypicked(DataGeneratorBase):
             Number of pairs for each InChiKey during each epoch. Default=1.
         shuffle
             Set to True to shuffle IDs every epoch. Default=True
-        ignore_equal_pairs
-            Set to True to ignore pairs of two identical spectra. Default=True
-        same_prob_bins
-            List of tuples that define ranges of the true label to be trained with
-            equal frequencies. Default is set to [(0, 0.5), (0.5, 1)], which means
-            that pairs with scores <=0.5 will be picked as often as pairs with scores
-            > 0.5.
         augment_removal_max
             Maximum fraction of peaks (if intensity < below augment_removal_intensity)
             to be removed randomly. Default is set to 0.2, which means that between
