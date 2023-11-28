@@ -12,6 +12,28 @@ from ms2deepscore.utils import (create_dir_if_missing, load_pickled_file,
                                 save_pickled_file)
 
 
+def train_ms2deepscore_wrapper(data_directory,
+                               ionisation_mode,
+                               settings: SettingsMS2Deepscore
+                               ):
+    trained_models_folder = os.path.join(data_directory, "trained_models")
+    create_dir_if_missing(trained_models_folder)
+
+    model_folder_file_name = _create_model_file_name(settings.additional_metadata, settings.base_dims, ionisation_mode, settings.embedding_dims)
+    model_folder_file_path = os.path.join(trained_models_folder,
+                                          model_folder_file_name)
+    assert not os.path.exists(model_folder_file_path), \
+        "The path for this model already exists, choose different settings or remove dir before rerunning"
+    create_dir_if_missing(model_folder_file_path)
+    # Split training in pos and neg and create val and training split and select for the right ionisation mode.
+    training_spectra, validation_spectra = load_train_val_data(data_directory,
+                                                               ionisation_mode)
+    # Train model
+    train_ms2ds_model(training_spectra, validation_spectra, model_folder_file_path, settings)
+
+    return model_folder_file_name
+
+
 def store_or_load_neg_pos_spectra(data_directory):
     assert os.path.isdir(data_directory)
     spectra_file_name = os.path.join(data_directory, "cleaned_spectra.mgf")
@@ -110,25 +132,3 @@ def load_train_val_data(data_directory, ionisation_mode):
         validatation_spectra = pos_val_spectra + neg_val_spectra
         return training_spectra, validatation_spectra
     return None, None
-
-
-def train_ms2deepscore_wrapper(data_directory,
-                               ionisation_mode,
-                               settings: SettingsMS2Deepscore
-                               ):
-    trained_models_folder = os.path.join(data_directory, "trained_models")
-    create_dir_if_missing(trained_models_folder)
-
-    model_folder_file_name = _create_model_file_name(settings.additional_metadata, settings.base_dims, ionisation_mode, settings.embedding_dims)
-    model_folder_file_path = os.path.join(trained_models_folder,
-                                          model_folder_file_name)
-    assert not os.path.exists(model_folder_file_path), \
-        "The path for this model already exists, choose different settings or remove dir before rerunning"
-    create_dir_if_missing(model_folder_file_path)
-    # Split training in pos and neg and create val and training split and select for the right ionisation mode.
-    training_spectra, validation_spectra = load_train_val_data(data_directory,
-                                                               ionisation_mode)
-    # Train model
-    train_ms2ds_model(training_spectra, validation_spectra, model_folder_file_path, settings)
-
-    return model_folder_file_name
