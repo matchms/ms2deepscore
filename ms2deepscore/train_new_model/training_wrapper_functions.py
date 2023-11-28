@@ -10,6 +10,7 @@ from ms2deepscore.train_new_model.validation_and_test_split import \
     split_spectra_in_random_inchikey_sets
 from ms2deepscore.utils import (load_pickled_file,
                                 save_pickled_file)
+from matchms.importing.load_spectra import load_spectra
 
 
 def train_ms2deepscore_wrapper(data_directory,
@@ -46,6 +47,18 @@ class DirectoryStructure:
         # Check if the folder exists otherwise make new folder
         os.makedirs(self.positive_negative_split_dir, exist_ok=True)
 
+        self.positive_mode_spectra_file = os.path.join(self.positive_negative_split_dir, "positive_spectra.pickle")
+        self.negative_mode_spectra_file = os.path.join(self.positive_negative_split_dir, "negative_spectra.pickle")
+        self.positive_validation_spectra_file = os.path.join(self.training_and_val_dir, "positive_validation_spectra.pickle")
+        self.positive_training_spectra_file = os.path.join(self.training_and_val_dir, "positive_training_spectra.pickle")
+        self.positive_testing_spectra_file = os.path.join(self.training_and_val_dir, "positive_testing_spectra.pickle")
+        self.negative_validation_spectra_file = os.path.join(self.training_and_val_dir, "negative_validation_spectra.pickle")
+        self.negative_training_spectra_file = os.path.join(self.training_and_val_dir, "negative_training_spectra.pickle")
+        self.negative_testing_spectra_file = os.path.join(self.training_and_val_dir, "negative_testing_spectra.pickle")
+
+    def load_spectra(self):
+        return load_spectra(self.spectra_file_name)
+
 
 
 def load_train_val_data(directory_structure: DirectoryStructure, settings: SettingsMS2Deepscore):
@@ -65,13 +78,13 @@ def load_train_val_data(directory_structure: DirectoryStructure, settings: Setti
 
 def split_or_load_validation_and_test_spectra(directory_structure: DirectoryStructure):
     """Will split the spectra based on ionisation mode, unless it is already stored"""
-    expected_file_names = [os.path.join(directory_structure.training_and_val_dir, file_name) for file_name in
-                           ("positive_validation_spectra.pickle",
-                            "positive_training_spectra.pickle",
-                            "positive_testing_spectra.pickle",
-                            "negative_validation_spectra.pickle",
-                            "negative_training_spectra.pickle",
-                            "negative_testing_spectra.pickle")]
+    expected_file_names = [directory_structure.positive_training_spectra_file,
+                           directory_structure.positive_testing_spectra_file,
+                           directory_structure.positive_validation_spectra_file,
+                           directory_structure.negative_training_spectra_file,
+                           directory_structure.negative_testing_spectra_file,
+                           directory_structure.negative_validation_spectra_file]
+
     files_exist = [os.path.isfile(file_name) for file_name in expected_file_names]
     assert len(set(files_exist)) == 1, "Some of the val, test, train sets exists, but not all"
 
@@ -97,20 +110,17 @@ def split_or_load_validation_and_test_spectra(directory_structure: DirectoryStru
 
 
 def store_or_load_neg_pos_spectra(directory_structure: DirectoryStructure):
-
-    positive_mode_spectra_file = os.path.join(directory_structure.positive_negative_split_dir, "positive_spectra.pickle")
-    negative_mode_spectra_file = os.path.join(directory_structure.positive_negative_split_dir, "negative_spectra.pickle")
-
-    assert os.path.isfile(positive_mode_spectra_file) == os.path.isfile(negative_mode_spectra_file),\
+    assert os.path.isfile(directory_structure.positive_mode_spectra_file) == \
+           os.path.isfile(directory_structure.negative_mode_spectra_file),        \
         "One of the pos or neg files was found, both should be there or both should not be there"
 
-    if os.path.isfile(positive_mode_spectra_file):
-        positive_mode_spectra = load_pickled_file(positive_mode_spectra_file)
-        negative_mode_spectra = load_pickled_file(negative_mode_spectra_file)
+    if os.path.isfile(directory_structure.positive_mode_spectra_file):
+        positive_mode_spectra = load_pickled_file(directory_structure.positive_mode_spectra_file)
+        negative_mode_spectra = load_pickled_file(directory_structure.negative_mode_spectra_file)
         print("Loaded previously stored positive and negative mode spectra")
     else:
-        spectra = load_pickled_file(directory_structure.spectra_file_name)
+        spectra = directory_structure.load_spectra()
         positive_mode_spectra, negative_mode_spectra = split_pos_and_neg(spectra)
-        save_pickled_file(positive_mode_spectra, positive_mode_spectra_file)
-        save_pickled_file(negative_mode_spectra, negative_mode_spectra_file)
+        save_pickled_file(positive_mode_spectra, directory_structure.positive_mode_spectra_file)
+        save_pickled_file(negative_mode_spectra, directory_structure.negative_mode_spectra_file)
     return positive_mode_spectra, negative_mode_spectra
