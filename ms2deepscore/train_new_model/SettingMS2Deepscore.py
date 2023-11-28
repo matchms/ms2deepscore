@@ -64,6 +64,7 @@ class SettingsMS2Deepscore:
 
         # Folder names for storing
         self.model_directory_name = self._create_model_directory_name()
+
         if settings:
             for key, value in settings.items():
                 if hasattr(self, key):
@@ -76,7 +77,7 @@ class SettingsMS2Deepscore:
         assert self.ionisation_mode in ("positive", "negative", "both")
 
     def _create_model_directory_name(self):
-        """Creates a directory name using metadata, it will contain the metadata and final model"""
+        """Creates a directory name using metadata, it will contain the metadata, the binned spectra and final model"""
         binning_file_label = ""
         for metadata_generator in self.additional_metadata:
             binning_file_label += metadata_generator.metadata_field + "_"
