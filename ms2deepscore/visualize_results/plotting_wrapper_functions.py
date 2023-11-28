@@ -92,6 +92,6 @@ def benchmark_wrapper(val_spectra_1: List[Spectrum],
     summary = f"For {file_name_prefix} the mae={mae} and rmse={rmse}\n"
 
     averages_summary_file = os.path.join(benchmarking_results_folder, "RMSE_and_MAE.txt")
-    with open(averages_summary_file, "a", encoding="uft-8") as f:
+    with open(averages_summary_file, "a", encoding="utf-8") as f:
         f.write(summary)
     print(summary)
