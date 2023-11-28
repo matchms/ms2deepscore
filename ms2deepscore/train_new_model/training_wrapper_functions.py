@@ -13,27 +13,28 @@ from matchms.importing.load_spectra import load_spectra
 
 
 def train_ms2deepscore_wrapper(data_directory,
+                               spectra_file_name,
                                settings: SettingsMS2Deepscore
                                ):
-    directory_structure = DirectoryStructure(data_directory)
+    directory_structure = DirectoryStructure(data_directory, spectra_file_name)
 
     # Split training in pos and neg and create val and training split and select for the right ionisation mode.
-    training_spectra, validation_spectra = load_train_val_data(directory_structure,
-                                                               settings)
+    training_spectra, validation_spectra, test_spectra = load_train_val_data(directory_structure,
+                                                                             settings.ionisation_mode)
     # Train model
     train_ms2ds_model(training_spectra, validation_spectra,
-                      os.path.join(data_directory, settings.model_directory_name),
+                      os.path.join(directory_structure.trained_models_folder, settings.model_directory_name),
                       settings)
-    # todo store the settings as well in the same dir.
+    # todo add creation of benchmarking?
+    # todo store the settings as well in the settings.model_directory_name
     return settings.model_directory_name
 
 
 class DirectoryStructure:
-    def __init__(self, root_directory):
+    def __init__(self, root_directory, spectra_file_name):
         self.root_directory = root_directory
-        os.makedirs(self.root_directory, exist_ok=True)
-        # todo instead of starting from the root dir, start from the spectra??
-        self.spectra_file_name = os.path.join(self.root_directory, "cleaned_spectra.mgf")
+        assert os.path.isdir(self.root_directory)
+        self.spectra_file_name = os.path.join(self.root_directory, spectra_file_name)
         assert os.path.isfile(self.spectra_file_name)
 
         self.trained_models_folder = os.path.join(self.root_directory, "trained_models")
@@ -96,6 +97,9 @@ class DirectoryStructure:
         else:
             positive_validation_spectra, positive_testing_spectra, positive_training_spectra = \
                 split_spectra_in_random_inchikey_sets(self.load_positive_mode_spectra(), 20)
+            save_pickled_file(positive_training_spectra, self.positive_training_spectra_file)
+            save_pickled_file(positive_validation_spectra, self.positive_validation_spectra_file)
+            save_pickled_file(positive_testing_spectra, self.positive_testing_spectra_file)
         print(f"Positive split \n "
               f"Train: {len(positive_training_spectra)} \n "
               f"Validation: {len(positive_validation_spectra)} \n "
@@ -117,6 +121,9 @@ class DirectoryStructure:
         else:
             negative_validation_spectra, negative_testing_spectra, negative_training_spectra = \
                 split_spectra_in_random_inchikey_sets(self.load_negative_mode_spectra(), 20)
+            save_pickled_file(negative_training_spectra, self.negative_training_spectra_file)
+            save_pickled_file(negative_validation_spectra, self.negative_validation_spectra_file)
+            save_pickled_file(negative_testing_spectra, self.negative_testing_spectra_file)
         print(f"negative split \n "
               f"Train: {len(negative_training_spectra)} \n "
               f"Validation: {len(negative_validation_spectra)} \n "
@@ -125,12 +132,12 @@ class DirectoryStructure:
 
 
 def load_train_val_data(directory_structure: DirectoryStructure,
-                        settings: SettingsMS2Deepscore):
-    if settings.ionisation_mode == "positive":
+                        ionisation_mode: str):
+    if ionisation_mode == "positive":
         return directory_structure.load_positive_train_split()
-    if settings.ionisation_mode == "negative":
+    if ionisation_mode == "negative":
         return directory_structure.load_negative_train_split()
-    if settings.ionisation_mode == "both":
+    if ionisation_mode == "both":
         positive_training_spectra, positive_validation_spectra, positive_testing_spectra = \
             directory_structure.load_positive_train_split()
         negative_training_spectra, negative_validation_spectra, negative_testing_spectra = \
