@@ -15,57 +15,57 @@ from ms2deepscore.utils import (load_pickled_file,
 def train_ms2deepscore_wrapper(data_directory,
                                settings: SettingsMS2Deepscore
                                ):
-    trained_models_folder = os.path.join(data_directory, "trained_models")
-    os.makedirs(trained_models_folder, exist_ok=True)
+    directory_structure = DirectoryStructure(data_directory)
 
-    model_folder_file_path = os.path.join(trained_models_folder,
-                                          settings.model_directory_name)
-    assert not os.path.exists(model_folder_file_path), \
-        "The path for this model already exists, choose different settings or remove dir before rerunning"
-    os.makedirs(settings.model_directory_name, exist_ok=True)
     # Split training in pos and neg and create val and training split and select for the right ionisation mode.
-    training_spectra, validation_spectra = load_train_val_data(data_directory,
-                                                               settings.ionisation_mode)
+    training_spectra, validation_spectra = load_train_val_data(directory_structure,
+                                                               settings)
     # Train model
-    train_ms2ds_model(training_spectra, validation_spectra, model_folder_file_path, settings)
-
+    train_ms2ds_model(training_spectra, validation_spectra,
+                      os.path.join(data_directory, settings.model_directory_name),
+                      settings)
+    # todo store the settings as well
     return settings.model_directory_name
 
 
-def store_or_load_neg_pos_spectra(data_directory):
-    assert os.path.isdir(data_directory)
-    spectra_file_name = os.path.join(data_directory, "cleaned_spectra.mgf")
-    assert os.path.isfile(spectra_file_name)
+class DirectoryStructure:
+    def __init__(self, root_directory):
+        self.root_directory = root_directory
+        os.makedirs(self.root_directory, exist_ok=True)
+        # todo instead of starting from the root dir, start from the spectra??
+        self.spectra_file_name = os.path.join(self.root_directory, "cleaned_spectra.mgf")
+        assert os.path.isfile(self.spectra_file_name)
 
-    pos_neg_folder = os.path.join(data_directory, "pos_neg_split")
+        self.trained_models_folder = os.path.join(self.root_directory, "trained_models")
+        os.makedirs(self.trained_models_folder, exist_ok=True)
 
-    # Check if the folder exists otherwise make new folder
-    os.makedirs(pos_neg_folder, exist_ok=True)
+        self.training_and_val_dir = os.path.join(self.root_directory, "training_and_validation_split")
+        os.makedirs(self.trained_models_folder, exist_ok=True)
 
-    positive_mode_spectra_file = os.path.join(pos_neg_folder, "positive_spectra.pickle")
-    negative_mode_spectra_file = os.path.join(pos_neg_folder, "negative_spectra.pickle")
-
-    assert os.path.isfile(positive_mode_spectra_file) == os.path.isfile(negative_mode_spectra_file),\
-        "One of the pos or neg files was found, both should be there or both should not be there"
-
-    if os.path.isfile(positive_mode_spectra_file):
-        positive_mode_spectra = load_pickled_file(positive_mode_spectra_file)
-        negative_mode_spectra = load_pickled_file(negative_mode_spectra_file)
-        print("Loaded previously stored positive and negative mode spectra")
-    else:
-        spectra = load_pickled_file(spectra_file_name)
-        positive_mode_spectra, negative_mode_spectra = split_pos_and_neg(spectra)
-        save_pickled_file(positive_mode_spectra, positive_mode_spectra_file)
-        save_pickled_file(negative_mode_spectra, negative_mode_spectra_file)
-    return positive_mode_spectra, negative_mode_spectra
+        self.positive_negative_split_dir = os.path.join(self.root_directory, "pos_neg_split")
+        # Check if the folder exists otherwise make new folder
+        os.makedirs(self.positive_negative_split_dir, exist_ok=True)
 
 
-def split_or_load_validation_and_test_spectra(data_directory):
-    """Will split the spectra based on ionisation mode, unless it is already stored """
-    training_and_val_dir = os.path.join(data_directory, "training_and_validation_split")
-    os.makedirs(training_and_val_dir, exist_ok=True)
 
-    expected_file_names = [os.path.join(training_and_val_dir, file_name) for file_name in
+def load_train_val_data(directory_structure: DirectoryStructure, settings: SettingsMS2Deepscore):
+    assert settings.ionisation_mode in ("positive", "negative", "both")
+    pos_val_spectra, pos_train_spectra, _, neg_val_spectra, neg_train_spectra, _ = \
+        split_or_load_validation_and_test_spectra(directory_structure)
+    if settings.ionisation_mode == "positive":
+        return pos_train_spectra, pos_val_spectra
+    if settings.ionisation_mode == "negative":
+        return neg_train_spectra, neg_val_spectra
+    if settings.ionisation_mode == "both":
+        training_spectra = pos_train_spectra + neg_train_spectra
+        validatation_spectra = pos_val_spectra + neg_val_spectra
+        return training_spectra, validatation_spectra
+    return None, None
+
+
+def split_or_load_validation_and_test_spectra(directory_structure: DirectoryStructure):
+    """Will split the spectra based on ionisation mode, unless it is already stored"""
+    expected_file_names = [os.path.join(directory_structure.training_and_val_dir, file_name) for file_name in
                            ("positive_validation_spectra.pickle",
                             "positive_training_spectra.pickle",
                             "positive_testing_spectra.pickle",
@@ -81,7 +81,7 @@ def split_or_load_validation_and_test_spectra(data_directory):
             [load_pickled_file(file_name) for file_name in expected_file_names]
         print("Loaded previously stored val, train and test split")
     else:
-        positive_spectra, negative_spectra = store_or_load_neg_pos_spectra(data_directory)
+        positive_spectra, negative_spectra = store_or_load_neg_pos_spectra(directory_structure)
         pos_val_spectra, pos_test_spectra, pos_train_spectra = \
             split_spectra_in_random_inchikey_sets(positive_spectra, 20)
         print(f"Positive split \n"
@@ -96,16 +96,21 @@ def split_or_load_validation_and_test_spectra(data_directory):
     return pos_val_spectra, pos_train_spectra, pos_test_spectra, neg_val_spectra, neg_train_spectra, neg_test_spectra
 
 
-def load_train_val_data(data_directory, ionisation_mode):
-    assert ionisation_mode in ("positive", "negative", "both")
-    pos_val_spectra, pos_train_spectra, _, neg_val_spectra, neg_train_spectra, _ = \
-        split_or_load_validation_and_test_spectra(data_directory)
-    if ionisation_mode == "positive":
-        return pos_train_spectra, pos_val_spectra
-    if ionisation_mode == "negative":
-        return neg_train_spectra, neg_val_spectra
-    if ionisation_mode == "both":
-        training_spectra = pos_train_spectra + neg_train_spectra
-        validatation_spectra = pos_val_spectra + neg_val_spectra
-        return training_spectra, validatation_spectra
-    return None, None
+def store_or_load_neg_pos_spectra(directory_structure: DirectoryStructure):
+
+    positive_mode_spectra_file = os.path.join(directory_structure.positive_negative_split_dir, "positive_spectra.pickle")
+    negative_mode_spectra_file = os.path.join(directory_structure.positive_negative_split_dir, "negative_spectra.pickle")
+
+    assert os.path.isfile(positive_mode_spectra_file) == os.path.isfile(negative_mode_spectra_file),\
+        "One of the pos or neg files was found, both should be there or both should not be there"
+
+    if os.path.isfile(positive_mode_spectra_file):
+        positive_mode_spectra = load_pickled_file(positive_mode_spectra_file)
+        negative_mode_spectra = load_pickled_file(negative_mode_spectra_file)
+        print("Loaded previously stored positive and negative mode spectra")
+    else:
+        spectra = load_pickled_file(directory_structure.spectra_file_name)
+        positive_mode_spectra, negative_mode_spectra = split_pos_and_neg(spectra)
+        save_pickled_file(positive_mode_spectra, positive_mode_spectra_file)
+        save_pickled_file(negative_mode_spectra, negative_mode_spectra_file)
+    return positive_mode_spectra, negative_mode_spectra
