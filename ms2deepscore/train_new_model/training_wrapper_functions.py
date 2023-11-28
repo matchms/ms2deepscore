@@ -8,7 +8,7 @@ from ms2deepscore.train_new_model.split_positive_and_negative_mode import \
 from ms2deepscore.train_new_model.train_ms2deepscore import train_ms2ds_model
 from ms2deepscore.train_new_model.validation_and_test_split import \
     split_spectra_in_random_inchikey_sets
-from ms2deepscore.utils import (create_dir_if_missing, load_pickled_file,
+from ms2deepscore.utils import (load_pickled_file,
                                 save_pickled_file)
 
 
@@ -17,14 +17,14 @@ def train_ms2deepscore_wrapper(data_directory,
                                settings: SettingsMS2Deepscore
                                ):
     trained_models_folder = os.path.join(data_directory, "trained_models")
-    create_dir_if_missing(trained_models_folder)
+    os.makedirs(trained_models_folder, exist_ok=True)
 
     model_folder_file_name = _create_model_file_name(settings.additional_metadata, settings.base_dims, ionisation_mode, settings.embedding_dims)
     model_folder_file_path = os.path.join(trained_models_folder,
                                           model_folder_file_name)
     assert not os.path.exists(model_folder_file_path), \
         "The path for this model already exists, choose different settings or remove dir before rerunning"
-    create_dir_if_missing(model_folder_file_path)
+    os.makedirs(model_folder_file_name, exist_ok=True)
     # Split training in pos and neg and create val and training split and select for the right ionisation mode.
     training_spectra, validation_spectra = load_train_val_data(data_directory,
                                                                ionisation_mode)
@@ -42,7 +42,8 @@ def store_or_load_neg_pos_spectra(data_directory):
     pos_neg_folder = os.path.join(data_directory, "pos_neg_split")
 
     # Check if the folder exists otherwise make new folder
-    create_dir_if_missing(pos_neg_folder)
+    os.makedirs(pos_neg_folder, exist_ok=True)
+
     positive_mode_spectra_file = os.path.join(pos_neg_folder, "positive_spectra.pickle")
     negative_mode_spectra_file = os.path.join(pos_neg_folder, "negative_spectra.pickle")
 
@@ -63,7 +64,7 @@ def store_or_load_neg_pos_spectra(data_directory):
 
 def split_validation_and_test_spectra(data_directory):
     training_and_val_dir = os.path.join(data_directory, "training_and_validation_split")
-    create_dir_if_missing(training_and_val_dir)
+    os.makedirs(training_and_val_dir, exist_ok=True)
 
     expected_file_names = [os.path.join(training_and_val_dir, file_name) for file_name in
                            ("positive_validation_spectra.pickle",

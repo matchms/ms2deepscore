@@ -14,8 +14,7 @@ from ms2deepscore.train_new_model.SettingMS2Deepscore import \
     SettingsMS2Deepscore
 from ms2deepscore.train_new_model.spectrum_pair_selection import \
     select_compound_pairs_wrapper
-from ms2deepscore.utils import (create_dir_if_missing,
-                                return_non_existing_file_name,
+from ms2deepscore.utils import (return_non_existing_file_name,
                                 save_pickled_file)
 
 
@@ -49,7 +48,7 @@ def bin_spectra(
     binned_spectrums_val = spectrum_binner.transform(validation_spectra)
 
     if save_folder:
-        create_dir_if_missing(save_folder)
+        os.makedirs(save_folder, exist_ok=True)
         save_pickled_file(binned_spectrums_training, return_non_existing_file_name(
                 os.path.join(save_folder, "binned_training_spectra.pickle")), )
         save_pickled_file(binned_spectrums_val, return_non_existing_file_name(
@@ -69,12 +68,13 @@ def train_ms2ds_model(
     # pylint: disable=too-many-locals
 
     # Set file names and create dirs
-    create_dir_if_missing(results_folder)
+    os.makedirs(results_folder, exist_ok=True)
+
     output_model_file_name = return_non_existing_file_name(os.path.join(results_folder, "ms2deepscore_model.hdf5"))
     ms2ds_history_file_name = return_non_existing_file_name(os.path.join(results_folder, "history.txt"))
     ms2ds_history_plot_file_name = return_non_existing_file_name(os.path.join(results_folder, "history.svg"))
     binned_spectra_folder = os.path.join(results_folder, "binned_spectra")
-    create_dir_if_missing(binned_spectra_folder)
+    os.makedirs(binned_spectra_folder, exist_ok=True)
 
     selected_compound_pairs_training, selected_training_spectra = select_compound_pairs_wrapper(
         training_spectra, settings=settings)

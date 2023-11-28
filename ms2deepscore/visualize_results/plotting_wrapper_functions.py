@@ -9,7 +9,7 @@ from ms2deepscore.visualize_results.plotting import plot_histograms
 from ms2deepscore.train_new_model.tanimoto_score_calculation import (
     calculate_tanimoto_scores_unique_inchikey,
     get_tanimoto_score_between_spectra)
-from ms2deepscore.utils import (create_dir_if_missing, load_pickled_file,
+from ms2deepscore.utils import (load_pickled_file,
                                 save_pickled_file)
 
 
@@ -27,7 +27,7 @@ def create_all_plots(data_dir,
 
     # Create benchmarking results folder
     benchmarking_results_folder = os.path.join(model_folder, "benchmarking_results")
-    create_dir_if_missing(benchmarking_results_folder)
+    os.makedirs(benchmarking_results_folder, exist_ok=True)
 
     # Load in MS2Deepscore model
     ms2deepscore_model = MS2DeepScore(load_model(os.path.join(model_folder, "ms2deepscore_model.hdf5")))
@@ -79,7 +79,8 @@ def benchmark_wrapper(val_spectra_1: List[Spectrum],
         save_pickled_file(true_values, true_values_file_name)
 
     plots_folder = os.path.join(benchmarking_results_folder, "plots_normalized_auc")
-    create_dir_if_missing(plots_folder)
+    os.makedirs(plots_folder, exist_ok=True)
+
     # Create plots
     plot_histograms(predictions, true_values, 10, 100)
     plt.savefig(os.path.join(plots_folder, f"{file_name_prefix}_plot.svg"))
