@@ -13,25 +13,23 @@ from ms2deepscore.utils import (load_pickled_file,
 
 
 def train_ms2deepscore_wrapper(data_directory,
-                               ionisation_mode,
                                settings: SettingsMS2Deepscore
                                ):
     trained_models_folder = os.path.join(data_directory, "trained_models")
     os.makedirs(trained_models_folder, exist_ok=True)
 
-    model_folder_file_name = _create_model_file_name(settings.additional_metadata, settings.base_dims, ionisation_mode, settings.embedding_dims)
     model_folder_file_path = os.path.join(trained_models_folder,
-                                          model_folder_file_name)
+                                          settings.model_directory_name)
     assert not os.path.exists(model_folder_file_path), \
         "The path for this model already exists, choose different settings or remove dir before rerunning"
-    os.makedirs(model_folder_file_name, exist_ok=True)
+    os.makedirs(settings.model_directory_name, exist_ok=True)
     # Split training in pos and neg and create val and training split and select for the right ionisation mode.
     training_spectra, validation_spectra = load_train_val_data(data_directory,
-                                                               ionisation_mode)
+                                                               settings.ionisation_mode)
     # Train model
     train_ms2ds_model(training_spectra, validation_spectra, model_folder_file_path, settings)
 
-    return model_folder_file_name
+    return settings.model_directory_name
 
 
 def store_or_load_neg_pos_spectra(data_directory):
@@ -96,29 +94,6 @@ def split_or_load_validation_and_test_spectra(data_directory):
                                               neg_val_spectra, neg_train_spectra, neg_test_spectra)):
             save_pickled_file(spectra_to_store, expected_file_names[i])
     return pos_val_spectra, pos_train_spectra, pos_test_spectra, neg_val_spectra, neg_train_spectra, neg_test_spectra
-
-
-def _create_model_file_name(additional_metadata,
-                            base_dims,
-                            ionisation_mode,
-                            embedding_dims=None):
-    """Creates a file name containing the metadata of the ms2deepscore model"""
-    binning_file_label = ""
-    for metadata_generator in additional_metadata:
-        binning_file_label += metadata_generator.metadata_field + "_"
-
-    # Define a neural net structure label
-    neural_net_structure_label = ""
-    for layer in base_dims:
-        neural_net_structure_label += str(layer) + "_"
-    neural_net_structure_label += "layers"
-
-    if embedding_dims:
-        neural_net_structure_label += f"_{str(embedding_dims)}_embedding"
-
-    model_folder_file_name = f"{ionisation_mode}_mode_{binning_file_label}{neural_net_structure_label}"
-    print(f"The model will be stored in the folder: {model_folder_file_name}")
-    return model_folder_file_name
 
 
 def load_train_val_data(data_directory, ionisation_mode):
