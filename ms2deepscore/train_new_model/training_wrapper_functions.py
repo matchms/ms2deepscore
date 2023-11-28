@@ -8,8 +8,7 @@ from ms2deepscore.train_new_model.split_positive_and_negative_mode import \
 from ms2deepscore.train_new_model.train_ms2deepscore import train_ms2ds_model
 from ms2deepscore.train_new_model.validation_and_test_split import \
     split_spectra_in_random_inchikey_sets
-from ms2deepscore.utils import (load_pickled_file,
-                                save_pickled_file)
+from ms2deepscore.utils import save_pickled_file
 from matchms.importing.load_spectra import load_spectra
 
 
@@ -25,7 +24,7 @@ def train_ms2deepscore_wrapper(data_directory,
     train_ms2ds_model(training_spectra, validation_spectra,
                       os.path.join(data_directory, settings.model_directory_name),
                       settings)
-    # todo store the settings as well
+    # todo store the settings as well in the same dir.
     return settings.model_directory_name
 
 
@@ -82,52 +81,62 @@ class DirectoryStructure:
         save_pickled_file(negative_mode_spectra, self.negative_mode_spectra_file)
         return positive_mode_spectra, negative_mode_spectra
 
+    def load_positive_train_split(self):
+        all_files_exist = True
+        for spectra_file in [self.positive_training_spectra_file,
+                             self.positive_testing_spectra_file,
+                             self.positive_validation_spectra_file, ]:
+            if not os.path.isfile(spectra_file):
+                all_files_exist = False
 
-def load_train_val_data(directory_structure: DirectoryStructure, settings: SettingsMS2Deepscore):
-    assert settings.ionisation_mode in ("positive", "negative", "both")
-    pos_val_spectra, pos_train_spectra, _, neg_val_spectra, neg_train_spectra, _ = \
-        split_or_load_validation_and_test_spectra(directory_structure)
+        if all_files_exist:
+            positive_training_spectra = load_spectra(self.positive_training_spectra_file)
+            positive_validation_spectra = load_spectra(self.positive_validation_spectra_file)
+            positive_testing_spectra = load_spectra(self.positive_testing_spectra_file)
+        else:
+            positive_validation_spectra, positive_testing_spectra, positive_training_spectra = \
+                split_spectra_in_random_inchikey_sets(self.load_positive_mode_spectra(), 20)
+        print(f"Positive split \n "
+              f"Train: {len(positive_training_spectra)} \n "
+              f"Validation: {len(positive_validation_spectra)} \n "
+              f"Test: {len(positive_testing_spectra)}")
+        return positive_training_spectra, positive_validation_spectra, positive_testing_spectra
+
+    def load_negative_train_split(self):
+        all_files_exist = True
+        for spectra_file in [self.negative_training_spectra_file,
+                             self.negative_testing_spectra_file,
+                             self.negative_validation_spectra_file, ]:
+            if not os.path.isfile(spectra_file):
+                all_files_exist = False
+
+        if all_files_exist:
+            negative_training_spectra = load_spectra(self.negative_training_spectra_file)
+            negative_validation_spectra = load_spectra(self.negative_validation_spectra_file)
+            negative_testing_spectra = load_spectra(self.negative_testing_spectra_file)
+        else:
+            negative_validation_spectra, negative_testing_spectra, negative_training_spectra = \
+                split_spectra_in_random_inchikey_sets(self.load_negative_mode_spectra(), 20)
+        print(f"negative split \n "
+              f"Train: {len(negative_training_spectra)} \n "
+              f"Validation: {len(negative_validation_spectra)} \n "
+              f"Test: {len(negative_testing_spectra)}")
+        return negative_training_spectra, negative_validation_spectra, negative_testing_spectra
+
+
+def load_train_val_data(directory_structure: DirectoryStructure,
+                        settings: SettingsMS2Deepscore):
     if settings.ionisation_mode == "positive":
-        return pos_train_spectra, pos_val_spectra
+        return directory_structure.load_positive_train_split()
     if settings.ionisation_mode == "negative":
-        return neg_train_spectra, neg_val_spectra
+        return directory_structure.load_negative_train_split()
     if settings.ionisation_mode == "both":
-        training_spectra = pos_train_spectra + neg_train_spectra
-        validatation_spectra = pos_val_spectra + neg_val_spectra
-        return training_spectra, validatation_spectra
-    return None, None
-
-
-def split_or_load_validation_and_test_spectra(directory_structure: DirectoryStructure):
-    """Will split the spectra based on ionisation mode, unless it is already stored"""
-    expected_file_names = [directory_structure.positive_training_spectra_file,
-                           directory_structure.positive_testing_spectra_file,
-                           directory_structure.positive_validation_spectra_file,
-                           directory_structure.negative_training_spectra_file,
-                           directory_structure.negative_testing_spectra_file,
-                           directory_structure.negative_validation_spectra_file]
-
-    files_exist = [os.path.isfile(file_name) for file_name in expected_file_names]
-    assert len(set(files_exist)) == 1, "Some of the val, test, train sets exists, but not all"
-
-    if files_exist[0]:
-        # Load the files.
-        pos_val_spectra, pos_train_spectra, pos_test_spectra, neg_val_spectra, neg_train_spectra, neg_test_spectra = \
-            [load_pickled_file(file_name) for file_name in expected_file_names]
-        print("Loaded previously stored val, train and test split")
-    else:
-        positive_spectra = directory_structure.load_positive_mode_spectra()
-        negative_spectra = directory_structure.load_negative_mode_spectra()
-        pos_val_spectra, pos_test_spectra, pos_train_spectra = \
-            split_spectra_in_random_inchikey_sets(positive_spectra, 20)
-        print(f"Positive split \n"
-              f"Validation: {len(pos_val_spectra)} \nTrain: {len(pos_train_spectra)} \nTest: {len(pos_test_spectra)}")
-        neg_val_spectra, neg_test_spectra, neg_train_spectra = \
-            split_spectra_in_random_inchikey_sets(negative_spectra, 20)
-        print(f"Negative split \n"
-              f"Validation: {len(neg_val_spectra)} \nTrain: {len(neg_train_spectra)} \nTest: {len(neg_test_spectra)}")
-        for i, spectra_to_store in enumerate((pos_val_spectra, pos_train_spectra, pos_test_spectra,
-                                              neg_val_spectra, neg_train_spectra, neg_test_spectra)):
-            save_pickled_file(spectra_to_store, expected_file_names[i])
-    return pos_val_spectra, pos_train_spectra, pos_test_spectra, neg_val_spectra, neg_train_spectra, neg_test_spectra
-
+        positive_training_spectra, positive_validation_spectra, positive_testing_spectra = \
+            directory_structure.load_positive_train_split()
+        negative_training_spectra, negative_validation_spectra, negative_testing_spectra = \
+            directory_structure.load_negative_mode_spectra()
+        both_training_spectra = positive_training_spectra + negative_training_spectra
+        both_validatation_spectra = positive_validation_spectra + negative_validation_spectra
+        both_test_spectra = positive_testing_spectra + negative_testing_spectra
+        return both_training_spectra, both_validatation_spectra, both_test_spectra
+    raise ValueError("expected ionisation mode to be 'positive', 'negative' or 'both'")
