@@ -62,7 +62,8 @@ def store_or_load_neg_pos_spectra(data_directory):
     return positive_mode_spectra, negative_mode_spectra
 
 
-def split_validation_and_test_spectra(data_directory):
+def split_or_load_validation_and_test_spectra(data_directory):
+    """Will split the spectra based on ionisation mode, unless it is already stored """
     training_and_val_dir = os.path.join(data_directory, "training_and_validation_split")
     os.makedirs(training_and_val_dir, exist_ok=True)
 
@@ -123,7 +124,7 @@ def _create_model_file_name(additional_metadata,
 def load_train_val_data(data_directory, ionisation_mode):
     assert ionisation_mode in ("positive", "negative", "both")
     pos_val_spectra, pos_train_spectra, _, neg_val_spectra, neg_train_spectra, _ = \
-        split_validation_and_test_spectra(data_directory)
+        split_or_load_validation_and_test_spectra(data_directory)
     if ionisation_mode == "positive":
         return pos_train_spectra, pos_val_spectra
     if ionisation_mode == "negative":
