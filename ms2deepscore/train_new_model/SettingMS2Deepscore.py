@@ -1,5 +1,6 @@
 from typing import Optional
 import numpy as np
+from datetime import datetime
 
 
 class SettingsMS2Deepscore:
@@ -62,10 +63,7 @@ class SettingsMS2Deepscore:
         self.fingerprint_nbits: int = 2048
 
         # Folder names for storing
-        self.model_directory_name = _create_model_file_name(self.additional_metadata,
-                                                       self.base_dims,
-                                                       self.ionisation_mode,
-                                                       self.embedding_dim)
+        self.model_directory_name = self._create_model_directory_name()
         if settings:
             for key, value in settings.items():
                 if hasattr(self, key):
@@ -77,25 +75,22 @@ class SettingsMS2Deepscore:
     def validate_settings(self):
         assert self.ionisation_mode in ("positive", "negative", "both")
 
+    def _create_model_directory_name(self):
+        """Creates a directory name using metadata, it will contain the metadata and final model"""
+        binning_file_label = ""
+        for metadata_generator in self.additional_metadata:
+            binning_file_label += metadata_generator.metadata_field + "_"
 
-def _create_model_file_name(additional_metadata,
-                            base_dims,
-                            ionisation_mode,
-                            embedding_dims=None):
-    """Creates a file name containing the metadata of the ms2deepscore model"""
-    binning_file_label = ""
-    for metadata_generator in additional_metadata:
-        binning_file_label += metadata_generator.metadata_field + "_"
+        # Define a neural net structure label
+        neural_net_structure_label = ""
+        for layer in self.base_dims:
+            neural_net_structure_label += str(layer) + "_"
+        neural_net_structure_label += "layers"
 
-    # Define a neural net structure label
-    neural_net_structure_label = ""
-    for layer in base_dims:
-        neural_net_structure_label += str(layer) + "_"
-    neural_net_structure_label += "layers"
-
-    if embedding_dims:
-        neural_net_structure_label += f"_{str(embedding_dims)}_embedding"
-    # todo add the time dimension
-    model_folder_file_name = f"{ionisation_mode}_mode_{binning_file_label}{neural_net_structure_label}"
-    print(f"The model will be stored in the folder: {model_folder_file_name}")
-    return model_folder_file_name
+        if self.embedding_dim:
+            neural_net_structure_label += f"_{str(self.embedding_dim)}_embedding"
+        time_stamp = datetime.now().strftime("%Y_%m_%d_%H:%M:%S")
+        model_folder_file_name = f"{self.ionisation_mode}_mode_{binning_file_label}" \
+                                 f"{neural_net_structure_label}_{time_stamp}"
+        print(f"The model will be stored in the folder: {model_folder_file_name}")
+        return model_folder_file_name
