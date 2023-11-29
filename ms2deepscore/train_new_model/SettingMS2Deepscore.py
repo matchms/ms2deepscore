@@ -90,7 +90,7 @@ class SettingsMS2Deepscore:
 
         if self.embedding_dim:
             neural_net_structure_label += f"_{str(self.embedding_dim)}_embedding"
-        time_stamp = datetime.now().strftime("%Y_%m_%d_%H:%M:%S")
+        time_stamp = datetime.now().strftime("%Y_%m_%d_%H_%M_%S")
         model_folder_file_name = f"{self.ionisation_mode}_mode_{binning_file_label}" \
                                  f"{neural_net_structure_label}_{time_stamp}"
         print(f"The model will be stored in the folder: {model_folder_file_name}")

@@ -8,16 +8,17 @@ from ms2deepscore.train_new_model.split_positive_and_negative_mode import \
 from ms2deepscore.train_new_model.train_ms2deepscore import train_ms2ds_model
 from ms2deepscore.train_new_model.validation_and_test_split import \
     split_spectra_in_random_inchikey_sets
-from ms2deepscore.utils import save_pickled_file
 from matchms.importing.load_spectra import load_spectra
+from matchms.exporting.save_spectra import save_spectra
 
 
 def train_ms2deepscore_wrapper(data_directory,
                                spectra_file_name,
-                               settings: SettingsMS2Deepscore
+                               settings: SettingsMS2Deepscore,
+                               validation_split_fraction = 20
                                ):
     """Trains a ms2deepscore model, including the data split into pos,val,train spectra."""
-    directory_structure = StoreTrainingData(data_directory, spectra_file_name)
+    directory_structure = StoreTrainingData(data_directory, spectra_file_name, validation_split_fraction)
 
     # Split training in pos and neg and create val and training split and select for the right ionisation mode.
     training_spectra, validation_spectra, test_spectra = load_train_val_data(directory_structure,
@@ -50,30 +51,33 @@ class StoreTrainingData:
     It allows for reusing previously created training data for the creation of additional models.
     To do this, just specify the same spectrum file name and directory."""
 
-    def __init__(self, root_directory, spectra_file_name):
+    def __init__(self, root_directory, spectra_file_name,
+                 split_fraction=20):
+        # todo add the spectrum file name to all created file names
+        # todo only use the spectrum file name and not root_directory.
         self.root_directory = root_directory
         assert os.path.isdir(self.root_directory)
         self.spectra_file_name = os.path.join(self.root_directory, spectra_file_name)
         assert os.path.isfile(self.spectra_file_name)
-
+        self.split_fraction = split_fraction
         self.trained_models_folder = os.path.join(self.root_directory, "trained_models")
         os.makedirs(self.trained_models_folder, exist_ok=True)
 
         self.training_and_val_dir = os.path.join(self.root_directory, "training_and_validation_split")
-        os.makedirs(self.trained_models_folder, exist_ok=True)
+        os.makedirs(self.training_and_val_dir, exist_ok=True)
 
         self.positive_negative_split_dir = os.path.join(self.root_directory, "pos_neg_split")
         # Check if the folder exists otherwise make new folder
         os.makedirs(self.positive_negative_split_dir, exist_ok=True)
 
-        self.positive_mode_spectra_file = os.path.join(self.positive_negative_split_dir, "positive_spectra.pickle")
-        self.negative_mode_spectra_file = os.path.join(self.positive_negative_split_dir, "negative_spectra.pickle")
-        self.positive_validation_spectra_file = os.path.join(self.training_and_val_dir, "positive_validation_spectra.pickle")
-        self.positive_training_spectra_file = os.path.join(self.training_and_val_dir, "positive_training_spectra.pickle")
-        self.positive_testing_spectra_file = os.path.join(self.training_and_val_dir, "positive_testing_spectra.pickle")
-        self.negative_validation_spectra_file = os.path.join(self.training_and_val_dir, "negative_validation_spectra.pickle")
-        self.negative_training_spectra_file = os.path.join(self.training_and_val_dir, "negative_training_spectra.pickle")
-        self.negative_testing_spectra_file = os.path.join(self.training_and_val_dir, "negative_testing_spectra.pickle")
+        self.positive_mode_spectra_file = os.path.join(self.positive_negative_split_dir, "positive_spectra.mgf")
+        self.negative_mode_spectra_file = os.path.join(self.positive_negative_split_dir, "negative_spectra.mgf")
+        self.positive_validation_spectra_file = os.path.join(self.training_and_val_dir, "positive_validation_spectra.mgf")
+        self.positive_training_spectra_file = os.path.join(self.training_and_val_dir, "positive_training_spectra.mgf")
+        self.positive_testing_spectra_file = os.path.join(self.training_and_val_dir, "positive_testing_spectra.mgf")
+        self.negative_validation_spectra_file = os.path.join(self.training_and_val_dir, "negative_validation_spectra.mgf")
+        self.negative_training_spectra_file = os.path.join(self.training_and_val_dir, "negative_training_spectra.mgf")
+        self.negative_testing_spectra_file = os.path.join(self.training_and_val_dir, "negative_testing_spectra.mgf")
 
     def get_all_spectra(self):
         return load_spectra(self.spectra_file_name)
@@ -93,12 +97,12 @@ class StoreTrainingData:
         return negative_mode_spectra
 
     def split_and_save_positive_and_negative_spectra(self):
-        assert os.path.isfile(self.positive_mode_spectra_file), "the positive mode spectra file already exists"
-        assert os.path.isfile(self.negative_mode_spectra_file), "the negative mode spectra file already exists"
+        assert not os.path.isfile(self.positive_mode_spectra_file), "the positive mode spectra file already exists"
+        assert not os.path.isfile(self.negative_mode_spectra_file), "the negative mode spectra file already exists"
         spectra = self.get_all_spectra()
         positive_mode_spectra, negative_mode_spectra = split_pos_and_neg(spectra)
-        save_pickled_file(positive_mode_spectra, self.positive_mode_spectra_file)
-        save_pickled_file(negative_mode_spectra, self.negative_mode_spectra_file)
+        save_spectra(positive_mode_spectra, self.positive_mode_spectra_file)
+        save_spectra(negative_mode_spectra, self.negative_mode_spectra_file)
         return positive_mode_spectra, negative_mode_spectra
 
     def load_positive_train_split(self):
@@ -115,10 +119,10 @@ class StoreTrainingData:
             positive_testing_spectra = load_spectra(self.positive_testing_spectra_file)
         else:
             positive_validation_spectra, positive_testing_spectra, positive_training_spectra = \
-                split_spectra_in_random_inchikey_sets(self.load_positive_mode_spectra(), 20)
-            save_pickled_file(positive_training_spectra, self.positive_training_spectra_file)
-            save_pickled_file(positive_validation_spectra, self.positive_validation_spectra_file)
-            save_pickled_file(positive_testing_spectra, self.positive_testing_spectra_file)
+                split_spectra_in_random_inchikey_sets(self.load_positive_mode_spectra(), self.split_fraction)
+            save_spectra(positive_training_spectra, self.positive_training_spectra_file)
+            save_spectra(positive_validation_spectra, self.positive_validation_spectra_file)
+            save_spectra(positive_testing_spectra, self.positive_testing_spectra_file)
         print(f"Positive split \n "
               f"Train: {len(positive_training_spectra)} \n "
               f"Validation: {len(positive_validation_spectra)} \n "
@@ -139,10 +143,10 @@ class StoreTrainingData:
             negative_testing_spectra = load_spectra(self.negative_testing_spectra_file)
         else:
             negative_validation_spectra, negative_testing_spectra, negative_training_spectra = \
-                split_spectra_in_random_inchikey_sets(self.load_negative_mode_spectra(), 20)
-            save_pickled_file(negative_training_spectra, self.negative_training_spectra_file)
-            save_pickled_file(negative_validation_spectra, self.negative_validation_spectra_file)
-            save_pickled_file(negative_testing_spectra, self.negative_testing_spectra_file)
+                split_spectra_in_random_inchikey_sets(self.load_negative_mode_spectra(), self.split_fraction)
+            save_spectra(negative_training_spectra, self.negative_training_spectra_file)
+            save_spectra(negative_validation_spectra, self.negative_validation_spectra_file)
+            save_spectra(negative_testing_spectra, self.negative_testing_spectra_file)
         print(f"negative split \n "
               f"Train: {len(negative_training_spectra)} \n "
               f"Validation: {len(negative_validation_spectra)} \n "
