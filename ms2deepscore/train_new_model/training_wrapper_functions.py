@@ -16,7 +16,8 @@ def train_ms2deepscore_wrapper(data_directory,
                                spectra_file_name,
                                settings: SettingsMS2Deepscore
                                ):
-    directory_structure = DirectoryStructure(data_directory, spectra_file_name)
+    """Trains """
+    directory_structure = StoreTrainingData(data_directory, spectra_file_name)
 
     # Split training in pos and neg and create val and training split and select for the right ionisation mode.
     training_spectra, validation_spectra, test_spectra = load_train_val_data(directory_structure,
@@ -30,7 +31,25 @@ def train_ms2deepscore_wrapper(data_directory,
     return settings.model_directory_name
 
 
-class DirectoryStructure:
+def load_train_val_data(directory_structure: "StoreTrainingData",
+                        ionisation_mode: str):
+    """Loads the train, val and test spectra for a specified mode."""
+    if ionisation_mode == "positive":
+        return directory_structure.load_positive_train_split()
+    if ionisation_mode == "negative":
+        return directory_structure.load_negative_train_split()
+    if ionisation_mode == "both":
+        return directory_structure.load_both_mode_train_split()
+    raise ValueError("expected ionisation mode to be 'positive', 'negative' or 'both'")
+
+
+class StoreTrainingData:
+    """Stores, loads and creates all the training data for a spectrum file.
+
+    This includes splitting positive and negative mode spectra and splitting train, test, val spectra.
+    It allows for reusing previously created training data for the creation of additional models.
+    To do this, just specify the same spectrum file name and directory."""
+
     def __init__(self, root_directory, spectra_file_name):
         self.root_directory = root_directory
         assert os.path.isdir(self.root_directory)
@@ -130,20 +149,12 @@ class DirectoryStructure:
               f"Test: {len(negative_testing_spectra)}")
         return negative_training_spectra, negative_validation_spectra, negative_testing_spectra
 
-
-def load_train_val_data(directory_structure: DirectoryStructure,
-                        ionisation_mode: str):
-    if ionisation_mode == "positive":
-        return directory_structure.load_positive_train_split()
-    if ionisation_mode == "negative":
-        return directory_structure.load_negative_train_split()
-    if ionisation_mode == "both":
+    def load_both_mode_train_split(self):
         positive_training_spectra, positive_validation_spectra, positive_testing_spectra = \
-            directory_structure.load_positive_train_split()
+            self.load_positive_train_split()
         negative_training_spectra, negative_validation_spectra, negative_testing_spectra = \
-            directory_structure.load_negative_mode_spectra()
+            self.load_negative_mode_spectra()
         both_training_spectra = positive_training_spectra + negative_training_spectra
         both_validatation_spectra = positive_validation_spectra + negative_validation_spectra
         both_test_spectra = positive_testing_spectra + negative_testing_spectra
         return both_training_spectra, both_validatation_spectra, both_test_spectra
-    raise ValueError("expected ionisation mode to be 'positive', 'negative' or 'both'")
