@@ -16,7 +16,7 @@ def train_ms2deepscore_wrapper(data_directory,
                                spectra_file_name,
                                settings: SettingsMS2Deepscore
                                ):
-    """Trains """
+    """Trains a ms2deepscore model, including the data split into pos,val,train spectra."""
     directory_structure = StoreTrainingData(data_directory, spectra_file_name)
 
     # Split training in pos and neg and create val and training split and select for the right ionisation mode.
