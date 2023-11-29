@@ -77,18 +77,14 @@ def collect_results(generator, batch_size, dimension):
     return X, y
 
 
-def test_DataGeneratorCherrypicked():
-    """Test DataGeneratorCherrypicked using generated data.
-    """
+def create_test_spectra(num_of_unique_inchikeys):
     # Define other parameters
-    batch_size = 8
     mz, intens = 100.0, 0.1
     spectrums = []
-    num_of_unique_inchikeys = 15
     letters = list(string.ascii_uppercase[:num_of_unique_inchikeys])
     letters += letters
 
-    def generate_binary_vector(n):
+    def generate_binary_vector(i):
         binary_vector = np.zeros(10, dtype=int)
         binary_vector[i % 3] = 1
         binary_vector[i % 5 + 3] = 1
@@ -110,6 +106,15 @@ def test_DataGeneratorCherrypicked():
                                             "compound_name": letter,
                                             "fingerprint": fingerprint,
                                             }))
+    return spectrums
+
+
+def test_DataGeneratorCherrypicked():
+    """Test DataGeneratorCherrypicked using generated data.
+    """
+    num_of_unique_inchikeys = 15
+    spectrums = create_test_spectra(num_of_unique_inchikeys)
+    batch_size = 8
 
     ms2ds_binner = SpectrumBinner(100, mz_min=10.0, mz_max=1000.0, peak_scaling=1)
     binned_spectrums = ms2ds_binner.fit_transform(spectrums)
