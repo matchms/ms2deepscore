@@ -1,6 +1,6 @@
+from datetime import datetime
 from typing import Optional
 import numpy as np
-from datetime import datetime
 
 
 class SettingsMS2Deepscore:

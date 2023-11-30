@@ -1,8 +1,8 @@
 import os
 import pickle
 from pathlib import Path
-from matchms.importing import load_from_mgf
 from matchms.exporting import save_as_mgf
+from matchms.importing import load_from_mgf
 from ms2deepscore.models import SiameseModel
 from ms2deepscore.models.load_model import \
     load_model as load_ms2deepscore_model
@@ -10,7 +10,8 @@ from ms2deepscore.train_new_model.SettingMS2Deepscore import \
     SettingsMS2Deepscore
 from ms2deepscore.train_new_model.train_ms2deepscore import (bin_spectra,
                                                              train_ms2ds_model)
-from ms2deepscore.train_new_model.training_wrapper_functions import train_ms2deepscore_wrapper
+from ms2deepscore.train_new_model.training_wrapper_functions import \
+    train_ms2deepscore_wrapper
 
 
 TEST_RESOURCES_PATH = Path(__file__).parent / 'resources'

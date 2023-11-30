@@ -4,7 +4,8 @@ import numpy as np
 import pandas as pd
 from matchms import Spectrum
 from matchms.filtering import add_fingerprint
-from matchms.similarity.vector_similarity_functions import (jaccard_similarity_matrix)
+from matchms.similarity.vector_similarity_functions import \
+    jaccard_similarity_matrix
 from rdkit import Chem
 from tqdm import tqdm
 

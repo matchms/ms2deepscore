@@ -14,8 +14,7 @@ from ms2deepscore.train_new_model.SettingMS2Deepscore import \
     SettingsMS2Deepscore
 from ms2deepscore.train_new_model.spectrum_pair_selection import \
     select_compound_pairs_wrapper
-from ms2deepscore.utils import (return_non_existing_file_name,
-                                save_pickled_file)
+from ms2deepscore.utils import return_non_existing_file_name, save_pickled_file
 
 
 def bin_spectra(
