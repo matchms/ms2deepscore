@@ -205,10 +205,8 @@ def test_DataGeneratorAllSpectrums():
     batch_size = 8 # Set the batch size to 8 to make sure it is a different number than the number of bins.
     dimension = len(ms2ds_binner.known_bins)
     np.random.seed(41) #Set the seed to make sure multiple spectra are selected every time.
-    selected_inchikeys = tanimoto_scores_df.index
     # Create generator
     test_generator = DataGeneratorAllSpectrums(binned_spectrums=binned_spectrums,
-                                               selected_inchikeys=selected_inchikeys,
                                                reference_scores_df=tanimoto_scores_df,
                                                spectrum_binner=ms2ds_binner,
                                                batch_size=batch_size,
@@ -259,8 +257,8 @@ def test_DataGeneratorAllInchikeys_real_data():
     A, B = test_generator.__getitem__(0)
     assert A[0].shape == A[1].shape == (batch_size, dimension), "Expected different data shape"
     assert B.shape[0] == 10, "Expected different label shape."
-    assert test_generator.settings["num_turns"] == 1, "Expected different default."
-    assert test_generator.settings["augment_intensity"] == 0.0, "Expected changed value."
+    assert test_generator.settings.num_turns == 1, "Expected different default."
+    assert test_generator.settings.augment_intensity == 0.0, "Expected changed value."
 
 
 def test_DataGeneratorAllSpectrumsRealData():
@@ -283,8 +281,8 @@ def test_DataGeneratorAllSpectrumsRealData():
     A, B = test_generator.__getitem__(0)
     assert A[0].shape == A[1].shape == (10, dimension), "Expected different data shape"
     assert B.shape[0] == 10, "Expected different label shape."
-    assert test_generator.settings["num_turns"] == 1, "Expected different default."
-    assert test_generator.settings["augment_intensity"] == 0.0, "Expected changed value."
+    assert test_generator.settings.num_turns == 1, "Expected different default."
+    assert test_generator.settings.augment_intensity == 0.0, "Expected changed value."
 
 
 def test_DataGeneratorAllSpectrums_no_inchikey_leaking():
@@ -364,7 +362,7 @@ def test_DataGeneratorAllSpectrums_fixed_set():
     second_X, second_y = collect_results(fixed_generator, batch_size, dimension)
     assert np.array_equal(first_X, second_X)
     assert np.array_equal(first_y, second_y)
-    assert fixed_generator.settings["random_seed"] is None
+    assert fixed_generator.settings.random_seed is None
 
 
 def test_DataGeneratorAllSpectrums_fixed_set_random_seed():

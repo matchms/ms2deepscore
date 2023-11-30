@@ -86,9 +86,6 @@ def train_ms2ds_model(
 
     training_generator = DataGeneratorCherrypicked(
         binned_spectrums_training,
-        selected_inchikeys=list(
-            {s.get("inchikey")[:14] for s in binned_spectrums_training}
-        ),
         selected_compound_pairs=selected_compound_pairs_training,
         spectrum_binner=spectrum_binner,
         num_turns=2,
@@ -99,7 +96,6 @@ def train_ms2ds_model(
 
     validation_generator = DataGeneratorCherrypicked(
         binned_spectrums_val,
-        selected_inchikeys=list({s.get("inchikey")[:14] for s in binned_spectrums_val}),
         selected_compound_pairs=selected_compound_pair_val,
         spectrum_binner=spectrum_binner,
         num_turns=10,  # Number of pairs for each InChiKey14 during each epoch.
