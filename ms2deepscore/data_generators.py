@@ -502,23 +502,6 @@ class DataGeneratorCherrypicked(DataGeneratorBase):
         self.selected_compound_pairs = selected_compound_pairs
         self.on_epoch_end()
 
-    def __getitem__(self, batch_index: int):
-        """Generate one batch of data.
-
-        If use_fixed_set=True we try retrieving the batch from self.fixed_set (or store it if
-        this is the first epoch). This ensures a fixed set of data is generated each epoch.
-        """
-        if self.settings.use_fixed_set and batch_index in self.fixed_set:
-            return self.fixed_set[batch_index]
-        if self.settings.random_seed is not None and batch_index == 0:
-            np.random.seed(self.settings.random_seed)
-        spectrum_pairs = self._spectrum_pair_generator(batch_index)
-        X, y = self._data_generation(spectrum_pairs)
-        if self.settings.use_fixed_set:
-            # Store batches for later epochs
-            self.fixed_set[batch_index] = (X, y)
-        return X, y
-
     def __len__(self):
         return int(self.settings.num_turns)\
             * int(np.floor(len(self.selected_compound_pairs.scores) / self.settings.batch_size))
