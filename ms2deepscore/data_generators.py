@@ -479,24 +479,8 @@ class DataGeneratorCherrypicked(DataGeneratorBase):
             respective similarity scores.
         spectrum_binner
             SpectrumBinner which was used to convert the data to the binned_spectrums.
-        As part of **settings, defaults for the following parameters can be set:
-        batch_size
-            Number of pairs per batch. Default=32.
-        num_turns
-            Number of pairs for each InChiKey during each epoch. Default=1.
-        shuffle
-            Set to True to shuffle IDs every epoch. Default=True
-        augment_removal_max
-            Maximum fraction of peaks (if intensity < below augment_removal_intensity)
-            to be removed randomly. Default is set to 0.2, which means that between
-            0 and 20% of all peaks with intensities < augment_removal_intensity
-            will be removed.
-        augment_removal_intensity
-            Specifying that only peaks with intensities < max_intensity will be removed.
-        augment_intensity
-            Change peak intensities by a random number between 0 and augment_intensity.
-            Default=0.1, which means that intensities are multiplied by 1+- a random
-            number within [0, 0.1].
+        settings
+            The available settings can be found in GeneratorSettings
         """
         self.binned_spectrums = binned_spectrums
         # Collect all inchikeys
