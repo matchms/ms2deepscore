@@ -293,13 +293,14 @@ def test_DataGeneratorAllSpectrums_no_inchikey_leaking():
     binned_spectrums, tanimoto_scores_df, ms2ds_binner = create_test_data()
 
     # Define other parameters
-    batch_size = 8
+    batch_size = 6
     dimension = 88
 
     # Create generator
     test_generator = DataGeneratorAllSpectrums(binned_spectrums=binned_spectrums[:8],
                                                reference_scores_df=tanimoto_scores_df,
-                                               spectrum_binner=ms2ds_binner, batch_size=batch_size,
+                                               spectrum_binner=ms2ds_binner,
+                                               batch_size=batch_size,
                                                augment_removal_max=0.0,
                                                augment_removal_intensity=0.0,
                                                augment_intensity=0.0)
