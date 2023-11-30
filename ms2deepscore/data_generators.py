@@ -84,6 +84,8 @@ class DataGeneratorBase(Sequence):
 
         # Set all other settings to input (or otherwise to defaults):
         self._set_generator_parameters(**settings)
+        if len(np.unique(self.spectrum_inchikeys)) < self.settings["batch_size"]:
+            raise ValueError("The number of unique inchikeys in the input spectra is not enough.")
         self.dim = len(spectrum_binner.known_bins)
         additional_metadata = spectrum_binner.additional_metadata
         if len(additional_metadata) > 0:
@@ -548,10 +550,12 @@ class DataGeneratorCherrypicked(DataGeneratorBase):
         self.binned_spectrums = binned_spectrums
         # Collect all inchikeys
         self.spectrum_inchikeys = np.array([s.get("inchikey")[:14] for s in self.binned_spectrums])
-        # self._validate_indexes()
 
         # Set all other settings to input (or otherwise to defaults):
         self._set_generator_parameters(**settings)
+        unique_inchikeys = np.unique(self.spectrum_inchikeys)
+        if len(unique_inchikeys) < self.settings["batch_size"]:
+            raise ValueError("The number of unique inchikeys in the input spectra is not enough.")
         self.dim = len(spectrum_binner.known_bins)
         additional_metadata = spectrum_binner.additional_metadata
         if len(additional_metadata) > 0:
