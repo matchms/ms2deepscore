@@ -21,7 +21,7 @@ def train_ms2deepscore_wrapper(data_directory,
     directory_structure = StoreTrainingData(data_directory, spectra_file_name, validation_split_fraction)
 
     # Split training in pos and neg and create val and training split and select for the right ionisation mode.
-    training_spectra, validation_spectra, test_spectra = load_train_val_data(directory_structure,
+    training_spectra, validation_spectra, _ = load_train_val_data(directory_structure,
                                                                              settings.ionisation_mode)
     # Train model
     train_ms2ds_model(training_spectra, validation_spectra,
@@ -85,14 +85,14 @@ class StoreTrainingData:
     def load_positive_mode_spectra(self):
         if os.path.isfile(self.positive_mode_spectra_file):
             return load_spectra(self.positive_mode_spectra_file)
-        positive_mode_spectra, negative_mode_spectra = self.split_and_save_positive_and_negative_spectra()
+        positive_mode_spectra, _ = self.split_and_save_positive_and_negative_spectra()
         print("Loaded previously stored positive mode spectra")
         return positive_mode_spectra
 
     def load_negative_mode_spectra(self):
         if os.path.isfile(self.negative_mode_spectra_file):
             return load_spectra(self.negative_mode_spectra_file)
-        positive_mode_spectra, negative_mode_spectra = self.split_and_save_positive_and_negative_spectra()
+        _, negative_mode_spectra = self.split_and_save_positive_and_negative_spectra()
         print("Loaded previously stored negative mode spectra")
         return negative_mode_spectra
 
