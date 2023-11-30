@@ -4,42 +4,11 @@ import numpy as np
 from matchms import Spectrum
 from matplotlib import pyplot as plt
 from ms2deepscore import MS2DeepScore
-from ms2deepscore.models import load_model
 from ms2deepscore.train_new_model.tanimoto_score_calculation import (
     calculate_tanimoto_scores_unique_inchikey,
     get_tanimoto_score_between_spectra)
 from ms2deepscore.utils import load_pickled_file, save_pickled_file
 from ms2deepscore.visualize_results.plotting import plot_histograms
-
-
-def create_all_plots(data_dir,
-                     model_dir_name):
-    positive_validation_spectra = load_pickled_file(os.path.join(data_dir, "training_and_validation_split",
-                                                                 "positive_validation_spectra.pickle"))
-    negative_validation_spectra = load_pickled_file(os.path.join(data_dir, "training_and_validation_split",
-                                                                 "negative_validation_spectra.pickle"))
-
-    model_folder = os.path.join(data_dir, "trained_models", model_dir_name)
-    # Check if the model already finished training
-    if not os.path.exists(os.path.join(model_folder, "history.txt")):
-        print(f"Did not plot since {model_folder} did not yet finish training")
-
-    # Create benchmarking results folder
-    benchmarking_results_folder = os.path.join(model_folder, "benchmarking_results")
-    os.makedirs(benchmarking_results_folder, exist_ok=True)
-
-    # Load in MS2Deepscore model
-    ms2deepscore_model = MS2DeepScore(load_model(os.path.join(model_folder, "ms2deepscore_model.hdf5")))
-
-    benchmark_wrapper(positive_validation_spectra, positive_validation_spectra, benchmarking_results_folder,
-                      ms2deepscore_model, "positive_positive")
-    benchmark_wrapper(negative_validation_spectra, negative_validation_spectra, benchmarking_results_folder,
-                      ms2deepscore_model, "negative_negative")
-    benchmark_wrapper(negative_validation_spectra, positive_validation_spectra, benchmarking_results_folder,
-                      ms2deepscore_model, "negative_positive")
-    benchmark_wrapper(positive_validation_spectra + negative_validation_spectra,
-                      positive_validation_spectra + negative_validation_spectra, benchmarking_results_folder,
-                      ms2deepscore_model, "both_both")
 
 
 def benchmark_wrapper(val_spectra_1: List[Spectrum],
