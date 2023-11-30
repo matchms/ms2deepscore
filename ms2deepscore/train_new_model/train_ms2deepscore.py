@@ -95,6 +95,7 @@ def train_ms2ds_model(
         num_turns=2,
         augment_noise_max=10,
         augment_noise_intensity=0.01,
+        batch_size=settings.batch_size
     )
 
     validation_generator = DataGeneratorCherrypicked(
@@ -109,6 +110,7 @@ def train_ms2ds_model(
         augment_intensity=0,
         augment_noise_max=0,
         use_fixed_set=True,
+        batch_size=settings.batch_size
     )
 
     model = SiameseModel(

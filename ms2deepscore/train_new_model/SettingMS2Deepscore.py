@@ -51,6 +51,9 @@ class SettingsMS2Deepscore:
         self.learning_rate = 0.001
         self.epochs = 150
 
+        # Generator settings
+        self.batch_size = 32
+
         # Compound pairs selection settings
         self.average_pairs_per_bin = 20
         self.max_pairs_per_bin = 100
