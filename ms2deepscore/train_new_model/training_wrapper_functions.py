@@ -1,6 +1,8 @@
 """Contains wrapper functions that automatically store and load intermediate processed spectra
 reducing the amount of rerunning that is necessary"""
 import os
+from matchms.exporting.save_spectra import save_spectra
+from matchms.importing.load_spectra import load_spectra
 from ms2deepscore.train_new_model.SettingMS2Deepscore import \
     SettingsMS2Deepscore
 from ms2deepscore.train_new_model.split_positive_and_negative_mode import \
@@ -8,8 +10,6 @@ from ms2deepscore.train_new_model.split_positive_and_negative_mode import \
 from ms2deepscore.train_new_model.train_ms2deepscore import train_ms2ds_model
 from ms2deepscore.train_new_model.validation_and_test_split import \
     split_spectra_in_random_inchikey_sets
-from matchms.importing.load_spectra import load_spectra
-from matchms.exporting.save_spectra import save_spectra
 
 
 def train_ms2deepscore_wrapper(data_directory,

@@ -5,12 +5,11 @@ from matchms import Spectrum
 from matplotlib import pyplot as plt
 from ms2deepscore import MS2DeepScore
 from ms2deepscore.models import load_model
-from ms2deepscore.visualize_results.plotting import plot_histograms
 from ms2deepscore.train_new_model.tanimoto_score_calculation import (
     calculate_tanimoto_scores_unique_inchikey,
     get_tanimoto_score_between_spectra)
-from ms2deepscore.utils import (load_pickled_file,
-                                save_pickled_file)
+from ms2deepscore.utils import load_pickled_file, save_pickled_file
+from ms2deepscore.visualize_results.plotting import plot_histograms
 
 
 def create_all_plots(data_dir,
