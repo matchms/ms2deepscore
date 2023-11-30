@@ -14,6 +14,8 @@ def compute_fingerprints_for_training(spectrums,
                                       fingerprint_type: str = "daylight",
                                       nbits: int = 2048):
     """Calculates fingerprints for each unique inchikey and removes spectra for which no fingerprint could be created"""
+    if len(spectrums) == 0:
+        raise ValueError("No spectra were selected to calculate fingerprints")
     spectra_selected, inchikeys14_unique = select_inchi_for_unique_inchikeys(spectrums)
     print(f"Selected {len(spectra_selected)} spectra with unique inchikeys (out of {len(spectrums)} spectra)")
     # Compute fingerprints using matchms
