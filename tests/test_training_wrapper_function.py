@@ -26,4 +26,5 @@ def test_train_wrapper_ms2ds_model(tmp_path):
                                      "ionisation_mode": "negative",
                                      "batch_size": 2})
     train_ms2deepscore_wrapper(tmp_path, "clean_spectra.mgf", settings, 20)
-    assert os.path.isfile(os.path.join(tmp_path, "trained_models", settings.model_directory_name, ""))
+    assert os.path.isfile(os.path.join(tmp_path, "trained_models", settings.model_directory_name,
+                                       "ms2deepscore_model.hdf5"))
