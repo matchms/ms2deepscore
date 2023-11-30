@@ -1,6 +1,5 @@
 """ Data generators for training/inference with siamese Keras model.
 """
-import warnings
 from typing import Iterator, List, NamedTuple, Optional
 import numpy as np
 import pandas as pd
@@ -8,88 +7,8 @@ from tensorflow.keras.utils import Sequence  # pylint: disable=import-error
 from ms2deepscore.SpectrumBinner import SpectrumBinner
 from ms2deepscore.train_new_model.spectrum_pair_selection import \
     SelectedCompoundPairs
+from .train_new_model.SettingMS2Deepscore import GeneratorSettings
 from .typing import BinnedSpectrumType
-
-
-class GeneratorSettings:
-    """
-    Set parameters for data generator. Use below listed defaults unless other
-    input is provided.
-
-    Parameters
-    ----------
-    settings:
-        A dictionary containing the settings that need to be changed. For parameters that are not given the default
-        will be used.
-        batch_size
-            Number of pairs per batch. Default=32.
-        num_turns
-            Number of pairs for each InChiKey14 during each epoch. Default=1
-        shuffle
-            Set to True to shuffle IDs every epoch. Default=True
-        ignore_equal_pairs
-            Set to True to ignore pairs of two identical spectra. Default=True
-        same_prob_bins
-            List of tuples that define ranges of the true label to be trained with
-            equal frequencies. Default is set to [(0, 0.5), (0.5, 1)], which means
-            that pairs with scores <=0.5 will be picked as often as pairs with scores
-            > 0.5.
-        augment_removal_max
-            Maximum fraction of peaks (if intensity < below augment_removal_intensity)
-            to be removed randomly. Default is set to 0.2, which means that between
-            0 and 20% of all peaks with intensities < augment_removal_intensity
-            will be removed.
-        augment_removal_intensity
-            Specifying that only peaks with intensities < max_intensity will be removed.
-        augment_intensity
-            Change peak intensities by a random number between 0 and augment_intensity.
-            Default=0.1, which means that intensities are multiplied by 1+- a random
-            number within [0, 0.1].
-        augment_noise_max
-            Max number of 'new' noise peaks to add to the spectrum, between 0 to `augment_noise_max`
-            of peaks are added.
-        augment_noise_intensity
-            Intensity of the 'new' noise peaks to add to the spectrum
-        use_fixed_set
-            Toggles using a fixed dataset, if set to True the same dataset will be generated each
-            epoch. Default is False.
-        random_seed
-            Specify random seed for reproducible random number generation.
-        additional_inputs
-            Array of additional values to be used in training for e.g. ["precursor_mz", "parent_mass"]
-    """
-    def __init__(self, settings=None):
-        self.batch_size = 32
-        self.num_turns = 1
-        self.ignore_equal_pairs = True
-        self.shuffle = True
-        self.same_prob_bins = [(0, 0.5), (0.5, 1)]
-        self.augment_removal_max = 0.3
-        self.augment_removal_intensity = 0.2
-        self.augment_intensity = 0.4
-        self.augment_noise_max = 10
-        self.augment_noise_intensity = 0.01
-        self.use_fixed_set = False
-        self.random_seed = None
-        if settings:
-            for key, value in settings.items():
-                if hasattr(self, key):
-                    print(f"The value for {key} is set from {getattr(self, key)} (default) to {value}")
-                    setattr(self, key, value)
-                else:
-                    raise ValueError(f"Unknown setting: {key}")
-        self.validate_settings()
-
-        if self.random_seed is not None:
-            np.random.seed(self.random_seed)
-
-    def validate_settings(self):
-        assert 0.0 <= self.augment_removal_max <= 1.0, "Expected value within [0,1]"
-        assert 0.0 <= self.augment_removal_intensity <= 1.0, "Expected value within [0,1]"
-        if self.use_fixed_set and self.shuffle:
-            warnings.warn('When using a fixed set, data will not be shuffled')
-        if self.random_seed is not None:
-            assert isinstance(self.random_seed, int), "Random seed must be integer number."
 
 
 class SpectrumPair(NamedTuple):
@@ -501,23 +420,6 @@ class DataGeneratorCherrypicked(DataGeneratorBase):
         self.fixed_set = {}
         self.selected_compound_pairs = selected_compound_pairs
         self.on_epoch_end()
-
-    def __getitem__(self, batch_index: int):
-        """Generate one batch of data.
-
-        If use_fixed_set=True we try retrieving the batch from self.fixed_set (or store it if
-        this is the first epoch). This ensures a fixed set of data is generated each epoch.
-        """
-        if self.settings.use_fixed_set and batch_index in self.fixed_set:
-            return self.fixed_set[batch_index]
-        if self.settings.random_seed is not None and batch_index == 0:
-            np.random.seed(self.settings.random_seed)
-        spectrum_pairs = self._spectrum_pair_generator(batch_index)
-        X, y = self._data_generation(spectrum_pairs)
-        if self.settings.use_fixed_set:
-            # Store batches for later epochs
-            self.fixed_set[batch_index] = (X, y)
-        return X, y
 
     def __len__(self):
         return int(self.settings.num_turns)\
