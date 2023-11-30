@@ -204,7 +204,6 @@ def test_DataGeneratorAllSpectrums():
     # Define other parameters
     batch_size = 8 # Set the batch size to 8 to make sure it is a different number than the number of bins.
     dimension = len(ms2ds_binner.known_bins)
-    np.random.seed(41) #Set the seed to make sure multiple spectra are selected every time.
     # Create generator
     test_generator = DataGeneratorAllSpectrums(binned_spectrums=binned_spectrums,
                                                reference_scores_df=tanimoto_scores_df,
@@ -213,7 +212,8 @@ def test_DataGeneratorAllSpectrums():
                                                augment_removal_max=0.0,
                                                augment_removal_intensity=0.0,
                                                augment_intensity=0.0,
-                                               augment_noise_max=0)
+                                               augment_noise_max=0,
+                                               random_seed=41)
 
     x, y = test_generator.__getitem__(0)
     assert x[0].shape == x[1].shape == (batch_size, dimension), "Expected different data shape"

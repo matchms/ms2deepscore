@@ -80,7 +80,8 @@ class GeneratorSettings:
                     raise ValueError(f"Unknown setting: {key}")
         self.validate_settings()
 
-        np.random.seed(self.random_seed)
+        if self.random_seed is not None:
+            np.random.seed(self.random_seed)
 
     def validate_settings(self):
         assert 0.0 <= self.augment_removal_max <= 1.0, "Expected value within [0,1]"
