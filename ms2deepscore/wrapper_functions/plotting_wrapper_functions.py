@@ -32,22 +32,22 @@ def create_or_load_true_values(val_spectra_1: List[Spectrum],
                                val_spectra_2: List[Spectrum],
                                benchmarking_results_folder: str,
                                file_name_prefix):
-    # Calculate true values
     true_values_file_name = os.path.join(benchmarking_results_folder, f"{file_name_prefix}_true_values.pickle")
     if os.path.exists(true_values_file_name):
         true_values = load_pickled_file(true_values_file_name)
         print(f"Loaded in previous true values for: {file_name_prefix}")
     else:
+        # Calculate true values
         true_values = get_tanimoto_score_between_spectra(val_spectra_1, val_spectra_2)
         save_pickled_file(true_values, true_values_file_name)
     return true_values
 
 
 def create_or_load_predicted_values(val_spectra_1: List[Spectrum],
-                                     val_spectra_2: List[Spectrum],
-                                     benchmarking_results_folder: str,
-                                     ms2ds_model: MS2DeepScore,
-                                     file_name_prefix):
+                                    val_spectra_2: List[Spectrum],
+                                    benchmarking_results_folder: str,
+                                    ms2ds_model: MS2DeepScore,
+                                    file_name_prefix):
     predictions_file_name = os.path.join(benchmarking_results_folder, f"{file_name_prefix}_predictions.pickle")
     if os.path.exists(predictions_file_name):
         predictions = load_pickled_file(predictions_file_name)
@@ -66,8 +66,8 @@ def create_all_plots(predictions,
     """Creates and saves plots and in between files for validation spectra
 
     Arguments:
-        val_spectra_1: The first validation spectra
-        val_spectra_2: The second validation spectra
+        predictions: The predictions made by the model
+        true_values: The true values predicted by the model
         benchmarking_results_folder: The results folder for the benchmarking
         ms2ds_model: The loaded ms2deepscore model
         file_name_prefix: The prefix used to create all file names.
@@ -94,23 +94,21 @@ def create_all_plots(predictions,
 
 def create_all_plots_wrapper(training_data_storing: StoreTrainingData,
                              settings: SettingsMS2Deepscore):
-    _, positive_validation_spectra, _ = \
-        training_data_storing.load_positive_train_split()
-    _, negative_validation_spectra, _ = \
-        training_data_storing.load_negative_train_split()
+    _, positive_validation_spectra, _ = training_data_storing.load_positive_train_split()
+    _, negative_validation_spectra, _ = training_data_storing.load_negative_train_split()
 
-    model_folder = os.path.join(training_data_storing.trained_models_folder,
-                                settings.model_directory_name)
+    model_folder = os.path.join(training_data_storing.trained_models_folder, settings.model_directory_name)
+
     # Check if the model already finished training
     if not os.path.exists(os.path.join(model_folder, settings.history_file_name)):
-        print(f"Did not plot since {model_folder} did not yet finish training")
+        raise ValueError(f"Did not plot since {model_folder} did not yet finish training")
+
+    # Load in MS2Deepscore model
+    ms2deepscore_model = MS2DeepScore(load_model(os.path.join(model_folder, settings.model_file_name)))
 
     # Create benchmarking results folder
     benchmarking_results_folder = os.path.join(model_folder, "benchmarking_results")
     os.makedirs(benchmarking_results_folder, exist_ok=True)
-
-    # Load in MS2Deepscore model
-    ms2deepscore_model = MS2DeepScore(load_model(os.path.join(model_folder, "ms2deepscore_model.hdf5")))
 
     benchmark_wrapper(positive_validation_spectra, positive_validation_spectra, benchmarking_results_folder,
                       ms2deepscore_model, "positive_positive")
