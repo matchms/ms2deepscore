@@ -3,11 +3,13 @@ from typing import List
 import numpy as np
 import pandas as pd
 from matchms import Spectrum
-from matchms.similarity.vector_similarity_functions import jaccard_similarity_matrix
+from matchms.similarity.vector_similarity_functions import \
+    jaccard_similarity_matrix
 from rdkit import Chem
 from tqdm import tqdm
 
-from ms2deepscore.train_new_model.spectrum_pair_selection import select_inchi_for_unique_inchikeys
+from ms2deepscore.train_new_model.spectrum_pair_selection import \
+    select_inchi_for_unique_inchikeys
 
 
 def calculate_tanimoto_scores_unique_inchikey(list_of_spectra_1: List[Spectrum],

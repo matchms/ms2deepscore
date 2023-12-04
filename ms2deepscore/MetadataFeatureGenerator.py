@@ -1,6 +1,7 @@
 import json
 from importlib import import_module
 from typing import List, Union
+
 from matchms import Metadata
 
 

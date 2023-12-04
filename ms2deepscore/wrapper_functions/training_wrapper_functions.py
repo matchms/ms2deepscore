@@ -2,10 +2,12 @@
 reducing the amount of rerunning that is necessary"""
 
 import os
+
 from ms2deepscore.train_new_model.SettingMS2Deepscore import \
     SettingsMS2Deepscore
 from ms2deepscore.train_new_model.train_ms2deepscore import train_ms2ds_model
-from ms2deepscore.wrapper_functions.plotting_wrapper_functions import create_all_plots_wrapper
+from ms2deepscore.wrapper_functions.plotting_wrapper_functions import \
+    create_all_plots_wrapper
 from ms2deepscore.wrapper_functions.StoreTrainingData import StoreTrainingData
 
 

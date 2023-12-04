@@ -1,5 +1,6 @@
 import numpy as np
 import pytest
+
 from ms2deepscore.vector_operations import (cosine_similarity,
                                             cosine_similarity_matrix,
                                             iqr_pooling, mean_pooling,

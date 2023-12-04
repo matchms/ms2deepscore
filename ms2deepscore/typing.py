@@ -1,5 +1,5 @@
 from typing import Optional
-from .BinnedSpectrum import BinnedSpectrum
 
+from .BinnedSpectrum import BinnedSpectrum
 
 BinnedSpectrumType = Optional[BinnedSpectrum]

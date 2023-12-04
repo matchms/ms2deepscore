@@ -1,8 +1,10 @@
 from typing import List, Tuple
+
 import numpy as np
 from matchms import Spectrum
 from matchms.similarity.BaseSimilarity import BaseSimilarity
 from tqdm import tqdm
+
 from .typing import BinnedSpectrumType
 from .vector_operations import (cosine_similarity_matrix, iqr_pooling,
                                 mean_pooling, median_pooling, std_pooling)

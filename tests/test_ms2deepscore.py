@@ -1,10 +1,11 @@
 from pathlib import Path
+
 import numpy as np
 import pytest
-from ms2deepscore import MS2DeepScore
-from ms2deepscore.models import load_model
 from tests.test_user_worfklow import load_processed_spectrums
 
+from ms2deepscore import MS2DeepScore
+from ms2deepscore.models import load_model
 
 TEST_RESOURCES_PATH = Path(__file__).parent / 'resources'
 

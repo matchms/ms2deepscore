@@ -1,11 +1,14 @@
 import os
 from typing import Generator, List
+
 from matchms import Spectrum
 from matchms.exporting import save_spectra
 from matchms.importing import load_spectra
 
-from ms2deepscore.train_new_model.split_positive_and_negative_mode import split_pos_and_neg
-from ms2deepscore.train_new_model.validation_and_test_split import split_spectra_in_random_inchikey_sets
+from ms2deepscore.train_new_model.split_positive_and_negative_mode import \
+    split_pos_and_neg
+from ms2deepscore.train_new_model.validation_and_test_split import \
+    split_spectra_in_random_inchikey_sets
 
 
 class StoreTrainingData:

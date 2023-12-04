@@ -1,11 +1,13 @@
 import os
 import pickle
+
 from matchms.exporting import save_as_mgf
+from tests.create_test_spectra import pesticides_test_spectra
+
 from ms2deepscore.train_new_model.SettingMS2Deepscore import \
     SettingsMS2Deepscore
 from ms2deepscore.wrapper_functions.training_wrapper_functions import \
     train_ms2deepscore_wrapper
-from tests.create_test_spectra import pesticides_test_spectra
 
 
 def load_pickled_file(filename: str):

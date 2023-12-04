@@ -1,15 +1,18 @@
 import os
 from typing import List
+
 import numpy as np
 from matchms import Spectrum
 from matplotlib import pyplot as plt
 
 from ms2deepscore import MS2DeepScore
 from ms2deepscore.models import load_model
+from ms2deepscore.train_new_model.SettingMS2Deepscore import \
+    SettingsMS2Deepscore
 from ms2deepscore.utils import load_pickled_file, save_pickled_file
-from ms2deepscore.visualize_results.calculate_tanimoto_scores import get_tanimoto_score_between_spectra
+from ms2deepscore.visualize_results.calculate_tanimoto_scores import \
+    get_tanimoto_score_between_spectra
 from ms2deepscore.visualize_results.plotting import plot_histograms
-from ms2deepscore.train_new_model.SettingMS2Deepscore import SettingsMS2Deepscore
 
 
 class BenchmarkingResultsFileNames:

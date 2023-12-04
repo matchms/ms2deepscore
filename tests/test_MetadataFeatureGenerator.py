@@ -1,5 +1,6 @@
 import pytest
 from matchms import Metadata
+
 from ms2deepscore.MetadataFeatureGenerator import (CategoricalToBinary,
                                                    MetadataFeatureGenerator,
                                                    OneHotEncoder,

@@ -1,13 +1,14 @@
 from pathlib import Path
+
 import numpy as np
 import pandas as pd
 import pytest
 from matchms.importing import load_from_mgf
 from tensorflow import keras
+
 from ms2deepscore import MS2DeepScore, SpectrumBinner
 from ms2deepscore.data_generators import DataGeneratorAllSpectrums
 from ms2deepscore.models import SiameseModel
-
 
 TEST_RESOURCES_PATH = Path(__file__).parent / 'resources'
 
