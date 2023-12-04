@@ -45,15 +45,8 @@ def get_tanimoto_score_between_spectra(spectra_1: List[Spectrum],
     The tanimoto scores are derived after.
 
     """
-    def get_tanimoto_indexes(tanimoto_df, spectra):
-        inchikey_idx_reference_spectra_1 = np.zeros(len(spectra))
-        for i, spec in enumerate(spectra):
-            inchikey_idx_reference_spectra_1[i] = np.where(tanimoto_df.index.values == spec.get("inchikey")[:14])[0]
-        return inchikey_idx_reference_spectra_1.astype("int")
-
     tanimoto_df = calculate_tanimoto_scores_unique_inchikey(spectra_1, spectra_2)
-    inchikey_idx_1 = get_tanimoto_indexes(tanimoto_df, spectra_1)
-    inchikey_idx_2 = get_tanimoto_indexes(tanimoto_df, spectra_2)
-
-    scores_ref = tanimoto_df.values[np.ix_(inchikey_idx_1[:], inchikey_idx_2[:])].copy()
-    return scores_ref
+    inchikeys_1 = [spectrum.get("inchikey")[:14] for spectrum in spectra_1]
+    inchikeys_2 = [spectrum.get("inchikey")[:14] for spectrum in spectra_2]
+    tanimoto_scores = tanimoto_df.loc[inchikeys_1, inchikeys_2].values
+    return tanimoto_scores
