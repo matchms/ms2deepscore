@@ -56,7 +56,7 @@ def test_train_ms2ds_model(tmp_path):
     train_ms2ds_model(spectra, spectra, tmp_path, settings)
 
     # check if model is saved
-    model_file_name = os.path.join(tmp_path, "ms2deepscore_model.hdf5")
+    model_file_name = os.path.join(tmp_path, settings.model_directory_name, settings.model_file_name)
     assert os.path.isfile(model_file_name), "Expecte ms2ds model to be created and saved"
     ms2ds_model = load_ms2deepscore_model(model_file_name)
     assert isinstance(ms2ds_model, SiameseModel), "Expected a siamese model"

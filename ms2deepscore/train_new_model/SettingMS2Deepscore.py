@@ -68,6 +68,10 @@ class SettingsMS2Deepscore:
 
         # Folder names for storing
         self.model_directory_name = self._create_model_directory_name()
+        self.binned_spectra_folder_name = "binned_spectra"
+        self.model_file_name = "ms2deepscore_model.hdf5"
+        self.history_file_name = "history.txt"
+        self.history_plot_file_name = "history.svg"
 
         if settings:
             for key, value in settings.items():

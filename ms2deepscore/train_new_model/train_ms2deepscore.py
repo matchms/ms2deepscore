@@ -30,7 +30,7 @@ def bin_spectra(
     additional_metadata:
         Additional metadata that should be used in training the model. e.g. precursor_mz
     save_folder:
-        The folder that will save the spectra if provided."""
+        The folder that will save the binned spectra if provided."""
 
     # Bin training spectra
     spectrum_binner = SpectrumBinner(
@@ -69,10 +69,11 @@ def train_ms2ds_model(
     # Set file names and create dirs
     os.makedirs(results_folder, exist_ok=True)
 
-    output_model_file_name = return_non_existing_file_name(os.path.join(results_folder, "ms2deepscore_model.hdf5"))
-    ms2ds_history_file_name = return_non_existing_file_name(os.path.join(results_folder, "history.txt"))
-    ms2ds_history_plot_file_name = return_non_existing_file_name(os.path.join(results_folder, "history.svg"))
-    binned_spectra_folder = os.path.join(results_folder, "binned_spectra")
+    output_model_file_name = os.path.join(results_folder, settings.model_directory_name, settings.model_file_name)
+    ms2ds_history_file_name = os.path.join(results_folder, settings.model_directory_name, settings.history_file_name)
+    ms2ds_history_plot_file_name = os.path.join(results_folder, settings.model_directory_name, settings.history_plot_file_name)
+
+    binned_spectra_folder = os.path.join(results_folder, settings.model_directory_name, settings.binned_spectra_folder_name)
     os.makedirs(binned_spectra_folder, exist_ok=True)
 
     selected_compound_pairs_training, selected_training_spectra = select_compound_pairs_wrapper(
