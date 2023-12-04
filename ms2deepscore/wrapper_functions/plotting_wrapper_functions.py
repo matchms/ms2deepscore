@@ -18,13 +18,32 @@ def benchmark_wrapper(val_spectra_1: List[Spectrum],
                       benchmarking_results_folder: str,
                       ms2ds_model: MS2DeepScore,
                       file_name_prefix):
-    true_values, predictions = create_true_and_predicted_values(val_spectra_1,val_spectra_2,
-                                                                benchmarking_results_folder, ms2ds_model,
-                                                                file_name_prefix)
+    true_values = create_or_load_true_values(val_spectra_1, val_spectra_2,
+                                             benchmarking_results_folder,
+                                             file_name_prefix)
+    predictions = create_or_load_predicted_values(val_spectra_1, val_spectra_2,
+                                                  benchmarking_results_folder,
+                                                  ms2ds_model,
+                                                  file_name_prefix)
     create_all_plots(predictions, true_values, benchmarking_results_folder, file_name_prefix)
 
 
-def create_true_and_predicted_values(val_spectra_1: List[Spectrum],
+def create_or_load_true_values(val_spectra_1: List[Spectrum],
+                               val_spectra_2: List[Spectrum],
+                               benchmarking_results_folder: str,
+                               file_name_prefix):
+    # Calculate true values
+    true_values_file_name = os.path.join(benchmarking_results_folder, f"{file_name_prefix}_true_values.pickle")
+    if os.path.exists(true_values_file_name):
+        true_values = load_pickled_file(true_values_file_name)
+        print(f"Loaded in previous true values for: {file_name_prefix}")
+    else:
+        true_values = get_tanimoto_score_between_spectra(val_spectra_1, val_spectra_2)
+        save_pickled_file(true_values, true_values_file_name)
+    return true_values
+
+
+def create_or_load_predicted_values(val_spectra_1: List[Spectrum],
                                      val_spectra_2: List[Spectrum],
                                      benchmarking_results_folder: str,
                                      ms2ds_model: MS2DeepScore,
@@ -37,16 +56,7 @@ def create_true_and_predicted_values(val_spectra_1: List[Spectrum],
         is_symmetric = (val_spectra_1 == val_spectra_2)
         predictions = ms2ds_model.matrix(val_spectra_1, val_spectra_2, is_symmetric=is_symmetric)
         save_pickled_file(predictions, predictions_file_name)
-
-    # Calculate true values
-    true_values_file_name = os.path.join(benchmarking_results_folder, f"{file_name_prefix}_true_values.pickle")
-    if os.path.exists(true_values_file_name):
-        true_values = load_pickled_file(true_values_file_name)
-        print(f"Loaded in previous true values for: {file_name_prefix}")
-    else:
-        true_values = get_tanimoto_score_between_spectra(val_spectra_1, val_spectra_2)
-        save_pickled_file(true_values, true_values_file_name)
-    return true_values, predictions
+    return predictions
 
 
 def create_all_plots(predictions,
