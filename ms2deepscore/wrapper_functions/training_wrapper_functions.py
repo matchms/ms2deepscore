@@ -7,7 +7,7 @@ from ms2deepscore.models import load_model
 from ms2deepscore.train_new_model.SettingMS2Deepscore import \
     SettingsMS2Deepscore
 from ms2deepscore.train_new_model.train_ms2deepscore import train_ms2ds_model
-from ms2deepscore.visualize_results.plotting_wrapper_functions import benchmark_wrapper
+from ms2deepscore.wrapper_functions.plotting_wrapper_functions import benchmark_wrapper
 from ms2deepscore.wrapper_functions.StoreTrainingData import StoreTrainingData
 
 
