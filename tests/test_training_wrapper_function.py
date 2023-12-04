@@ -20,11 +20,14 @@ def load_pickled_file(filename: str):
 
 def test_train_wrapper_ms2ds_model(tmp_path):
     spectra = list(load_from_mgf(os.path.join(TEST_RESOURCES_PATH, "pesticides_processed.mgf")))
-    save_as_mgf(spectra, filename=os.path.join(tmp_path, "clean_spectra.mgf"))
+    positive_mode_spectra = [spectrum.set("ionmode", "positive") for spectrum in spectra[:20]]
+    negative_mode_spectra = [spectrum.set("ionmode", "negative") for spectrum in spectra[20:]]
+
+    save_as_mgf(positive_mode_spectra+negative_mode_spectra, filename=os.path.join(tmp_path, "clean_spectra.mgf"))
     settings = SettingsMS2Deepscore({"epochs": 2,
                                      "average_pairs_per_bin": 2,
                                      "ionisation_mode": "negative",
                                      "batch_size": 2})
-    train_ms2deepscore_wrapper(tmp_path, "clean_spectra.mgf", settings, 20)
+    train_ms2deepscore_wrapper(tmp_path, "clean_spectra.mgf", settings, 5)
     assert os.path.isfile(os.path.join(tmp_path, "trained_models", settings.model_directory_name,
                                        "ms2deepscore_model.hdf5"))
