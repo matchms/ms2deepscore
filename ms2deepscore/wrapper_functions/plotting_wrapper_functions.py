@@ -94,13 +94,10 @@ def create_all_plots(predictions,
     print(summary)
 
 
-def create_all_plots_wrapper(training_data_storing: StoreTrainingData,
+def create_all_plots_wrapper(positive_validation_spectra,
+                             negative_validation_spectra,
+                             model_folder,
                              settings: SettingsMS2Deepscore):
-    _, positive_validation_spectra, _ = training_data_storing.load_positive_train_split()
-    _, negative_validation_spectra, _ = training_data_storing.load_negative_train_split()
-
-    model_folder = os.path.join(training_data_storing.trained_models_folder, settings.model_directory_name)
-
     # Check if the model already finished training
     if not os.path.exists(os.path.join(model_folder, settings.history_file_name)):
         raise ValueError(f"Did not plot since {model_folder} did not yet finish training")

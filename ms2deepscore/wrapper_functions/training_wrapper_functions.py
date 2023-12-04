@@ -1,6 +1,7 @@
 """Contains wrapper functions that automatically store and load intermediate processed spectra
 reducing the amount of rerunning that is necessary"""
 
+import os
 from ms2deepscore.train_new_model.SettingMS2Deepscore import \
     SettingsMS2Deepscore
 from ms2deepscore.train_new_model.train_ms2deepscore import train_ms2ds_model
@@ -24,6 +25,14 @@ def train_ms2deepscore_wrapper(data_directory,
                       stored_training_data.trained_models_folder,
                       settings)
 
-    create_all_plots_wrapper(stored_training_data, settings.model_directory_name)
+    # Create performance plots for validation spectra
+    _, positive_validation_spectra, _ = stored_training_data.load_positive_train_split()
+    _, negative_validation_spectra, _ = stored_training_data.load_negative_train_split()
+
+    create_all_plots_wrapper(positive_validation_spectra,
+                             negative_validation_spectra,
+                             model_folder=os.path.join(stored_training_data.trained_models_folder,
+                                                       settings.model_directory_name),
+                             settings=settings)
     # todo store the settings as well in the settings.model_directory_name
     return settings.model_directory_name
