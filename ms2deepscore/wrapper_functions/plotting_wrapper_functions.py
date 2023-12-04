@@ -5,19 +5,21 @@ from matchms import Spectrum
 from matplotlib import pyplot as plt
 
 from ms2deepscore import MS2DeepScore
+from ms2deepscore.models import load_model
 from ms2deepscore.utils import load_pickled_file, save_pickled_file
 from ms2deepscore.visualize_results.calculate_tanimoto_scores import get_tanimoto_score_between_spectra
 from ms2deepscore.visualize_results.plotting import plot_histograms
+from ms2deepscore.wrapper_functions.StoreTrainingData import StoreTrainingData
 
 
 def benchmark_wrapper(val_spectra_1: List[Spectrum],
-                                     val_spectra_2: List[Spectrum],
-                                     benchmarking_results_folder: str,
-                                     ms2ds_model: MS2DeepScore,
-                                     file_name_prefix):
-    true_values, predictions =create_true_and_predicted_values(val_spectra_1,val_spectra_2,
-                                     benchmarking_results_folder, ms2ds_model,
-                                     file_name_prefix)
+                      val_spectra_2: List[Spectrum],
+                      benchmarking_results_folder: str,
+                      ms2ds_model: MS2DeepScore,
+                      file_name_prefix):
+    true_values, predictions = create_true_and_predicted_values(val_spectra_1,val_spectra_2,
+                                                                benchmarking_results_folder, ms2ds_model,
+                                                                file_name_prefix)
     create_all_plots(predictions, true_values, benchmarking_results_folder, file_name_prefix)
 
 
@@ -77,3 +79,34 @@ def create_all_plots(predictions,
     with open(averages_summary_file, "a", encoding="utf-8") as f:
         f.write(summary)
     print(summary)
+
+
+def create_all_plots_wrapper(training_data_storing: StoreTrainingData,
+                             model_dir_name):
+    _, positive_validation_spectra, _ = \
+        training_data_storing.load_positive_train_split()
+    _, negative_validation_spectra, _ = \
+        training_data_storing.load_negative_train_split()
+
+    model_folder = os.path.join(training_data_storing.trained_models_folder,
+                                model_dir_name)
+    # Check if the model already finished training
+    if not os.path.exists(os.path.join(model_folder, "history.txt")):
+        print(f"Did not plot since {model_folder} did not yet finish training")
+
+    # Create benchmarking results folder
+    benchmarking_results_folder = os.path.join(model_folder, "benchmarking_results")
+    os.makedirs(benchmarking_results_folder, exist_ok=True)
+
+    # Load in MS2Deepscore model
+    ms2deepscore_model = MS2DeepScore(load_model(os.path.join(model_folder, "ms2deepscore_model.hdf5")))
+
+    benchmark_wrapper(positive_validation_spectra, positive_validation_spectra, benchmarking_results_folder,
+                      ms2deepscore_model, "positive_positive")
+    benchmark_wrapper(negative_validation_spectra, negative_validation_spectra, benchmarking_results_folder,
+                      ms2deepscore_model, "negative_negative")
+    benchmark_wrapper(negative_validation_spectra, positive_validation_spectra, benchmarking_results_folder,
+                      ms2deepscore_model, "negative_positive")
+    benchmark_wrapper(positive_validation_spectra + negative_validation_spectra,
+                      positive_validation_spectra + negative_validation_spectra, benchmarking_results_folder,
+                      ms2deepscore_model, "both_both")
