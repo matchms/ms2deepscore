@@ -1,15 +1,11 @@
 import os
 import pickle
-from pathlib import Path
 from matchms.exporting import save_as_mgf
-from matchms.importing import load_from_mgf
 from ms2deepscore.train_new_model.SettingMS2Deepscore import \
     SettingsMS2Deepscore
 from ms2deepscore.wrapper_functions.training_wrapper_functions import \
     train_ms2deepscore_wrapper
-
-
-TEST_RESOURCES_PATH = Path(__file__).parent / 'resources'
+from tests.create_test_spectra import pesticides_test_spectra
 
 
 def load_pickled_file(filename: str):
@@ -19,7 +15,7 @@ def load_pickled_file(filename: str):
 
 
 def test_train_wrapper_ms2ds_model(tmp_path):
-    spectra = list(load_from_mgf(os.path.join(TEST_RESOURCES_PATH, "pesticides_processed.mgf")))
+    spectra = pesticides_test_spectra()
     positive_mode_spectra = [spectrum.set("ionmode", "positive") for spectrum in spectra[:20]]
     negative_mode_spectra = [spectrum.set("ionmode", "negative") for spectrum in spectra[20:]]
 
