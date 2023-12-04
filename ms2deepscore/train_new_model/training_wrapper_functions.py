@@ -20,7 +20,7 @@ from ms2deepscore.visualize_results.plotting_wrapper_functions import benchmark_
 def train_ms2deepscore_wrapper(data_directory,
                                spectra_file_name,
                                settings: SettingsMS2Deepscore,
-                               validation_split_fraction= 20
+                               validation_split_fraction=20
                                ):
     """Trains a ms2deepscore model, including the data split into pos,val,train spectra."""
     stored_training_data = StoreTrainingData(data_directory, spectra_file_name, validation_split_fraction)
@@ -74,18 +74,18 @@ class StoreTrainingData:
         self.negative_testing_spectra_file = os.path.join(self.training_and_val_dir, "negative_testing_spectra.mgf")
 
     def get_all_spectra(self):
-        return load_spectra(self.spectra_file_name)
+        return load_spectra(self.spectra_file_name, metadata_harmonization=False)
 
     def load_positive_mode_spectra(self):
         if os.path.isfile(self.positive_mode_spectra_file):
-            return load_spectra(self.positive_mode_spectra_file)
+            return load_spectra(self.positive_mode_spectra_file, metadata_harmonization=False)
         positive_mode_spectra, _ = self.split_and_save_positive_and_negative_spectra()
         print("Loaded previously stored positive mode spectra")
         return positive_mode_spectra
 
     def load_negative_mode_spectra(self):
         if os.path.isfile(self.negative_mode_spectra_file):
-            return load_spectra(self.negative_mode_spectra_file)
+            return load_spectra(self.negative_mode_spectra_file, metadata_harmonization=False)
         _, negative_mode_spectra = self.split_and_save_positive_and_negative_spectra()
         print("Loaded previously stored negative mode spectra")
         return negative_mode_spectra
@@ -108,9 +108,9 @@ class StoreTrainingData:
                 all_files_exist = False
 
         if all_files_exist:
-            positive_training_spectra = load_spectra(self.positive_training_spectra_file)
-            positive_validation_spectra = load_spectra(self.positive_validation_spectra_file)
-            positive_testing_spectra = load_spectra(self.positive_testing_spectra_file)
+            positive_training_spectra = load_spectra(self.positive_training_spectra_file, metadata_harmonization=False)
+            positive_validation_spectra = load_spectra(self.positive_validation_spectra_file, metadata_harmonization=False)
+            positive_testing_spectra = load_spectra(self.positive_testing_spectra_file, metadata_harmonization=False)
         else:
             positive_validation_spectra, positive_testing_spectra, positive_training_spectra = \
                 split_spectra_in_random_inchikey_sets(self.load_positive_mode_spectra(), self.split_fraction)
@@ -132,9 +132,9 @@ class StoreTrainingData:
                 all_files_exist = False
 
         if all_files_exist:
-            negative_training_spectra = load_spectra(self.negative_training_spectra_file)
-            negative_validation_spectra = load_spectra(self.negative_validation_spectra_file)
-            negative_testing_spectra = load_spectra(self.negative_testing_spectra_file)
+            negative_training_spectra = load_spectra(self.negative_training_spectra_file, metadata_harmonization=False)
+            negative_validation_spectra = load_spectra(self.negative_validation_spectra_file, metadata_harmonization=False)
+            negative_testing_spectra = load_spectra(self.negative_testing_spectra_file, metadata_harmonization=False)
         else:
             negative_validation_spectra, negative_testing_spectra, negative_training_spectra = \
                 split_spectra_in_random_inchikey_sets(self.load_negative_mode_spectra(), self.split_fraction)
