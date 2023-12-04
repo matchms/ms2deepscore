@@ -39,18 +39,6 @@ def train_ms2deepscore_wrapper(data_directory,
     return settings.model_directory_name
 
 
-def load_train_val_data(directory_structure: "StoreTrainingData",
-                        ionisation_mode: str):
-    """Loads the train, val and test spectra for a specified mode."""
-    if ionisation_mode == "positive":
-        return directory_structure.load_positive_train_split()
-    if ionisation_mode == "negative":
-        return directory_structure.load_negative_train_split()
-    if ionisation_mode == "both":
-        return directory_structure.load_both_mode_train_split()
-    raise ValueError("expected ionisation mode to be 'positive', 'negative' or 'both'")
-
-
 class StoreTrainingData:
     """Stores, loads and creates all the training data for a spectrum file.
 
@@ -169,6 +157,16 @@ class StoreTrainingData:
         both_test_spectra = positive_testing_spectra + negative_testing_spectra
         return both_training_spectra, both_validatation_spectra, both_test_spectra
 
+    def load_train_val_data(self,
+                            ionisation_mode: str):
+        """Loads the train, val and test spectra for a specified mode."""
+        if ionisation_mode == "positive":
+            return self.load_positive_train_split()
+        if ionisation_mode == "negative":
+            return self.load_negative_train_split()
+        if ionisation_mode == "both":
+            return self.load_both_mode_train_split()
+        raise ValueError("expected ionisation mode to be 'positive', 'negative' or 'both'")
 
 def create_all_plots(training_data_storing: StoreTrainingData,
                      model_dir_name):
