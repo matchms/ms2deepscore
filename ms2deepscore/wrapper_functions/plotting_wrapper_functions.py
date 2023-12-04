@@ -10,6 +10,7 @@ from ms2deepscore.utils import load_pickled_file, save_pickled_file
 from ms2deepscore.visualize_results.calculate_tanimoto_scores import get_tanimoto_score_between_spectra
 from ms2deepscore.visualize_results.plotting import plot_histograms
 from ms2deepscore.wrapper_functions.StoreTrainingData import StoreTrainingData
+from ms2deepscore.train_new_model.SettingMS2Deepscore import SettingsMS2Deepscore
 
 
 def benchmark_wrapper(val_spectra_1: List[Spectrum],
@@ -82,16 +83,16 @@ def create_all_plots(predictions,
 
 
 def create_all_plots_wrapper(training_data_storing: StoreTrainingData,
-                             model_dir_name):
+                             settings: SettingsMS2Deepscore):
     _, positive_validation_spectra, _ = \
         training_data_storing.load_positive_train_split()
     _, negative_validation_spectra, _ = \
         training_data_storing.load_negative_train_split()
 
     model_folder = os.path.join(training_data_storing.trained_models_folder,
-                                model_dir_name)
+                                settings.model_directory_name)
     # Check if the model already finished training
-    if not os.path.exists(os.path.join(model_folder, "history.txt")):
+    if not os.path.exists(os.path.join(model_folder, settings.history_file_name)):
         print(f"Did not plot since {model_folder} did not yet finish training")
 
     # Create benchmarking results folder
