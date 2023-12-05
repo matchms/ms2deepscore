@@ -18,13 +18,12 @@ class StoreTrainingData:
     It allows for reusing previously created training data for the creation of additional models.
     To do this, just specify the same spectrum file name and directory."""
 
-    def __init__(self, root_directory, spectra_file_name,
+    def __init__(self, spectra_file_name,
                  split_fraction=20):
         # todo add the spectrum file name to all created file names
-        # todo only use the spectrum file name and not root_directory.
-        self.root_directory = root_directory
+        self.root_directory = os.path.dirname(spectra_file_name)
         assert os.path.isdir(self.root_directory)
-        self.spectra_file_name = os.path.join(self.root_directory, spectra_file_name)
+        self.spectra_file_name = spectra_file_name
         assert os.path.isfile(self.spectra_file_name)
         self.split_fraction = split_fraction
         self.trained_models_folder = os.path.join(self.root_directory, "trained_models")

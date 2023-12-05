@@ -11,13 +11,12 @@ from ms2deepscore.wrapper_functions.plotting_wrapper_functions import \
 from ms2deepscore.wrapper_functions.StoreTrainingData import StoreTrainingData
 
 
-def train_ms2deepscore_wrapper(data_directory,
-                               spectra_file_name,
+def train_ms2deepscore_wrapper(spectra_file_name,
                                settings: SettingsMS2Deepscore,
                                validation_split_fraction=20
                                ):
-    """Trains a ms2deepscore model, including the data split into pos,val,train spectra."""
-    stored_training_data = StoreTrainingData(data_directory, spectra_file_name, validation_split_fraction)
+    """Splits data, trains a ms2deepscore model, and does benchmarking."""
+    stored_training_data = StoreTrainingData(spectra_file_name, validation_split_fraction)
 
     # Split training in pos and neg and create val and training split and select for the right ionisation mode.
     training_spectra = stored_training_data.load_training_data(settings.ionisation_mode, "training")
@@ -32,8 +31,8 @@ def train_ms2deepscore_wrapper(data_directory,
     positive_validation_spectra = stored_training_data.load_positive_train_split("validation")
     negative_validation_spectra = stored_training_data.load_negative_train_split("validation")
 
-    create_all_plots_wrapper(positive_validation_spectra,
-                             negative_validation_spectra,
+    create_all_plots_wrapper(positive_validation_spectra=positive_validation_spectra,
+                             negative_validation_spectra=negative_validation_spectra,
                              model_folder=os.path.join(stored_training_data.trained_models_folder,
                                                        settings.model_directory_name),
                              settings=settings)
