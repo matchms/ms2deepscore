@@ -108,11 +108,11 @@ class SettingsMS2Deepscore:
 
     def save_to_file(self, file_path):
         class NumpyArrayEncoder(JSONEncoder):
-            def default(self, obj):
-                if isinstance(obj, np.ndarray):
-                    return obj.tolist()
-                return JSONEncoder.default(self, obj)
-        with open(file_path, 'w') as file:
+            def default(self, o):
+                if isinstance(o, np.ndarray):
+                    return o.tolist()
+                return JSONEncoder.default(self, o)
+        with open(file_path, 'w', encoding="utf-8") as file:
             json.dump(self.__dict__, file, indent=4, cls=NumpyArrayEncoder)
 
 
