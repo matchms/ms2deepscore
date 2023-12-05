@@ -53,6 +53,7 @@ class SettingsMS2Deepscore:
         self.dropout_rate = 0.2
         self.learning_rate = 0.001
         self.epochs = 150
+        self.patience = 10
 
         # Generator settings
         self.batch_size = 32

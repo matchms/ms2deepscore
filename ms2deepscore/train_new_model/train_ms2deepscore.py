@@ -131,7 +131,7 @@ def train_ms2ds_model(
         save_best_only=True,
     )
     earlystopper_scoring_net = tf.keras.callbacks.EarlyStopping(
-        monitor="val_loss", mode="min", patience=30, verbose=1
+        monitor="val_loss", mode="min", patience=settings.patience, verbose=1
     )
     # Fit model and save history
     history = model.model.fit(
