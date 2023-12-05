@@ -1,12 +1,9 @@
 import json
 from typing import List, Tuple
-
 from matchms.typing import SpectrumType
 from tqdm import tqdm
-
 from ms2deepscore.MetadataFeatureGenerator import (MetadataFeatureGenerator,
                                                    load_from_json)
-
 from .BinnedSpectrum import BinnedSpectrum
 from .spectrum_binning_fixed import (create_peak_list_fixed, set_d_bins_fixed,
                                      unique_peaks_fixed)

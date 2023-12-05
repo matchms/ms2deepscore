@@ -1,8 +1,7 @@
-from tests.create_test_spectra import (ms2deepscore_model,
-                                       pesticides_test_spectra)
-
 from ms2deepscore.wrapper_functions.plotting_wrapper_functions import (
     BenchmarkingResultsFileNames, benchmark_wrapper)
+from tests.create_test_spectra import (ms2deepscore_model,
+                                       pesticides_test_spectra)
 
 
 def test_benchmark_wrapper(tmp_path):

@@ -1,11 +1,8 @@
 import os
 import pickle
 from pathlib import Path
-
 import pytest
 from matchms.importing import load_from_mgf
-from tests.test_data_generators import create_test_spectra
-
 from ms2deepscore import BinnedSpectrum, SpectrumBinner
 from ms2deepscore.models import SiameseModel
 from ms2deepscore.models.load_model import \
@@ -14,6 +11,8 @@ from ms2deepscore.train_new_model.SettingMS2Deepscore import \
     SettingsMS2Deepscore
 from ms2deepscore.train_new_model.train_ms2deepscore import (bin_spectra,
                                                              train_ms2ds_model)
+from tests.test_data_generators import create_test_spectra
+
 
 TEST_RESOURCES_PATH = Path(__file__).parent / 'resources'
 

@@ -1,15 +1,12 @@
 """ Data generators for training/inference with siamese Keras model.
 """
 from typing import Iterator, List, NamedTuple, Optional
-
 import numpy as np
 import pandas as pd
 from tensorflow.keras.utils import Sequence  # pylint: disable=import-error
-
 from ms2deepscore.SpectrumBinner import SpectrumBinner
 from ms2deepscore.train_new_model.spectrum_pair_selection import \
     SelectedCompoundPairs
-
 from .train_new_model.SettingMS2Deepscore import GeneratorSettings
 from .typing import BinnedSpectrumType
 

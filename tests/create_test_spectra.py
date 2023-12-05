@@ -1,10 +1,9 @@
 import os
 from pathlib import Path
-
 from matchms.importing import load_from_mgf
-
 from ms2deepscore.models import load_model
 from ms2deepscore.MS2DeepScore import MS2DeepScore
+
 
 TEST_RESOURCES_PATH = Path(__file__).parent / 'resources'
 

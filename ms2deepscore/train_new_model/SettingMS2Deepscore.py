@@ -1,8 +1,6 @@
 import warnings
 from datetime import datetime
 from typing import Optional
-import json
-from json import JSONEncoder
 import numpy as np
 
 
@@ -105,15 +103,6 @@ class SettingsMS2Deepscore:
                                  f"{neural_net_structure_label}_{time_stamp}"
         print(f"The model will be stored in the folder: {model_folder_file_name}")
         return model_folder_file_name
-
-    def save_to_file(self, file_path):
-        class NumpyArrayEncoder(JSONEncoder):
-            def default(self, obj):
-                if isinstance(obj, np.ndarray):
-                    return obj.tolist()
-                return JSONEncoder.default(self, obj)
-        with open(file_path, 'w') as file:
-            json.dump(self.__dict__, file, indent=4, cls=NumpyArrayEncoder)
 
 
 class GeneratorSettings:

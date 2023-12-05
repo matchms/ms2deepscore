@@ -1,5 +1,4 @@
 from typing import List
-
 from matchms import Spectrum
 from tqdm import tqdm
 
