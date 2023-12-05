@@ -57,7 +57,7 @@ class StoreTrainingData:
             return load_spectra_as_list(self.negative_mode_spectra_file)
         _, negative_mode_spectra = self.split_and_save_positive_and_negative_spectra()
         print("Loaded previously stored negative mode spectra")
-        return list(negative_mode_spectra)
+        return negative_mode_spectra
 
     def split_and_save_positive_and_negative_spectra(self):
         assert not os.path.isfile(self.positive_mode_spectra_file), "the positive mode spectra file already exists"
@@ -68,73 +68,59 @@ class StoreTrainingData:
         save_spectra(negative_mode_spectra, self.negative_mode_spectra_file)
         return positive_mode_spectra, negative_mode_spectra
 
-    def load_positive_train_split(self):
-        all_files_exist = True
-        for spectra_file in [self.positive_training_spectra_file,
-                             self.positive_testing_spectra_file,
-                             self.positive_validation_spectra_file, ]:
-            if not os.path.isfile(spectra_file):
-                all_files_exist = False
-
-        if all_files_exist:
-            positive_training_spectra = load_spectra_as_list(self.positive_training_spectra_file)
-            positive_validation_spectra = load_spectra_as_list(self.positive_validation_spectra_file)
-            positive_testing_spectra = load_spectra_as_list(self.positive_testing_spectra_file)
+    def load_positive_train_split(self, spectra_type):
+        if spectra_type == "training":
+            spectra_file_name = self.positive_training_spectra_file
+        elif spectra_type == "validation":
+            spectra_file_name = self.positive_validation_spectra_file
+        elif spectra_type == "testing":
+            spectra_file_name = self.positive_testing_spectra_file
         else:
+            raise ValueError("Expected 'training', 'validation' or 'testing' as spectra_type")
+
+        # If it could not be loaded do the data split and save the files.
+        if not os.path.isfile(spectra_file_name):
             positive_validation_spectra, positive_testing_spectra, positive_training_spectra = \
                 split_spectra_in_random_inchikey_sets(self.load_positive_mode_spectra(), self.split_fraction)
             save_spectra(positive_training_spectra, self.positive_training_spectra_file)
             save_spectra(positive_validation_spectra, self.positive_validation_spectra_file)
             save_spectra(positive_testing_spectra, self.positive_testing_spectra_file)
-        print(f"Positive split \n "
-              f"Train: {len(positive_training_spectra)} \n "
-              f"Validation: {len(positive_validation_spectra)} \n "
-              f"Test: {len(positive_testing_spectra)}")
-        return positive_training_spectra, positive_validation_spectra, positive_testing_spectra
+            print(f"Positive split \n Train: {len(positive_training_spectra)} \n "
+                  f"Validation: {len(positive_validation_spectra)} \n Test: {len(positive_testing_spectra)}")
+        return load_spectra_as_list(spectra_file_name)
 
-    def load_negative_train_split(self):
-        all_files_exist = True
-        for spectra_file in [self.negative_training_spectra_file,
-                             self.negative_testing_spectra_file,
-                             self.negative_validation_spectra_file, ]:
-            if not os.path.isfile(spectra_file):
-                all_files_exist = False
-
-        if all_files_exist:
-            negative_training_spectra = load_spectra_as_list(self.negative_training_spectra_file)
-            negative_validation_spectra = load_spectra_as_list(self.negative_validation_spectra_file)
-            negative_testing_spectra = load_spectra_as_list(self.negative_testing_spectra_file)
+    def load_negative_train_split(self,
+                                  spectra_type: str):
+        if spectra_type == "training":
+            spectra_file_name = self.negative_training_spectra_file
+        elif spectra_type == "validation":
+            spectra_file_name = self.negative_validation_spectra_file
+        elif spectra_type == "testing":
+            spectra_file_name = self.negative_testing_spectra_file
         else:
+            raise ValueError("Expected 'training', 'validation' or 'testing' as spectra_type")
+
+        # If it could not be loaded do the data split and save the files.
+        if not os.path.isfile(spectra_file_name):
             negative_validation_spectra, negative_testing_spectra, negative_training_spectra = \
                 split_spectra_in_random_inchikey_sets(self.load_negative_mode_spectra(), self.split_fraction)
             save_spectra(negative_training_spectra, self.negative_training_spectra_file)
             save_spectra(negative_validation_spectra, self.negative_validation_spectra_file)
             save_spectra(negative_testing_spectra, self.negative_testing_spectra_file)
-        print(f"negative split \n "
-              f"Train: {len(negative_training_spectra)} \n "
-              f"Validation: {len(negative_validation_spectra)} \n "
-              f"Test: {len(negative_testing_spectra)}")
-        return negative_training_spectra, negative_validation_spectra, negative_testing_spectra
+            print(f"negative split \n Train: {len(negative_training_spectra)} \n "
+                  f"Validation: {len(negative_validation_spectra)} \n Test: {len(negative_testing_spectra)}")
+        return load_spectra_as_list(spectra_file_name)
 
-    def load_both_mode_train_split(self):
-        positive_training_spectra, positive_validation_spectra, positive_testing_spectra = \
-            self.load_positive_train_split()
-        negative_training_spectra, negative_validation_spectra, negative_testing_spectra = \
-            self.load_negative_mode_spectra()
-        both_training_spectra = positive_training_spectra + negative_training_spectra
-        both_validatation_spectra = positive_validation_spectra + negative_validation_spectra
-        both_test_spectra = positive_testing_spectra + negative_testing_spectra
-        return both_training_spectra, both_validatation_spectra, both_test_spectra
-
-    def load_train_val_data(self,
-                            ionisation_mode: str):
-        """Loads the train, val and test spectra for a specified mode."""
+    def load_training_data(self,
+                           ionisation_mode: str,
+                           data_split_type: str):
+        """Loads the spectra for a specified mode."""
         if ionisation_mode == "positive":
-            return self.load_positive_train_split()
+            return self.load_positive_train_split(data_split_type)
         if ionisation_mode == "negative":
-            return self.load_negative_train_split()
+            return self.load_negative_train_split(data_split_type)
         if ionisation_mode == "both":
-            return self.load_both_mode_train_split()
+            return self.load_positive_train_split(data_split_type) + self.load_negative_train_split(data_split_type)
         raise ValueError("expected ionisation mode to be 'positive', 'negative' or 'both'")
 
 

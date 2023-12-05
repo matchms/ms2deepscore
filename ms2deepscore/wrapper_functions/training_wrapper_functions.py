@@ -20,7 +20,8 @@ def train_ms2deepscore_wrapper(data_directory,
     stored_training_data = StoreTrainingData(data_directory, spectra_file_name, validation_split_fraction)
 
     # Split training in pos and neg and create val and training split and select for the right ionisation mode.
-    training_spectra, validation_spectra, _ = stored_training_data.load_train_val_data(settings.ionisation_mode)
+    training_spectra = stored_training_data.load_training_data(settings.ionisation_mode, "training")
+    validation_spectra = stored_training_data.load_training_data(settings.ionisation_mode, "validation")
 
     # Train model
     train_ms2ds_model(training_spectra, validation_spectra,
@@ -28,8 +29,8 @@ def train_ms2deepscore_wrapper(data_directory,
                       settings)
 
     # Create performance plots for validation spectra
-    _, positive_validation_spectra, _ = stored_training_data.load_positive_train_split()
-    _, negative_validation_spectra, _ = stored_training_data.load_negative_train_split()
+    positive_validation_spectra = stored_training_data.load_positive_train_split("validation")
+    negative_validation_spectra = stored_training_data.load_negative_train_split("validation")
 
     create_all_plots_wrapper(positive_validation_spectra,
                              negative_validation_spectra,
