@@ -42,4 +42,5 @@ def test_train_wrapper_ms2ds_model(tmp_path):
     assert os.path.isfile(os.path.join(tmp_path, expected_file_names.trained_models_folder,
                                        settings.model_directory_name, "binned_spectra",
                                        "binned_training_spectra.pickle"))
-
+    assert os.path.isfile(os.path.join(tmp_path, expected_file_names.trained_models_folder,
+                                       settings.model_directory_name, "settings.json"))
