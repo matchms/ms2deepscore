@@ -1,12 +1,8 @@
 import string
-
 import numpy as np
 import pandas as pd
 import pytest
 from matchms import Spectrum
-from tests.test_user_worfklow import (get_reference_scores,
-                                      load_processed_spectrums)
-
 from ms2deepscore import SpectrumBinner
 from ms2deepscore.data_generators import (DataGeneratorAllInchikeys,
                                           DataGeneratorAllSpectrums,
@@ -19,6 +15,8 @@ from ms2deepscore.train_new_model.SettingMS2Deepscore import \
     SettingsMS2Deepscore
 from ms2deepscore.train_new_model.spectrum_pair_selection import \
     select_compound_pairs_wrapper
+from tests.test_user_worfklow import (get_reference_scores,
+                                      load_processed_spectrums)
 
 
 def create_dummy_data():

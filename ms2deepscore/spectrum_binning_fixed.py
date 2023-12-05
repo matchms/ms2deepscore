@@ -1,7 +1,6 @@
 """ Functions to create binned vector from spectrum using fixed width bins.
 """
 from typing import List
-
 import numpy as np
 from matchms import Spectrum
 from tqdm import tqdm

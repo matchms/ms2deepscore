@@ -1,9 +1,7 @@
 from unittest.mock import patch
-
 import numpy as np
 import pytest
 from matchms import Spectrum
-
 from ms2deepscore.train_new_model.validation_and_test_split import (
     select_spectra_belonging_to_inchikey, select_unique_inchikeys,
     split_spectra_in_random_inchikey_sets)

@@ -1,10 +1,8 @@
 import os
 from typing import List
-
 import numpy as np
 from matchms import Spectrum
 from matplotlib import pyplot as plt
-
 from ms2deepscore import MS2DeepScore
 from ms2deepscore.models import load_model
 from ms2deepscore.train_new_model.SettingMS2Deepscore import \
