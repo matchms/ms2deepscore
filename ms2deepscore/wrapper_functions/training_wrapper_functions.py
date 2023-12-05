@@ -35,5 +35,4 @@ def train_ms2deepscore_wrapper(spectra_file_name,
                              model_folder=os.path.join(stored_training_data.trained_models_folder,
                                                        settings.model_directory_name),
                              settings=settings)
-    # todo store the settings as well in the settings.model_directory_name
     return settings.model_directory_name
