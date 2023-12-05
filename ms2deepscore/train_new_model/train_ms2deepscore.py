@@ -68,14 +68,16 @@ def train_ms2ds_model(
     """
     # pylint: disable=too-many-locals
 
-    # Set file names and create dirs
-    os.makedirs(results_folder, exist_ok=True)
+    model_directory = os.path.join(results_folder, settings.model_directory_name)
+    os.makedirs(model_directory, exist_ok=True)
+    # Save settings
+    settings.save_to_file(os.path.join(model_directory, "settings.json"))
 
-    output_model_file_name = os.path.join(results_folder, settings.model_directory_name, settings.model_file_name)
-    ms2ds_history_file_name = os.path.join(results_folder, settings.model_directory_name, settings.history_file_name)
-    ms2ds_history_plot_file_name = os.path.join(results_folder, settings.model_directory_name, settings.history_plot_file_name)
+    output_model_file_name = os.path.join(model_directory, settings.model_file_name)
+    ms2ds_history_file_name = os.path.join(model_directory, settings.history_file_name)
+    ms2ds_history_plot_file_name = os.path.join(model_directory, settings.history_plot_file_name)
 
-    binned_spectra_folder = os.path.join(results_folder, settings.model_directory_name, settings.binned_spectra_folder_name)
+    binned_spectra_folder = os.path.join(model_directory, settings.binned_spectra_folder_name)
     os.makedirs(binned_spectra_folder, exist_ok=True)
 
     selected_compound_pairs_training, selected_training_spectra = select_compound_pairs_wrapper(
