@@ -20,7 +20,6 @@ class StoreTrainingData:
 
     def __init__(self, spectra_file_name,
                  split_fraction=20):
-        # todo add the spectrum file name to all created file names
         self.root_directory = os.path.dirname(spectra_file_name)
         assert os.path.isdir(self.root_directory)
         self.spectra_file_name = spectra_file_name
