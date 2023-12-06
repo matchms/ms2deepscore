@@ -3,16 +3,13 @@ from matplotlib import pyplot as plt
 from matplotlib.colors import LinearSegmentedColormap
 
 
-def create_histograms_plot(reference_scores,
-                           comparison_scores,
-                           n_bins=10,
-                           hist_resolution=100,
-                           ref_score_name="Tanimoto similarity",
-                           compare_score_name="MS2DeepScore"):
-    """
-    Plot histograms to compare reference and comparison scores.
+def plot_histograms(reference_scores,
+                    comparison_scores,
+                    n_bins,
+                    hist_resolution):
+    """Create histogram based score comparison.
 
-    Parameters
+        Parameters
     ----------
     reference_scores
         Reference score array.
@@ -22,36 +19,16 @@ def create_histograms_plot(reference_scores,
         Number of bins. The default is 5.
     hist_resolution
         Histogram resolution. The default is 100.
-    ref_score_name
-        Label string. The default is "Tanimoto similarity".
-    compare_score_name
-        Label string. The default is "MS2DeepScore".
-
     """
-    # pylint: disable=too-many-arguments
     histograms, used_bins, bin_content = calculate_histograms(reference_scores,
                                                               comparison_scores,
                                                               n_bins,
                                                               hist_resolution)
-    plot_histograms(histograms,
-                    used_bins, 
-                    bin_content,
-                    xlabel=compare_score_name,
-                    ylabel=ref_score_name)
-
-
-def plot_histograms(histograms,
-                    y_score_bins,
-                    bin_content=None,
-                    xlabel="MS2DeepScore",
-                    ylabel="Tanimoto similarity"):
-    """Create histogram based score comparison.
-    """
 
     # Setup plotting stuff
     colors = ["crimson", "lightblue", "teal"]
     cmap1 = LinearSegmentedColormap.from_list("mycmap", colors)
-    plt.style.use('seaborn-white')
+    # plt.style.use('seaborn-white')
     shift = 0.7
     alpha = 1.0 #0.5
 
@@ -72,9 +49,9 @@ def plot_histograms(histograms,
 
     plt.xticks(fontsize=14)
     plt.yticks(-shift*np.arange(len(histograms)),
-               [f"{a:.1f} to < {b:.1f}" for (a, b) in y_score_bins[::-1]], fontsize=14)
-    plt.xlabel(xlabel, fontsize=14)
-    plt.ylabel(ylabel, fontsize=14)
+               [f"{a:.1f} to < {b:.1f}" for (a, b) in used_bins[::-1]], fontsize=14)
+    plt.xlabel("MS2Deepscore", fontsize=14)
+    plt.ylabel("Tanimoto similarity", fontsize=14)
     plt.xlim([0, 1])
 
 
@@ -92,7 +69,7 @@ def calculate_histograms(reference_scores,
     ref_scores_bins_inclusive = np.linspace(0, 1, n_bins+1)
     ref_scores_bins_inclusive[0] = -np.inf
     ref_scores_bins_inclusive[-1] = np.inf
-    
+
     for i in range(n_bins):
         used_bins.append((ref_scores_bins_inclusive[i], ref_scores_bins_inclusive[i+1]))
         idx = np.where((reference_scores >= ref_scores_bins_inclusive[i]) & (reference_scores < ref_scores_bins_inclusive[i+1]))
@@ -167,7 +144,7 @@ def plot_confusion_like_matrix(confusion_like_matrix_scatter,
     colors = 100*sizes/np.array(summed_tanimoto)  # color percentage
     sizes = sizes/np.max(sizes)
 
-    plt.style.use('seaborn-white')
+    # plt.style.use('seaborn-white')
     if color_by_reference_fraction:
         fig = plt.figure(figsize=(10, 8))
         plt.scatter([x[1] for x in confusion_like_matrix_scatter],

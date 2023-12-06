@@ -11,8 +11,10 @@ from ms2deepscore.data_generators import (DataGeneratorAllInchikeys,
                                           _validate_labels)
 from ms2deepscore.MetadataFeatureGenerator import (CategoricalToBinary,
                                                    StandardScaler)
-from ms2deepscore.spectrum_pair_selection import (
-    SelectedCompoundPairs, select_spectrum_pairs_wrapper)
+from ms2deepscore.train_new_model.SettingMS2Deepscore import \
+    SettingsMS2Deepscore
+from ms2deepscore.train_new_model.spectrum_pair_selection import \
+    select_compound_pairs_wrapper
 from tests.test_user_worfklow import (get_reference_scores,
                                       load_processed_spectrums)
 
@@ -76,18 +78,14 @@ def collect_results(generator, batch_size, dimension):
     return X, y
 
 
-def test_DataGeneratorCherrypicked():
-    """Test DataGeneratorCherrypicked using generated data.
-    """
+def create_test_spectra(num_of_unique_inchikeys):
     # Define other parameters
-    batch_size = 8
     mz, intens = 100.0, 0.1
     spectrums = []
-    num_of_unique_inchikeys = 15
     letters = list(string.ascii_uppercase[:num_of_unique_inchikeys])
     letters += letters
 
-    def generate_binary_vector(n):
+    def generate_binary_vector(i):
         binary_vector = np.zeros(10, dtype=int)
         binary_vector[i % 3] = 1
         binary_vector[i % 5 + 3] = 1
@@ -109,15 +107,22 @@ def test_DataGeneratorCherrypicked():
                                             "compound_name": letter,
                                             "fingerprint": fingerprint,
                                             }))
+    return spectrums
+
+
+def test_DataGeneratorCherrypicked():
+    """Test DataGeneratorCherrypicked using generated data.
+    """
+    num_of_unique_inchikeys = 15
+    spectrums = create_test_spectra(num_of_unique_inchikeys)
+    batch_size = 8
 
     ms2ds_binner = SpectrumBinner(100, mz_min=10.0, mz_max=1000.0, peak_scaling=1)
     binned_spectrums = ms2ds_binner.fit_transform(spectrums)
     dimension = len(ms2ds_binner.known_bins)
-
-    scp = select_spectrum_pairs_wrapper(
-        spectrums,
-        selection_bins=np.array([(x/4, x/4 + 0.25) for x in range(0, 4)]),
-        average_pairs_per_bin=1)
+    settings = SettingsMS2Deepscore({"tanimoto_bins": np.array([(x / 4, x / 4 + 0.25) for x in range(0, 4)]),
+                                     "average_pairs_per_bin": 1})
+    scp, spectrums = select_compound_pairs_wrapper(spectrums, settings)
     # Create generator
     test_generator = DataGeneratorCherrypicked(binned_spectrums=binned_spectrums,
                                                spectrum_binner=ms2ds_binner,
@@ -199,18 +204,16 @@ def test_DataGeneratorAllSpectrums():
     # Define other parameters
     batch_size = 8 # Set the batch size to 8 to make sure it is a different number than the number of bins.
     dimension = len(ms2ds_binner.known_bins)
-    np.random.seed(41) #Set the seed to make sure multiple spectra are selected every time.
-    selected_inchikeys = tanimoto_scores_df.index
     # Create generator
     test_generator = DataGeneratorAllSpectrums(binned_spectrums=binned_spectrums,
-                                               selected_inchikeys=selected_inchikeys,
                                                reference_scores_df=tanimoto_scores_df,
                                                spectrum_binner=ms2ds_binner,
                                                batch_size=batch_size,
                                                augment_removal_max=0.0,
                                                augment_removal_intensity=0.0,
                                                augment_intensity=0.0,
-                                               augment_noise_max=0)
+                                               augment_noise_max=0,
+                                               random_seed=41)
 
     x, y = test_generator.__getitem__(0)
     assert x[0].shape == x[1].shape == (batch_size, dimension), "Expected different data shape"
@@ -254,8 +257,8 @@ def test_DataGeneratorAllInchikeys_real_data():
     A, B = test_generator.__getitem__(0)
     assert A[0].shape == A[1].shape == (batch_size, dimension), "Expected different data shape"
     assert B.shape[0] == 10, "Expected different label shape."
-    assert test_generator.settings["num_turns"] == 1, "Expected different default."
-    assert test_generator.settings["augment_intensity"] == 0.0, "Expected changed value."
+    assert test_generator.settings.num_turns == 1, "Expected different default."
+    assert test_generator.settings.augment_intensity == 0.0, "Expected changed value."
 
 
 def test_DataGeneratorAllSpectrumsRealData():
@@ -278,8 +281,8 @@ def test_DataGeneratorAllSpectrumsRealData():
     A, B = test_generator.__getitem__(0)
     assert A[0].shape == A[1].shape == (10, dimension), "Expected different data shape"
     assert B.shape[0] == 10, "Expected different label shape."
-    assert test_generator.settings["num_turns"] == 1, "Expected different default."
-    assert test_generator.settings["augment_intensity"] == 0.0, "Expected changed value."
+    assert test_generator.settings.num_turns == 1, "Expected different default."
+    assert test_generator.settings.augment_intensity == 0.0, "Expected changed value."
 
 
 def test_DataGeneratorAllSpectrums_no_inchikey_leaking():
@@ -288,13 +291,14 @@ def test_DataGeneratorAllSpectrums_no_inchikey_leaking():
     binned_spectrums, tanimoto_scores_df, ms2ds_binner = create_test_data()
 
     # Define other parameters
-    batch_size = 8
+    batch_size = 6
     dimension = 88
 
     # Create generator
     test_generator = DataGeneratorAllSpectrums(binned_spectrums=binned_spectrums[:8],
                                                reference_scores_df=tanimoto_scores_df,
-                                               spectrum_binner=ms2ds_binner, batch_size=batch_size,
+                                               spectrum_binner=ms2ds_binner,
+                                               batch_size=batch_size,
                                                augment_removal_max=0.0,
                                                augment_removal_intensity=0.0,
                                                augment_intensity=0.0)
@@ -358,7 +362,7 @@ def test_DataGeneratorAllSpectrums_fixed_set():
     second_X, second_y = collect_results(fixed_generator, batch_size, dimension)
     assert np.array_equal(first_X, second_X)
     assert np.array_equal(first_y, second_y)
-    assert fixed_generator.settings["random_seed"] is None
+    assert fixed_generator.settings.random_seed is None
 
 
 def test_DataGeneratorAllSpectrums_fixed_set_random_seed():

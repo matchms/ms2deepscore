@@ -1,7 +1,6 @@
 import numpy as np
-from ms2deepscore.plotting import (calculate_histograms,
-                                   create_confusion_matrix_plot,
-                                   create_histograms_plot, plot_histograms)
+from ms2deepscore.visualize_results.plotting import (
+    calculate_histograms, create_confusion_matrix_plot, plot_histograms)
 
 
 mock_reference_scores = np.random.random((100, 100))
@@ -13,12 +12,6 @@ def test_create_confusion_matrix_plot():
     assert fig is not None
     assert fig.get_axes()[0].get_xlabel() == "MS2DeepScore"
     assert fig.get_axes()[0].get_ylabel() == 'Tanimoto similarity'
-
-
-def test_create_histograms_plot():
-    # Just checking if it runs without errors
-    create_histograms_plot(mock_reference_scores, mock_comparison_scores)
-    assert True
 
 
 def test_calculate_histograms():
@@ -41,6 +34,5 @@ def test_calculate_histograms():
 
 def test_plot_histograms():
     # Test the plotting function
-    histograms, used_bins, bin_content = calculate_histograms(mock_reference_scores, mock_comparison_scores, n_bins=5, hist_resolution=10)
-    plot_histograms(histograms, used_bins, bin_content)
+    plot_histograms(mock_reference_scores, mock_comparison_scores, n_bins=5, hist_resolution=10)
     assert True

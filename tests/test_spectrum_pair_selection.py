@@ -2,10 +2,10 @@ import numpy as np
 import pytest
 from matchms import Spectrum
 from scipy.sparse import coo_array
-from ms2deepscore.spectrum_pair_selection import (
+from ms2deepscore.train_new_model.spectrum_pair_selection import (
     SelectedCompoundPairs, compute_jaccard_similarity_per_bin,
-    convert_selected_pairs_per_bin_to_coo_array, find_correct_max_nr_of_pairs,
-    fix_bias, select_inchi_for_unique_inchikeys, try_cut_off)
+    convert_selected_pairs_per_bin_to_coo_array, fix_bias,
+    get_nr_of_pairs_needed_to_fix_bias, select_inchi_for_unique_inchikeys)
 
 
 @pytest.fixture
@@ -86,6 +86,22 @@ def test_compute_jaccard_similarity_per_bin_correct_counts(fingerprints):
     assert np.all(matrix_histogram[0] == expected_histogram)
 
 
+def test_fix_bias():
+    expected_average = 2
+    results = fix_bias([[
+        [(1, 0.1), (2, 0.1), (3, 0.1)],
+        [(1, 0.1), (2, 0.1), (2, 0.1), (2, 0.1)],
+        [(1, 0.1), (2, 0.1), (3, 0.1)],
+        [],
+    ]], expected_average)
+    assert results == [[
+        [(1, 0.1), (2, 0.1)],
+        [(1, 0.1), (2, 0.1), (2, 0.1)],
+        [(1, 0.1), (2, 0.1), (3, 0.1)],
+        [],
+    ]]
+
+
 @pytest.mark.parametrize("average_pairs_per_bin", [1, 2])
 def test_global_bias(fingerprints, average_pairs_per_bin):
     bins = np.array([(0, 0.35), (0.35, 0.65), (0.65, 1.0)])
@@ -93,14 +109,30 @@ def test_global_bias(fingerprints, average_pairs_per_bin):
     selected_pairs_per_bin = compute_jaccard_similarity_per_bin(fingerprints,
                                                                 selection_bins=bins,
                                                                 max_pairs_per_bin=10)
-    selected_pairs_per_bin = fix_bias(selected_pairs_per_bin, average_pairs_per_bin)
-    matrix = convert_selected_pairs_per_bin_to_coo_array(selected_pairs_per_bin, fingerprints.shape[0])
+
+    selected_pairs_per_bin_fixed_bias = fix_bias(selected_pairs_per_bin, average_pairs_per_bin)
+    matrix = convert_selected_pairs_per_bin_to_coo_array(selected_pairs_per_bin_fixed_bias, fingerprints.shape[0])
     dense_matrix = matrix.todense()
     # Check if in each bin the nr of pairs is equal to the nr_of_fingerprints
     expected_nr_of_pairs = fingerprints.shape[0] * average_pairs_per_bin
     expected_histogram = np.array([expected_nr_of_pairs, expected_nr_of_pairs, expected_nr_of_pairs])
     matrix_histogram = np.histogram(dense_matrix, [0.000001, 0.35000001, 0.6000001, 1.0])
     assert np.all(matrix_histogram[0] == expected_histogram)
+
+
+@pytest.mark.parametrize("nr_of_pairs_in_bin_per_compound, expected_average",
+                         [
+                             [[3, 3, 4, 5, 6], 4],
+                             [[3, 3, 4, 8, 8], 5],
+                             [[1, 9, 9, 6, 8], 6],
+                         ])
+def test_get_nr_of_compounds_that_should_be_selected(nr_of_pairs_in_bin_per_compound, expected_average):
+    cut_offs_to_use = get_nr_of_pairs_needed_to_fix_bias(nr_of_pairs_in_bin_per_compound, expected_average)
+
+    assert sum(cut_offs_to_use)/len(cut_offs_to_use) == expected_average
+    assert len(nr_of_pairs_in_bin_per_compound) == len(cut_offs_to_use)
+    for i in range(len(nr_of_pairs_in_bin_per_compound)):
+        assert nr_of_pairs_in_bin_per_compound[i] >= cut_offs_to_use[i]
 
 
 def test_select_inchi_for_unique_inchikeys(spectrums):
@@ -116,32 +148,6 @@ def test_select_inchi_for_unique_inchikeys_two_inchikeys(spectrums):
     (spectrums_selected, inchikey14s) = select_inchi_for_unique_inchikeys(spectrums)
     assert inchikey14s == ['ABCABCABCABCAB', 'XXXXXXXXXXXXXX']
     assert [s.get("inchi")[:15] for s in spectrums_selected] == ['InChI=1/C6H8O6/', 'InChI=1S/C8H10N']
-
-
-def test_compute_spectrum_pairs(spectrums):
-    #todo add this test after further refactoring
-    pass
-    # scores, inchikeys = compute_spectrum_pairs(spectrums,
-    #                                            )
-    # assert inchikeys == ['ABCABCABCABCAB', 'XXXXXXXXXXXXXX']
-    # assert np.allclose(scores.row, [0, 0, 1, 1])
-    # assert np.allclose(scores.col, [1, 0, 0, 1])
-    # assert np.allclose(scores.data, [0.1665089877010407, 1.0, 0.1665089877010407, 1.0])
-
-
-def test_compute_spectrum_pairs_vary_parameters(spectrums):
-    #todo add this test after further refactoring
-    pass
-    # # max_pairs_per_bin = 1
-    # scores, _ = compute_spectrum_pairs(spectrums, max_pairs_per_bin=1, nbits=10)
-    # assert scores.shape == (2, 2)
-    # assert len(scores.row) == 2
-    # assert np.allclose(scores.data, [1.0, 1.0])
-    # # max_pairs_per_bin = 2
-    # scores, _ = compute_spectrum_pairs(spectrums, max_pairs_per_bin=2, nbits=10)
-    # assert scores.shape == (2, 2)
-    # assert len(scores.row) == 4
-    # assert np.allclose(scores.data, [1.0, 1.0, 1.0, 1.0])
 
 
 # Test SelectedCompoundPairs class
@@ -211,42 +217,3 @@ def test_SCP_generator(dummy_data):
     assert inchikey1 in inchikeys
     assert score in data
     assert inchikey2 in inchikeys
-
-
-@pytest.mark.parametrize("nr_of_pairs_in_bin_per_spectrum, cut_off, expected_average_nr_of_pairs", [
-    [[2, 5, 7], 4, 3.333333],
-    [[2, 2, 2, 2], 2, 2],
-    [[2, 2, 2, 2], 5, 2],
-])
-def test_try_cut_off(nr_of_pairs_in_bin_per_spectrum, cut_off, expected_average_nr_of_pairs):
-    average_nr_of_pairs = try_cut_off(nr_of_pairs_in_bin_per_spectrum,
-                                      cut_off)
-    assert round(average_nr_of_pairs, 3) == round(expected_average_nr_of_pairs, 3)
-
-
-@pytest.mark.parametrize("nr_of_pairs_in_bin_per_spectrum, wanted_average_nr_of_pairs, expected_max_nr_of_pairs, expected_difference", [
-    [[2, 5, 7, 9], 3, 4, 2],
-    [[2, 2, 2, 2], 2, 2, 0],
-])
-def test_find_correct_max_nr_of_pairs(nr_of_pairs_in_bin_per_spectrum, wanted_average_nr_of_pairs,
-                                      expected_max_nr_of_pairs, expected_difference):
-    difference, correct_max_nr_of_pairs = find_correct_max_nr_of_pairs(nr_of_pairs_in_bin_per_spectrum,
-                                                                       wanted_average_nr_of_pairs)
-    assert correct_max_nr_of_pairs == expected_max_nr_of_pairs
-    assert difference == expected_difference
-
-
-def test_fix_bias():
-    expected_average = 2
-    results = fix_bias([[
-        [(1, 0.1), (2, 0.1), (3, 0.1)],
-        [(1, 0.1), (2, 0.1), (2, 0.1), (2, 0.1)],
-        [(1, 0.1), (2, 0.1), (3, 0.1)],
-        [],
-    ]], expected_average)
-    assert results == [[
-        [(1, 0.1), (2, 0.1)],
-        [(1, 0.1), (2, 0.1), (2, 0.1)],
-        [(1, 0.1), (2, 0.1), (3, 0.1)],
-        [],
-    ]]

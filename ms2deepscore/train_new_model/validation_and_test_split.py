@@ -1,9 +1,7 @@
-import os
 import random
 from typing import List, Tuple
 from matchms import Spectrum
 from tqdm import tqdm
-from ms2deepscore.utils import load_pickled_file, save_pickled_file
 
 
 def select_unique_inchikeys(spectra):
@@ -51,41 +49,3 @@ def split_spectra_in_random_inchikey_sets(
     assert len(spectra) == len(validation_spectra + test_spectra + train_spectra)
 
     return validation_spectra, test_spectra, train_spectra
-
-
-def split_data_wrapper(spectra_location, data_directory, ionization_mode):
-    spectra = list(load_pickled_file(spectra_location))
-    random.seed(42)
-    (
-        validation_spectra,
-        test_spectra,
-        train_spectra,
-    ) = split_spectra_in_random_inchikey_sets(spectra, 20)
-    print(f"Nr of validation spectra: {len(validation_spectra)}")
-    print(f"Nr of test spectra: {len(test_spectra)}")
-    print(f"Nr of train spectra: {len(train_spectra)}")
-
-    save_pickled_file(
-        validation_spectra,
-        os.path.join(
-            data_directory,
-            "training_and_validation_split",
-            f"{ionization_mode}_validation_spectra.pickle",
-        ),
-    )
-    save_pickled_file(
-        test_spectra,
-        os.path.join(
-            data_directory,
-            "training_and_validation_split",
-            f"{ionization_mode}_test_spectra.pickle",
-        ),
-    )
-    save_pickled_file(
-        train_spectra,
-        os.path.join(
-            data_directory,
-            "training_and_validation_split",
-            f"{ionization_mode}_training_spectra.pickle",
-        ),
-    )
