@@ -1,5 +1,4 @@
 import os
-import pickle
 from matchms.exporting import save_as_mgf
 from ms2deepscore.train_new_model.SettingMS2Deepscore import \
     SettingsMS2Deepscore
@@ -7,12 +6,6 @@ from ms2deepscore.wrapper_functions.StoreTrainingData import StoreTrainingData
 from ms2deepscore.wrapper_functions.training_wrapper_functions import \
     train_ms2deepscore_wrapper
 from tests.create_test_spectra import pesticides_test_spectra
-
-
-def load_pickled_file(filename: str):
-    with open(filename, 'rb') as file:
-        loaded_object = pickle.load(file)
-    return loaded_object
 
 
 def test_train_wrapper_ms2ds_model(tmp_path):

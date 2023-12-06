@@ -1,5 +1,4 @@
 import os
-import pickle
 from pathlib import Path
 import pytest
 from matchms.importing import load_from_mgf
@@ -11,16 +10,11 @@ from ms2deepscore.train_new_model.SettingMS2Deepscore import \
     SettingsMS2Deepscore
 from ms2deepscore.train_new_model.train_ms2deepscore import (bin_spectra,
                                                              train_ms2ds_model)
+from ms2deepscore.utils import load_pickled_file
 from tests.test_data_generators import create_test_spectra
 
 
 TEST_RESOURCES_PATH = Path(__file__).parent / 'resources'
-
-
-def load_pickled_file(filename: str):
-    with open(filename, 'rb') as file:
-        loaded_object = pickle.load(file)
-    return loaded_object
 
 
 def test_bin_spectra(tmp_path):
