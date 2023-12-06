@@ -1,8 +1,9 @@
+from typing import List, Tuple
 from matchms import Spectrum
 from tqdm import tqdm
 
 
-def split_by_ionmode(spectra:list[Spectrum]) -> tuple[list[Spectrum], list[Spectrum]]:
+def split_by_ionmode(spectra:List[Spectrum]) -> Tuple[List[Spectrum], List[Spectrum]]:
     """Splits spectra into list of positive ionmode and list of negative ionmode spectra.
 
     Removes spectra without correct ionmode metadata entry.
