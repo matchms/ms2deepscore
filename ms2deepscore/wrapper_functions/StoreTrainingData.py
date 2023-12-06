@@ -4,7 +4,7 @@ from matchms import Spectrum
 from matchms.exporting import save_spectra
 from matchms.importing import load_spectra
 from ms2deepscore.train_new_model.split_positive_and_negative_mode import \
-    split_pos_and_neg
+    split_by_ionmode
 from ms2deepscore.train_new_model.validation_and_test_split import \
     split_spectra_in_random_inchikey_sets
 
@@ -58,7 +58,7 @@ class StoreTrainingData:
     def split_and_save_positive_and_negative_spectra(self):
         assert not os.path.isfile(self.positive_mode_spectra_file), "the positive mode spectra file already exists"
         assert not os.path.isfile(self.negative_mode_spectra_file), "the negative mode spectra file already exists"
-        positive_mode_spectra, negative_mode_spectra = split_pos_and_neg(
+        positive_mode_spectra, negative_mode_spectra = split_by_ionmode(
             load_spectra(self.spectra_file_name, metadata_harmonization=False))
         save_spectra(positive_mode_spectra, self.positive_mode_spectra_file)
         save_spectra(negative_mode_spectra, self.negative_mode_spectra_file)

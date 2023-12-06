@@ -1,10 +1,12 @@
-from typing import List
 from matchms import Spectrum
 from tqdm import tqdm
 
 
-def split_pos_and_neg(spectra: List[Spectrum]):
-    """Removes spectra that are not in the correct ionmode"""
+def split_by_ionmode(spectra:list[Spectrum]) -> tuple[list[Spectrum], list[Spectrum]]:
+    """Splits spectra into list of positive ionmode and list of negative ionmode spectra.
+
+    Removes spectra without correct ionmode metadata entry.
+    """
     pos_spectra = []
     neg_spectra = []
     spectra_removed = 0
