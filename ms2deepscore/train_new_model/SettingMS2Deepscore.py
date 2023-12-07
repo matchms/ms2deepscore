@@ -70,7 +70,6 @@ class SettingsMS2Deepscore:
         self.fingerprint_nbits: int = 2048
 
         # Folder names for storing
-        self.model_directory_name = self._create_model_directory_name()
         self.binned_spectra_folder_name = "binned_spectra"
         self.model_file_name = "ms2deepscore_model.hdf5"
         self.history_file_name = "history.txt"
@@ -82,6 +81,7 @@ class SettingsMS2Deepscore:
                     setattr(self, key, value)
                 else:
                     raise ValueError(f"Unknown setting: {key}")
+        self.model_directory_name = self._create_model_directory_name()
         self.validate_settings()
 
     def validate_settings(self):
