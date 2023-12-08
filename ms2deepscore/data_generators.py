@@ -410,7 +410,7 @@ class DataGeneratorCherrypicked(DataGeneratorBase):
         self.settings = GeneratorSettings(settings)
         unique_inchikeys = np.unique(self.spectrum_inchikeys)
         if len(unique_inchikeys) < self.settings.batch_size:
-            raise ValueError("The number of unique inchikeys in the input spectra is not enough.")
+            raise ValueError("The number of unique inchikeys must be larger than the batch size.")
         self.dim = len(spectrum_binner.known_bins)
         additional_metadata = spectrum_binner.additional_metadata
         if len(additional_metadata) > 0:
