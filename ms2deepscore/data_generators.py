@@ -65,8 +65,8 @@ class DataGeneratorBase(Sequence):
         """Checks if all inchikeys of the BinnedSpectrum are in the reference_scores_df index.
         """
         for inchikey in np.unique(self.spectrum_inchikeys):
-            assert inchikey in self.reference_scores_df.index, \
-                f"InChIKey {inchikey} in given spectrum not found in reference scores"
+            if not inchikey in self.reference_scores_df.index:
+                raise ValueError(f"InChIKey {inchikey} in given spectrum not found in reference scores")
 
     def _find_match_in_range(self, inchikey1, target_score_range):
         """Randomly pick ID for a pair with inchikey_id1 that has a score in
@@ -161,7 +161,8 @@ class DataGeneratorBase(Sequence):
         inchikey) can have multiple measured spectrums in a binned spectrum dataset.
         """
         matching_spectrum_id = np.where(self.spectrum_inchikeys == inchikey)[0]
-        assert len(matching_spectrum_id) > 0, "No matching inchikey found (note: expected first 14 characters)"
+        if len(matching_spectrum_id) <= 0:
+            raise ValueError("No matching inchikey found (note: expected first 14 characters)")
         return self.binned_spectrums[np.random.choice(matching_spectrum_id)]
 
     def _data_generation(self, spectrum_pairs: Iterator[SpectrumPair]):
