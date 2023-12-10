@@ -64,5 +64,5 @@ def test_too_little_spectra(tmp_path):
     settings = SettingsMS2Deepscore({"epochs": 2,
                                      "average_pairs_per_bin": 2,
                                      "batch_size": 8})
-    with pytest.raises(ValueError, match="The number of unique inchikeys in the input spectra is not enough."):
+    with pytest.raises(ValueError, match="The number of unique inchikeys must be larger than the batch size."):
         train_ms2ds_model(spectra, spectra, tmp_path, settings)

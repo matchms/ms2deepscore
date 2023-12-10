@@ -51,7 +51,7 @@ class DataGeneratorBase(Sequence):
         # Set all other settings to input (or otherwise to defaults):
         self.settings = GeneratorSettings(settings)
         if len(np.unique(self.spectrum_inchikeys)) < self.settings.batch_size:
-            raise ValueError("The number of unique inchikeys in the input spectra is not enough.")
+            raise ValueError("The number of unique inchikeys must be larger than the batch size.")
         self.dim = len(spectrum_binner.known_bins)
         additional_metadata = spectrum_binner.additional_metadata
         if len(additional_metadata) > 0:
@@ -282,7 +282,8 @@ class DataGeneratorAllSpectrums(DataGeneratorBase):
 
 
 class DataGeneratorAllInchikeys(DataGeneratorBase):
-    """Generates data for training a siamese Keras model
+    """Generates data for training a siamese Keras model.
+
     This generator will provide training data by picking each training InchiKey
     listed in *selected_inchikeys* num_turns times in every epoch. It will then randomly
     pick one the spectra corresponding to this InchiKey (if multiple) and pair it
@@ -296,6 +297,7 @@ class DataGeneratorAllInchikeys(DataGeneratorBase):
                  selected_inchikeys: Optional[list] = None,
                  **settings):
         """Generates data for training a siamese Keras model.
+
         Parameters
         ----------
         binned_spectrums
@@ -383,7 +385,14 @@ class DataGeneratorAllInchikeys(DataGeneratorBase):
 
 
 class DataGeneratorCherrypicked(DataGeneratorBase):
+    """Generates data for training a siamese Keras model.
 
+    This class extends DataGeneratorBase to provide a data generator specifically
+    designed for training a siamese Keras model with a curated set of compound pairs.
+    It uses pre-selected compound pairs, allowing more control over the training process,
+    particularly in scenarios where certain compound pairs are of specific interest or
+    have higher significance in the training dataset.
+    """
     def __init__(self, binned_spectrums: List[BinnedSpectrumType],
                  selected_compound_pairs: SelectedCompoundPairs,
                  spectrum_binner: SpectrumBinner,
