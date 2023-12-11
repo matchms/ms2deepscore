@@ -65,7 +65,7 @@ class DataGeneratorBase(Sequence):
         """Checks if all inchikeys of the BinnedSpectrum are in the reference_scores_df index.
         """
         for inchikey in np.unique(self.spectrum_inchikeys):
-            if not inchikey in self.reference_scores_df.index:
+            if inchikey not in self.reference_scores_df.index:
                 raise ValueError(f"InChIKey {inchikey} in given spectrum not found in reference scores")
 
     def _find_match_in_range(self, inchikey1, target_score_range):
