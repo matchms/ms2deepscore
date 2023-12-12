@@ -51,7 +51,7 @@ class DataGeneratorBase(Sequence):
         # Set all other settings to input (or otherwise to defaults):
         self.settings = GeneratorSettings(settings)
         if len(np.unique(self.spectrum_inchikeys)) < self.settings.batch_size:
-            raise ValueError("The number of unique inchikeys in the input spectra is not enough.")
+            raise ValueError("The number of unique inchikeys must be larger than the batch size.")
         self.dim = len(spectrum_binner.known_bins)
         additional_metadata = spectrum_binner.additional_metadata
         if len(additional_metadata) > 0:
@@ -65,8 +65,8 @@ class DataGeneratorBase(Sequence):
         """Checks if all inchikeys of the BinnedSpectrum are in the reference_scores_df index.
         """
         for inchikey in np.unique(self.spectrum_inchikeys):
-            assert inchikey in self.reference_scores_df.index, \
-                f"InChIKey {inchikey} in given spectrum not found in reference scores"
+            if inchikey not in self.reference_scores_df.index:
+                raise ValueError(f"InChIKey {inchikey} in given spectrum not found in reference scores")
 
     def _find_match_in_range(self, inchikey1, target_score_range):
         """Randomly pick ID for a pair with inchikey_id1 that has a score in
@@ -161,7 +161,8 @@ class DataGeneratorBase(Sequence):
         inchikey) can have multiple measured spectrums in a binned spectrum dataset.
         """
         matching_spectrum_id = np.where(self.spectrum_inchikeys == inchikey)[0]
-        assert len(matching_spectrum_id) > 0, "No matching inchikey found (note: expected first 14 characters)"
+        if len(matching_spectrum_id) <= 0:
+            raise ValueError("No matching inchikey found (note: expected first 14 characters)")
         return self.binned_spectrums[np.random.choice(matching_spectrum_id)]
 
     def _data_generation(self, spectrum_pairs: Iterator[SpectrumPair]):
@@ -281,7 +282,8 @@ class DataGeneratorAllSpectrums(DataGeneratorBase):
 
 
 class DataGeneratorAllInchikeys(DataGeneratorBase):
-    """Generates data for training a siamese Keras model
+    """Generates data for training a siamese Keras model.
+
     This generator will provide training data by picking each training InchiKey
     listed in *selected_inchikeys* num_turns times in every epoch. It will then randomly
     pick one the spectra corresponding to this InchiKey (if multiple) and pair it
@@ -295,6 +297,7 @@ class DataGeneratorAllInchikeys(DataGeneratorBase):
                  selected_inchikeys: Optional[list] = None,
                  **settings):
         """Generates data for training a siamese Keras model.
+
         Parameters
         ----------
         binned_spectrums
@@ -382,7 +385,14 @@ class DataGeneratorAllInchikeys(DataGeneratorBase):
 
 
 class DataGeneratorCherrypicked(DataGeneratorBase):
+    """Generates data for training a siamese Keras model.
 
+    This class extends DataGeneratorBase to provide a data generator specifically
+    designed for training a siamese Keras model with a curated set of compound pairs.
+    It uses pre-selected compound pairs, allowing more control over the training process,
+    particularly in scenarios where certain compound pairs are of specific interest or
+    have higher significance in the training dataset.
+    """
     def __init__(self, binned_spectrums: List[BinnedSpectrumType],
                  selected_compound_pairs: SelectedCompoundPairs,
                  spectrum_binner: SpectrumBinner,
@@ -409,7 +419,7 @@ class DataGeneratorCherrypicked(DataGeneratorBase):
         self.settings = GeneratorSettings(settings)
         unique_inchikeys = np.unique(self.spectrum_inchikeys)
         if len(unique_inchikeys) < self.settings.batch_size:
-            raise ValueError("The number of unique inchikeys in the input spectra is not enough.")
+            raise ValueError("The number of unique inchikeys must be larger than the batch size.")
         self.dim = len(spectrum_binner.known_bins)
         additional_metadata = spectrum_binner.additional_metadata
         if len(additional_metadata) > 0:
