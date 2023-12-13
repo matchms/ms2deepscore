@@ -32,6 +32,7 @@ setup(
         "numba",
         "numpy>= 1.20.3",
         "pandas",
+        "torch",
         "tensorflow-macos;platform_machine=='arm64'",
         "tensorflow-metal;platform_machine=='arm64'",
         "tensorflow;platform_machine!='arm64'",
