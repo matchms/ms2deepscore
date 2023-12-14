@@ -1,4 +1,5 @@
 import pytest
+import numpy as np
 from matchms import Spectrum
 from ms2deepscore.models import SiameseSpectralModel
 
