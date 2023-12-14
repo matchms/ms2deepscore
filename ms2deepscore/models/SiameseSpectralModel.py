@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+import torch.optim as optim
 
 
 class SiameseSpectralModel(nn.Module):
@@ -46,12 +47,8 @@ class SiameseSpectralModel(nn.Module):
             This sets the number of next layer bins each group_size sized group of inputs shares.
         dropout_rate
             Dropout rate to be used in the base model.
-        l1_reg
-            L1 regularization rate. Default is 1e-6.
-        l2_reg
-            L2 regularization rate. Default is 1e-6.
-        keras_model
-            When provided, this keras model will be used to construct the SiameseModel instance.
+        pytorch_model
+            When provided, this pytorch model will be used to construct the SiameseModel instance.
             Default is None.
         """
         super(SiameseSpectralModel, self).__init__()
@@ -69,10 +66,10 @@ class SiameseSpectralModel(nn.Module):
         }
         self.encoder = SpectralEncoder(**self.model_parameters)
 
-    def forward(self, x1, x2):
+    def forward(self, spectra_pairs):
         # Pass both inputs through the same encoder
-        encoded_x1 = self.encoder(x1)
-        encoded_x2 = self.encoder(x2)
+        encoded_x1 = self.encoder([s[0] for s in spectra_pairs])
+        encoded_x2 = self.encoder([s[1] for s in spectra_pairs])
 
         # Calculate cosine similarity
         cos_sim = nn.CosineSimilarity(dim=1, eps=1e-6)(encoded_x1, encoded_x2)
@@ -161,3 +158,43 @@ class SpectralEncoder(nn.Module):
 
         x = self.embedding_layer(x)
         return x
+
+
+### Model training
+
+def train(model, train_loader, num_epochs, learning_rate,
+          lambda_l1=1e-6,
+          lambda_l2=1e-6):
+    criterion = nn.MSELoss()
+    optimizer = optim.Adam(model.parameters(), lr=learning_rate)
+
+    model.train(True)
+    for epoch in range(num_epochs):
+        for spectra, targets in train_loader:
+            optimizer.zero_grad()
+
+            # Forward pass
+            outputs = model(spectra)
+            # Calculate loss
+            loss = criterion(outputs, targets)
+            loss += l1_regularization(model, lambda_l1) + l2_regularization(model, lambda_l2)
+
+            # Backward pass and optimize
+            loss.backward()
+            optimizer.step()
+
+            # Print statistics
+            print(f'Epoch [{epoch+1}/{num_epochs}], Loss: {loss.item():.4f}')
+
+
+### Helper functions
+
+def l1_regularization(model, lambda_l1):
+    """L1 regulatization for first dense layer of model."""
+    l1_loss = torch.linalg.vector_norm(next(model.encoder.dense_layers[0].parameters()), ord=1)
+    return lambda_l1 * l1_loss
+
+def l2_regularization(model, lambda_l2):
+    """L2 regulatization for first dense layer of model."""
+    l2_loss = torch.linalg.vector_norm(next(model.encoder.dense_layers[0].parameters()), ord=2)
+    return lambda_l2 * l2_loss
