@@ -5,7 +5,7 @@ from matplotlib.colors import LinearSegmentedColormap
 def plot_histograms(reference_scores,
                     comparison_scores,
                     n_bins,
-                   normalize_per_bin=False):
+                   normalize_per_bin=True):
     """Create histogram based score comparison.
 
         Parameters
@@ -45,7 +45,7 @@ def plot_histograms(reference_scores,
         if normalize_per_bin:
             normalized_counts = counts/sum(counts)*len(counts)/8
         else:
-            normalized_counts = counts/len(comparison_scores)/2
+            normalized_counts = counts/len(comparison_scores)*len(counts)/2000
         shift_in_plot_hight = -shift * bin_idx
         y_levels = [(shift_in_plot_hight + y) for y in normalized_counts]
         plt.fill_between(histogram_bins,
