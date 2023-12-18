@@ -18,6 +18,8 @@ def calculate_tanimoto_scores_unique_inchikey(list_of_spectra_1: List[Spectrum],
         fingerprint = np.array(Chem.RDKFingerprint(Chem.MolFromSmiles(smiles), fpSize=2048))
         assert isinstance(fingerprint, np.ndarray), f"Fingerprint could not be set smiles is {smiles}"
         return fingerprint
+    if len(list_of_spectra_1) == 0 or len(list_of_spectra_2) == 0:
+        raise ValueError("The nr of spectra to calculate tanimoto scores should be larger than 0")
 
     spectra_with_most_frequent_inchi_per_inchikey_1, unique_inchikeys_1 = \
         select_inchi_for_unique_inchikeys(list_of_spectra_1)
