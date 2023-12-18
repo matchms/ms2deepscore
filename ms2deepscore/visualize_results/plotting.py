@@ -5,8 +5,7 @@ from matplotlib.colors import LinearSegmentedColormap
 
 def plot_histograms(reference_scores,
                     comparison_scores,
-                    n_bins,
-                    hist_resolution):
+                    n_bins):
     """Create histogram based score comparison.
 
         Parameters
@@ -22,50 +21,52 @@ def plot_histograms(reference_scores,
     """
     histograms, used_bins, bin_content = calculate_histograms(reference_scores,
                                                               comparison_scores,
-                                                              n_bins,
-                                                              hist_resolution)
+                                                              n_bins,)
 
     # Setup plotting stuff
     colors = ["crimson", "lightblue", "teal"]
     cmap1 = LinearSegmentedColormap.from_list("mycmap", colors)
     # plt.style.use('seaborn-white')
     shift = 0.7
-    alpha = 1.0 #0.5
+    alpha = 0.5
 
     # Create plot
-    plt.figure(figsize=(10, 10))
-
+    plt.figure(figsize=(10, n_bins))
     # Loop over each bin.
-    for i in range(0, len(histograms)):
-        data = histograms[len(histograms)-i-1][0]
+    for bin_idx in reversed(range(0, len(histograms))):
+        counts = np.concatenate((histograms[bin_idx][0], histograms[bin_idx][0][-1:]), axis=0)
+        histogram_bins = histograms[bin_idx][1]
+
         # Normalize the data to have the same area under the curve
-        data = data/sum(data)*len(data)/4
-        plt.fill_between(histograms[0][1][:len(data)], -shift*i, [(-shift*i + x) for x in data], color=cmap1(i/10), alpha=alpha)
-        if i > 0:
-            plt.plot(histograms[0][1][:len(data)], [(-shift*i + x) for x in data], color="white")
+        normalized_counts = counts/sum(counts)*len(counts)/8
+        shift_in_plot_hight = -shift * bin_idx
+        y_levels = [(shift_in_plot_hight + y) for y in normalized_counts]
+        plt.fill_between(histogram_bins,
+                         shift_in_plot_hight,
+                         y_levels,
+                         color=cmap1(bin_idx / n_bins),
+                         alpha=alpha,
+                         step="post")
         if bin_content:
             # Writes down the number of pairs per bin
-            plt.text(0.01, -shift*i+shift/6, f"{bin_content[::-1][i]} pairs")#, color="white")
+            plt.text(0.01, -shift * bin_idx + shift / 6, f"{bin_content[::-1][bin_idx]} pairs")#, color="white")
 
     plt.xticks(fontsize=14)
     plt.yticks(-shift*np.arange(len(histograms)),
                [f"{a:.1f} to < {b:.1f}" for (a, b) in used_bins[::-1]], fontsize=14)
     plt.xlabel("MS2Deepscore", fontsize=14)
     plt.ylabel("Tanimoto similarity", fontsize=14)
-    plt.xlim([0, 1])
 
 
 def calculate_histograms(reference_scores,
                          comparison_scores,
-                         n_bins=10,
-                         hist_resolution=100):
+                         n_bins=10):
     """Calcualte a series of histograms, one for every bin."""
-    hist_bins = np.linspace(0, 1, hist_resolution)
-    hist_bins = np.concatenate((hist_bins, np.array([2.0])))
-
-    histograms = []
+    max_reference_scores = comparison_scores.max()
+    min_reference_scores = comparison_scores.min()
+    histogram_per_bin = []
     used_bins = []
-    bin_content = []
+    nr_of_pairs_per_bin = []
     ref_scores_bins_inclusive = np.linspace(0, 1, n_bins+1)
     ref_scores_bins_inclusive[0] = -np.inf
     ref_scores_bins_inclusive[-1] = np.inf
@@ -73,11 +74,14 @@ def calculate_histograms(reference_scores,
     for i in range(n_bins):
         used_bins.append((ref_scores_bins_inclusive[i], ref_scores_bins_inclusive[i+1]))
         idx = np.where((reference_scores >= ref_scores_bins_inclusive[i]) & (reference_scores < ref_scores_bins_inclusive[i+1]))
-        bin_content.append(idx[0].shape[0])
+        nr_of_pairs = idx[0].shape[0]
+        nr_of_pairs_per_bin.append(nr_of_pairs)
+        # Adjust the hist_resolution based on the nr_of_pairs in the bin
+        hist_resolution = int(nr_of_pairs**0.5)+2
+        hist_bins = np.linspace(min_reference_scores, max_reference_scores, hist_resolution)
         a, b = np.histogram(comparison_scores[idx], bins=hist_bins)
-        histograms.append((a, b))
-
-    return histograms, used_bins, bin_content
+        histogram_per_bin.append((a, b))
+    return histogram_per_bin, used_bins, nr_of_pairs_per_bin
 
 
 def create_confusion_matrix_plot(reference_scores,

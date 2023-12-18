@@ -15,7 +15,7 @@ def test_create_confusion_matrix_plot():
 
 
 def test_calculate_histograms():
-    histograms, used_bins, bin_content = calculate_histograms(mock_reference_scores, mock_comparison_scores, n_bins=5, hist_resolution=10)
+    histograms, used_bins, bin_content = calculate_histograms(mock_reference_scores, mock_comparison_scores, n_bins=5)
     
     # Ensure the number of histograms, used bins and bin contents are the same
     assert len(histograms) == len(used_bins) == len(bin_content) == 5
@@ -34,5 +34,5 @@ def test_calculate_histograms():
 
 def test_plot_histograms():
     # Test the plotting function
-    plot_histograms(mock_reference_scores, mock_comparison_scores, n_bins=5, hist_resolution=10)
+    plot_histograms(mock_reference_scores, mock_comparison_scores, n_bins=5)
     assert True
