@@ -2,10 +2,10 @@ import numpy as np
 from matplotlib import pyplot as plt
 from matplotlib.colors import LinearSegmentedColormap
 
-
 def plot_histograms(reference_scores,
                     comparison_scores,
-                    n_bins):
+                    n_bins,
+                   normalize_per_bin=False):
     """Create histogram based score comparison.
 
         Parameters
@@ -18,6 +18,9 @@ def plot_histograms(reference_scores,
         Number of bins. The default is 5.
     hist_resolution
         Histogram resolution. The default is 100.
+    normalize_per_bin
+        If true each bin will be normalized to have a similar area under the curve otherwise all bins are normalized in the same way and it reflects
+        the frequencies.
     """
     histograms, used_bins, bin_content = calculate_histograms(reference_scores,
                                                               comparison_scores,
@@ -34,11 +37,15 @@ def plot_histograms(reference_scores,
     plt.figure(figsize=(10, n_bins))
     # Loop over each bin.
     for bin_idx in reversed(range(0, len(histograms))):
-        counts = np.concatenate((histograms[bin_idx][0], histograms[bin_idx][0][-1:]), axis=0)
-        histogram_bins = histograms[bin_idx][1]
+        reversed_bin_idx = len(histograms) - bin_idx - 1
+        counts = np.concatenate((histograms[reversed_bin_idx][0], histograms[reversed_bin_idx][0][-1:]), axis=0)
+        histogram_bins = histograms[reversed_bin_idx][1]
 
         # Normalize the data to have the same area under the curve
-        normalized_counts = counts/sum(counts)*len(counts)/8
+        if normalize_per_bin:
+            normalized_counts = counts/sum(counts)*len(counts)/8
+        else:
+            normalized_counts = counts/len(comparison_scores)/2
         shift_in_plot_hight = -shift * bin_idx
         y_levels = [(shift_in_plot_hight + y) for y in normalized_counts]
         plt.fill_between(histogram_bins,
@@ -49,11 +56,11 @@ def plot_histograms(reference_scores,
                          step="post")
         if bin_content:
             # Writes down the number of pairs per bin
-            plt.text(0.01, -shift * bin_idx + shift / 6, f"{bin_content[::-1][bin_idx]} pairs")#, color="white")
+            plt.text(0.01, shift_in_plot_hight + shift / 6, f"{bin_content[::-1][bin_idx]} pairs")#, color="white")
 
     plt.xticks(fontsize=14)
     plt.yticks(-shift*np.arange(len(histograms)),
-               [f"{a:.1f} to < {b:.1f}" for (a, b) in used_bins[::-1]], fontsize=14)
+               [f"{a:.2f} to < {b:.2f}" for (a, b) in used_bins[::-1]], fontsize=14)
     plt.xlabel("MS2Deepscore", fontsize=14)
     plt.ylabel("Tanimoto similarity", fontsize=14)
 
@@ -67,9 +74,9 @@ def calculate_histograms(reference_scores,
     histogram_per_bin = []
     used_bins = []
     nr_of_pairs_per_bin = []
-    ref_scores_bins_inclusive = np.linspace(0, 1, n_bins+1)
+    ref_scores_bins_inclusive = np.linspace(0, 1, n_bins)
     ref_scores_bins_inclusive[0] = -np.inf
-    ref_scores_bins_inclusive[-1] = np.inf
+    ref_scores_bins_inclusive = np.append(ref_scores_bins_inclusive, np.inf)
 
     for i in range(n_bins):
         used_bins.append((ref_scores_bins_inclusive[i], ref_scores_bins_inclusive[i+1]))
