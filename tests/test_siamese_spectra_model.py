@@ -22,6 +22,7 @@ def test_siamese_model_defaults():
         'mz_bin_width': 0.01,
         'base_dims': (1000, 800, 800),
         'embedding_dim': 400,
+        'intensity_scaling': 0.5,
         'train_binning_layer': True,
         'group_size': 30,
         'output_per_group': 3,

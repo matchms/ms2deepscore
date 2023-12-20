@@ -16,6 +16,7 @@ class SiameseSpectralModel(nn.Module):
                  mz_bin_width=0.01,
                  base_dims: tuple[int, ...] = (1000, 800, 800),
                  embedding_dim: int = 400,
+                 intensity_scaling: float = 0.5,
                  train_binning_layer: bool = True,
                  group_size: int = 30,
                  output_per_group: int = 3,
@@ -38,6 +39,9 @@ class SiameseSpectralModel(nn.Module):
             layers of the base model
         embedding_dim
             Dimension of the embedding (i.e. the output of the base model)
+        intensity_scaling
+            To put more attention on small and medium intensity peaks, peak intensities are
+             scaled by intensity to the power of intensity_scaling.
         train_binning_layer
             Default is True in which case the model contains a first dense multi-group peak binning layer.
         group_size
@@ -58,6 +62,7 @@ class SiameseSpectralModel(nn.Module):
             "mz_bin_width": mz_bin_width,
             "base_dims": base_dims,
             "embedding_dim": embedding_dim,
+            "intensity_scaling": intensity_scaling,
             "train_binning_layer": train_binning_layer,
             "group_size": group_size,
             "output_per_group": output_per_group,
@@ -76,12 +81,13 @@ class SiameseSpectralModel(nn.Module):
         return cos_sim
 
 class BinnedSpectraLayer(nn.Module):
-    def __init__(self, min_mz, max_mz, mz_bin_width):
+    def __init__(self, min_mz, max_mz, mz_bin_width, intensity_scaling):
         super(BinnedSpectraLayer, self).__init__()
         self.min_mz = min_mz
         self.max_mz = max_mz
         self.mz_bin_width = mz_bin_width
         self.num_bins = int((max_mz - min_mz) / mz_bin_width)
+        self.intensity_scaling = intensity_scaling
 
     def forward(self, spectra):
         # Assuming spectra is a list of matchms Spectrum objects (with 'peaks.mz' and 'peaks.intensities' attributes)
@@ -91,7 +97,7 @@ class BinnedSpectraLayer(nn.Module):
             for mz, intensity in zip(spectrum.peaks.mz, spectrum.peaks.intensities):
                 if self.min_mz <= mz < self.max_mz:
                     bin_index = int((mz - self.min_mz) / self.mz_bin_width)
-                    binned_spectra[i, bin_index] += intensity
+                    binned_spectra[i, bin_index] += intensity ** self.intensity_scaling
 
         return binned_spectra
 
@@ -121,16 +127,17 @@ class PeakBinner(nn.Module):
         
 class SpectralEncoder(nn.Module):
     def __init__(self, min_mz: float, max_mz: float, mz_bin_width: float,
-                 base_dims, embedding_dim, dropout_rate,
+                 base_dims, embedding_dim, intensity_scaling, dropout_rate,
                  train_binning_layer: bool, group_size: int, output_per_group: int):
         super(SpectralEncoder, self).__init__()
-        self.binning_layer = BinnedSpectraLayer(min_mz, max_mz, mz_bin_width)
+        self.binning_layer = BinnedSpectraLayer(min_mz, max_mz, mz_bin_width, intensity_scaling)
         self.train_binning_layer = train_binning_layer
 
         # First dense layer (no dropout!)
         self.dense_layers = []
         if self.train_binning_layer:
-            self.peak_binner = PeakBinner(self.binning_layer.num_bins, group_size, output_per_group)
+            self.peak_binner = PeakBinner(self.binning_layer.num_bins,
+                                          group_size, output_per_group)
             self.dense_layers.append(nn.Linear(self.peak_binner.output_size(), base_dims[0]))
         else:
             self.dense_layers.append(nn.Linear(self.binning_layer.num_bins, base_dims[0]))
