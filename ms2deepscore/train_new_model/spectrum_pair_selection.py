@@ -171,7 +171,6 @@ def compute_jaccard_similarity_per_bin(
         A list were the indexes are the bin numbers. This contains Lists were the index is the spectrum_i index.
         This list contains a Tuple, with first the spectrum_j index and second the score.
     """
-    # pylint: disable=too-many-locals
     size = fingerprints.shape[0]
     num_bins = len(selection_bins)
 
@@ -179,7 +178,6 @@ def compute_jaccard_similarity_per_bin(
     selected_pairs_per_bin = [[[] for _ in range(size)] for _ in range(num_bins)]
 
     for idx_fingerprint_i in range(size):
-        fingerprint_i = fingerprints[idx_fingerprint_i, :]
         tanimoto_scores = tanimoto_scores_row(fingerprints, idx_fingerprint_i, include_diagonal)
 
         for bin_number in range(num_bins):
