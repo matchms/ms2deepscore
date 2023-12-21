@@ -1,4 +1,5 @@
 import numpy as np
+from typing import Tuple, List
 from matplotlib import pyplot as plt
 from matplotlib.colors import LinearSegmentedColormap
 
@@ -75,7 +76,7 @@ def calculate_histograms(tanimoto_scores,
                          ms2deepscore_predictions,
                          tanimoto_bins,
                          fixed_nr_of_ms2deepscore_bins=False,
-                         normalize_per_bin=True):
+                         normalize_per_bin=True) -> List[Tuple[np.array, np.array, int]]:
     """Calcualte a series of histograms, one for every bin."""
     max_ms2deepscore_predictions = ms2deepscore_predictions.max()
     min_ms2deepscore_predictions = ms2deepscore_predictions.min()
