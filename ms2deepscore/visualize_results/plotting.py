@@ -32,7 +32,7 @@ def plot_histograms(tanimoto_scores,
                                              bins)
 
     # Setup plotting stuff
-    color_map = LinearSegmentedColormap.from_list("mycmap", ["crimson", "lightblue", "teal"])
+    color_map = LinearSegmentedColormap.from_list("mycmap", ["teal", "lightblue", "crimson"])
     shift = 0.7
     plot_shifts = shift * np.arange(len(histogram_per_bin))
     alpha = 0.5
@@ -40,7 +40,7 @@ def plot_histograms(tanimoto_scores,
     # Create plot
     plt.figure(figsize=(10, n_bins))
     # Loop over each bin.
-    for bin_idx in range(0, len(histogram_per_bin)):
+    for bin_idx in reversed(range(0, len(histogram_per_bin))):
         counts, used_bin_borders = histogram_per_bin[bin_idx]
 
         # Normalize the data to have the same area under the curve
