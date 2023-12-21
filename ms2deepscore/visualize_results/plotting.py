@@ -2,10 +2,11 @@ import numpy as np
 from matplotlib import pyplot as plt
 from matplotlib.colors import LinearSegmentedColormap
 
+
 def plot_histograms(tanimoto_scores,
                     ms2deepscore_predictions,
                     n_bins,
-                   normalize_per_bin=True):
+                    normalize_per_bin=True):
     """Create histogram based score comparison.
 
         Parameters
@@ -22,71 +23,78 @@ def plot_histograms(tanimoto_scores,
         If true each bin will be normalized to have a similar area under the curve otherwise all bins are normalized in the same way and it reflects
         the frequencies.
     """
-    histograms, used_bins, bin_content = calculate_histograms(tanimoto_scores,
-                                                              ms2deepscore_predictions,
-                                                              n_bins,)
+    bins = np.linspace(0, 1, n_bins)
+    bins[0] = -np.inf
+    bins = np.append(bins, np.inf)
+
+    histogram_per_bin = calculate_histograms(tanimoto_scores,
+                                             ms2deepscore_predictions,
+                                             bins)
 
     # Setup plotting stuff
     color_map = LinearSegmentedColormap.from_list("mycmap", ["crimson", "lightblue", "teal"])
     shift = 0.7
+    plot_shifts = shift * np.arange(len(histogram_per_bin))
     alpha = 0.5
 
     # Create plot
     plt.figure(figsize=(10, n_bins))
     # Loop over each bin.
-    for bin_idx in reversed(range(0, len(histograms))):
-        reversed_bin_idx = len(histograms) - bin_idx - 1
-        counts = np.concatenate((histograms[reversed_bin_idx][0], histograms[reversed_bin_idx][0][-1:]), axis=0)
-        histogram_bins = histograms[reversed_bin_idx][1]
+    for bin_idx in range(0, len(histogram_per_bin)):
+        counts, used_bin_borders = histogram_per_bin[bin_idx]
 
         # Normalize the data to have the same area under the curve
         if normalize_per_bin:
-            normalized_counts = counts/sum(counts)*len(counts)/8
+            normalized_counts = counts / sum(counts) * len(counts) / 8
         else:
-            normalized_counts = counts/len(ms2deepscore_predictions)*len(counts)/2000
-        shift_in_plot_hight = -shift * bin_idx
-        y_levels = [(shift_in_plot_hight + y) for y in normalized_counts]
-        plt.fill_between(histogram_bins,
-                         shift_in_plot_hight,
+            normalized_counts = counts / len(ms2deepscore_predictions) * len(counts) / 2000
+
+        # Add the count for the last bin twice
+        normalized_counts = np.concatenate((normalized_counts, np.array([0])), axis=0)
+        y_levels = [(plot_shifts[bin_idx] + y) for y in normalized_counts]
+        plt.fill_between(used_bin_borders,
+                         plot_shifts[bin_idx],
                          y_levels,
                          color=color_map(bin_idx / n_bins),
                          alpha=alpha,
                          step="post")
-        if bin_content:
-            # Writes down the number of pairs per bin
-            plt.text(0.01, shift_in_plot_hight + shift / 6, f"{bin_content[::-1][bin_idx]} pairs")#, color="white")
+
+        # Writes down the number of pairs per bin
+        plt.text(0.01, plot_shifts[bin_idx] + shift / 6, f"{sum(counts)} pairs")#, color="white")
 
     plt.xticks(fontsize=14)
-    plt.yticks(-shift*np.arange(len(histograms)),
-               [f"{a:.2f} to < {b:.2f}" for (a, b) in used_bins[::-1]], fontsize=14)
+
+    bin_pairs = [(bins[i], bins[i+1])for i in range(len(bins)-1)]
+    plt.yticks(plot_shifts,
+               [f"{a:.2f} to < {b:.2f}" for (a, b) in bin_pairs], fontsize=14)
     plt.xlabel("MS2Deepscore", fontsize=14)
     plt.ylabel("Tanimoto similarity", fontsize=14)
 
 
 def calculate_histograms(tanimoto_scores,
                          ms2deepscore_predictions,
-                         n_bins=10):
+                         tanimoto_bins,
+                         fixed_nr_of_ms2deepscore_bins=False):
     """Calcualte a series of histograms, one for every bin."""
     max_ms2deepscore_predictions = ms2deepscore_predictions.max()
     min_ms2deepscore_predictions = ms2deepscore_predictions.min()
     histogram_per_bin = []
-    used_bins = []
-    nr_of_pairs_per_bin = []
-    bins = np.linspace(0, 1, n_bins)
-    bins[0] = -np.inf
-    bins = np.append(bins, np.inf)
 
-    for i in range(n_bins):
-        used_bins.append((bins[i], bins[i + 1]))
-        idx = np.where((tanimoto_scores >= bins[i]) & (tanimoto_scores < bins[i + 1]))
-        nr_of_pairs = idx[0].shape[0]
-        nr_of_pairs_per_bin.append(nr_of_pairs)
+    for i in range(len(tanimoto_bins) - 1):
+        indexes_within_bin = np.where((tanimoto_scores >= tanimoto_bins[i]) & (tanimoto_scores < tanimoto_bins[i + 1]))
         # Adjust the hist_resolution based on the nr_of_pairs in the bin
-        hist_resolution = int(nr_of_pairs**0.5)+2
-        hist_bins = np.linspace(min_ms2deepscore_predictions, max_ms2deepscore_predictions, hist_resolution)
-        a, b = np.histogram(ms2deepscore_predictions[idx], bins=hist_bins)
-        histogram_per_bin.append((a, b))
-    return histogram_per_bin, used_bins, nr_of_pairs_per_bin
+        if fixed_nr_of_ms2deepscore_bins is False:
+            nr_of_pairs = indexes_within_bin[0].shape[0]
+            nr_of_ms2deepscore_bins = int(nr_of_pairs**0.5)
+        else:
+            nr_of_ms2deepscore_bins = fixed_nr_of_ms2deepscore_bins
+        ms2deepscore_bins = np.linspace(min_ms2deepscore_predictions,
+                                        max_ms2deepscore_predictions,
+                                        nr_of_ms2deepscore_bins+1)
+        counts, used_bins = np.histogram(ms2deepscore_predictions[indexes_within_bin], bins=ms2deepscore_bins)
+        histogram_per_bin.append((counts, used_bins))
+    return histogram_per_bin
+
 
 def create_confusion_matrix_plot(reference_scores,
                                  comparison_scores,
