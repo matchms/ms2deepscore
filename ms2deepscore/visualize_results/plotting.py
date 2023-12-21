@@ -60,7 +60,8 @@ def plot_histograms(tanimoto_scores,
                          step="post")
 
         # Writes down the number of pairs per bin
-        plt.text(0.01, plot_shifts[bin_idx] + shift / 6, f"{sum(counts)} pairs")#, color="white")
+        percentage_of_all_pairs = sum(counts)/(tanimoto_scores.shape[0]*tanimoto_scores.shape[1]) * 100
+        plt.text(-0.01, plot_shifts[bin_idx] + shift / 6, f"{percentage_of_all_pairs:.2f} %")#, color="white")
 
     plt.xticks(fontsize=14)
 
