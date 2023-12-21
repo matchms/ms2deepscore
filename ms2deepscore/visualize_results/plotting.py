@@ -32,25 +32,20 @@ def plot_histograms(tanimoto_scores,
 
     histogram_per_bin = calculate_histograms(tanimoto_scores,
                                              ms2deepscore_predictions,
-                                             bins)
+                                             bins,
+                                             False,
+                                             normalize_per_bin)
 
     # Setup plotting stuff
     color_map = LinearSegmentedColormap.from_list("mycmap", ["teal", "lightblue", "crimson"])
-    shift = 0.7
-    plot_shifts = shift * np.arange(len(histogram_per_bin))
-    alpha = 0.5
+    plot_shifts = np.arange(len(histogram_per_bin))
+    alpha = 1.0
 
     # Create plot
     plt.figure(figsize=(10, n_bins))
     # Loop over each bin.
     for bin_idx in reversed(range(0, len(histogram_per_bin))):
-        counts, used_bin_borders = histogram_per_bin[bin_idx]
-
-        # Normalize the data to have the same area under the curve
-        if normalize_per_bin:
-            normalized_counts = counts / sum(counts) * len(counts) / 8
-        else:
-            normalized_counts = counts / len(ms2deepscore_predictions) * len(counts) / 2000
+        normalized_counts, used_bin_borders, total_counts_in_bin = histogram_per_bin[bin_idx]
 
         # Add the count for the last bin twice
         normalized_counts = np.concatenate((normalized_counts, np.array([0])), axis=0)
@@ -63,8 +58,8 @@ def plot_histograms(tanimoto_scores,
                          step="post")
 
         # Writes down the number of pairs per bin
-        percentage_of_all_pairs = sum(counts)/(tanimoto_scores.shape[0]*tanimoto_scores.shape[1]) * 100
-        plt.text(-0.01, plot_shifts[bin_idx] + shift / 6, f"{percentage_of_all_pairs:.2f} %")#, color="white")
+        percentage_of_all_pairs = total_counts_in_bin/(tanimoto_scores.shape[0]*tanimoto_scores.shape[1]) * 100
+        plt.text(-0.01, plot_shifts[bin_idx] + 0.2, f"{percentage_of_all_pairs:.2f} %")
 
     plt.xticks(fontsize=14)
 
@@ -78,7 +73,8 @@ def plot_histograms(tanimoto_scores,
 def calculate_histograms(tanimoto_scores,
                          ms2deepscore_predictions,
                          tanimoto_bins,
-                         fixed_nr_of_ms2deepscore_bins=False):
+                         fixed_nr_of_ms2deepscore_bins=False,
+                         normalize_per_bin=True):
     """Calcualte a series of histograms, one for every bin."""
     max_ms2deepscore_predictions = ms2deepscore_predictions.max()
     min_ms2deepscore_predictions = ms2deepscore_predictions.min()
@@ -96,7 +92,13 @@ def calculate_histograms(tanimoto_scores,
                                         max_ms2deepscore_predictions,
                                         nr_of_ms2deepscore_bins+1)
         counts, used_bins = np.histogram(ms2deepscore_predictions[indexes_within_bin], bins=ms2deepscore_bins)
-        histogram_per_bin.append((counts, used_bins))
+        # Normalize the data to have the same area under the curve
+        if normalize_per_bin:
+            normalized_counts = counts / sum(counts) * len(counts) / 8
+        else:
+            normalized_counts = counts / len(ms2deepscore_predictions) * len(counts) / 2000
+        total_count = sum(counts)
+        histogram_per_bin.append((normalized_counts, used_bins, total_count))
     return histogram_per_bin
 
 
