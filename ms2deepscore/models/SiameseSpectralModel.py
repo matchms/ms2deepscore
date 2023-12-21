@@ -60,6 +60,7 @@ class SiameseSpectralModel(nn.Module):
             Add the specific MetadataVectorizer object for your data if the model should contain specific
             metadata entries as input. Default is set to None which means this will be ignored.
         """
+        # pylint: disable=too-many-arguments
         super().__init__()
         self.model_parameters = {
             "min_mz": min_mz,
