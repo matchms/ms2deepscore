@@ -29,7 +29,6 @@ def plot_histograms(tanimoto_scores,
     if tanimoto_scores.max() > 1 or tanimoto_scores.min() < 0:
         raise ValueError("The tanimoto score predictions are not between 0 and 1. "
                          "Ms2deepscore predictions and tanimoto score predictions might be accidentally reversed")
-
     bins = np.linspace(0, 1, n_bins + 1)
     bins[-1] = 1.0000000001
 
@@ -44,33 +43,41 @@ def plot_histograms(tanimoto_scores,
     alpha = 1.0
 
     # Create plot
-    plt.figure(figsize=(10, len(bins)))
+    fig, axes = plt.subplots(nrows=1, ncols=2, figsize=(10, len(bins)), gridspec_kw={'width_ratios': [4, 1]})
+    percentages_of_pairs = []
     # Loop over each bin.
-    for bin_idx in reversed(range(0, len(histogram_per_bin))):
+    for bin_idx in range(0, len(histogram_per_bin)):
         normalized_counts, used_bin_borders, total_counts_in_bin = histogram_per_bin[bin_idx]
 
         # Add the count for the last bin twice
         normalized_counts = np.concatenate((normalized_counts, np.array([0])), axis=0)
         y_levels = [(plot_shifts[bin_idx] + y) for y in normalized_counts]
-        plt.fill_between(used_bin_borders,
+        axes[0].fill_between(used_bin_borders,
                          plot_shifts[bin_idx],
                          y_levels,
                          color=color_map(bin_idx / n_bins),
                          alpha=alpha,
                          step="post")
-
         # Writes down the number of pairs per bin
         percentage_of_all_pairs = total_counts_in_bin/(tanimoto_scores.shape[0]*tanimoto_scores.shape[1]) * 100
-        plt.text(ms2deepscore_predictions.min(),
+        axes[0].text(ms2deepscore_predictions.min(),
                  plot_shifts[bin_idx] + 0.2, f"{percentage_of_all_pairs:.2f} %")
+        percentages_of_pairs.append(percentage_of_all_pairs)
+    # This will add an invisible line on top, making sure the allignment of the plot is correct.
+    axes[0].fill_between([0, 1], len(histogram_per_bin), len(histogram_per_bin), color="white")
+    axes[1].barh(np.arange(len(percentages_of_pairs)),
+                 percentages_of_pairs, tick_label="",
+                 height=0.9,
+                 )
+    axes[1].set_xlabel("% of pairs", fontsize=14)
 
-    plt.xticks(fontsize=14)
-
+    axes[0].tick_params(axis="x", labelsize=14)
     bin_pairs = [(bins[i], bins[i+1])for i in range(len(bins)-1)]
-    plt.yticks(plot_shifts,
+    axes[0].set_yticks(plot_shifts,
                [f"{a:.2f} to < {b:.2f}" for (a, b) in bin_pairs], fontsize=14)
-    plt.xlabel("MS2Deepscore", fontsize=14)
-    plt.ylabel("Tanimoto similarity", fontsize=14)
+    axes[0].set_xlabel("MS2Deepscore", fontsize=14)
+    axes[0].set_ylabel("Tanimoto similarity", fontsize=14)
+    plt.tight_layout()
 
 
 def calculate_histograms(tanimoto_scores,
@@ -83,6 +90,7 @@ def calculate_histograms(tanimoto_scores,
 
     for i in range(len(tanimoto_bins) - 1):
         indexes_within_bin = np.where((tanimoto_scores >= tanimoto_bins[i]) & (tanimoto_scores < tanimoto_bins[i + 1]))
+
         # Adjust the hist_resolution based on the nr_of_pairs in the bin
         nr_of_pairs = indexes_within_bin[0].shape[0]
         nr_of_ms2deepscore_bins = int(nr_of_pairs**0.5)
@@ -113,7 +121,7 @@ def create_histogram(ms2deepscore_predictions,
     else:
         normalized_counts = counts / len(ms2deepscore_predictions) * len(counts) / 2000
     total_count = sum(counts)
-    if max(normalized_counts) > 1.5:
+    if max(normalized_counts) > 1.0:
         nr_of_bins = int(nr_of_bins/1.1)
         print(f"One peak was too high, trying {nr_of_bins} bins")
         normalized_counts, used_bins, total_count = create_histogram(ms2deepscore_predictions,
