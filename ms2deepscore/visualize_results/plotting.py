@@ -23,6 +23,9 @@ def plot_histograms(tanimoto_scores,
         If true each bin will be normalized to have a similar area under the curve otherwise all bins are normalized in the same way and it reflects
         the frequencies.
     """
+    if tanimoto_scores.shape != ms2deepscore_predictions.shape:
+        raise ValueError("Expected the predictions and the true values to have the same shape")
+
     bins = np.linspace(0, 1, n_bins)
     bins[0] = -np.inf
     bins = np.append(bins, np.inf)
