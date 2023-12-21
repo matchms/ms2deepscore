@@ -265,12 +265,3 @@ def plot_rmse_per_bin(predicted_scores, true_scores):
                [f"{a:.1f} to < {b:.1f}" for (a, b) in bounds], fontsize=9, rotation='vertical')
     ax2.grid(True)
     plt.tight_layout()
-
-
-if __name__ == "__main__":
-    np.random.seed(123)
-    dimension = (1500, 1500)
-    mock_comparison_scores = np.random.normal(0.5, 1.0, dimension)
-    mock_reference_scores = np.random.normal(0.5, 1.0, dimension)
-    plot_histograms(mock_reference_scores, mock_comparison_scores, n_bins=10)
-    plt.show()
