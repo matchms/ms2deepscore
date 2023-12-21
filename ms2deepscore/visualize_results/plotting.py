@@ -117,11 +117,11 @@ def create_histogram(ms2deepscore_predictions,
     counts, used_bins = np.histogram(ms2deepscore_predictions[indexes_of_selected_pairs], bins=ms2deepscore_bins)
     # Normalize the data to have the same area under the curve
     if normalize_per_bin:
-        normalized_counts = counts / sum(counts) * len(counts) / 8
+        normalized_counts = counts / sum(counts) * len(counts) / 10
     else:
-        normalized_counts = counts / len(ms2deepscore_predictions) * len(counts) / 2000
+        normalized_counts = counts / len(ms2deepscore_predictions) * len(counts) / 3000
     total_count = sum(counts)
-    if max(normalized_counts) > 1.0:
+    if max(normalized_counts) > 0.95:
         nr_of_bins = int(nr_of_bins/1.1)
         print(f"One peak was too high, trying {nr_of_bins} bins")
         normalized_counts, used_bins, total_count = create_histogram(ms2deepscore_predictions,
@@ -129,7 +129,6 @@ def create_histogram(ms2deepscore_predictions,
                                                                      indexes_of_selected_pairs,
                                                                      normalize_per_bin)
     return normalized_counts, used_bins, total_count
-
 
 def create_confusion_matrix_plot(reference_scores,
                                  comparison_scores,
