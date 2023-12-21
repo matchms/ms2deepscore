@@ -25,9 +25,10 @@ def plot_histograms(tanimoto_scores,
     """
     if tanimoto_scores.shape != ms2deepscore_predictions.shape:
         raise ValueError("Expected the predictions and the true values to have the same shape")
-
+    if tanimoto_scores.max() > 1 or tanimoto_scores.min() < 0:
+        raise ValueError("The tanimoto score predictions are not between 0 and 1. "
+                         "Ms2deepscore predictions and tanimoto score predictions might be accidentally reversed")
     bins = np.linspace(0, 1, n_bins)
-    bins[0] = -np.inf
     bins = np.append(bins, np.inf)
 
     histogram_per_bin = calculate_histograms(tanimoto_scores,
