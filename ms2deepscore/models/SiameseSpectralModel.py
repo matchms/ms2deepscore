@@ -3,6 +3,8 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
 
+from ms2deepscore.MetadataFeatureGenerator import MetadataVectorizer
+
 
 class SiameseSpectralModel(nn.Module):
     """
@@ -21,7 +23,7 @@ class SiameseSpectralModel(nn.Module):
                  group_size: int = 30,
                  output_per_group: int = 3,
                  dropout_rate: float = 0.2,
-
+                 metadata_vectorizer: MetadataVectorizer = None,
                 ):
         """
         Construct SiameseSpectralModel
@@ -54,6 +56,9 @@ class SiameseSpectralModel(nn.Module):
         pytorch_model
             When provided, this pytorch model will be used to construct the SiameseModel instance.
             Default is None.
+        metadata_vectorizer
+            Add the specific MetadataVectorizer object for your data if the model should contain specific
+            metadata entries as input. Default is set to None which means this will be ignored.
         """
         super(SiameseSpectralModel, self).__init__()
         self.model_parameters = {
@@ -69,7 +74,8 @@ class SiameseSpectralModel(nn.Module):
             "dropout_rate": dropout_rate,
             #TODO: add ms2deepscore version
         }
-        self.encoder = SpectralEncoder(**self.model_parameters)
+        self.metadata_vectorizer = metadata_vectorizer
+        self.encoder = SpectralEncoder(metadata_vectorizer=metadata_vectorizer, **self.model_parameters)
 
     def forward(self, spectra_pairs):
         # Pass both inputs through the same encoder
@@ -79,6 +85,7 @@ class SiameseSpectralModel(nn.Module):
         # Calculate cosine similarity
         cos_sim = nn.CosineSimilarity(dim=1, eps=1e-6)(encoded_x1, encoded_x2)
         return cos_sim
+
 
 class BinnedSpectraLayer(nn.Module):
     def __init__(self, min_mz, max_mz, mz_bin_width, intensity_scaling):
@@ -100,6 +107,7 @@ class BinnedSpectraLayer(nn.Module):
                     binned_spectra[i, bin_index] += intensity ** self.intensity_scaling
 
         return binned_spectra
+
 
 class PeakBinner(nn.Module):
     def __init__(self, input_size, group_size, output_per_group):
@@ -126,21 +134,35 @@ class PeakBinner(nn.Module):
         return self.groups * self.output_per_group
         
 class SpectralEncoder(nn.Module):
-    def __init__(self, min_mz: float, max_mz: float, mz_bin_width: float,
-                 base_dims, embedding_dim, intensity_scaling, dropout_rate,
-                 train_binning_layer: bool, group_size: int, output_per_group: int):
+    def __init__(self, min_mz: float,
+                 max_mz: float,
+                 mz_bin_width: float,
+                 base_dims,
+                 embedding_dim,
+                 intensity_scaling,
+                 dropout_rate,
+                 train_binning_layer: bool, group_size: int, output_per_group: int,
+                 metadata_vectorizer,
+                 ):
         super(SpectralEncoder, self).__init__()
         self.binning_layer = BinnedSpectraLayer(min_mz, max_mz, mz_bin_width, intensity_scaling)
+        self.metadata_vectorizer = metadata_vectorizer
         self.train_binning_layer = train_binning_layer
 
+        # Consider additing metadata vector
+        if metadata_vectorizer is None:
+            additional_inputs = 0
+        else:
+            additional_inputs = metadata_vectorizer.size
         # First dense layer (no dropout!)
         self.dense_layers = []
         if self.train_binning_layer:
             self.peak_binner = PeakBinner(self.binning_layer.num_bins,
                                           group_size, output_per_group)
-            self.dense_layers.append(nn.Linear(self.peak_binner.output_size(), base_dims[0]))
+            input_size = self.peak_binner.output_size() + additional_inputs
         else:
-            self.dense_layers.append(nn.Linear(self.binning_layer.num_bins, base_dims[0]))
+            input_size = self.binning_layer.num_bins + additional_inputs
+        self.dense_layers.append(nn.Linear(input_size, base_dims[0]))
         input_dim = base_dims[0]
 
         # Create additional dense layers
@@ -153,6 +175,7 @@ class SpectralEncoder(nn.Module):
 
     def forward(self, spectra):
         binned_spectra = self.binning_layer(spectra)
+        metadata_vector = self.metadata_vectorizer(spectra)
         if self.train_binning_layer:
             x = self.peak_binner(binned_spectra)
             x = F.relu(self.dense_layers[0](x))
