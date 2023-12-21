@@ -175,12 +175,16 @@ class SpectralEncoder(nn.Module):
 
     def forward(self, spectra):
         binned_spectra = self.binning_layer(spectra)
-        metadata_vector = self.metadata_vectorizer(spectra)
+        if self.metadata_vectorizer is not None:
+            metadata_vector = self.metadata_vectorizer.transform(spectra)
+        else:
+            metadata_vector = torch.tensor([])
         if self.train_binning_layer:
             x = self.peak_binner(binned_spectra)
-            x = F.relu(self.dense_layers[0](x))
+            x = torch.cat([metadata_vector, x], dim=1)
         else:
-            x = F.relu(self.dense_layers[0](binned_spectra))
+            x = torch.cat([metadata_vector, binned_spectra], dim=1)
+        x = F.relu(self.dense_layers[0](x))
 
         for layer in self.dense_layers[1:]:
             x = F.relu(layer(x))
