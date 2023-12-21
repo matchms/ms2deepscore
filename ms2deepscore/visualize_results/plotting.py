@@ -62,7 +62,8 @@ def plot_histograms(tanimoto_scores,
 
         # Writes down the number of pairs per bin
         percentage_of_all_pairs = total_counts_in_bin/(tanimoto_scores.shape[0]*tanimoto_scores.shape[1]) * 100
-        plt.text(-0.01, plot_shifts[bin_idx] + 0.2, f"{percentage_of_all_pairs:.2f} %")
+        plt.text(ms2deepscore_predictions.min(),
+                 plot_shifts[bin_idx] + 0.2, f"{percentage_of_all_pairs:.2f} %")
 
     plt.xticks(fontsize=14)
 
