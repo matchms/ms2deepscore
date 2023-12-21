@@ -29,8 +29,9 @@ def plot_histograms(tanimoto_scores,
     if tanimoto_scores.max() > 1 or tanimoto_scores.min() < 0:
         raise ValueError("The tanimoto score predictions are not between 0 and 1. "
                          "Ms2deepscore predictions and tanimoto score predictions might be accidentally reversed")
-    bins = np.linspace(0, 1, n_bins)
-    bins = np.append(bins, np.inf)
+
+    bins = np.linspace(0, 1, n_bins + 1)
+    bins[-1] = 1.0000000001
 
     histogram_per_bin = calculate_histograms(tanimoto_scores,
                                              ms2deepscore_predictions,
@@ -44,7 +45,7 @@ def plot_histograms(tanimoto_scores,
     alpha = 1.0
 
     # Create plot
-    plt.figure(figsize=(10, n_bins))
+    plt.figure(figsize=(10, len(bins)))
     # Loop over each bin.
     for bin_idx in reversed(range(0, len(histogram_per_bin))):
         normalized_counts, used_bin_borders, total_counts_in_bin = histogram_per_bin[bin_idx]
