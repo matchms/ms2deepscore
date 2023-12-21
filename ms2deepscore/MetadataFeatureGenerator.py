@@ -1,7 +1,6 @@
 import json
 from importlib import import_module
 from typing import List, Union
-import numpy as np
 import torch
 from matchms import Metadata
 from matchms.typing import SpectrumType

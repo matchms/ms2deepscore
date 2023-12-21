@@ -1,7 +1,7 @@
 import torch
-import torch.nn as nn
+from torch import nn
 import torch.nn.functional as F
-import torch.optim as optim
+from torch import optim
 
 from ms2deepscore.MetadataFeatureGenerator import MetadataVectorizer
 
@@ -60,7 +60,7 @@ class SiameseSpectralModel(nn.Module):
             Add the specific MetadataVectorizer object for your data if the model should contain specific
             metadata entries as input. Default is set to None which means this will be ignored.
         """
-        super(SiameseSpectralModel, self).__init__()
+        super().__init__()
         self.model_parameters = {
             "min_mz": min_mz,
             "max_mz": max_mz,
@@ -89,7 +89,7 @@ class SiameseSpectralModel(nn.Module):
 
 class BinnedSpectraLayer(nn.Module):
     def __init__(self, min_mz, max_mz, mz_bin_width, intensity_scaling):
-        super(BinnedSpectraLayer, self).__init__()
+        super().__init__()
         self.min_mz = min_mz
         self.max_mz = max_mz
         self.mz_bin_width = mz_bin_width
@@ -111,7 +111,7 @@ class BinnedSpectraLayer(nn.Module):
 
 class PeakBinner(nn.Module):
     def __init__(self, input_size, group_size, output_per_group):
-        super(PeakBinner, self).__init__()
+        super().__init__()
         self.group_size = group_size
         self.output_per_group = output_per_group
         self.groups = input_size // group_size
@@ -144,7 +144,38 @@ class SpectralEncoder(nn.Module):
                  train_binning_layer: bool, group_size: int, output_per_group: int,
                  metadata_vectorizer,
                  ):
-        super(SpectralEncoder, self).__init__()
+        """
+        Parameters
+        ----------
+        min_mz
+            Lower bound for m/z values to consider.
+        max_mz
+            Upper bound for m/z values to consider.
+        mz_bin_width
+            Bin width for m/z sampling.
+        base_dims
+            Tuple of integers depicting the dimensions of the desired hidden
+            layers of the base model
+        embedding_dim
+            Dimension of the embedding (i.e. the output of the base model)
+        intensity_scaling
+            To put more attention on small and medium intensity peaks, peak intensities are
+             scaled by intensity to the power of intensity_scaling.
+        train_binning_layer
+            Default is True in which case the model contains a first dense multi-group peak binning layer.
+        group_size
+            When binning layer is used the group_size determins how many input bins are taken into
+            one dense micro-network.
+        output_per_group
+            This sets the number of next layer bins each group_size sized group of inputs shares.
+        dropout_rate
+            Dropout rate to be used in the base model.
+        metadata_vectorizer
+            Add the specific MetadataVectorizer object for your data if the model should contain specific
+            metadata entries as input. Default is set to None which means this will be ignored.
+        """
+        # pylint: disable=too-many-arguments, too-many-locals
+        super().__init__()
         self.binning_layer = BinnedSpectraLayer(min_mz, max_mz, mz_bin_width, intensity_scaling)
         self.metadata_vectorizer = metadata_vectorizer
         self.train_binning_layer = train_binning_layer
@@ -199,6 +230,7 @@ class SpectralEncoder(nn.Module):
 def train(model, train_loader, num_epochs, learning_rate,
           lambda_l1=1e-6,
           lambda_l2=1e-6):
+    # pylint: disable=too-many-arguments
     criterion = nn.MSELoss()
     optimizer = optim.Adam(model.parameters(), lr=learning_rate)
 
