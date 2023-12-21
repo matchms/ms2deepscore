@@ -1,5 +1,6 @@
 from collections import Counter
 from typing import List, Optional, Tuple
+from numba import jit
 import numpy as np
 from matchms import Spectrum
 from matchms.filtering import add_fingerprint
@@ -172,34 +173,41 @@ def compute_jaccard_similarity_per_bin(
     """
     # pylint: disable=too-many-locals
     size = fingerprints.shape[0]
-    # initialize storing scores
-    selected_pairs_per_bin = [[] for _ in range(len(selection_bins))]
+    num_bins = len(selection_bins)
 
-    # loop over the fingerprints
+    # Preallocate arrays instead of using dynamic lists
+    selected_pairs_per_bin = [[[] for _ in range(size)] for _ in range(num_bins)]
+
     for idx_fingerprint_i in range(size):
         fingerprint_i = fingerprints[idx_fingerprint_i, :]
+        tanimoto_scores = tanimoto_scores_row(fingerprints, idx_fingerprint_i, include_diagonal)
 
-        # Calculate all tanimoto scores for 1 fingerprint
-        tanimoto_scores = np.zeros(size)
-        for idx_fingerprint_j in range(size):
-            if idx_fingerprint_i == idx_fingerprint_j and not include_diagonal:
-                # skip matching fingerprint score against itself.
-                continue
-            fingerprint_j = fingerprints[idx_fingerprint_j, :]
-            tanimoto_score = jaccard_index(fingerprint_i, fingerprint_j)
-            tanimoto_scores[idx_fingerprint_j] = tanimoto_score
-
-        # Select pairs per bin with a maximum of max_pairs_per_bin
-        for bin_number, selection_bin in enumerate(selection_bins):
-            selected_pairs_per_bin[bin_number].append([])
-            # Indices of scores within the current bin
+        for bin_number in range(num_bins):
+            selection_bin = selection_bins[bin_number]
+            
             idx = np.where((tanimoto_scores > selection_bin[0]) & (tanimoto_scores <= selection_bin[1]))[0]
-            # Randomly select up to max_pairs_per_bin scores within the bin
             np.random.shuffle(idx)
-            idx_selected = idx[:max_pairs_per_bin]
-            for index in idx_selected:
+            if max_pairs_per_bin is not None:
+                idx = idx[:max_pairs_per_bin]
+            for index in idx:
                 selected_pairs_per_bin[bin_number][idx_fingerprint_i].append((index, tanimoto_scores[index]))
+    
     return selected_pairs_per_bin
+
+
+@jit(nopython=True)
+def tanimoto_scores_row(fingerprints, idx, include_diagonal):
+    size = fingerprints.shape[0]
+    tanimoto_scores = np.zeros(size)
+
+    fingerprint_i = fingerprints[idx, :]
+    for idx_fingerprint_j in range(size):
+        if idx == idx_fingerprint_j and not include_diagonal:
+            continue
+        fingerprint_j = fingerprints[idx_fingerprint_j, :]
+        tanimoto_score = jaccard_index(fingerprint_i, fingerprint_j)
+        tanimoto_scores[idx_fingerprint_j] = tanimoto_score
+    return tanimoto_scores
 
 
 def fix_bias(selected_pairs_per_bin, expected_average_pairs_per_bin):
@@ -245,11 +253,23 @@ def get_nr_of_pairs_needed_to_fix_bias(nr_of_pairs_in_bin_per_compound: List[int
 def compute_fingerprints_for_training(spectrums,
                                       fingerprint_type: str = "daylight",
                                       nbits: int = 2048):
-    """Calculates fingerprints for each unique inchikey and removes spectra for which no fingerprint could be created"""
+    """Calculates fingerprints for each unique inchikey.
+    
+    Function also removes spectra for which no fingerprint could be created.
+    
+    Parameters
+    ----------
+    fingerprint_type:
+        The fingerprint type that should be used for tanimoto score calculations.
+    fingerprint_nbits:
+        The number of bits to use for the fingerprint.
+    """
     if len(spectrums) == 0:
         raise ValueError("No spectra were selected to calculate fingerprints")
+
     spectra_selected, inchikeys14_unique = select_inchi_for_unique_inchikeys(spectrums)
     print(f"Selected {len(spectra_selected)} spectra with unique inchikeys (out of {len(spectrums)} spectra)")
+
     # Compute fingerprints using matchms
     spectra_selected = [add_fingerprint(s, fingerprint_type, nbits)\
                         if s.get("fingerprint") is None else s for s in spectra_selected]
@@ -262,6 +282,7 @@ def compute_fingerprints_for_training(spectrums,
         raise ValueError("No fingerprints could be computed")
     if len(idx) < len(fingerprints):
         print(f"Successfully generated fingerprints for {len(idx)} of {len(fingerprints)} spectra")
+
     fingerprints = np.array([fingerprints[i] for i in idx])
     inchikeys14_unique = [inchikeys14_unique[i] for i in idx]
     spectra_selected = [spectra_selected[i] for i in idx]
