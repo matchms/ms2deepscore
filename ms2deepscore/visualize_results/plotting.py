@@ -2,18 +2,18 @@ import numpy as np
 from matplotlib import pyplot as plt
 from matplotlib.colors import LinearSegmentedColormap
 
-def plot_histograms(reference_scores,
-                    comparison_scores,
+def plot_histograms(tanimoto_scores,
+                    ms2deepscore_predictions,
                     n_bins,
                    normalize_per_bin=True):
     """Create histogram based score comparison.
 
         Parameters
     ----------
-    reference_scores
-        Reference score array.
-    comparison_scores
-        Comparison score array.
+    tanimoto_scores
+        The tanimoto scores representing the true values
+    ms2deepscore_predictions
+        The predicted MS2Deepscore scores
     n_bins
         Number of bins. The default is 5.
     hist_resolution
@@ -22,8 +22,8 @@ def plot_histograms(reference_scores,
         If true each bin will be normalized to have a similar area under the curve otherwise all bins are normalized in the same way and it reflects
         the frequencies.
     """
-    histograms, used_bins, bin_content = calculate_histograms(reference_scores,
-                                                              comparison_scores,
+    histograms, used_bins, bin_content = calculate_histograms(tanimoto_scores,
+                                                              ms2deepscore_predictions,
                                                               n_bins,)
 
     # Setup plotting stuff
@@ -45,7 +45,7 @@ def plot_histograms(reference_scores,
         if normalize_per_bin:
             normalized_counts = counts/sum(counts)*len(counts)/8
         else:
-            normalized_counts = counts/len(comparison_scores)*len(counts)/2000
+            normalized_counts = counts/len(ms2deepscore_predictions)*len(counts)/2000
         shift_in_plot_hight = -shift * bin_idx
         y_levels = [(shift_in_plot_hight + y) for y in normalized_counts]
         plt.fill_between(histogram_bins,
@@ -65,31 +65,30 @@ def plot_histograms(reference_scores,
     plt.ylabel("Tanimoto similarity", fontsize=14)
 
 
-def calculate_histograms(reference_scores,
-                         comparison_scores,
+def calculate_histograms(tanimoto_scores,
+                         ms2deepscore_predictions,
                          n_bins=10):
     """Calcualte a series of histograms, one for every bin."""
-    max_reference_scores = comparison_scores.max()
-    min_reference_scores = comparison_scores.min()
+    max_ms2deepscore_predictions = ms2deepscore_predictions.max()
+    min_ms2deepscore_predictions = ms2deepscore_predictions.min()
     histogram_per_bin = []
     used_bins = []
     nr_of_pairs_per_bin = []
-    ref_scores_bins_inclusive = np.linspace(0, 1, n_bins)
-    ref_scores_bins_inclusive[0] = -np.inf
-    ref_scores_bins_inclusive = np.append(ref_scores_bins_inclusive, np.inf)
+    bins = np.linspace(0, 1, n_bins)
+    bins[0] = -np.inf
+    bins = np.append(bins, np.inf)
 
     for i in range(n_bins):
-        used_bins.append((ref_scores_bins_inclusive[i], ref_scores_bins_inclusive[i+1]))
-        idx = np.where((reference_scores >= ref_scores_bins_inclusive[i]) & (reference_scores < ref_scores_bins_inclusive[i+1]))
+        used_bins.append((bins[i], bins[i + 1]))
+        idx = np.where((tanimoto_scores >= bins[i]) & (tanimoto_scores < bins[i + 1]))
         nr_of_pairs = idx[0].shape[0]
         nr_of_pairs_per_bin.append(nr_of_pairs)
         # Adjust the hist_resolution based on the nr_of_pairs in the bin
         hist_resolution = int(nr_of_pairs**0.5)+2
-        hist_bins = np.linspace(min_reference_scores, max_reference_scores, hist_resolution)
-        a, b = np.histogram(comparison_scores[idx], bins=hist_bins)
+        hist_bins = np.linspace(min_ms2deepscore_predictions, max_ms2deepscore_predictions, hist_resolution)
+        a, b = np.histogram(ms2deepscore_predictions[idx], bins=hist_bins)
         histogram_per_bin.append((a, b))
     return histogram_per_bin, used_bins, nr_of_pairs_per_bin
-
 
 def create_confusion_matrix_plot(reference_scores,
                                  comparison_scores,
@@ -266,3 +265,12 @@ def plot_rmse_per_bin(predicted_scores, true_scores):
                [f"{a:.1f} to < {b:.1f}" for (a, b) in bounds], fontsize=9, rotation='vertical')
     ax2.grid(True)
     plt.tight_layout()
+
+
+if __name__ == "__main__":
+    np.random.seed(123)
+    dimension = (1500, 1500)
+    mock_comparison_scores = np.random.normal(0.5, 1.0, dimension)
+    mock_reference_scores = np.random.normal(0.5, 1.0, dimension)
+    plot_histograms(mock_reference_scores, mock_comparison_scores, n_bins=10)
+    plt.show()
