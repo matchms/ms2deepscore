@@ -27,9 +27,7 @@ def plot_histograms(tanimoto_scores,
                                                               n_bins,)
 
     # Setup plotting stuff
-    colors = ["crimson", "lightblue", "teal"]
-    cmap1 = LinearSegmentedColormap.from_list("mycmap", colors)
-    # plt.style.use('seaborn-white')
+    color_map = LinearSegmentedColormap.from_list("mycmap", ["crimson", "lightblue", "teal"])
     shift = 0.7
     alpha = 0.5
 
@@ -51,7 +49,7 @@ def plot_histograms(tanimoto_scores,
         plt.fill_between(histogram_bins,
                          shift_in_plot_hight,
                          y_levels,
-                         color=cmap1(bin_idx / n_bins),
+                         color=color_map(bin_idx / n_bins),
                          alpha=alpha,
                          step="post")
         if bin_content:
