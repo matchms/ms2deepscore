@@ -1,6 +1,7 @@
 import numpy as np
 from ms2deepscore.visualize_results.plotting import (
     calculate_all_histograms, create_confusion_matrix_plot, plot_stacked_histogram_plot_wrapper)
+from matplotlib import pyplot as plt
 
 
 mock_reference_scores = np.random.random((100, 100))
@@ -36,6 +37,9 @@ def test_calculate_histograms():
 
 
 def test_plot_histograms():
-    # Test the plotting function
-    plot_stacked_histogram_plot_wrapper(mock_reference_scores, mock_comparison_scores, n_bins=5)
-    assert True
+    np.random.seed(123)
+    dimension = (100, 100)
+    plot_stacked_histogram_plot_wrapper(np.random.random(dimension) ** 2,
+                                        np.random.random(dimension) ** 2,
+                                        n_bins=10)
+    plt.show()

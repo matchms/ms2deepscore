@@ -324,11 +324,3 @@ def plot_rmse_per_bin(predicted_scores, true_scores):
                [f"{a:.1f} to < {b:.1f}" for (a, b) in bounds], fontsize=9, rotation='vertical')
     ax2.grid(True)
     plt.tight_layout()
-
-
-if __name__ == "__main__":
-    np.random.seed(123)
-    dimension = (1500, 1500)
-    plot_stacked_histogram_plot_wrapper(np.random.random(dimension) ** 2, np.random.normal(0.5, 10.0, dimension),
-                                        n_bins=10)
-    plt.show()
