@@ -54,7 +54,7 @@ def plot_stacked_histogram(normalized_counts_per_bin,
     color_map = LinearSegmentedColormap.from_list("mycmap", ["teal", "lightblue", "crimson"])
 
     # Create plot
-    fig, axes = plt.subplots(nrows=1, ncols=2, figsize=(10, nr_of_bins),
+    _, axes = plt.subplots(nrows=1, ncols=2, figsize=(10, nr_of_bins),
                              gridspec_kw={'width_ratios': [4, 1]})
     # Loop over each bin.
     for bin_idx in range(0, nr_of_bins):
