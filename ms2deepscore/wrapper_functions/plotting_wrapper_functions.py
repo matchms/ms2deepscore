@@ -10,7 +10,7 @@ from ms2deepscore.train_new_model.SettingMS2Deepscore import \
 from ms2deepscore.utils import load_pickled_file, save_pickled_file
 from ms2deepscore.visualize_results.calculate_tanimoto_scores import \
     get_tanimoto_score_between_spectra
-from ms2deepscore.visualize_results.plotting import plot_histograms
+from ms2deepscore.visualize_results.plotting import plot_stacked_histogram_plot_wrapper
 
 
 class BenchmarkingResultsFileNames:
@@ -79,10 +79,10 @@ def create_all_plots(predictions,
         benchmarking_results_file_names: Class storing all the default file names and folder structure
     """
     # Create plots
-    plot_histograms(predictions, true_values, 10, 100)
+    plot_stacked_histogram_plot_wrapper(predictions, true_values, 10)
     plt.savefig(benchmarking_results_file_names.normal_plot_file_name)
     # Create reverse plot
-    plot_histograms(true_values, predictions, 10, 100)
+    plot_stacked_histogram_plot_wrapper(true_values, predictions, 10)
     plt.savefig(benchmarking_results_file_names.reversed_plot_file_name)
 
     mae = np.abs(predictions - true_values).mean()
