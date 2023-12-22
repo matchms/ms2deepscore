@@ -32,10 +32,7 @@ def plot_histograms(tanimoto_scores,
     bins = np.linspace(0, 1, n_bins + 1)
     bins[-1] = 1.0000000001
 
-    histogram_per_bin = calculate_histograms(tanimoto_scores,
-                                             ms2deepscore_predictions,
-                                             bins,
-                                             normalize_per_bin)
+    histogram_per_bin = calculate_all_histograms(tanimoto_scores, ms2deepscore_predictions, bins, normalize_per_bin)
 
     # Setup plotting stuff
     color_map = LinearSegmentedColormap.from_list("mycmap", ["teal", "lightblue", "crimson"])
@@ -80,10 +77,10 @@ def plot_histograms(tanimoto_scores,
     plt.tight_layout()
 
 
-def calculate_histograms(tanimoto_scores,
-                         ms2deepscore_predictions,
-                         tanimoto_bins,
-                         normalize_per_bin=True) -> List[Tuple[np.array, np.array, int]]:
+def calculate_all_histograms(tanimoto_scores,
+                             ms2deepscore_predictions,
+                             tanimoto_bins,
+                             normalize_per_bin=True) -> List[Tuple[np.array, np.array, int]]:
     """Calcualte a series of histograms, one for every bin."""
 
     histogram_per_bin = []
@@ -95,19 +92,16 @@ def calculate_histograms(tanimoto_scores,
         nr_of_pairs = indexes_within_bin[0].shape[0]
         nr_of_ms2deepscore_bins = int(nr_of_pairs**0.5)
 
-        normalized_counts, used_bins, total_count = create_histogram(ms2deepscore_predictions,
-                                                                     nr_of_ms2deepscore_bins,
-                                                                     indexes_within_bin,
-                                                                     normalize_per_bin)
+        normalized_counts, used_bins, total_count = calculate_histogram(ms2deepscore_predictions,
+                                                                        nr_of_ms2deepscore_bins, indexes_within_bin)
 
         histogram_per_bin.append((normalized_counts, used_bins, total_count))
     return histogram_per_bin
 
 
-def create_histogram(ms2deepscore_predictions,
-                     nr_of_bins,
-                     indexes_of_selected_pairs,
-                     normalize_per_bin):
+def calculate_histogram(ms2deepscore_predictions,
+                        nr_of_bins,
+                        indexes_of_selected_pairs):
     max_ms2deepscore_predictions = ms2deepscore_predictions.max()
     min_ms2deepscore_predictions = ms2deepscore_predictions.min()
 
@@ -116,19 +110,19 @@ def create_histogram(ms2deepscore_predictions,
                                     nr_of_bins + 1)
     counts, used_bins = np.histogram(ms2deepscore_predictions[indexes_of_selected_pairs], bins=ms2deepscore_bins)
     # Normalize the data to have the same area under the curve
-    if normalize_per_bin:
-        normalized_counts = counts / sum(counts) * len(counts) / 10
-    else:
-        normalized_counts = counts / len(ms2deepscore_predictions) * len(counts) / 3000
-    total_count = sum(counts)
+    normalized_counts = counts / sum(counts) * nr_of_bins
+    average_peak_height_after_normalization = 0.1
+    normalized_counts = normalized_counts * average_peak_height_after_normalization
+    # Prevents the histograms from overlapping each other If it is higher than 1 they would overlap.
+    #  It is solved by using larger bins in the histograms.
     if max(normalized_counts) > 0.95:
         nr_of_bins = int(nr_of_bins/1.1)
         print(f"One peak was too high, trying {nr_of_bins} bins")
-        normalized_counts, used_bins, total_count = create_histogram(ms2deepscore_predictions,
-                                                                     nr_of_bins,
-                                                                     indexes_of_selected_pairs,
-                                                                     normalize_per_bin)
+        normalized_counts, used_bins, total_count = calculate_histogram(ms2deepscore_predictions, nr_of_bins,
+                                                                        indexes_of_selected_pairs)
+    total_count = sum(counts)
     return normalized_counts, used_bins, total_count
+
 
 def create_confusion_matrix_plot(reference_scores,
                                  comparison_scores,
@@ -305,3 +299,12 @@ def plot_rmse_per_bin(predicted_scores, true_scores):
                [f"{a:.1f} to < {b:.1f}" for (a, b) in bounds], fontsize=9, rotation='vertical')
     ax2.grid(True)
     plt.tight_layout()
+
+
+if __name__ == "__main__":
+    np.random.seed(123)
+    dimension = (1500, 1500)
+    plot_histograms(np.random.random(dimension)**2,
+                    np.random.normal(0.5, 10.0, dimension),
+                    n_bins=10)
+    plt.show()
