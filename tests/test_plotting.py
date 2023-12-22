@@ -1,6 +1,6 @@
 import numpy as np
 from ms2deepscore.visualize_results.plotting import (
-    calculate_histograms, create_confusion_matrix_plot, plot_histograms)
+    calculate_all_histograms, create_confusion_matrix_plot, plot_stacked_histogram_plot_wrapper)
 
 
 mock_reference_scores = np.random.random((100, 100))
@@ -15,24 +15,27 @@ def test_create_confusion_matrix_plot():
 
 
 def test_calculate_histograms():
-    histograms, used_bins, bin_content = calculate_histograms(mock_reference_scores, mock_comparison_scores, n_bins=5)
+    nr_of_bins = 5
+    tanimoto_bins = np.linspace(0, 1, nr_of_bins + 1)
+    tanimoto_bins[-1] = 1.0000000001
+    normalized_counts_per_bin, used_ms2deepscore_bins_per_bin, percentage_of_total_pairs_per_bin = \
+        calculate_all_histograms(mock_reference_scores, mock_comparison_scores, tanimoto_bins)
     
     # Ensure the number of histograms, used bins and bin contents are the same
-    assert len(histograms) == len(used_bins) == len(bin_content) == 5
+    assert len(normalized_counts_per_bin) == len(used_ms2deepscore_bins_per_bin) == \
+           len(percentage_of_total_pairs_per_bin) == nr_of_bins
 
     # Ensure the used bins are valid
-    for (low, high) in used_bins:
-        assert low <= high
-
+    for ms2deepscore_bins in used_ms2deepscore_bins_per_bin:
+        assert np.all(sorted(ms2deepscore_bins) == ms2deepscore_bins)
+        assert round(ms2deepscore_bins[0]) == 0
+        assert round(ms2deepscore_bins[-1]) == 1
     # Ensure histograms are properly formed
-    for histogram in histograms:
-        assert len(histogram[0]) == len(histogram[1]) - 1  # histogram frequencies and bin edges
-
-    # Ensure all reference scores are accounted for
-    assert sum(bin_content) == mock_reference_scores.shape[0] * mock_reference_scores.shape[1]
+    for i in range(len(normalized_counts_per_bin)):
+        assert len(normalized_counts_per_bin[i]) == len(used_ms2deepscore_bins_per_bin[i]) - 1  # histogram frequencies and bin edges
 
 
 def test_plot_histograms():
     # Test the plotting function
-    plot_histograms(mock_reference_scores, mock_comparison_scores, n_bins=5)
+    plot_stacked_histogram_plot_wrapper(mock_reference_scores, mock_comparison_scores, n_bins=5)
     assert True
