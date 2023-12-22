@@ -1,5 +1,5 @@
+from typing import List, Tuple
 import numpy as np
-from typing import Tuple, List
 from matplotlib import pyplot as plt
 from matplotlib.colors import LinearSegmentedColormap
 
