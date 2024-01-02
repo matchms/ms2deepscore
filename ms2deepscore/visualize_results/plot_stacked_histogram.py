@@ -18,8 +18,8 @@ def plot_reversed_stacked_histogram_plot(tanimoto_scores: np.array,
                                  ms2deepscore_nr_of_bin_correction)
 
     plot_stacked_histogram(normalized_counts_per_bin, used_ms2deepscore_bins_per_bin,
-                                  percentage_of_total_pairs_per_bin, ms2deepscore_bins,
-                                  x_label="Tanimoto similarity", y_label="MS2Deepscore")
+                           percentage_of_total_pairs_per_bin, ms2deepscore_bins,
+                           x_label="Tanimoto similarity", y_label="MS2Deepscore")
 
 
 def plot_stacked_histogram_plot_wrapper(tanimoto_scores: np.array,

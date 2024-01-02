@@ -12,6 +12,7 @@ from ms2deepscore.visualize_results.calculate_tanimoto_scores import \
     get_tanimoto_score_between_spectra
 from ms2deepscore.visualize_results.plot_stacked_histogram import plot_stacked_histogram_plot_wrapper, \
     plot_reversed_stacked_histogram_plot
+from ms2deepscore.visualize_results.select_spectrum_pairs_for_visualization import sample_spectra_multiple_times
 
 
 class BenchmarkingResultsFileNames:
@@ -39,6 +40,11 @@ def benchmark_wrapper(val_spectra_1: List[Spectrum],
     predictions = create_or_load_predicted_values(val_spectra_1, val_spectra_2,
                                                   benchmarking_results_file_names.predictions_file_name,
                                                   ms2ds_model)
+    sample_spectra_multiple_times(val_spectra=val_spectra_1,
+                                  val_spectra_other_mode=val_spectra_2,
+                                  predicted_values=predictions,
+                                  true_values=true_values,
+                                  nr_of_sample_times=100)
     create_all_plots(predictions, true_values, benchmarking_results_file_names)
 
 
