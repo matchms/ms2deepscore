@@ -2,7 +2,8 @@ import numpy as np
 from ms2deepscore.visualize_results.plotting import (
     create_confusion_matrix_plot)
 from ms2deepscore.visualize_results.plot_stacked_histogram import plot_stacked_histogram_plot_wrapper, \
-    calculate_all_histograms
+    calculate_all_histograms, plot_reversed_stacked_histogram_plot
+from matplotlib import pyplot as plt
 
 
 def test_create_confusion_matrix_plot():
@@ -39,4 +40,12 @@ def test_plot_histograms():
     plot_stacked_histogram_plot_wrapper(np.random.random(dimension) ** 2,
                                         np.random.random(dimension) ** 2,
                                         n_bins=10)
+    plt.show()
+
+
+def test_reverse_plot_stacked_histogram():
+    np.random.seed(123)
+    dimension = (100, 100)
+    plot_reversed_stacked_histogram_plot(np.random.random(dimension) ** 2,
+                                         np.random.random(dimension) ** 2)
     plt.show()
