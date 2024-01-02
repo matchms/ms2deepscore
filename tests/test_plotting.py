@@ -1,7 +1,8 @@
 import numpy as np
 from ms2deepscore.visualize_results.plotting import (
-    calculate_all_histograms, create_confusion_matrix_plot, plot_stacked_histogram_plot_wrapper)
-from matplotlib import pyplot as plt
+    create_confusion_matrix_plot)
+from ms2deepscore.visualize_results.plot_stacked_histogram import plot_stacked_histogram_plot_wrapper, \
+    calculate_all_histograms
 
 
 def test_create_confusion_matrix_plot():
