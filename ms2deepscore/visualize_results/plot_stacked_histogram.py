@@ -61,9 +61,8 @@ def plot_stacked_histogram(normalized_counts_per_bin,
                            percentage_of_total_pairs_per_bin,
                            bins_y_axis,
                            x_label,
-                           y_label):
+                           y_label):  # pylint: disable=too-many-arguments
     """Creates a stacked histogram"""
-
     nr_of_bins = len(normalized_counts_per_bin)
     if len(used_x_axis_bins_per_bin) != nr_of_bins or len(percentage_of_total_pairs_per_bin) != nr_of_bins:
         raise ValueError("The nr of tanimoto bins for each of the input values should be equal")
@@ -164,7 +163,7 @@ def calculate_histogram_with_max_height(input_values: np.array,
                                         maximum_bin_value,
                                         maximum_height=0.95,
                                         average_peak_height_after_normalization=0.08
-                                        ):
+                                        ):  # pylint: disable=too-many-arguments
     """Creates a histogram, that has a maximum hight of all bins of 0.95
 
     The reason for the maximum is that this plots nicely as a stacked histogram.
