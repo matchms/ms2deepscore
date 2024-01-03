@@ -1,5 +1,5 @@
 import numpy as np
-from typing import Optional, List
+from typing import List
 from matchms.Spectrum import Spectrum
 from tqdm import tqdm
 
