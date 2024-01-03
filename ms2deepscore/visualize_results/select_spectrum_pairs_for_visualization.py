@@ -33,11 +33,14 @@ def select_one_spectrum_per_inchikey(spectra):
     return one_spectrum_per_inchikey
 
 
-def select_predictions_one_spectrum_per_inchikey(val_spectra,
-                                                 val_spectra_other_mode: Optional[List[Spectrum]],
+def select_predictions_one_spectrum_per_inchikey(val_spectra: List[Spectrum],
+                                                 val_spectra_other_mode: List[Spectrum],
                                                  predicted_values,
                                                  true_values):
-    """Selects the predicted values and true values for one randomly picked spectrum per inchikey"""
+    """Selects the predicted values and true values for one randomly picked spectrum per inchikey
+
+    If the validation spectra are the same (comparison against itself) the spectra that match against itself are removed
+    Matches between the same inchikey are allowed. If it is not symmetric there is no risk of matching against itself."""
     if not predicted_values.shape == true_values.shape:
         raise ValueError("The shape of the predicted values and the true values should match")
     is_symmetric = (val_spectra == val_spectra_other_mode)
