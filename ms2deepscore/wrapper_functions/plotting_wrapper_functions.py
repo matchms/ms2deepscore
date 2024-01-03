@@ -40,12 +40,7 @@ def benchmark_wrapper(val_spectra_1: List[Spectrum],
     predictions = create_or_load_predicted_values(val_spectra_1, val_spectra_2,
                                                   benchmarking_results_file_names.predictions_file_name,
                                                   ms2ds_model)
-    sample_spectra_multiple_times(val_spectra=val_spectra_1,
-                                  val_spectra_other_mode=val_spectra_2,
-                                  predicted_values=predictions,
-                                  true_values=true_values,
-                                  nr_of_sample_times=100)
-    create_all_plots(predictions, true_values, benchmarking_results_file_names)
+    create_all_plots(predictions, true_values, val_spectra_1, val_spectra_2, benchmarking_results_file_names)
 
 
 def create_or_load_true_values(val_spectra_1: List[Spectrum],
@@ -77,6 +72,8 @@ def create_or_load_predicted_values(val_spectra_1: List[Spectrum],
 
 def create_all_plots(predictions,
                      true_values,
+                     val_spectra_1,
+                     val_spectra_2,
                      benchmarking_results_file_names: BenchmarkingResultsFileNames):
     """Creates and saves plots and in between files for validation spectra
 
@@ -85,21 +82,25 @@ def create_all_plots(predictions,
         true_values: The true values predicted by the model
         benchmarking_results_file_names: Class storing all the default file names and folder structure
     """
+    selected_predictions, selected_true_values = sample_spectra_multiple_times(val_spectra=val_spectra_1,
+                                                                               val_spectra_other_mode=val_spectra_2,
+                                                                               predicted_values=predictions,
+                                                                               true_values=true_values,
+                                                                               nr_of_sample_times=100)
     # Create plots
-    plot_stacked_histogram_plot_wrapper(ms2deepscore_predictions=predictions,
-                                        tanimoto_scores=true_values, n_bins=10)
-    plt.suptitle(benchmarking_results_file_names.file_name_prefix)
-    plt.tight_layout()
+    plot_stacked_histogram_plot_wrapper(
+        ms2deepscore_predictions=selected_predictions, tanimoto_scores=selected_true_values, n_bins=10,
+        title=benchmarking_results_file_names.file_name_prefix)
     plt.savefig(benchmarking_results_file_names.normal_plot_file_name)
+
     # Create reverse plot
-    plot_reversed_stacked_histogram_plot(tanimoto_scores=true_values,
-                                         ms2deepscore_predictions=predictions)
-    plt.suptitle(benchmarking_results_file_names.file_name_prefix)
-    plt.tight_layout()
+    plot_reversed_stacked_histogram_plot(
+        tanimoto_scores=selected_true_values, ms2deepscore_predictions=selected_predictions,
+        title=benchmarking_results_file_names.file_name_prefix)
     plt.savefig(benchmarking_results_file_names.reversed_plot_file_name)
 
-    mae = np.abs(predictions - true_values).mean()
-    rmse = np.sqrt(np.square(predictions - true_values).mean())
+    mae = np.abs(selected_predictions - selected_true_values).mean()
+    rmse = np.sqrt(np.square(selected_predictions - selected_true_values).mean())
     summary = f"For {benchmarking_results_file_names.file_name_prefix} the mae={mae} and rmse={rmse}\n"
 
     with open(benchmarking_results_file_names.averages_summary_file_name, "a", encoding="utf-8") as f:

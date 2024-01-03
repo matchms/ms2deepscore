@@ -7,6 +7,7 @@ from matplotlib.colors import LinearSegmentedColormap
 
 def plot_reversed_stacked_histogram_plot(tanimoto_scores: np.array,
                                          ms2deepscore_predictions: np.array,
+                                         title,
                                          ms2deepscore_nr_of_bin_correction=1.0):
     if tanimoto_scores.max() > 1 or tanimoto_scores.min() < 0:
         raise ValueError("The tanimoto score predictions are not between 0 and 1. "
@@ -19,12 +20,13 @@ def plot_reversed_stacked_histogram_plot(tanimoto_scores: np.array,
 
     plot_stacked_histogram(normalized_counts_per_bin, used_ms2deepscore_bins_per_bin,
                            percentage_of_total_pairs_per_bin, ms2deepscore_bins,
-                           x_label="Tanimoto similarity", y_label="MS2Deepscore")
+                           x_label="Tanimoto similarity", y_label="MS2Deepscore", title=title)
 
 
 def plot_stacked_histogram_plot_wrapper(tanimoto_scores: np.array,
                                         ms2deepscore_predictions: np.array,
                                         n_bins,
+                                        title,
                                         ms2deepscore_nr_of_bin_correction=1.0):
     """Create histogram based score comparison.
 
@@ -53,7 +55,7 @@ def plot_stacked_histogram_plot_wrapper(tanimoto_scores: np.array,
                                  ms2deepscore_nr_of_bin_correction)
 
     plot_stacked_histogram(normalized_counts_per_bin, used_ms2deepscore_bins_per_bin, percentage_of_total_pairs_per_bin,
-                           tanimoto_bins, "MS2Deepscore", "Tanimoto similarity")
+                           tanimoto_bins, "MS2Deepscore", "Tanimoto similarity", title)
 
 
 def plot_stacked_histogram(normalized_counts_per_bin,
@@ -61,7 +63,8 @@ def plot_stacked_histogram(normalized_counts_per_bin,
                            percentage_of_total_pairs_per_bin,
                            bins_y_axis,
                            x_label,
-                           y_label):
+                           y_label,
+                           title):
     """Creates a stacked histogram"""
     # pylint: disable=too-many-arguments
     nr_of_bins = len(normalized_counts_per_bin)
@@ -112,6 +115,7 @@ def plot_stacked_histogram(normalized_counts_per_bin,
     axes[0].tick_params(axis="x", labelsize=14)
     axes[0].set_xlabel(x_label, fontsize=14)
     axes[0].set_ylabel(y_label, fontsize=14)
+    plt.suptitle(title)
     plt.tight_layout()
 
 
@@ -198,7 +202,10 @@ def calculate_histogram_with_max_height(input_values: np.array,
             starting_nr_of_bins = int(starting_nr_of_bins / 1.1)
             print(f"One peak was too high, trying {starting_nr_of_bins} bins")
             normalized_counts, used_bins, total_count = \
-                calculate_histogram_with_max_height(input_values, starting_nr_of_bins, maximum_height,
-                                                    average_peak_height_after_normalization)
+                calculate_histogram_with_max_height(
+                    input_values, starting_nr_of_bins, minimum_bin_value=minimum_bin_value,
+                    maximum_bin_value=maximum_bin_value,
+                    maximum_height=maximum_height,
+                    average_peak_height_after_normalization=average_peak_height_after_normalization)
     total_count = sum(counts)
     return normalized_counts, used_bins, total_count
