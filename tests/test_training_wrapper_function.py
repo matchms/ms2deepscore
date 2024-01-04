@@ -2,9 +2,8 @@ import os
 from matchms.exporting import save_as_mgf
 from ms2deepscore.train_new_model.SettingMS2Deepscore import \
     SettingsMS2Deepscore
-from ms2deepscore.wrapper_functions.StoreTrainingData import StoreTrainingData
 from ms2deepscore.wrapper_functions.training_wrapper_functions import \
-    train_ms2deepscore_wrapper
+    train_ms2deepscore_wrapper, StoreTrainingData
 from tests.create_test_spectra import pesticides_test_spectra
 
 

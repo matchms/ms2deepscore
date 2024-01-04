@@ -13,7 +13,7 @@ from ms2deepscore.models import load_model
 from ms2deepscore.train_new_model.spectrum_pair_selection import \
     select_inchi_for_unique_inchikeys
 from ms2deepscore.utils import save_pickled_file
-from ms2deepscore.wrapper_functions.StoreTrainingData import StoreTrainingData
+from ms2deepscore.wrapper_functions.training_wrapper_functions import StoreTrainingData
 
 
 def calculate_true_values_and_predictions_for_validation_spectra(

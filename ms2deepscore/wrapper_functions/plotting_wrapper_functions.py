@@ -1,9 +1,8 @@
 import os
 from typing import List
 import numpy as np
-from ms2deepscore.wrapper_functions.StoreTrainingData import load_spectra_as_list
 from matplotlib import pyplot as plt
-from ms2deepscore.utils import load_pickled_file
+from ms2deepscore.utils import load_pickled_file, load_spectra_as_list
 
 from ms2deepscore.benchmarking_models.plot_stacked_histogram import plot_stacked_histogram_plot_wrapper, \
     plot_reversed_stacked_histogram_plot
