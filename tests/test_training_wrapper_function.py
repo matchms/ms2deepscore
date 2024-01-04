@@ -31,7 +31,7 @@ def test_train_wrapper_ms2ds_model(tmp_path):
                                        "both_both_predictions.pickle"))
     assert os.path.isfile(os.path.join(tmp_path, expected_file_names.trained_models_folder,
                                        settings.model_directory_name, "benchmarking_results",
-                                       "plots", "both_both_plot.svg"))
+                                       "plots", "both_vs_both_stacked_histogram.svg"))
     assert os.path.isfile(os.path.join(tmp_path, expected_file_names.trained_models_folder,
                                        settings.model_directory_name, "binned_spectra",
                                        "binned_training_spectra.pickle"))
