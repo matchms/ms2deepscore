@@ -2,7 +2,7 @@ import torch
 from torch import nn
 import torch.nn.functional as F
 from torch import optim
-
+from tqdm import tqdm
 from ms2deepscore.MetadataFeatureGenerator import MetadataVectorizer
 
 
@@ -129,11 +129,12 @@ class PeakBinner(nn.Module):
         outputs[-1] = self.linear_layers[-1](x[:, i*self.group_size:(i+1)*self.group_size])
 
         # Concatenate all outputs
-        return torch.cat(outputs, dim=1)
+        return F.relu(torch.cat(outputs, dim=1))
 
     def output_size(self):
         return self.groups * self.output_per_group
-        
+
+
 class SpectralEncoder(nn.Module):
     def __init__(self, min_mz: float,
                  max_mz: float,
@@ -236,22 +237,32 @@ def train(model, data_generator, num_epochs, learning_rate,
     optimizer = optim.Adam(model.parameters(), lr=learning_rate)
 
     model.train(True)
+
+    #starts = [i*data_generator.settings.batch_size for i in range(len(data_generator))]
     for epoch in range(num_epochs):
-        for spectra, targets in data_generator:
-            optimizer.zero_grad()
+        #print(f"Epoch [{epoch+1}/{num_epochs}]:")
+        with tqdm(data_generator, unit="batch", mininterval=0) as bar:
+            bar.set_description(f"Epoch {epoch}")
+            for spectra, targets in bar: #tqdm(data_generator):
+                optimizer.zero_grad()
+    
+                # Forward pass
+                outputs = model(spectra)
+                # Calculate loss
+                loss = criterion(outputs, targets)
+                loss += l1_regularization(model, lambda_l1) + l2_regularization(model, lambda_l2)
+    
+                # Backward pass and optimize
+                loss.backward()
+                optimizer.step()
 
-            # Forward pass
-            outputs = model(spectra)
-            # Calculate loss
-            loss = criterion(outputs, targets)
-            loss += l1_regularization(model, lambda_l1) + l2_regularization(model, lambda_l2)
+                # Print progress
+                bar.set_postfix(
+                    loss=float(loss),
+                )
 
-            # Backward pass and optimize
-            loss.backward()
-            optimizer.step()
-
-            # Print statistics
-            print(f'Epoch [{epoch+1}/{num_epochs}], Loss: {loss.item():.4f}')
+        # Print statistics
+        print(f"Epoch [{epoch+1}/{num_epochs}], Loss: {loss.item():.4f}")
 
 
 ### Helper functions

@@ -73,6 +73,7 @@ class DataGeneratorPytorch:
             return batch
         else:
             self.current_index = 0  # make generator executable again
+            self.on_epoch_end()
             raise StopIteration
 
     def _spectrum_pair_generator(self, batch_index: int):
