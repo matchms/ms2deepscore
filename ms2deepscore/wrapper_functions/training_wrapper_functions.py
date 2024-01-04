@@ -40,7 +40,8 @@ def train_ms2deepscore_wrapper(spectra_file_path,
                                                settings.model_directory_name,
                                                settings.model_file_name)
     calculate_true_values_and_predictions_for_validation_spectra(
-        stored_training_data,
+        positive_validation_spectra=stored_training_data.load_positive_train_split("validation"),
+        negative_validation_spectra=stored_training_data.load_negative_train_split("validation"),
         ms2deepsore_model_file_name=ms2deepsore_model_file_name,
         results_directory=os.path.join(stored_training_data.trained_models_folder,
                                        settings.model_directory_name, "benchmarking_results"))

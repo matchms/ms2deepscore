@@ -2,7 +2,7 @@ import os
 from typing import List
 import numpy as np
 import pandas as pd
-from matchms import Spectrum
+from matchms.Spectrum import Spectrum
 from matchms.similarity.vector_similarity_functions import \
     jaccard_similarity_matrix
 from rdkit import Chem
@@ -13,21 +13,16 @@ from ms2deepscore.models import load_model
 from ms2deepscore.train_new_model.spectrum_pair_selection import \
     select_inchi_for_unique_inchikeys
 from ms2deepscore.utils import save_pickled_file
-from ms2deepscore.wrapper_functions.training_wrapper_functions import StoreTrainingData
 
 
-def calculate_true_values_and_predictions_for_validation_spectra(
-        stored_training_data: StoreTrainingData,
-        ms2deepsore_model_file_name,
-        results_directory):
+def calculate_true_values_and_predictions_for_validation_spectra(positive_validation_spectra: List[Spectrum],
+                                                                 negative_validation_spectra: List[Spectrum],
+                                                                 ms2deepsore_model_file_name,
+                                                                 results_directory):
     os.makedirs(results_directory, exist_ok=True)
-    positive_validation_spectra = stored_training_data.load_positive_train_split("validation")
-    negative_validation_spectra = stored_training_data.load_negative_train_split("validation")
-    both_validation_spectra = positive_validation_spectra + negative_validation_spectra
-
     validation_spectra = {"positive": positive_validation_spectra,
                           "negative": negative_validation_spectra,
-                          "both": both_validation_spectra}
+                          "both": positive_validation_spectra + negative_validation_spectra}
     # Load in MS2Deepscore model
     ms2deepscore_model = MS2DeepScore(load_model(ms2deepsore_model_file_name))
 
