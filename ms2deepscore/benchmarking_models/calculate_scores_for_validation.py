@@ -2,12 +2,11 @@ import os
 from typing import List
 import numpy as np
 import pandas as pd
-from matchms.Spectrum import Spectrum
 from matchms.similarity.vector_similarity_functions import \
     jaccard_similarity_matrix
+from matchms.Spectrum import Spectrum
 from rdkit import Chem
 from tqdm import tqdm
-
 from ms2deepscore import MS2DeepScore
 from ms2deepscore.models import load_model
 from ms2deepscore.train_new_model.spectrum_pair_selection import \

@@ -1,7 +1,6 @@
 import os
 import pickle
-from typing import List, Generator
-
+from typing import Generator, List
 from matchms import Spectrum
 from matchms.importing import load_spectra
 

@@ -1,5 +1,6 @@
 import numpy as np
-from ms2deepscore.wrapper_functions.plotting_wrapper_functions import create_all_plots
+from ms2deepscore.wrapper_functions.plotting_wrapper_functions import \
+    create_all_plots
 from tests.create_test_spectra import pesticides_test_spectra
 
 

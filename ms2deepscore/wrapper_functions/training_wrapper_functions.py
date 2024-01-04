@@ -2,19 +2,20 @@
 reducing the amount of rerunning that is necessary"""
 
 import os
-
 from matchms.exporting import save_spectra
 from matchms.importing import load_spectra
-
-from ms2deepscore.train_new_model.SettingMS2Deepscore import \
-    SettingsMS2Deepscore
-from ms2deepscore.train_new_model.split_positive_and_negative_mode import split_by_ionmode
-from ms2deepscore.train_new_model.train_ms2deepscore import train_ms2ds_model
 from ms2deepscore.benchmarking_models.calculate_scores_for_validation import \
     calculate_true_values_and_predictions_for_validation_spectra
-from ms2deepscore.train_new_model.validation_and_test_split import split_spectra_in_random_inchikey_sets
+from ms2deepscore.train_new_model.SettingMS2Deepscore import \
+    SettingsMS2Deepscore
+from ms2deepscore.train_new_model.split_positive_and_negative_mode import \
+    split_by_ionmode
+from ms2deepscore.train_new_model.train_ms2deepscore import train_ms2ds_model
+from ms2deepscore.train_new_model.validation_and_test_split import \
+    split_spectra_in_random_inchikey_sets
 from ms2deepscore.utils import load_spectra_as_list
-from ms2deepscore.wrapper_functions.plotting_wrapper_functions import create_plots_between_all_ionmodes
+from ms2deepscore.wrapper_functions.plotting_wrapper_functions import \
+    create_plots_between_all_ionmodes
 
 
 def train_ms2deepscore_wrapper(spectra_file_path,

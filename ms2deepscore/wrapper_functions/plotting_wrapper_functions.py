@@ -1,11 +1,11 @@
 import os
 import numpy as np
 from matplotlib import pyplot as plt
+from ms2deepscore.benchmarking_models.plot_stacked_histogram import (
+    plot_reversed_stacked_histogram_plot, plot_stacked_histogram_plot_wrapper)
+from ms2deepscore.benchmarking_models.select_spectrum_pairs_for_visualization import \
+    sample_spectra_multiple_times
 from ms2deepscore.utils import load_pickled_file, load_spectra_as_list
-
-from ms2deepscore.benchmarking_models.plot_stacked_histogram import plot_stacked_histogram_plot_wrapper, \
-    plot_reversed_stacked_histogram_plot
-from ms2deepscore.benchmarking_models.select_spectrum_pairs_for_visualization import sample_spectra_multiple_times
 
 
 def create_all_plots(predictions,
