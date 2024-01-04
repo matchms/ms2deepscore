@@ -1,5 +1,4 @@
 import os
-from typing import List
 import numpy as np
 from matplotlib import pyplot as plt
 from ms2deepscore.utils import load_pickled_file, load_spectra_as_list

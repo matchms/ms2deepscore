@@ -7,7 +7,7 @@ from matplotlib.colors import LinearSegmentedColormap
 
 def plot_reversed_stacked_histogram_plot(tanimoto_scores: np.array,
                                          ms2deepscore_predictions: np.array,
-                                         title,
+                                         title="",
                                          ms2deepscore_nr_of_bin_correction=1.0):
     if tanimoto_scores.max() > 1 or tanimoto_scores.min() < 0:
         raise ValueError("The tanimoto score predictions are not between 0 and 1. "
@@ -26,7 +26,7 @@ def plot_reversed_stacked_histogram_plot(tanimoto_scores: np.array,
 def plot_stacked_histogram_plot_wrapper(tanimoto_scores: np.array,
                                         ms2deepscore_predictions: np.array,
                                         n_bins,
-                                        title,
+                                        title="",
                                         ms2deepscore_nr_of_bin_correction=1.0):
     """Create histogram based score comparison.
 
