@@ -228,7 +228,7 @@ class SpectralEncoder(nn.Module):
 
 ### Model training
 
-def train(model, train_loader, num_epochs, learning_rate,
+def train(model, data_generator, num_epochs, learning_rate,
           lambda_l1=1e-6,
           lambda_l2=1e-6):
     # pylint: disable=too-many-arguments
@@ -237,7 +237,7 @@ def train(model, train_loader, num_epochs, learning_rate,
 
     model.train(True)
     for epoch in range(num_epochs):
-        for spectra, targets in train_loader:
+        for spectra, targets in data_generator:
             optimizer.zero_grad()
 
             # Forward pass

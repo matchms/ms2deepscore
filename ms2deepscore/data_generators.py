@@ -4,6 +4,7 @@ from typing import Iterator, List, NamedTuple, Optional
 from matchms import Spectrum
 import numpy as np
 import pandas as pd
+import torch
 from tensorflow.keras.utils import Sequence  # pylint: disable=import-error
 from ms2deepscore.SpectrumBinner import SpectrumBinner
 from ms2deepscore.train_new_model.spectrum_pair_selection import \
@@ -107,7 +108,7 @@ class DataGeneratorPytorch:
         if self.settings.use_fixed_set:
             # Store batches for later epochs
             self.fixed_set[batch_index] = (pairs, targets)
-        return pairs, targets
+        return pairs, torch.tensor(targets, dtype=torch.float32)
 
     def _split_pairs_and_targets(self, spectrum_pairs):
         pairs = []
