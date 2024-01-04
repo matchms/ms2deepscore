@@ -1,11 +1,31 @@
 import os
 import numpy as np
+from tqdm import tqdm
 from matplotlib import pyplot as plt
 from ms2deepscore.benchmarking_models.plot_stacked_histogram import (
     plot_reversed_stacked_histogram_plot, plot_stacked_histogram_plot_wrapper)
 from ms2deepscore.benchmarking_models.select_spectrum_pairs_for_visualization import \
     sample_spectra_multiple_times
 from ms2deepscore.utils import load_pickled_file, load_spectra_as_list
+
+
+def create_plots_for_all_models(models_directory,
+                                results_folder=None):
+    """Creates the plots for all models in a directory
+
+    models_directory:
+        A folder with directories containing trained ms2deepscore models
+    results_folder:
+        The folder to store the plots, if None, it will be stored in the folders of the models under benchmarking/plots"""
+
+    for model_dir_name in tqdm(os.listdir(models_directory)):
+        model_dir = os.path.join(models_directory, model_dir_name)
+        if os.path.isdir(model_dir):
+            if results_folder is not None:
+                results_folder_per_model = os.path.join(results_folder, model_dir)
+            else:
+                results_folder_per_model = None
+            create_plots_between_all_ionmodes(models_directory, results_folder_per_model)
 
 
 def create_plots_between_all_ionmodes(model_directory,
