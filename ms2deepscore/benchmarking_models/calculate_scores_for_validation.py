@@ -31,32 +31,20 @@ def calculate_true_values_and_predictions_for_validation_spectra(positive_valida
                             ("both", "both"))
 
     for ionmode_1, ionmode_2 in possible_comparisons:
-        store_true_values(validation_spectra[ionmode_1], validation_spectra[ionmode_2],
-                          os.path.join(results_directory, f"{ionmode_1}_{ionmode_2}_true_values.pickle"))
-        store_predictions(validation_spectra[ionmode_1], validation_spectra[ionmode_2],
-                          os.path.join(results_directory, f"{ionmode_1}_{ionmode_2}_predictions.pickle"),
-                          ms2deepscore_model)
+        file_name_true_values = os.path.join(results_directory, f"{ionmode_1}_{ionmode_2}_true_values.pickle")
+        file_name_predictions = os.path.join(results_directory, f"{ionmode_1}_{ionmode_2}_predictions.pickle")
+        if os.path.exists(file_name_true_values) or os.path.exists(file_name_predictions):
+            raise FileExistsError
 
+        true_values = get_tanimoto_score_between_spectra(validation_spectra[ionmode_1],
+                                                         validation_spectra[ionmode_2])
+        save_pickled_file(true_values, file_name_true_values)
 
-def store_true_values(val_spectra_1, val_spectra_2, file_name):
-    if os.path.exists(file_name):
-        raise FileExistsError
-    else:
-        # Calculate true values
-        true_values = get_tanimoto_score_between_spectra(val_spectra_1, val_spectra_2)
-        save_pickled_file(true_values, file_name)
-
-
-def store_predictions(val_spectra_1: List[Spectrum],
-                      val_spectra_2: List[Spectrum],
-                      predictions_file_name: str,
-                      ms2ds_model: MS2DeepScore):
-    if os.path.exists(predictions_file_name):
-        raise FileExistsError
-    else:
-        is_symmetric = (val_spectra_1 == val_spectra_2)
-        predictions = ms2ds_model.matrix(val_spectra_1, val_spectra_2, is_symmetric=is_symmetric)
-        save_pickled_file(predictions, predictions_file_name)
+        predictions = ms2deepscore_model.matrix(
+            validation_spectra[ionmode_1],
+            validation_spectra[ionmode_2],
+            is_symmetric=(validation_spectra[ionmode_1] == validation_spectra[ionmode_2]))
+        save_pickled_file(predictions, file_name_predictions)
 
 
 def calculate_tanimoto_scores_unique_inchikey(list_of_spectra_1: List[Spectrum],
