@@ -238,18 +238,26 @@ def train(model, data_generator, num_epochs, learning_rate,
 
     model.train(True)
 
-    #starts = [i*data_generator.settings.batch_size for i in range(len(data_generator))]
+    losses = []
+    collection_targets = []
+    #collection_predictions = []
     for epoch in range(num_epochs):
         with tqdm(data_generator, unit="batch", mininterval=0) as training:
             training.set_description(f"Epoch {epoch}")
+            batch_losses = []
             for spectra, targets in training:
+                # For debugging: keep track of biases
+                collection_targets.extend(targets)
+                
                 optimizer.zero_grad()
     
                 # Forward pass
                 outputs = model(spectra)
+
                 # Calculate loss
                 loss = criterion(outputs, targets)
                 loss += l1_regularization(model, lambda_l1) + l2_regularization(model, lambda_l2)
+                batch_losses.append(float(loss))
     
                 # Backward pass and optimize
                 loss.backward()
@@ -261,7 +269,9 @@ def train(model, data_generator, num_epochs, learning_rate,
                 )
 
         # Print statistics
-        print(f"Epoch [{epoch+1}/{num_epochs}], Loss: {loss.item():.4f}")
+        print(f"Epoch [{epoch+1}/{num_epochs}], Loss: {np.mean(batch_losses):.4f}")
+        losses.append(np.mean(batch_losses))
+    return losses, collection_targets
 
 
 ### Helper functions
