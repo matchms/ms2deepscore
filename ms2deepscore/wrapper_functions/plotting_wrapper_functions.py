@@ -1,13 +1,15 @@
 import os
 import numpy as np
 from tqdm import tqdm
+from typing import List
+from matchms.Spectrum import Spectrum
 from matplotlib import pyplot as plt
 from ms2deepscore.benchmarking_models.plot_stacked_histogram import (
     plot_reversed_stacked_histogram_plot, plot_stacked_histogram_plot_wrapper)
 from ms2deepscore.benchmarking_models.select_spectrum_pairs_for_visualization import \
     sample_spectra_multiple_times
 from ms2deepscore.utils import load_pickled_file, load_spectra_as_list
-
+from ms2deepscore.benchmarking_models.plot_rmse_per_bin import plot_rmse_per_bin
 
 def create_plots_for_all_models(models_directory,
                                 results_folder=None):
@@ -60,19 +62,25 @@ def create_plots_between_all_ionmodes(model_directory,
                          file_name_prefix=f"{ionmode_1}_vs_{ionmode_2}")
 
 
-def create_all_plots(predictions,
-                     true_values,
-                     val_spectra_1,
-                     val_spectra_2,
+def create_all_plots(predictions: np.array,
+                     true_values: np.array,
+                     val_spectra_1: List[Spectrum],
+                     val_spectra_2: List[Spectrum],
                      benchmarking_results_folder,
-                     file_name_prefix,
+                     file_name_prefix: str,
                      ):  # pylint: disable=too-many-arguments
     """Creates and saves plots and in between files for validation spectra
 
-    Arguments:
-        predictions: The predictions made by the model
-        true_values: The true values predicted by the model
-        benchmarking_results_file_names: Class storing all the default file names and folder structure
+    predictions:
+        A matrix with the predictions made by the model.
+    true_values:
+        The true values predicted by the model
+    val_spectra_1:
+        The validation spectra.
+    val_spectra_2:
+    benchmarking_results_folder:
+    file_name_prefix:
+        Used for title and legends in figures and for file names. (for instance positive vs negative)
     """
 
     selected_predictions, selected_true_values = sample_spectra_multiple_times(val_spectra=val_spectra_1,
@@ -90,13 +98,8 @@ def create_all_plots(predictions,
     plot_reversed_stacked_histogram_plot(
         tanimoto_scores=selected_true_values, ms2deepscore_predictions=selected_predictions,
         title=file_name_prefix.replace("_", ""))
-    plt.savefig(os.path.join(benchmarking_results_folder, f"{file_name_prefix}reversed_stacked_histogram.svg"))
+    plt.savefig(os.path.join(benchmarking_results_folder, f"{file_name_prefix}_reversed_stacked_histogram.svg"))
 
-    # todo add the RMSE plot.
-    mae = np.abs(selected_predictions - selected_true_values).mean()
-    rmse = np.sqrt(np.square(selected_predictions - selected_true_values).mean())
-    summary = f"For {file_name_prefix} the mae={mae} and rmse={rmse}\n"
+    plot_rmse_per_bin(selected_true_values, selected_true_values)
+    plt.savefig(os.path.join(benchmarking_results_folder, f"{file_name_prefix}_RMSE_per_bin.svg"))
 
-    # with open(benchmarking_results_file_names.averages_summary_file_name, "a", encoding="utf-8") as f:
-    #     f.write(summary)
-    print(summary)

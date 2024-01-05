@@ -7,7 +7,6 @@ def tanimoto_dependent_losses(predictions, true_values, ref_score_bins):
 
     Parameters
     ----------
-
     predictions
         Scores that should be evaluated
     true_values
@@ -20,8 +19,6 @@ def tanimoto_dependent_losses(predictions, true_values, ref_score_bins):
     maes = []
     bounds = []
     ref_scores_bins_inclusive = ref_score_bins.copy()
-    ref_scores_bins_inclusive[0] = -np.inf
-    ref_scores_bins_inclusive[-1] = np.inf
     for i in range(len(ref_scores_bins_inclusive) - 1):
         low = ref_scores_bins_inclusive[i]
         high = ref_scores_bins_inclusive[i + 1]
@@ -34,8 +31,8 @@ def tanimoto_dependent_losses(predictions, true_values, ref_score_bins):
 
 
 def plot_rmse_per_bin(predicted_scores, true_scores):
-    ref_score_bins = np.linspace(0, 1.0, 11)
-    bin_content, bounds, rmses, _ = tanimoto_dependent_losses(predicted_scores, true_scores, ref_score_bins)
+    ref_score_bins = np.linspace(0, 1.0000001, 11)
+    bin_content, bounds, rmses, maes = tanimoto_dependent_losses(predicted_scores, true_scores, ref_score_bins)
 
     _, (ax1, ax2) = plt.subplots(2, 1, sharex=True, figsize=(4, 5), dpi=120)
 
@@ -48,7 +45,7 @@ def plot_rmse_per_bin(predicted_scores, true_scores):
     ax2.set_title('# of spectrum pairs')
     ax2.set_ylabel("# of spectrum pairs")
     ax2.set_xlabel("Tanimoto score bin")
-    plt.yscale('log')
+    ax2.set_ylim(bottom=0)
     plt.xticks(np.arange(len(rmses)),
                [f"{a:.1f} to < {b:.1f}" for (a, b) in bounds], fontsize=9, rotation='vertical')
     ax2.grid(True)
