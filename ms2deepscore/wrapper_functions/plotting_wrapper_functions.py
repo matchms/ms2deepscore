@@ -93,22 +93,22 @@ def create_all_plots(predictions: np.array,
     file_name_prefix:
         Used for title and legends in figures and for file names. (for instance positive vs negative)
     """
-
+    nr_of_sample_times = 100
     selected_predictions, selected_true_values = sample_spectra_multiple_times(val_spectra=val_spectra_1,
                                                                                val_spectra_other_mode=val_spectra_2,
                                                                                predicted_values=predictions,
                                                                                true_values=true_values,
-                                                                               nr_of_sample_times=100)
+                                                                               nr_of_sample_times=nr_of_sample_times)
     # Create plots
     plot_stacked_histogram_plot_wrapper(
         ms2deepscore_predictions=selected_predictions, tanimoto_scores=selected_true_values, n_bins=10,
-        title=file_name_prefix.replace("_", ""))
+        title=file_name_prefix.replace("_", ""), ms2deepscore_nr_of_bin_correction=nr_of_sample_times)
     plt.savefig(os.path.join(benchmarking_results_folder, f"{file_name_prefix}_stacked_histogram.svg"))
 
     # Create reverse plot
     plot_reversed_stacked_histogram_plot(
         tanimoto_scores=selected_true_values, ms2deepscore_predictions=selected_predictions,
-        title=file_name_prefix.replace("_", ""))
+        title=file_name_prefix.replace("_", ""), ms2deepscore_nr_of_bin_correction=nr_of_sample_times)
     plt.savefig(os.path.join(benchmarking_results_folder, f"{file_name_prefix}_reversed_stacked_histogram.svg"))
 
     plot_rmse_per_bin(selected_true_values, selected_true_values)
