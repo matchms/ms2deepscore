@@ -9,7 +9,8 @@ from ms2deepscore.benchmarking_models.plot_stacked_histogram import (
 from ms2deepscore.benchmarking_models.select_spectrum_pairs_for_visualization import \
     sample_spectra_multiple_times
 from ms2deepscore.utils import load_pickled_file, load_spectra_as_list
-from ms2deepscore.benchmarking_models.plot_rmse_per_bin import plot_rmse_per_bin
+from ms2deepscore.benchmarking_models.plot_rmse_per_bin import plot_rmse_per_bin, plot_rmse_per_bin_multiple_benchmarks
+
 
 def create_plots_for_all_models(models_directory,
                                 results_folder=None):
@@ -48,18 +49,28 @@ def create_plots_between_all_ionmodes(model_directory,
                             ("negative", "positive"),
                             ("negative", "negative"),
                             ("both", "both"))
-
+    all_selected_true_values = []
+    all_selected_predictions = []
+    all_labels = []
     for ionmode_1, ionmode_2 in possible_comparisons:
-        create_all_plots(predictions=load_pickled_file(os.path.join(model_directory,
-                                                                    "benchmarking_results",
-                                                                    f"{ionmode_1}_{ionmode_2}_predictions.pickle")),
-                         true_values=load_pickled_file(os.path.join(model_directory,
-                                                                    "benchmarking_results",
-                                                                    f"{ionmode_1}_{ionmode_2}_true_values.pickle")),
-                         val_spectra_1=validation_spectra[ionmode_1],
-                         val_spectra_2=validation_spectra[ionmode_2],
-                         benchmarking_results_folder=results_folder,
-                         file_name_prefix=f"{ionmode_1}_vs_{ionmode_2}")
+        selected_true_values, selected_predictions = create_all_plots(
+            predictions=load_pickled_file(os.path.join(model_directory,
+                                                       "benchmarking_results",
+                                                       f"{ionmode_1}_{ionmode_2}_predictions.pickle")),
+            true_values=load_pickled_file(os.path.join(model_directory,
+                                                       "benchmarking_results",
+                                                       f"{ionmode_1}_{ionmode_2}_true_values.pickle")),
+            val_spectra_1=validation_spectra[ionmode_1],
+            val_spectra_2=validation_spectra[ionmode_2],
+            benchmarking_results_folder=results_folder,
+            file_name_prefix=f"{ionmode_1}_vs_{ionmode_2}")
+        all_selected_true_values.append(selected_true_values)
+        all_selected_predictions.append(selected_predictions)
+        all_labels.append(f"{ionmode_1} vs {ionmode_2}")
+    plot_rmse_per_bin_multiple_benchmarks(list_of_predicted_scores=all_selected_predictions,
+                                          list_of_true_values=all_selected_true_values,
+                                          labels=all_labels)
+    plt.savefig(os.path.join(results_folder, f"RMSE_comparison.svg"))
 
 
 def create_all_plots(predictions: np.array,
@@ -102,4 +113,4 @@ def create_all_plots(predictions: np.array,
 
     plot_rmse_per_bin(selected_true_values, selected_true_values)
     plt.savefig(os.path.join(benchmarking_results_folder, f"{file_name_prefix}_RMSE_per_bin.svg"))
-
+    return selected_true_values, selected_predictions

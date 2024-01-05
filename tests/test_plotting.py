@@ -4,6 +4,7 @@ from ms2deepscore.benchmarking_models.plot_stacked_histogram import (
     plot_stacked_histogram_plot_wrapper)
 from ms2deepscore.benchmarking_models.plotting import \
     create_confusion_matrix_plot
+from ms2deepscore.benchmarking_models.plot_rmse_per_bin import plot_rmse_per_bin_multiple_benchmarks
 
 
 def test_create_confusion_matrix_plot():
@@ -19,7 +20,7 @@ def test_calculate_histograms():
     tanimoto_bins[-1] = 1.0000000001
     normalized_counts_per_bin, used_ms2deepscore_bins_per_bin, percentage_of_total_pairs_per_bin = \
         calculate_all_histograms(np.random.random((100, 100)), np.random.random((100, 100)), tanimoto_bins)
-    
+
     # Ensure the number of histograms, used bins and bin contents are the same
     assert len(normalized_counts_per_bin) == len(used_ms2deepscore_bins_per_bin) == \
            len(percentage_of_total_pairs_per_bin) == nr_of_bins
@@ -31,7 +32,8 @@ def test_calculate_histograms():
         assert round(ms2deepscore_bins[-1]) == 1
     # Ensure histograms are properly formed
     for i in range(len(normalized_counts_per_bin)):
-        assert len(normalized_counts_per_bin[i]) == len(used_ms2deepscore_bins_per_bin[i]) - 1  # histogram frequencies and bin edges
+        assert len(normalized_counts_per_bin[i]) == len(
+            used_ms2deepscore_bins_per_bin[i]) - 1  # histogram frequencies and bin edges
 
 
 def test_plot_histograms():
@@ -47,3 +49,13 @@ def test_reverse_plot_stacked_histogram():
     dimension = (100, 100)
     plot_reversed_stacked_histogram_plot(np.random.random(dimension) ** 2,
                                          np.random.random(dimension) ** 2)
+
+
+def test_plot_rmse_per_bin():
+    plot_rmse_per_bin_multiple_benchmarks(
+        [np.random.random((200, 200)) ** 3, np.random.random((100, 100)) ** 1,
+         np.random.random((200, 100)) ** 1, np.random.random((300, 300)) ** 1, ],
+        [np.random.random((200, 200)) ** 3, np.random.random((100, 100)) ** 3,
+         np.random.random((200, 100)) ** 2, np.random.random((300, 300)) ** 2, ],
+        ["positive vs positive", 'negative vs negative',
+         "positive vs negative", "both vs both"])
