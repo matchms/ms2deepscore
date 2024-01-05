@@ -3,7 +3,6 @@ from torch import nn
 import torch.nn.functional as F
 from torch import optim
 from tqdm import tqdm
-from ms2deepscore.MetadataFeatureGenerator import MetadataVectorizer
 
 
 class SiameseSpectralModel(nn.Module):
@@ -190,7 +189,6 @@ def train(model, data_generator, num_epochs, learning_rate,
 
     losses = []
     collection_targets = []
-    #collection_predictions = []
     for epoch in range(num_epochs):
         with tqdm(data_generator, unit="batch", mininterval=0) as training:
             training.set_description(f"Epoch {epoch}")

@@ -13,7 +13,7 @@ from .train_new_model.SettingMS2Deepscore import GeneratorSettings
 from .typing import BinnedSpectrumType
 
 
-class DataGeneratorPytorch(Dataset):
+class DataGeneratorPytorch:
     """Generates data for training a siamese Keras model.
 
     This class provides a data generator specifically
@@ -145,7 +145,10 @@ class DataGeneratorPytorch(Dataset):
         return binned_spectra_1, binned_spectra_2, metadata_1, metadata_2, torch.tensor(targets, dtype=torch.float32)
 
     def _tensorize_spectra(self, spectra):
-        # Assuming spectra is a list of matchms Spectrum objects (with 'peaks.mz' and 'peaks.intensities' attributes)
+        """
+        Assuming spectra is a list of matchms Spectrum objects 
+        (with 'peaks.mz' and 'peaks.intensities' attributes).
+        """
         binned_spectra = torch.zeros((len(spectra), self.num_bins))
 
         for i, spectrum in enumerate(spectra):
