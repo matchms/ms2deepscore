@@ -13,7 +13,7 @@ from .train_new_model.SettingMS2Deepscore import GeneratorSettings
 from .typing import BinnedSpectrumType
 
 
-class DataGeneratorPytorch:
+class DataGeneratorPytorch(Dataset):
     """Generates data for training a siamese Keras model.
 
     This class provides a data generator specifically
@@ -24,6 +24,8 @@ class DataGeneratorPytorch:
     """
     def __init__(self, spectrums: list[Spectrum],
                  selected_compound_pairs: SelectedCompoundPairs,
+                 min_mz, max_mz, mz_bin_width, intensity_scaling,
+                 metadata_vectorizer,
                  **settings):
         """Generates data for training a siamese Keras model.
 
@@ -34,6 +36,18 @@ class DataGeneratorPytorch:
         selected_compound_pairs
             SelectedCompoundPairs object which contains selected compounds pairs and the
             respective similarity scores.
+        min_mz
+            Lower bound for m/z values to consider.
+        max_mz
+            Upper bound for m/z values to consider.
+        mz_bin_width
+            Bin width for m/z sampling.
+        intensity_scaling
+            To put more attention on small and medium intensity peaks, peak intensities are
+             scaled by intensity to the power of intensity_scaling.
+        metadata_vectorizer
+            Add the specific MetadataVectorizer object for your data if the model should contain specific
+            metadata entries as input. Default is set to None which means this will be ignored.
         settings
             The available settings can be found in GeneratorSettings
         """
@@ -45,6 +59,13 @@ class DataGeneratorPytorch:
 
         # Set all other settings to input (or otherwise to defaults):
         self.settings = GeneratorSettings(settings)
+        self.min_mz = min_mz
+        self.max_mz = max_mz
+        self.mz_bin_width = mz_bin_width
+        self.intensity_scaling = intensity_scaling
+        self.num_bins = int((max_mz - min_mz) / mz_bin_width)
+        self.metadata_vectorizer = metadata_vectorizer
+
         unique_inchikeys = np.unique(self.spectrum_inchikeys)
         if len(unique_inchikeys) < self.settings.batch_size:
             raise ValueError("The number of unique inchikeys must be larger than the batch size.")
@@ -64,10 +85,10 @@ class DataGeneratorPytorch:
             batch = self.__getitem__(self.current_index)
             self.current_index += 1
             return batch
-
-        self.current_index = 0  # make generator executable again
-        self.on_epoch_end()
-        raise StopIteration
+        else:
+            self.current_index = 0  # make generator executable again
+            self.on_epoch_end()
+            raise StopIteration
 
     def _spectrum_pair_generator(self, batch_index: int):
         """Use the provided SelectedCompoundPairs object to pick pairs."""
@@ -81,7 +102,7 @@ class DataGeneratorPytorch:
             yield (spectrum1, spectrum2, score)
 
     def on_epoch_end(self):
-        """Updates indexes after each epoch"""
+        """Updates indexes after each epoch."""
         self.indexes = np.tile(np.arange(len(self.selected_compound_pairs.scores)), int(self.settings.num_turns))
         if self.settings.shuffle:
             np.random.shuffle(self.indexes)
@@ -97,21 +118,43 @@ class DataGeneratorPytorch:
         if self.settings.random_seed is not None and batch_index == 0:
             np.random.seed(self.settings.random_seed)
         spectrum_pairs = self._spectrum_pair_generator(batch_index)
-        pairs, targets = self._split_pairs_and_targets(spectrum_pairs)
-        # X, y = self._data_generation(spectrum_pairs)
+        spectra_1, spectra_2, meta_1, meta_2, targets = self._tensorize_all(spectrum_pairs)
+
         if self.settings.use_fixed_set:
             # Store batches for later epochs
-            self.fixed_set[batch_index] = (pairs, targets)
-        return pairs, torch.tensor(targets, dtype=torch.float32)
+            self.fixed_set[batch_index] = (spectra_1, spectra_2, targets)
+        return spectra_1, spectra_2, meta_1, meta_2, targets
 
-    def _split_pairs_and_targets(self, spectrum_pairs):
-        pairs = []
+    def _tensorize_all(self, spectrum_pairs):
+        spectra_1 = []
+        spectra_2 = []
         targets = []
         for pair in spectrum_pairs:
-            pairs.append((pair[0], pair[1]))
+            spectra_1.append(pair[0])
+            spectra_2.append(pair[1])
             targets.append(pair[2])
-        return pairs, targets
 
+        binned_spectra_1 = self._tensorize_spectra(spectra_1)
+        binned_spectra_2 = self._tensorize_spectra(spectra_2)
+        if self.metadata_vectorizer is not None:
+            metadata_1 = self.metadata_vectorizer.transform(spectra1)
+            metadata_2 = self.metadata_vectorizer.transform(spectra2)
+        else:
+            metadata_1 = torch.tensor([])
+            metadata_2 = torch.tensor([])
+        return binned_spectra_1, binned_spectra_2, metadata_1, metadata_2, torch.tensor(targets, dtype=torch.float32)
+
+    def _tensorize_spectra(self, spectra):
+        # Assuming spectra is a list of matchms Spectrum objects (with 'peaks.mz' and 'peaks.intensities' attributes)
+        binned_spectra = torch.zeros((len(spectra), self.num_bins))
+
+        for i, spectrum in enumerate(spectra):
+            for mz, intensity in zip(spectrum.peaks.mz, spectrum.peaks.intensities):
+                if self.min_mz <= mz < self.max_mz:
+                    bin_index = int((mz - self.min_mz) / self.mz_bin_width)
+                    binned_spectra[i, bin_index] += intensity ** self.intensity_scaling
+        return binned_spectra
+    
     def _get_spectrum_with_inchikey(self, inchikey: str) -> Spectrum:
         """
         Get a random spectrum matching the `inchikey` argument.

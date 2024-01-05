@@ -121,23 +121,28 @@ def test_DataGeneratorPytorch():
     settings = SettingsMS2Deepscore({"tanimoto_bins": np.array([(x / 4, x / 4 + 0.25) for x in range(0, 4)]),
                                     "average_pairs_per_bin": 1})
     scp, spectrums = select_compound_pairs_wrapper(spectrums, settings)
-
     # Create generator
     test_generator = DataGeneratorPytorch(
         spectrums=spectrums,
+        min_mz=10,
+        max_mz=1000,
+        mz_bin_width=0.1,
+        intensity_scaling=0.5,
+        metadata_vectorizer=None,
         selected_compound_pairs=scp,
         batch_size=batch_size,
         augment_removal_max=0.0,
         augment_removal_intensity=0.0,
         augment_intensity=0.0,
-        augment_noise_max=0
+        augment_noise_max=0,
     )
 
-    x, y = test_generator.__getitem__(0)
-    assert len(x) == batch_size
-    assert len(y) == batch_size
+    spec1, spec2, meta1, meta2, targets = test_generator.__getitem__(0)
+    assert meta1.shape[0] == meta2.shape[0] == 0
+    assert spec1.shape[0] == spec2.shape[0] == batch_size
+    assert spec1.shape[1] == spec2.shape[1] == 9900
+    assert targets.shape[0] == batch_size
     assert len(test_generator.indexes) == 15
-    assert isinstance(x[0][0], Spectrum) and isinstance(x[0][1], Spectrum)
     assert len(test_generator) == 2
 
     counts = []
@@ -145,7 +150,7 @@ def test_DataGeneratorPytorch():
     total = num_of_unique_inchikeys * repetitions
     for _ in range(repetitions):
         for i, batch in enumerate(test_generator):
-            counts.extend(batch[1])
+            counts.extend(batch[4])
     assert len(counts) == total
     assert (np.array(counts) > 0.5).sum() > 0.4 * total
     assert (np.array(counts) <= 0.5).sum() > 0.4 * total

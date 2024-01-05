@@ -13,37 +13,26 @@ class SiameseSpectralModel(nn.Module):
     This head model computes the cosine similarity between the embeddings.
     """
     def __init__(self,
-                 min_mz=0,
-                 max_mz=1000,
-                 mz_bin_width=0.01,
+                 peak_inputs: int,
+                 additional_inputs: int = 0,
                  base_dims: tuple[int, ...] = (1000, 800, 800),
                  embedding_dim: int = 400,
-                 intensity_scaling: float = 0.5,
                  train_binning_layer: bool = True,
                  group_size: int = 30,
                  output_per_group: int = 3,
                  dropout_rate: float = 0.2,
-                 metadata_vectorizer: MetadataVectorizer = None,
+                 
                 ):
         """
         Construct SiameseSpectralModel
 
         Parameters
         ----------
-        min_mz
-            Lower bound for m/z values to consider.
-        max_mz
-            Upper bound for m/z values to consider.
-        mz_bin_width
-            Bin width for m/z sampling.
         base_dims
             Tuple of integers depicting the dimensions of the desired hidden
             layers of the base model
         embedding_dim
             Dimension of the embedding (i.e. the output of the base model)
-        intensity_scaling
-            To put more attention on small and medium intensity peaks, peak intensities are
-             scaled by intensity to the power of intensity_scaling.
         train_binning_layer
             Default is True in which case the model contains a first dense multi-group peak binning layer.
         group_size
@@ -53,61 +42,37 @@ class SiameseSpectralModel(nn.Module):
             This sets the number of next layer bins each group_size sized group of inputs shares.
         dropout_rate
             Dropout rate to be used in the base model.
+        peak_inputs
+            Integer to specify the number of binned peaks in the input spectra.
+        additional_inputs
+            Integer to specify the number of additional (metadata) input fields.
         pytorch_model
             When provided, this pytorch model will be used to construct the SiameseModel instance.
             Default is None.
-        metadata_vectorizer
-            Add the specific MetadataVectorizer object for your data if the model should contain specific
-            metadata entries as input. Default is set to None which means this will be ignored.
         """
         # pylint: disable=too-many-arguments
         super().__init__()
         self.model_parameters = {
-            "min_mz": min_mz,
-            "max_mz": max_mz,
-            "mz_bin_width": mz_bin_width,
             "base_dims": base_dims,
             "embedding_dim": embedding_dim,
-            "intensity_scaling": intensity_scaling,
             "train_binning_layer": train_binning_layer,
             "group_size": group_size,
             "output_per_group": output_per_group,
             "dropout_rate": dropout_rate,
+            "peak_inputs": peak_inputs,
+            "additional_inputs": additional_inputs,
             #TODO: add ms2deepscore version
         }
-        self.metadata_vectorizer = metadata_vectorizer
-        self.encoder = SpectralEncoder(metadata_vectorizer=metadata_vectorizer, **self.model_parameters)
+        self.encoder = SpectralEncoder(**self.model_parameters)
 
-    def forward(self, spectra_pairs):
+    def forward(self, spectra_tensors_1, spectra_tensors_2, metadata_1, metadata_2):
         # Pass both inputs through the same encoder
-        encoded_x1 = self.encoder([s[0] for s in spectra_pairs])
-        encoded_x2 = self.encoder([s[1] for s in spectra_pairs])
+        encoded_x1 = self.encoder(spectra_tensors_1, metadata_1)
+        encoded_x2 = self.encoder(spectra_tensors_2, metadata_2)
 
         # Calculate cosine similarity
         cos_sim = nn.CosineSimilarity(dim=1, eps=1e-6)(encoded_x1, encoded_x2)
         return cos_sim
-
-
-class BinnedSpectraLayer(nn.Module):
-    def __init__(self, min_mz, max_mz, mz_bin_width, intensity_scaling):
-        super().__init__()
-        self.min_mz = min_mz
-        self.max_mz = max_mz
-        self.mz_bin_width = mz_bin_width
-        self.num_bins = int((max_mz - min_mz) / mz_bin_width)
-        self.intensity_scaling = intensity_scaling
-
-    def forward(self, spectra):
-        # Assuming spectra is a list of matchms Spectrum objects (with 'peaks.mz' and 'peaks.intensities' attributes)
-        binned_spectra = torch.zeros((len(spectra), self.num_bins))
-
-        for i, spectrum in enumerate(spectra):
-            for mz, intensity in zip(spectrum.peaks.mz, spectrum.peaks.intensities):
-                if self.min_mz <= mz < self.max_mz:
-                    bin_index = int((mz - self.min_mz) / self.mz_bin_width)
-                    binned_spectra[i, bin_index] += intensity ** self.intensity_scaling
-
-        return binned_spectra
 
 
 class PeakBinner(nn.Module):
@@ -136,33 +101,22 @@ class PeakBinner(nn.Module):
 
 
 class SpectralEncoder(nn.Module):
-    def __init__(self, min_mz: float,
-                 max_mz: float,
-                 mz_bin_width: float,
+    def __init__(self,
                  base_dims,
                  embedding_dim,
-                 intensity_scaling,
                  dropout_rate,
                  train_binning_layer: bool, group_size: int, output_per_group: int,
-                 metadata_vectorizer,
+                 peak_inputs: int,
+                 additional_inputs: int,
                  ):
         """
         Parameters
         ----------
-        min_mz
-            Lower bound for m/z values to consider.
-        max_mz
-            Upper bound for m/z values to consider.
-        mz_bin_width
-            Bin width for m/z sampling.
         base_dims
             Tuple of integers depicting the dimensions of the desired hidden
             layers of the base model
         embedding_dim
             Dimension of the embedding (i.e. the output of the base model)
-        intensity_scaling
-            To put more attention on small and medium intensity peaks, peak intensities are
-             scaled by intensity to the power of intensity_scaling.
         train_binning_layer
             Default is True in which case the model contains a first dense multi-group peak binning layer.
         group_size
@@ -172,29 +126,24 @@ class SpectralEncoder(nn.Module):
             This sets the number of next layer bins each group_size sized group of inputs shares.
         dropout_rate
             Dropout rate to be used in the base model.
-        metadata_vectorizer
-            Add the specific MetadataVectorizer object for your data if the model should contain specific
-            metadata entries as input. Default is set to None which means this will be ignored.
+        peak_inputs
+            Integer to specify the number of binned peaks in the input spectra.
+        additional_inputs
+            Integer to specify the number of additional (metadata) input fields.
         """
         # pylint: disable=too-many-arguments, too-many-locals
         super().__init__()
-        self.binning_layer = BinnedSpectraLayer(min_mz, max_mz, mz_bin_width, intensity_scaling)
-        self.metadata_vectorizer = metadata_vectorizer
+        #self.binning_layer = BinnedSpectraLayer(min_mz, max_mz, mz_bin_width, intensity_scaling)
         self.train_binning_layer = train_binning_layer
 
-        # Consider additing metadata vector
-        if metadata_vectorizer is None:
-            additional_inputs = 0
-        else:
-            additional_inputs = metadata_vectorizer.size
         # First dense layer (no dropout!)
         self.dense_layers = []
         if self.train_binning_layer:
-            self.peak_binner = PeakBinner(self.binning_layer.num_bins,
+            self.peak_binner = PeakBinner(peak_inputs,
                                           group_size, output_per_group)
             input_size = self.peak_binner.output_size() + additional_inputs
         else:
-            input_size = self.binning_layer.num_bins + additional_inputs
+            input_size = peak_inputs + additional_inputs
         self.dense_layers.append(nn.Linear(input_size, base_dims[0]))
         input_dim = base_dims[0]
 
@@ -206,17 +155,12 @@ class SpectralEncoder(nn.Module):
         self.embedding_layer = nn.Linear(base_dims[-1], embedding_dim)
         self.dropout = nn.Dropout(dropout_rate)
 
-    def forward(self, spectra):
-        binned_spectra = self.binning_layer(spectra)
-        if self.metadata_vectorizer is not None:
-            metadata_vector = self.metadata_vectorizer.transform(spectra)
-        else:
-            metadata_vector = torch.tensor([])
+    def forward(self, spectra_tensors, metadata_tensors):
         if self.train_binning_layer:
-            x = self.peak_binner(binned_spectra)
-            x = torch.cat([metadata_vector, x], dim=1)
+            x = self.peak_binner(spectra_tensors)
+            x = torch.cat([metadata_tensors, x], dim=1)
         else:
-            x = torch.cat([metadata_vector, binned_spectra], dim=1)
+            x = torch.cat([metadata_tensors, spectra_tensors], dim=1)
         x = F.relu(self.dense_layers[0](x))
 
         for layer in self.dense_layers[1:]:
@@ -232,7 +176,13 @@ class SpectralEncoder(nn.Module):
 def train(model, data_generator, num_epochs, learning_rate,
           lambda_l1=1e-6,
           lambda_l2=1e-6):
-    # pylint: disable=too-many-arguments
+    # pylint: disable=)too-many-arguments
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    print(f"Training will happen on {device}.")
+
+    # Move model to device
+    model.to(device)
+
     criterion = nn.MSELoss()
     optimizer = optim.Adam(model.parameters(), lr=learning_rate)
 
@@ -245,14 +195,21 @@ def train(model, data_generator, num_epochs, learning_rate,
         with tqdm(data_generator, unit="batch", mininterval=0) as training:
             training.set_description(f"Epoch {epoch}")
             batch_losses = []
-            for spectra, targets in training:
+            for spectra_1, spectra_2, meta_1, meta_2, targets in training:
+                # Move data to device
+                spectra_1.to(device)
+                spectra_2.to(device)
+                meta_1.to(device)
+                meta_2.to(device)
+                targets.to(device)
+
                 # For debugging: keep track of biases
                 collection_targets.extend(targets)
                 
                 optimizer.zero_grad()
     
                 # Forward pass
-                outputs = model(spectra)
+                outputs = model(spectra_1, spectra_2, meta_1, meta_2)
 
                 # Calculate loss
                 loss = criterion(outputs, targets)
