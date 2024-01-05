@@ -240,10 +240,9 @@ def train(model, data_generator, num_epochs, learning_rate,
 
     #starts = [i*data_generator.settings.batch_size for i in range(len(data_generator))]
     for epoch in range(num_epochs):
-        #print(f"Epoch [{epoch+1}/{num_epochs}]:")
-        with tqdm(data_generator, unit="batch", mininterval=0) as bar:
-            bar.set_description(f"Epoch {epoch}")
-            for spectra, targets in bar: #tqdm(data_generator):
+        with tqdm(data_generator, unit="batch", mininterval=0) as training:
+            training.set_description(f"Epoch {epoch}")
+            for spectra, targets in training:
                 optimizer.zero_grad()
     
                 # Forward pass

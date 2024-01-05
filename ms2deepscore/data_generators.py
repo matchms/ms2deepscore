@@ -13,13 +13,6 @@ from .train_new_model.SettingMS2Deepscore import GeneratorSettings
 from .typing import BinnedSpectrumType
 
 
-from typing import Iterator
-from torch.utils.data import Dataset, DataLoader
-from ms2deepscore.train_new_model.spectrum_pair_selection import \
-    SelectedCompoundPairs
-from ms2deepscore.train_new_model.SettingMS2Deepscore import GeneratorSettings
-
-
 class DataGeneratorPytorch:
     """Generates data for training a siamese Keras model.
 
@@ -71,10 +64,10 @@ class DataGeneratorPytorch:
             batch = self.__getitem__(self.current_index)
             self.current_index += 1
             return batch
-        else:
-            self.current_index = 0  # make generator executable again
-            self.on_epoch_end()
-            raise StopIteration
+
+        self.current_index = 0  # make generator executable again
+        self.on_epoch_end()
+        raise StopIteration
 
     def _spectrum_pair_generator(self, batch_index: int):
         """Use the provided SelectedCompoundPairs object to pick pairs."""
