@@ -23,21 +23,22 @@ def create_plots_for_all_models(models_directory,
     results_folder:
         The folder to store the plots, if None, it will be stored in the folders of the models under benchmarking/plots"""
 
-    for model_dir_name in tqdm(os.listdir(models_directory)):
+    for model_dir_name in tqdm(os.listdir(models_directory),
+                               desc="Creation plots for all models"):
         model_dir = os.path.join(models_directory, model_dir_name)
         if os.path.isdir(model_dir):
             if results_folder is not None:
-                results_folder_per_model = os.path.join(results_folder, model_dir)
+                results_folder_per_model = os.path.join(results_folder, model_dir_name)
             else:
                 results_folder_per_model = None
-            create_plots_between_all_ionmodes(models_directory, results_folder_per_model)
+            create_plots_between_all_ionmodes(model_dir, results_folder_per_model)
 
 
 def create_plots_between_all_ionmodes(model_directory,
                                       results_folder=None):
     spectra_folder = os.path.join(model_directory, "..", "..", "training_and_validation_split")
     if results_folder is None:
-        results_folder = os.path.join(model_directory, "benchmarking_results", "plots")
+        results_folder = os.path.join(model_directory, "benchmarking_results", "plots_1_spectrum_per_inchikey")
     os.makedirs(results_folder, exist_ok=True)
     positive_validation_spectra = load_spectra_as_list(os.path.join(spectra_folder, "positive_validation_spectra.mgf"))
     negative_validation_spectra = load_spectra_as_list(os.path.join(spectra_folder, "negative_validation_spectra.mgf"))
@@ -105,23 +106,23 @@ def create_all_plots(predictions: np.array,
     # Create plots
     plot_stacked_histogram_plot_wrapper(
         ms2deepscore_predictions=selected_predictions, tanimoto_scores=selected_true_values, n_bins=10,
-        title=file_name_prefix.replace("_", ""), ms2deepscore_nr_of_bin_correction=nr_of_sample_times)
+        title=file_name_prefix.replace("_", " "), ms2deepscore_nr_of_bin_correction=nr_of_sample_times)
     plt.savefig(os.path.join(benchmarking_results_folder, f"{file_name_prefix}_stacked_histogram.svg"))
 
     # Create reverse plot
     plot_reversed_stacked_histogram_plot(
         tanimoto_scores=selected_true_values, ms2deepscore_predictions=selected_predictions,
-        title=file_name_prefix.replace("_", ""), ms2deepscore_nr_of_bin_correction=nr_of_sample_times)
+        title=file_name_prefix.replace("_", " "), ms2deepscore_nr_of_bin_correction=nr_of_sample_times)
     plt.savefig(os.path.join(benchmarking_results_folder, f"{file_name_prefix}_reversed_stacked_histogram.svg"))
-
-    plot_rmse_per_bin(selected_true_values, selected_true_values)
+    plot_rmse_per_bin(predicted_scores=selected_predictions,
+                      true_scores=selected_true_values)
     plt.savefig(os.path.join(benchmarking_results_folder, f"{file_name_prefix}_RMSE_per_bin.svg"))
     return selected_true_values, selected_predictions
 
 
 if __name__ == "__main__":
-    if len(sys.argv) in (2, 3):
-        print("Provide the model folder")
+    if len(sys.argv) not in (2, 3):
+        print("Could not run, please provide the model folder")
         sys.exit(1)
 
     model_directory = sys.argv[1]
