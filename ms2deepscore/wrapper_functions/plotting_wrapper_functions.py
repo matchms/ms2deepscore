@@ -1,4 +1,5 @@
 import os
+import sys
 from typing import List
 import numpy as np
 from matchms.Spectrum import Spectrum
@@ -54,6 +55,7 @@ def create_plots_between_all_ionmodes(model_directory,
     all_selected_predictions = []
     all_labels = []
     for ionmode_1, ionmode_2 in possible_comparisons:
+        print(f"Creating plots for {ionmode_1} vs {ionmode_2}")
         selected_true_values, selected_predictions = create_all_plots(
             predictions=load_pickled_file(os.path.join(model_directory,
                                                        "benchmarking_results",
@@ -115,3 +117,18 @@ def create_all_plots(predictions: np.array,
     plot_rmse_per_bin(selected_true_values, selected_true_values)
     plt.savefig(os.path.join(benchmarking_results_folder, f"{file_name_prefix}_RMSE_per_bin.svg"))
     return selected_true_values, selected_predictions
+
+
+if __name__ == "__main__":
+    if len(sys.argv) in (2, 3):
+        print("Provide the model folder")
+        sys.exit(1)
+
+    model_directory = sys.argv[1]
+    if len(sys.argv) == 3:
+        results_folder = sys.argv[2]
+    else:
+        results_folder = None
+
+    create_plots_for_all_models(models_directory=model_directory,
+                                results_folder=results_folder)
