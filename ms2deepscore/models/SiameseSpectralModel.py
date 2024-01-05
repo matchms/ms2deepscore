@@ -256,7 +256,7 @@ def train(model, data_generator, num_epochs, learning_rate,
                 optimizer.step()
 
                 # Print progress
-                bar.set_postfix(
+                training.set_postfix(
                     loss=float(loss),
                 )
 
