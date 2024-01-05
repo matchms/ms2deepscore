@@ -1,15 +1,16 @@
 import os
-import numpy as np
-from tqdm import tqdm
 from typing import List
+import numpy as np
 from matchms.Spectrum import Spectrum
 from matplotlib import pyplot as plt
+from tqdm import tqdm
+from ms2deepscore.benchmarking_models.plot_rmse_per_bin import (
+    plot_rmse_per_bin, plot_rmse_per_bin_multiple_benchmarks)
 from ms2deepscore.benchmarking_models.plot_stacked_histogram import (
     plot_reversed_stacked_histogram_plot, plot_stacked_histogram_plot_wrapper)
 from ms2deepscore.benchmarking_models.select_spectrum_pairs_for_visualization import \
     sample_spectra_multiple_times
 from ms2deepscore.utils import load_pickled_file, load_spectra_as_list
-from ms2deepscore.benchmarking_models.plot_rmse_per_bin import plot_rmse_per_bin, plot_rmse_per_bin_multiple_benchmarks
 
 
 def create_plots_for_all_models(models_directory,
