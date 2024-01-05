@@ -4,7 +4,7 @@ from ms2deepscore.benchmarking_models.plot_stacked_histogram import (
     plot_stacked_histogram_plot_wrapper)
 from ms2deepscore.benchmarking_models.plotting import \
     create_confusion_matrix_plot
-from ms2deepscore.benchmarking_models.plot_rmse_per_bin import plot_rmse_per_bin_multiple_benchmarks
+from ms2deepscore.benchmarking_models.plot_rmse_per_bin import plot_rmse_per_bin_multiple_benchmarks, plot_rmse_per_bin
 
 
 def test_create_confusion_matrix_plot():
@@ -52,6 +52,11 @@ def test_reverse_plot_stacked_histogram():
 
 
 def test_plot_rmse_per_bin():
+    plot_rmse_per_bin(predicted_scores=np.random.random((200, 200)) ** 3,
+                      true_scores=np.random.random((200, 200)) ** 3)
+
+
+def test_plot_rmse_per_bin_multiple_benchmarks():
     plot_rmse_per_bin_multiple_benchmarks(
         [np.random.random((200, 200)) ** 3, np.random.random((100, 100)) ** 1,
          np.random.random((200, 100)) ** 1, np.random.random((300, 300)) ** 1, ],
