@@ -7,6 +7,7 @@ from ms2deepscore import SpectrumBinner
 from ms2deepscore.data_generators import (DataGeneratorAllInchikeys,
                                           DataGeneratorAllSpectrums,
                                           DataGeneratorCherrypicked,
+                                          DataGeneratorPytorch,
                                           _exclude_nans_from_labels,
                                           _validate_labels)
 from ms2deepscore.MetadataFeatureGenerator import (CategoricalToBinary,
@@ -108,6 +109,52 @@ def create_test_spectra(num_of_unique_inchikeys):
                                             "fingerprint": fingerprint,
                                             }))
     return spectrums
+
+
+def test_DataGeneratorPytorch():
+    """Test DataGeneratorPytorch using generated data.
+    """
+    num_of_unique_inchikeys = 15
+    spectrums = create_test_spectra(num_of_unique_inchikeys)
+    batch_size = 8
+
+    settings = SettingsMS2Deepscore({"tanimoto_bins": np.array([(x / 4, x / 4 + 0.25) for x in range(0, 4)]),
+                                    "average_pairs_per_bin": 1})
+    scp, spectrums = select_compound_pairs_wrapper(spectrums, settings)
+
+    # Create generator
+    test_generator = DataGeneratorPytorch(
+        spectrums=spectrums,
+        selected_compound_pairs=scp,
+        batch_size=batch_size,
+        augment_removal_max=0.0,
+        augment_removal_intensity=0.0,
+        augment_intensity=0.0,
+        augment_noise_max=0
+    )
+
+    x, y = test_generator.__getitem__(0)
+    assert len(x) == batch_size
+    assert len(y) == batch_size
+    assert len(test_generator.indexes) == 15
+    assert isinstance(x[0][0], Spectrum) and isinstance(x[0][1], Spectrum)
+    assert len(test_generator) == 2
+
+    counts = []
+    repetitions = 100
+    total = num_of_unique_inchikeys * repetitions
+    for _ in range(repetitions):
+        for i, batch in enumerate(test_generator):
+            counts.extend(batch[1])
+    assert len(counts) == total
+    assert (np.array(counts) > 0.5).sum() > 0.4 * total
+    assert (np.array(counts) <= 0.5).sum() > 0.4 * total
+
+    # Check mostly equal distribution across all four bins:
+    assert (np.array(counts) <= 0.25).sum() > 0.22 * total
+    assert ((np.array(counts) > 0.25) & (np.array(counts) <= 0.5)).sum() > 0.22 * total
+    assert ((np.array(counts) > 0.5) & (np.array(counts) <= 0.75)).sum() > 0.22 * total
+    assert (np.array(counts) > 0.75).sum() > 0.22 * total
 
 
 def test_DataGeneratorCherrypicked():
