@@ -70,7 +70,7 @@ def create_plots_between_all_ionmodes(model_directory,
     plot_rmse_per_bin_multiple_benchmarks(list_of_predicted_scores=all_selected_predictions,
                                           list_of_true_values=all_selected_true_values,
                                           labels=all_labels)
-    plt.savefig(os.path.join(results_folder, f"RMSE_comparison.svg"))
+    plt.savefig(os.path.join(results_folder, "RMSE_comparison.svg"))
 
 
 def create_all_plots(predictions: np.array,

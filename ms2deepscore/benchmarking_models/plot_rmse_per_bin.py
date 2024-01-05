@@ -16,7 +16,7 @@ def tanimoto_dependent_losses(predictions, true_values, ref_score_bins):
     """
     bin_content = []
     rmses = []
-    maes = []
+    # maes = []
     bounds = []
     ref_scores_bins_inclusive = ref_score_bins.copy()
     for i in range(len(ref_scores_bins_inclusive) - 1):
@@ -25,14 +25,14 @@ def tanimoto_dependent_losses(predictions, true_values, ref_score_bins):
         bounds.append((low, high))
         idx = np.where((true_values >= low) & (true_values < high))
         bin_content.append(idx[0].shape[0])
-        maes.append(np.abs(true_values[idx] - predictions[idx]).mean())
+        # maes.append(np.abs(true_values[idx] - predictions[idx]).mean())
         rmses.append(np.sqrt(np.square(true_values[idx] - predictions[idx]).mean()))
-    return bin_content, bounds, rmses, maes
+    return bin_content, bounds, rmses
 
 
 def plot_rmse_per_bin(predicted_scores, true_scores):
     ref_score_bins = np.linspace(0, 1.0000001, 11)
-    bin_content, bounds, rmses, maes = tanimoto_dependent_losses(predicted_scores, true_scores, ref_score_bins)
+    bin_content, bounds, rmses = tanimoto_dependent_losses(predicted_scores, true_scores, ref_score_bins)
 
     _, (ax1, ax2) = plt.subplots(2, 1, sharex=True, figsize=(4, 5), dpi=120)
 
@@ -63,10 +63,10 @@ def plot_rmse_per_bin_multiple_benchmarks(list_of_predicted_scores,
         raise ValueError("The number of predicted scores and true values should be equal.")
     fig, (ax1, ax2) = plt.subplots(2, 1, sharex=True,
                                    figsize=(8, 6), dpi=120)
-    for i in range(len(list_of_true_values)):
-        bin_content, bounds, rmses, _ = tanimoto_dependent_losses(list_of_predicted_scores[i],
-                                                                  list_of_true_values[i],
-                                                                  ref_score_bins)
+    for i, true_values in enumerate(list_of_true_values):
+        bin_content, bounds, rmses = tanimoto_dependent_losses(list_of_predicted_scores[i],
+                                                               true_values,
+                                                               ref_score_bins)
         ax1.plot(np.arange(len(rmses)), rmses, "o:")
         ax2.plot(np.arange(len(rmses)), bin_content, "o:")
     fig.legend(labels, loc="center right")
@@ -78,7 +78,7 @@ def plot_rmse_per_bin_multiple_benchmarks(list_of_predicted_scores,
     ax2.set_ylabel("# of spectrum pairs")
     ax2.set_xlabel("Tanimoto score bin")
     ax2.set_ylim(bottom=0)
-    plt.xticks(np.arange(len(ref_score_bins)-1),
+    plt.xticks(np.arange(len(ref_score_bins) - 1),
                [f"{a:.1f} to < {b:.1f}" for (a, b) in bounds], fontsize=9, rotation='vertical')
     ax2.grid(True)
     plt.tight_layout(rect=[0, 0, 0.75, 1])
