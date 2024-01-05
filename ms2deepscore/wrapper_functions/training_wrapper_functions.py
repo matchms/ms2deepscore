@@ -22,7 +22,17 @@ def train_ms2deepscore_wrapper(spectra_file_path,
                                settings: SettingsMS2Deepscore,
                                validation_split_fraction=20
                                ):
-    """Splits data, trains a ms2deepscore model, and does benchmarking."""
+    """Splits data, trains a ms2deepscore model, and does benchmarking.
+
+    If the data split was already done, the data split will be reused.
+
+    spectra_file_path:
+        The path to the spectra that should be used for training. (it will be split in train, val and test)
+    settings:
+        An object with the MS2Deepscore settings.
+    validation_split_fraction:
+        The fraction of the inchikeys that will be used for validation and test.
+    """
 
     stored_training_data = StoreTrainingData(spectra_file_path,
                                              split_fraction=validation_split_fraction)
