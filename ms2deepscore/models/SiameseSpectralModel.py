@@ -137,7 +137,7 @@ class SpectralEncoder(nn.Module):
         self.train_binning_layer = train_binning_layer
 
         # First dense layer (no dropout!)
-        self.dense_layers = []
+        self.dense_layers = nn.ModuleList()
         if self.train_binning_layer:
             self.peak_binner = PeakBinner(peak_inputs,
                                           group_size, output_per_group)
