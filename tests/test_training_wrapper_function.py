@@ -1,5 +1,6 @@
 import os
 from matchms.exporting import save_as_mgf
+import numpy as np
 from ms2deepscore.train_new_model.SettingMS2Deepscore import \
     SettingsMS2Deepscore
 from ms2deepscore.wrapper_functions.StoreTrainingData import StoreTrainingData
@@ -16,10 +17,12 @@ def test_train_wrapper_ms2ds_model(tmp_path):
     spectra_file_name = os.path.join(tmp_path, "clean_spectra.mgf")
     save_as_mgf(positive_mode_spectra+negative_mode_spectra,
                 filename=spectra_file_name)
-    settings = SettingsMS2Deepscore({"epochs": 2,
-                                     "average_pairs_per_bin": 2,
-                                     "ionisation_mode": "negative",
-                                     "batch_size": 2})
+    settings = SettingsMS2Deepscore({
+        "tanimoto_bins": np.array([(0, 0.5), (0.5, 1)]),
+        "epochs": 2,
+        "average_pairs_per_bin": 2,
+        "ionisation_mode": "negative",
+        "batch_size": 2})
     train_ms2deepscore_wrapper(spectra_file_name, settings, 5)
     expected_file_names = StoreTrainingData(spectra_file_name)
     assert os.path.isfile(os.path.join(tmp_path, expected_file_names.trained_models_folder,

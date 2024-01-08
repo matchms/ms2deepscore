@@ -119,7 +119,7 @@ def test_siamese_model_additional_metadata(dummy_spectra):
 def test_model_training(simple_training_spectra):
     # Select pairs
     settings = SettingsMS2Deepscore({
-        "tanimoto_bins": np.array([(x / 4, x / 4 + 0.25) for x in range(0, 4)]),
+        "tanimoto_bins": np.array([(0, 0.5), (0.5, 1)]),
         "average_pairs_per_bin": 20
     })
     scp_simple, _ = select_compound_pairs_wrapper(simple_training_spectra, settings)

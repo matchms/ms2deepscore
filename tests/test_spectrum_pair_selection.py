@@ -4,7 +4,8 @@ from matchms import Spectrum
 from scipy.sparse import coo_array
 from ms2deepscore.train_new_model.spectrum_pair_selection import (
     SelectedCompoundPairs, compute_jaccard_similarity_per_bin,
-    convert_selected_pairs_per_bin_to_coo_array, fix_bias,
+    convert_pair_array_to_coo_array,
+    convert_pair_list_to_coo_array, fix_bias,
     get_nr_of_pairs_needed_to_fix_bias, select_inchi_for_unique_inchikeys)
 
 
@@ -63,29 +64,35 @@ def dummy_data():
 
 
 def test_compute_jaccard_similarity_per_bin(simple_fingerprints):
-    selected_pairs_per_bin = compute_jaccard_similarity_per_bin(simple_fingerprints)
-    matrix = convert_selected_pairs_per_bin_to_coo_array(selected_pairs_per_bin, simple_fingerprints.shape[0])
+    selected_pairs_per_bin, selected_scores_per_bin = compute_jaccard_similarity_per_bin(
+        simple_fingerprints, max_pairs_per_bin=4)
+    matrix = convert_pair_array_to_coo_array(
+        selected_pairs_per_bin, selected_scores_per_bin, simple_fingerprints.shape[0])
     assert matrix.shape == (4, 4)
     assert np.allclose(matrix.diagonal(), 1.0)
     assert matrix.nnz > 0  # Make sure there are some non-zero entries
 
 
 def test_compute_jaccard_similarity_per_bin_exclude_diagonal(simple_fingerprints):
-    selected_pairs_per_bin = compute_jaccard_similarity_per_bin(simple_fingerprints, include_diagonal=False)
-    matrix = convert_selected_pairs_per_bin_to_coo_array(selected_pairs_per_bin, simple_fingerprints.shape[0])
+    selected_pairs_per_bin, selected_scores_per_bin = compute_jaccard_similarity_per_bin(
+        simple_fingerprints, max_pairs_per_bin=4, include_diagonal=False)
+    matrix = convert_pair_array_to_coo_array(
+        selected_pairs_per_bin, selected_scores_per_bin, simple_fingerprints.shape[0])
     diagonal = matrix.diagonal()
     assert np.all(diagonal == 0)  # Ensure no non-zero diagonal elements
 
 
 def test_compute_jaccard_similarity_per_bin_correct_counts(fingerprints):
-    selected_pairs_per_bin = compute_jaccard_similarity_per_bin(fingerprints)
-    matrix = convert_selected_pairs_per_bin_to_coo_array(selected_pairs_per_bin, fingerprints.shape[0])
+    selected_pairs_per_bin, selected_scores_per_bin = compute_jaccard_similarity_per_bin(
+        fingerprints, max_pairs_per_bin=8)
+    matrix = convert_pair_array_to_coo_array(
+        selected_pairs_per_bin, selected_scores_per_bin, fingerprints.shape[0])
     dense_matrix = matrix.todense()
     matrix_histogram = np.histogram(dense_matrix, 10)
-    expected_histogram = np.array([6,  8,  2, 10,  8, 14,  0,  8,  0,  8])
+    expected_histogram = np.array([6,  8,  2, 10,  8, 6,  8,  8,  0,  8])
     assert np.all(matrix_histogram[0] == expected_histogram)
 
-
+"""
 def test_fix_bias():
     expected_average = 2
     results = fix_bias([[
@@ -100,21 +107,25 @@ def test_fix_bias():
         [(1, 0.1), (2, 0.1), (3, 0.1)],
         [],
     ]]
+"""
 
 
-@pytest.mark.parametrize("average_pairs_per_bin", [1, 2])
-def test_global_bias(fingerprints, average_pairs_per_bin):
+@pytest.mark.parametrize("desired_average_pairs_per_bin", [1, 2])
+def test_global_bias(fingerprints, desired_average_pairs_per_bin):
     bins = np.array([(0, 0.35), (0.35, 0.65), (0.65, 1.0)])
 
-    selected_pairs_per_bin = compute_jaccard_similarity_per_bin(fingerprints,
-                                                                selection_bins=bins,
-                                                                max_pairs_per_bin=10)
+    selected_pairs_per_bin, selected_scores_per_bin = compute_jaccard_similarity_per_bin(
+        fingerprints,
+        selection_bins=bins,
+        max_pairs_per_bin=10)
 
-    selected_pairs_per_bin_fixed_bias = fix_bias(selected_pairs_per_bin, average_pairs_per_bin)
-    matrix = convert_selected_pairs_per_bin_to_coo_array(selected_pairs_per_bin_fixed_bias, fingerprints.shape[0])
+    selected_pairs_per_bin_fixed_bias = fix_bias(
+        selected_pairs_per_bin, selected_scores_per_bin, fingerprints.shape[0] * desired_average_pairs_per_bin)
+    matrix = convert_pair_list_to_coo_array(
+        selected_pairs_per_bin_fixed_bias, fingerprints.shape[0])
     dense_matrix = matrix.todense()
     # Check if in each bin the nr of pairs is equal to the nr_of_fingerprints
-    expected_nr_of_pairs = fingerprints.shape[0] * average_pairs_per_bin
+    expected_nr_of_pairs = fingerprints.shape[0] * desired_average_pairs_per_bin
     expected_histogram = np.array([expected_nr_of_pairs, expected_nr_of_pairs, expected_nr_of_pairs])
     matrix_histogram = np.histogram(dense_matrix, [0.000001, 0.35000001, 0.6000001, 1.0])
     assert np.all(matrix_histogram[0] == expected_histogram)

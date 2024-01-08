@@ -2,6 +2,7 @@ import os
 from pathlib import Path
 import pytest
 from matchms.importing import load_from_mgf
+import numpy as np
 from ms2deepscore import BinnedSpectrum, SpectrumBinner
 from ms2deepscore.models import SiameseModel
 from ms2deepscore.models.load_model import \
@@ -44,9 +45,12 @@ def test_bin_spectra(tmp_path):
 
 def test_train_ms2ds_model(tmp_path):
     spectra = create_test_spectra(8)
-    settings = SettingsMS2Deepscore({"epochs": 2,
-                                     "average_pairs_per_bin": 2,
-                                     "batch_size": 8})
+    settings = SettingsMS2Deepscore({
+        "tanimoto_bins": np.array([(0, 0.5), (0.5, 1)]),
+        "epochs": 2,
+        "average_pairs_per_bin": 2,
+        "batch_size": 8
+        })
     train_ms2ds_model(spectra, spectra, tmp_path, settings)
 
     # check if model is saved
