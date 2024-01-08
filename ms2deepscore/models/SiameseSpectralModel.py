@@ -131,7 +131,7 @@ class SpectralEncoder(nn.Module):
         additional_inputs
             Integer to specify the number of additional (metadata) input fields.
         """
-        # pylint: disable=too-many-arguments, too-many-locals
+        # pylint: disable=too-many-arguments
         super().__init__()
         #self.binning_layer = BinnedSpectraLayer(min_mz, max_mz, mz_bin_width, intensity_scaling)
         self.train_binning_layer = train_binning_layer
@@ -176,7 +176,7 @@ class SpectralEncoder(nn.Module):
 def train(model, data_generator, num_epochs, learning_rate,
           lambda_l1=1e-6,
           lambda_l2=1e-6):
-    # pylint: disable=)too-many-arguments
+    # pylint: disable=too-many-arguments, too-many-locals
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"Training will happen on {device}.")
 

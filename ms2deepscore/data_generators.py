@@ -51,6 +51,7 @@ class DataGeneratorPytorch:
         settings
             The available settings can be found in GeneratorSettings
         """
+        # pylint: disable=too-many-arguments  
         self.current_index = 0
         self.spectrums = spectrums
 
@@ -85,10 +86,9 @@ class DataGeneratorPytorch:
             batch = self.__getitem__(self.current_index)
             self.current_index += 1
             return batch
-        else:
-            self.current_index = 0  # make generator executable again
-            self.on_epoch_end()
-            raise StopIteration
+        self.current_index = 0  # make generator executable again
+        self.on_epoch_end()
+        raise StopIteration
 
     def _spectrum_pair_generator(self, batch_index: int):
         """Use the provided SelectedCompoundPairs object to pick pairs."""
@@ -171,6 +171,7 @@ def tensorize_spectra(
     ):
     """Convert list of matchms Spectrum objects to pytorch peak and metadata tensors.
     """
+    # pylint: disable=too-many-arguments
     num_bins = int((max_mz - min_mz) / mz_bin_width)
     if metadata_vectorizer is None:
         metadata_tensors = torch.zeros((len(spectra), 0))
