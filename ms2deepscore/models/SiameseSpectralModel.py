@@ -211,7 +211,8 @@ def train(model, data_generator, num_epochs, learning_rate,
 
                 # Calculate loss
                 loss = criterion(outputs, targets)
-                loss += l1_regularization(model, lambda_l1) + l2_regularization(model, lambda_l2)
+                if lambda_l1 > 0 or lambda_l2 > 0:
+                    loss += l1_regularization(model, lambda_l1) + l2_regularization(model, lambda_l2)
                 batch_losses.append(float(loss))
     
                 # Backward pass and optimize
