@@ -134,29 +134,19 @@ class DataGeneratorPytorch:
             spectra_2.append(pair[1])
             targets.append(pair[2])
 
-        binned_spectra_1 = self._tensorize_spectra(spectra_1)
-        binned_spectra_2 = self._tensorize_spectra(spectra_2)
-        if self.metadata_vectorizer is not None:
-            metadata_1 = self.metadata_vectorizer.transform(spectra1)
-            metadata_2 = self.metadata_vectorizer.transform(spectra2)
-        else:
-            metadata_1 = torch.tensor([])
-            metadata_2 = torch.tensor([])
+        binned_spectra_1, metadata_1 = tensorize_spectra(
+            spectra_1,
+            self.metadata_vectorizer,
+            self.num_bins, self.min_mz, self.max_mz,
+            self.mz_bin_width, self.intensity_scaling
+            )
+        binned_spectra_2, metadata_2 = tensorize_spectra(
+            spectra_2,
+            self.metadata_vectorizer,
+            self.num_bins, self.min_mz, self.max_mz,
+            self.mz_bin_width, self.intensity_scaling
+            )
         return binned_spectra_1, binned_spectra_2, metadata_1, metadata_2, torch.tensor(targets, dtype=torch.float32)
-
-    def _tensorize_spectra(self, spectra):
-        """
-        Assuming spectra is a list of matchms Spectrum objects 
-        (with 'peaks.mz' and 'peaks.intensities' attributes).
-        """
-        binned_spectra = torch.zeros((len(spectra), self.num_bins))
-
-        for i, spectrum in enumerate(spectra):
-            for mz, intensity in zip(spectrum.peaks.mz, spectrum.peaks.intensities):
-                if self.min_mz <= mz < self.max_mz:
-                    bin_index = int((mz - self.min_mz) / self.mz_bin_width)
-                    binned_spectra[i, bin_index] += intensity ** self.intensity_scaling
-        return binned_spectra
     
     def _get_spectrum_with_inchikey(self, inchikey: str) -> Spectrum:
         """
@@ -169,6 +159,31 @@ class DataGeneratorPytorch:
         if len(matching_spectrum_id) <= 0:
             raise ValueError("No matching inchikey found (note: expected first 14 characters)")
         return self.spectrums[np.random.choice(matching_spectrum_id)]
+
+
+def tensorize_spectra(
+    spectra,
+    metadata_vectorizer,
+    min_mz,
+    max_mz,
+    mz_bin_width,
+    intensity_scaling
+    ):
+    """Convert list of matchms Spectrum objects to pytorch peak and metadata tensors.
+    """
+    num_bins = int((max_mz - min_mz) / mz_bin_width)
+    if metadata_vectorizer is None:
+        metadata_tensors = torch.zeros((len(spectra), 0))
+    else:
+        metadata_tensors = metadata_vectorizer.transform(spectra)
+
+    binned_spectra = torch.zeros((len(spectra), num_bins))
+    for i, spectrum in enumerate(spectra):
+        for mz, intensity in zip(spectrum.peaks.mz, spectrum.peaks.intensities):
+            if min_mz <= mz < max_mz:
+                bin_index = int((mz - min_mz) / mz_bin_width)
+                binned_spectra[i, bin_index] += intensity ** intensity_scaling
+    return binned_spectra, metadata_tensors
 
 
 class SpectrumPair(NamedTuple):
