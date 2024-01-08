@@ -137,13 +137,13 @@ class DataGeneratorPytorch:
         binned_spectra_1, metadata_1 = tensorize_spectra(
             spectra_1,
             self.metadata_vectorizer,
-            self.num_bins, self.min_mz, self.max_mz,
+            self.min_mz, self.max_mz,
             self.mz_bin_width, self.intensity_scaling
             )
         binned_spectra_2, metadata_2 = tensorize_spectra(
             spectra_2,
             self.metadata_vectorizer,
-            self.num_bins, self.min_mz, self.max_mz,
+            self.min_mz, self.max_mz,
             self.mz_bin_width, self.intensity_scaling
             )
         return binned_spectra_1, binned_spectra_2, metadata_1, metadata_2, torch.tensor(targets, dtype=torch.float32)
