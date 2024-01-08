@@ -174,7 +174,7 @@ def compute_jaccard_similarity_per_bin(
 
     selected_pairs_per_bin = -1 * np.ones((num_bins, size, max_pairs_per_bin), dtype=np.int32)
     selected_scores_per_bin = np.zeros((num_bins, size, max_pairs_per_bin), dtype=np.float32)
-
+    # pylint: disable=not-an-iterable
     for idx_fingerprint_i in prange(size):
         tanimoto_scores = tanimoto_scores_row(fingerprints, idx_fingerprint_i, include_diagonal)
 
