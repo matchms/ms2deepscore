@@ -5,8 +5,8 @@ from scipy.sparse import coo_array
 from ms2deepscore.train_new_model.spectrum_pair_selection import (
     SelectedCompoundPairs, compute_jaccard_similarity_per_bin,
     convert_pair_array_to_coo_array,
-    convert_pair_list_to_coo_array, fix_bias,
-    get_nr_of_pairs_needed_to_fix_bias, select_inchi_for_unique_inchikeys)
+    convert_pair_list_to_coo_array, balanced_selection,
+    get_nr_of_pairs_needed_to_balanced_selection, select_inchi_for_unique_inchikeys)
 
 
 @pytest.fixture
@@ -93,9 +93,9 @@ def test_compute_jaccard_similarity_per_bin_correct_counts(fingerprints):
     assert np.all(matrix_histogram[0] == expected_histogram)
 
 """
-def test_fix_bias():
+def test_balanced_selection():
     expected_average = 2
-    results = fix_bias([[
+    results = balanced_selection([[
         [(1, 0.1), (2, 0.1), (3, 0.1)],
         [(1, 0.1), (2, 0.1), (2, 0.1), (2, 0.1)],
         [(1, 0.1), (2, 0.1), (3, 0.1)],
@@ -119,7 +119,7 @@ def test_global_bias(fingerprints, desired_average_pairs_per_bin):
         selection_bins=bins,
         max_pairs_per_bin=10)
 
-    selected_pairs_per_bin_fixed_bias = fix_bias(
+    selected_pairs_per_bin_fixed_bias = balanced_selection(
         selected_pairs_per_bin, selected_scores_per_bin, fingerprints.shape[0] * desired_average_pairs_per_bin)
     matrix = convert_pair_list_to_coo_array(
         selected_pairs_per_bin_fixed_bias, fingerprints.shape[0])
@@ -138,7 +138,7 @@ def test_global_bias(fingerprints, desired_average_pairs_per_bin):
                              [[1, 9, 9, 6, 8], 6],
                          ])
 def test_get_nr_of_compounds_that_should_be_selected(nr_of_pairs_in_bin_per_compound, expected_average):
-    cut_offs_to_use = get_nr_of_pairs_needed_to_fix_bias(nr_of_pairs_in_bin_per_compound, expected_average)
+    cut_offs_to_use = get_nr_of_pairs_needed_to_balanced_selection(nr_of_pairs_in_bin_per_compound, expected_average)
 
     assert sum(cut_offs_to_use)/len(cut_offs_to_use) == expected_average
     assert len(nr_of_pairs_in_bin_per_compound) == len(cut_offs_to_use)

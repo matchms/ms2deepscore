@@ -128,7 +128,7 @@ def select_compound_pairs_wrapper(
         settings.max_pairs_per_bin,
         settings.tanimoto_bins,
         settings.include_diagonal)
-    selected_pairs_per_bin = fix_bias(
+    selected_pairs_per_bin = balanced_selection(
         selected_pairs_per_bin,
         selected_scores_per_bin,
         fingerprints.shape[0] * settings.average_pairs_per_bin)
@@ -136,8 +136,8 @@ def select_compound_pairs_wrapper(
     return SelectedCompoundPairs(scores_sparse, inchikeys14_unique), spectra_selected
 
 
-def convert_pair_array_to_coo_array(
-        selected_pairs_per_bin, selected_scores_per_bin, size):
+def convert_pair_array_to_coo_data(
+        selected_pairs_per_bin, selected_scores_per_bin):
     data = []
     inchikey_indexes_i = []
     inchikey_indexes_j = []
@@ -146,7 +146,14 @@ def convert_pair_array_to_coo_array(
         data.extend(selected_scores_per_bin[idx[0], row_id, idx[1]])
         inchikey_indexes_i.extend(row_id * np.ones(len(idx[0])))
         inchikey_indexes_j.extend(selected_pairs_per_bin[idx[0], row_id, idx[1]])
-    return coo_array((np.array(data), (np.array(inchikey_indexes_i), np.array(inchikey_indexes_j))),
+    return np.array(data), np.array(inchikey_indexes_i), np.array(inchikey_indexes_j)
+
+
+def convert_pair_array_to_coo_array(
+        selected_pairs_per_bin, selected_scores_per_bin, size):
+    data, inchikey_indexes_i, inchikey_indexes_j = convert_pair_array_to_coo_data(
+        selected_pairs_per_bin, selected_scores_per_bin)
+    return coo_array((data, (inchikey_indexes_i, np.array(inchikey_indexes_j))),
                      shape=(size, size))
 
 
@@ -207,7 +214,7 @@ def tanimoto_scores_row(fingerprints, idx, include_diagonal):
 
 desired_average_pairs_per_bin = 5000
 
-def fix_bias(selected_pairs_per_bin, selected_scores_per_bin,
+def balanced_selection(selected_pairs_per_bin, selected_scores_per_bin,
              desired_pairs_per_bin,
              max_oversampling_rate: float = 1):
     """
@@ -258,7 +265,7 @@ def fix_bias(selected_pairs_per_bin, selected_scores_per_bin,
     return new_selected_pairs_per_bin
 
 
-def get_nr_of_pairs_needed_to_fix_bias(nr_of_pairs_in_bin_per_compound: List[int],
+def get_nr_of_pairs_needed_to_balanced_selection(nr_of_pairs_in_bin_per_compound: List[int],
                                        expected_average_pairs_per_bin: int
                                        ):
     """Calculates how many pairs should be selected to get the exact number o """
