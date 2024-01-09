@@ -21,7 +21,6 @@ class SiameseSpectralModel(nn.Module):
                  group_size: int = 30,
                  output_per_group: int = 3,
                  dropout_rate: float = 0.2,
-                 
                 ):
         """
         Construct SiameseSpectralModel
@@ -195,18 +194,20 @@ def train(model, data_generator, num_epochs, learning_rate,
             training.set_description(f"Epoch {epoch}")
             batch_losses = []
             for spectra_1, spectra_2, meta_1, meta_2, targets in training:
-                # Move data to device
-                spectra_1.to(device)
-                spectra_2.to(device)
-                meta_1.to(device)
-                meta_2.to(device)
-                targets.to(device)
-
                 # For debugging: keep track of biases
                 collection_targets.extend(targets)
-                
+
                 optimizer.zero_grad()
-    
+
+                # Forward pass
+                outputs = model(spectra_1.to(device), spectra_2.to(device), 
+                                meta_1.to(device), meta_2.to(device))
+
+                # Calculate loss
+                loss = criterion(outputs, targets.to(device))
+
+                optimizer.zero_grad()
+
                 # Forward pass
                 outputs = model(spectra_1, spectra_2, meta_1, meta_2)
 
@@ -215,7 +216,7 @@ def train(model, data_generator, num_epochs, learning_rate,
                 if lambda_l1 > 0 or lambda_l2 > 0:
                     loss += l1_regularization(model, lambda_l1) + l2_regularization(model, lambda_l2)
                 batch_losses.append(float(loss))
-    
+
                 # Backward pass and optimize
                 loss.backward()
                 optimizer.step()
