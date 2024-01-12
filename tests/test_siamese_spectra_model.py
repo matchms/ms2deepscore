@@ -124,22 +124,36 @@ def test_model_training(simple_training_spectra):
     })
     scp_simple, _ = select_compound_pairs_wrapper(simple_training_spectra, settings)
 
-    # Create generator
+    # Create generators
     train_generator_simple = DataGeneratorPytorch(
         spectrums=simple_training_spectra,
-        min_mz=0, max_mz=200, mz_bin_width=0.1, intensity_scaling=0.5,
+        min_mz=0, max_mz=200, mz_bin_width=0.2, intensity_scaling=0.5,
         metadata_vectorizer=None,
         selected_compound_pairs=scp_simple,
         batch_size=2,
         num_turns=20,
     )
 
-    # Create and train model
-    model_simple = SiameseSpectralModel(peak_inputs=2000, additional_inputs=0, train_binning_layer=False)
-    losses, collection_targets = train(model_simple, train_generator_simple, 50, learning_rate=0.001, lambda_l1=0, lambda_l2=0)
+    val_generator_simple = DataGeneratorPytorch(
+        spectrums=simple_training_spectra,
+        min_mz=0, max_mz=200, mz_bin_width=0.2, intensity_scaling=0.5,
+        metadata_vectorizer=None,
+        selected_compound_pairs=scp_simple,
+        batch_size=2,
+        num_turns=2,
+        use_fixed_set=True,
+    )
 
+    # Create and train model
+    model_simple = SiameseSpectralModel(peak_inputs=1000, additional_inputs=0, train_binning_layer=False)
+    losses, val_losses, collection_targets = train(model_simple, train_generator_simple,
+                                                   val_generator=val_generator_simple,
+                                                   num_epochs=25,
+                                                   learning_rate=0.001, lambda_l1=0, lambda_l2=0)
+
+    assert len(losses) == len(val_losses) == 25
     # Check if model trained to at least an OK result
-    assert np.mean(losses[-10:]) < 0.02, "Training was not succesfull!"
+    assert np.mean(losses[-5:]) < 0.02, "Training was not succesfull!"
     # Check if bias in data is handled correctly
-    assert (np.array(collection_targets) == 1).sum() == 1000
-    assert (np.array(collection_targets) < .2).sum() == 1000
+    assert (np.array(collection_targets) == 1).sum() == 500
+    assert (np.array(collection_targets) < .2).sum() == 500

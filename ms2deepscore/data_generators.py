@@ -122,7 +122,10 @@ class DataGeneratorPytorch:
 
         if self.settings.use_fixed_set:
             # Store batches for later epochs
-            self.fixed_set[batch_index] = (spectra_1, spectra_2, targets)
+            self.fixed_set[batch_index] = (spectra_1, spectra_2, meta_1, meta_2, targets)
+        else:
+            spectra_1 = self._data_augmentation(spectra_1)
+            spectra_2 = self._data_augmentation(spectra_2)
         return spectra_1, spectra_2, meta_1, meta_2, targets
 
     def _tensorize_all(self, spectrum_pairs):
@@ -160,6 +163,40 @@ class DataGeneratorPytorch:
             raise ValueError("No matching inchikey found (note: expected first 14 characters)")
         return self.spectrums[np.random.choice(matching_spectrum_id)]
 
+    def _data_augmentation(self, spectra_tensors):
+        for i in range(spectra_tensors.shape[0]):
+            spectra_tensors[i, :] = self._data_augmentation_spectrum(spectra_tensors[i, :])
+        return spectra_tensors
+    
+    def _data_augmentation_spectrum(self, spectrum_tensor):
+        """Data augmentation.
+
+        Parameters
+        ----------
+        spectrum_tensor
+            Spectrum in Pytorch tensor form.
+        """
+        # Augmentation 1: peak removal (peaks < augment_removal_max)
+        if self.settings.augment_removal_max or self.settings.augment_removal_intensity:
+            # TODO: Factor out function with documentation + example?
+            
+            indices_select = torch.where((spectrum_tensor > 0) 
+                                        & (spectrum_tensor < self.settings.augment_removal_max))[0]
+            removal_part = np.random.random(1) * self.settings.augment_removal_max
+            indices = np.random.choice(indices_select, int(np.ceil((1 - removal_part)*len(indices_select))))
+            if len(indices) > 0:
+                spectrum_tensor[indices] = 0
+
+        # Augmentation 2: Change peak intensities
+        if self.settings.augment_intensity:
+            # TODO: Factor out function with documentation + example?
+            spectrum_tensor = spectrum_tensor * (1 - self.settings.augment_intensity * 2 * (torch.rand(spectrum_tensor.shape) - 0.5))
+
+        # Augmentation 3: Peak addition
+        #if self.settings.augment_noise_max and self.settings.augment_noise_max > 0:
+        #    idx, values = self._peak_addition(idx, values)
+        return spectrum_tensor
+
 
 def tensorize_spectra(
     spectra,
@@ -184,6 +221,7 @@ def tensorize_spectra(
             if min_mz <= mz < max_mz:
                 bin_index = int((mz - min_mz) / mz_bin_width)
                 binned_spectra[i, bin_index] += intensity ** intensity_scaling
+                # TODO: Consider taking the max instead
     return binned_spectra, metadata_tensors
 
 

@@ -172,31 +172,59 @@ class SpectralEncoder(nn.Module):
 
 ### Model training
 
-def train(model, data_generator, num_epochs, learning_rate,
-          lambda_l1=1e-6,
-          lambda_l2=1e-6):
-    # pylint: disable=too-many-arguments, too-many-locals
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    print(f"Training will happen on {device}.")
+def train(model: torch.nn.Module,
+          data_generator,
+          num_epochs: int,
+          learning_rate: float,
+          val_generator=None, 
+          early_stopping=True,
+          patience: int = 10,
+          checkpoint_filename: str = None, 
+          lambda_l1: float = 1e-6,
+          lambda_l2: float = 1e-6):
+    """Train a model with given parameters.
 
-    # Move model to device
+    Parameters
+    ----------
+    model
+        The neural network model to train.
+    data_generator
+        An iterator for training data batches.
+    num_epochs
+        Number of epochs for training.
+    learning_rate
+        Learning rate for the optimizer.
+    val_generator (iterator, optional)
+        An iterator for validation data batches.
+    early_stopping
+        Whether to use early stopping.
+    patience
+        Number of epochs to wait for improvement before stopping.
+    checkpoint_filename
+        File path to save the model checkpoint.
+    lambda_l1
+        L1 regularization strength.
+    lambda_l2 
+        L2 regularization strength.
+    """
+    # pylint: disable=too-many-arguments, too-many-locals
+    device = initialize_device()
+    criterion, optimizer = setup_model(model, learning_rate, device)
     model.to(device)
 
-    criterion = mse_away_from_mean  # alternative for nn.MSELoss()
-    optimizer = optim.Adam(model.parameters(), lr=learning_rate)
+    losses, val_losses, collection_targets = [], [], []
+    min_val_loss = np.inf
+    epochs_no_improve = 0
 
-    model.train(True)
-
-    losses = []
-    collection_targets = []
     for epoch in range(num_epochs):
+        model.train(True)
         with tqdm(data_generator, unit="batch", mininterval=0) as training:
             training.set_description(f"Epoch {epoch}")
             batch_losses = []
             for spectra_1, spectra_2, meta_1, meta_2, targets in training:
                 # For debugging: keep track of biases
                 collection_targets.extend(targets)
-
+                
                 optimizer.zero_grad()
 
                 # Forward pass
@@ -205,14 +233,6 @@ def train(model, data_generator, num_epochs, learning_rate,
 
                 # Calculate loss
                 loss = criterion(outputs, targets.to(device))
-
-                optimizer.zero_grad()
-
-                # Forward pass
-                outputs = model(spectra_1, spectra_2, meta_1, meta_2)
-
-                # Calculate loss
-                loss = criterion(outputs, targets)
                 if lambda_l1 > 0 or lambda_l2 > 0:
                     loss += l1_regularization(model, lambda_l1) + l2_regularization(model, lambda_l2)
                 batch_losses.append(float(loss))
@@ -226,10 +246,61 @@ def train(model, data_generator, num_epochs, learning_rate,
                     loss=float(loss),
                 )
 
+        if val_generator is not None:
+            model.eval()
+            val_batch_losses = []
+            for spectra_1, spectra_2, meta_1, meta_2, targets in val_generator:
+                predictions = model(spectra_1.to(device), spectra_2.to(device), 
+                                    meta_1.to(device), meta_2.to(device))
+                loss = criterion(predictions, targets.to(device))
+                val_batch_losses.append(float(loss))
+            val_loss = np.mean(val_batch_losses)
+            val_losses.append(val_loss)
+            if val_loss < min_val_loss:
+                if checkpoint_filename:
+                    print("Saving checkpoint model.")
+                    torch.save(model, checkpoint_filename)
+                epochs_no_improve = 0
+                min_val_loss = val_loss
+            else:
+                epochs_no_improve += 1
+            if early_stopping and epochs_no_improve >= patience:
+                print("Early stopping!")
+                break
+
         # Print statistics
         print(f"Epoch [{epoch+1}/{num_epochs}], Loss: {np.mean(batch_losses):.4f}")
         losses.append(np.mean(batch_losses))
-    return losses, collection_targets
+        if val_generator is not None:
+            print(f"Validation Loss: {val_loss:.4f}")
+
+    return losses, val_losses, collection_targets
+
+
+def initialize_device():
+    """Initialize and return the device for training."""
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    print(f"Training will happen on {device}.")
+    return device
+
+
+def setup_model(model, learning_rate, device):
+    """
+    Set up the model for training.
+
+    Parameters
+    ----------
+    model
+        The model to be set up.
+    learning_rate
+        Learning rate for the optimizer.
+    device
+        The device to be used for training.
+    """
+    model.to(device)
+    criterion = mse_away_from_mean  # Alternative for nn.MSELoss()
+    optimizer = optim.Adam(model.parameters(), lr=learning_rate)
+    return criterion, optimizer
 
 
 ### Helper functions
