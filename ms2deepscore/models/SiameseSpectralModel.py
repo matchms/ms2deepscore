@@ -181,7 +181,8 @@ def train(model: torch.nn.Module,
           patience: int = 10,
           checkpoint_filename: str = None, 
           lambda_l1: float = 1e-6,
-          lambda_l2: float = 1e-6):
+          lambda_l2: float = 1e-6,
+          progress_bar: bool = True):
     """Train a model with given parameters.
 
     Parameters
@@ -218,7 +219,7 @@ def train(model: torch.nn.Module,
 
     for epoch in range(num_epochs):
         model.train(True)
-        with tqdm(data_generator, unit="batch", mininterval=0) as training:
+        with tqdm(data_generator, unit="batch", mininterval=0, disable=(not progress_bar)) as training:
             training.set_description(f"Epoch {epoch}")
             batch_losses = []
             for spectra_1, spectra_2, meta_1, meta_2, targets in training:
@@ -245,6 +246,7 @@ def train(model: torch.nn.Module,
                 training.set_postfix(
                     loss=float(loss),
                 )
+        losses.append(np.mean(batch_losses))
 
         if val_generator is not None:
             model.eval()
@@ -270,7 +272,6 @@ def train(model: torch.nn.Module,
 
         # Print statistics
         print(f"Epoch [{epoch+1}/{num_epochs}], Loss: {np.mean(batch_losses):.4f}")
-        losses.append(np.mean(batch_losses))
         if val_generator is not None:
             print(f"Validation Loss: {val_loss:.4f}")
 
