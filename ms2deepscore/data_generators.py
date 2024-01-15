@@ -224,19 +224,16 @@ def tensorize_spectra(
 
     binned_spectra = torch.zeros((len(spectra), num_bins))
     for i, spectrum in enumerate(spectra):
-        #for mz, intensity in zip(spectrum.peaks.mz, spectrum.peaks.intensities):
-        #    if min_mz <= mz < max_mz:
-        #        bin_index = int((mz - min_mz) / mz_bin_width)
-                # Sum all intensties for all peaks in each bin
-        #        binned_spectra[i, bin_index] += intensity ** intensity_scaling
         binned_spectra[i, :] = torch.tensor(vectorize_spectrum(spectrum.peaks.mz, spectrum.peaks.intensities,
-                                                                min_mz, max_mz, mz_bin_width, intensity_scaling
+                                                               min_mz, max_mz, mz_bin_width, intensity_scaling
                                                                ))
     return binned_spectra, metadata_tensors
 
 
 @numba.jit(nopython=True)
 def vectorize_spectrum(mz_array, intensities_array, min_mz, max_mz, mz_bin_width, intensity_scaling):
+    """Fast function to convert mz and intensity arrays into dense spectrum vector."""
+    # pylint: disable=too-many-arguments
     num_bins = int((max_mz - min_mz) / mz_bin_width)
     vector = np.zeros((num_bins))
     for mz, intensity in zip(mz_array, intensities_array):
