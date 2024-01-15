@@ -2,6 +2,7 @@
 """
 from typing import Iterator, List, NamedTuple, Optional
 from matchms import Spectrum
+import numba
 import numpy as np
 import pandas as pd
 import torch
@@ -234,7 +235,6 @@ def tensorize_spectra(
     return binned_spectra, metadata_tensors
 
 
-import numba
 @numba.jit(nopython=True)
 def vectorize_spectrum(mz_array, intensities_array, min_mz, max_mz, mz_bin_width, intensity_scaling):
     num_bins = int((max_mz - min_mz) / mz_bin_width)
