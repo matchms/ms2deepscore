@@ -193,8 +193,14 @@ class DataGeneratorPytorch:
             spectrum_tensor = spectrum_tensor * (1 - self.settings.augment_intensity * 2 * (torch.rand(spectrum_tensor.shape) - 0.5))
 
         # Augmentation 3: Peak addition
-        #if self.settings.augment_noise_max and self.settings.augment_noise_max > 0:
-        #    idx, values = self._peak_addition(idx, values)
+        if self.settings.augment_noise_max and self.settings.augment_noise_max > 0:
+            indices_select = torch.where(spectrum_tensor == 0)[0]
+            if len(indices_select) > self.settings.augment_noise_max:
+                indices_noise = np.random.choice(indices_select,
+                                                 np.random.randint(0, self.settings.augment_noise_max),
+                                                 replace=False,
+                                                )
+            spectrum_tensor[indices_noise] = self.settings.augment_noise_intensity * torch.rand(len(indices_noise))
         return spectrum_tensor
 
 
@@ -217,12 +223,30 @@ def tensorize_spectra(
 
     binned_spectra = torch.zeros((len(spectra), num_bins))
     for i, spectrum in enumerate(spectra):
-        for mz, intensity in zip(spectrum.peaks.mz, spectrum.peaks.intensities):
-            if min_mz <= mz < max_mz:
-                bin_index = int((mz - min_mz) / mz_bin_width)
-                binned_spectra[i, bin_index] += intensity ** intensity_scaling
-                # TODO: Consider taking the max instead
+        #for mz, intensity in zip(spectrum.peaks.mz, spectrum.peaks.intensities):
+        #    if min_mz <= mz < max_mz:
+        #        bin_index = int((mz - min_mz) / mz_bin_width)
+                # Sum all intensties for all peaks in each bin
+        #        binned_spectra[i, bin_index] += intensity ** intensity_scaling
+        binned_spectra[i, :] = torch.tensor(vectorize_spectrum(spectrum.peaks.mz, spectrum.peaks.intensities,
+                                                                min_mz, max_mz, mz_bin_width, intensity_scaling
+                                                               ))
     return binned_spectra, metadata_tensors
+
+
+import numba
+@numba.jit(nopython=True)
+def vectorize_spectrum(mz_array, intensities_array, min_mz, max_mz, mz_bin_width, intensity_scaling):
+    num_bins = int((max_mz - min_mz) / mz_bin_width)
+    vector = np.zeros((num_bins))
+    for mz, intensity in zip(mz_array, intensities_array):
+        if min_mz <= mz < max_mz:
+            bin_index = int((mz - min_mz) / mz_bin_width)
+            # Take max intensity peak per bin
+            vector[bin_index] = max(vector[bin_index], intensity ** intensity_scaling)
+            # Alternative: Sum all intensties for all peaks in each bin
+            # vector[bin_index] += intensity ** intensity_scaling
+    return vector
 
 
 class SpectrumPair(NamedTuple):
