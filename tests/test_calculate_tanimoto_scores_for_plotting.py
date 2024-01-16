@@ -2,7 +2,7 @@ import string
 from pathlib import Path
 import numpy as np
 from matchms import Spectrum
-from ms2deepscore.visualize_results.calculate_tanimoto_scores import (
+from ms2deepscore.benchmarking_models.calculate_scores_for_validation import (
     calculate_tanimoto_scores_unique_inchikey,
     get_tanimoto_score_between_spectra)
 

@@ -1,5 +1,8 @@
 import os
 import pickle
+from typing import Generator, List
+from matchms import Spectrum
+from matchms.importing import load_spectra
 
 
 def create_peak_dict(peak_list):
@@ -39,3 +42,10 @@ def return_non_existing_file_name(file_name):
         new_file_name = f"{file_name_base}({i}){file_extension}"
     print(f"Instead the file will be stored in {new_file_name}")
     return new_file_name
+
+
+def load_spectra_as_list(file_name) -> List[Spectrum]:
+    spectra = load_spectra(file_name, metadata_harmonization=False)
+    if isinstance(spectra, Generator):
+        return list(spectra)
+    return spectra
