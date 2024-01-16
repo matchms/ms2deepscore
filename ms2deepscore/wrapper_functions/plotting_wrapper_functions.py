@@ -23,15 +23,16 @@ def create_plots_for_all_models(models_directory,
     results_folder:
         The folder to store the plots, if None, it will be stored in the folders of the models under benchmarking/plots"""
 
-    for model_dir_name in tqdm(os.listdir(models_directory),
-                               desc="Creation plots for all models"):
-        model_dir = os.path.join(models_directory, model_dir_name)
-        if os.path.isdir(model_dir):
-            if results_folder is not None:
-                results_folder_per_model = os.path.join(results_folder, model_dir_name)
-            else:
-                results_folder_per_model = None
-            create_plots_between_all_ionmodes(model_dir, results_folder_per_model)
+    for data_processing_dir in os.listdir(models_directory):
+        trained_models_dir = os.path.join(models_directory, data_processing_dir, "trained_models")
+        if os.path.isdir(trained_models_dir):
+            for model_dir_name in tqdm(os.listdir(trained_models_dir),
+                                       desc=f"Creation plots for all models in {trained_models_dir}"):
+                if results_folder is not None:
+                    results_folder_per_model = os.path.join(results_folder, data_processing_dir, model_dir_name)
+                else:
+                    results_folder_per_model = None
+                create_plots_between_all_ionmodes(os.path.join(trained_models_dir, model_dir_name), results_folder_per_model)
 
 
 def create_plots_between_all_ionmodes(model_directory,
