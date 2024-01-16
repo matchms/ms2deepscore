@@ -3,10 +3,13 @@ import numpy as np
 import pandas as pd
 import pytest
 from matchms import Spectrum
+import torch
 from ms2deepscore import SpectrumBinner
 from ms2deepscore.data_generators import (DataGeneratorAllInchikeys,
                                           DataGeneratorAllSpectrums,
                                           DataGeneratorCherrypicked,
+                                          DataGeneratorPytorch,
+                                          tensorize_spectra,
                                           _exclude_nans_from_labels,
                                           _validate_labels)
 from ms2deepscore.MetadataFeatureGenerator import (CategoricalToBinary,
@@ -108,6 +111,68 @@ def create_test_spectra(num_of_unique_inchikeys):
                                             "fingerprint": fingerprint,
                                             }))
     return spectrums
+
+
+def test_tensorize_spectra():
+    spectrum = Spectrum(mz=np.array([10, 500, 999.9]), intensities=np.array([0.5, 0.5, 1]))
+    spec_tensors, meta_tensors = tensorize_spectra([spectrum, spectrum], None, 10, 1000, 1, 0.5)
+
+    assert meta_tensors.shape == torch.Size([2, 0])
+    assert spec_tensors.shape == torch.Size([2, 990])
+    assert spec_tensors[0, 0] == spec_tensors[0, 490] == 0.5 ** 0.5
+    assert spec_tensors[0, -1] == 1
+
+
+def test_DataGeneratorPytorch():
+    """Test DataGeneratorPytorch using generated data.
+    """
+    num_of_unique_inchikeys = 15
+    spectrums = create_test_spectra(num_of_unique_inchikeys)
+    batch_size = 8
+
+    settings = SettingsMS2Deepscore({"tanimoto_bins": np.array([(x / 4, x / 4 + 0.25) for x in range(0, 4)]),
+                                    "average_pairs_per_bin": 1})
+    scp, spectrums = select_compound_pairs_wrapper(spectrums, settings)
+    # Create generator
+    test_generator = DataGeneratorPytorch(
+        spectrums=spectrums,
+        min_mz=10,
+        max_mz=1000,
+        mz_bin_width=0.1,
+        intensity_scaling=0.5,
+        metadata_vectorizer=None,
+        selected_compound_pairs=scp,
+        batch_size=batch_size,
+        augment_removal_max=0.0,
+        augment_removal_intensity=0.0,
+        augment_intensity=0.0,
+        augment_noise_max=0,
+    )
+
+    spec1, spec2, meta1, meta2, targets = test_generator.__getitem__(0)
+    assert meta1.shape[0] == meta2.shape[0] == batch_size
+    assert meta1.shape[1] == meta2.shape[1] == 0
+    assert spec1.shape[0] == spec2.shape[0] == batch_size
+    assert spec1.shape[1] == spec2.shape[1] == 9900
+    assert targets.shape[0] == batch_size
+    assert len(test_generator.indexes) == 15
+    assert len(test_generator) == 2
+
+    counts = []
+    repetitions = 100
+    total = num_of_unique_inchikeys * repetitions
+    for _ in range(repetitions):
+        for i, batch in enumerate(test_generator):
+            counts.extend(batch[4])
+    assert len(counts) == total
+    assert (np.array(counts) > 0.5).sum() > 0.4 * total
+    assert (np.array(counts) <= 0.5).sum() > 0.4 * total
+
+    # Check mostly equal distribution across all four bins:
+    assert (np.array(counts) <= 0.25).sum() > 0.22 * total
+    assert ((np.array(counts) > 0.25) & (np.array(counts) <= 0.5)).sum() > 0.22 * total
+    assert ((np.array(counts) > 0.5) & (np.array(counts) <= 0.75)).sum() > 0.22 * total
+    assert (np.array(counts) > 0.75).sum() > 0.22 * total
 
 
 def test_DataGeneratorCherrypicked():

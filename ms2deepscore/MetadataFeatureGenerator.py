@@ -1,7 +1,55 @@
 import json
 from importlib import import_module
 from typing import List, Union
+import torch
 from matchms import Metadata
+from matchms.typing import SpectrumType
+from tqdm import tqdm
+from .typing import BinnedSpectrumType
+
+
+class MetadataVectorizer:
+    """Create a numerical vector of selected metadata field including transformations..
+    """
+
+    def __init__(self, 
+                 additional_metadata = ()):
+        """
+
+        Parameters
+        ----------
+        additional_metadata:
+            List of all metadata used/wanted in a metadata vector. Default is ().
+        """
+        self.additional_metadata = additional_metadata
+
+    def transform(self, spectra: List[SpectrumType],
+                  progress_bar=False) -> List[BinnedSpectrumType]:
+        """Transforms the input *spectrums* into metadata vectors as needed for
+        MS2DeepScore.
+
+        Parameters
+        ----------
+        spectra
+            List of spectra.
+        progress_bar
+            Show progress bar if set to True. Default is False.
+
+        Returns:
+            List of metadata vectors.
+        """
+        metadata_vectors = torch.zeros((len(spectra), self.size))
+        for i, spec in tqdm(enumerate(spectra),
+                         desc="Create metadata vectors",
+                         disable=(not progress_bar)):
+            metadata_vectors[i, :] = \
+                torch.tensor([feature_generator.generate_features(spec.metadata)
+                    for feature_generator in self.additional_metadata])
+        return metadata_vectors
+
+    @property
+    def size(self):
+        return len(self.additional_metadata)
 
 
 class MetadataFeatureGenerator:

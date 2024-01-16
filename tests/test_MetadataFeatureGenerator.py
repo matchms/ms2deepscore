@@ -1,7 +1,10 @@
 import pytest
-from matchms import Metadata
+import numpy as np
+import torch
+from matchms import Metadata, Spectrum
 from ms2deepscore.MetadataFeatureGenerator import (CategoricalToBinary,
                                                    MetadataFeatureGenerator,
+                                                   MetadataVectorizer,
                                                    OneHotEncoder,
                                                    StandardScaler)
 
@@ -19,6 +22,17 @@ def test_metadatafeaturegenerator_not_implemented(metadata):
     
     with pytest.raises(NotImplementedError):
         MetadataFeatureGenerator.load_from_dict({})
+
+
+def test_metadata_vectorizer(metadata):
+    scaler = StandardScaler("mass", 200.0, 250.0)
+    metadata = {"mass": 220.0}
+    s1 = Spectrum(mz=np.array([100.]), intensities=np.array([1.0]), metadata=metadata)
+    vectorizer = MetadataVectorizer([scaler])
+    expected_value = (220 - 200) / 250
+    assert vectorizer.transform([s1]) == torch.tensor([expected_value])
+    assert (vectorizer.transform([s1, s1]) == torch.tensor([expected_value, expected_value])).all()
+    assert vectorizer.size == 1
 
 
 def test_standard_scaler_generate_features_with_std():

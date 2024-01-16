@@ -1,5 +1,6 @@
 from collections import Counter
-from typing import List, Optional, Tuple
+from typing import List, Tuple
+from numba import jit, prange
 import numpy as np
 from matchms import Spectrum
 from matchms.filtering import add_fingerprint
@@ -117,92 +118,105 @@ def select_compound_pairs_wrapper(
     if settings.random_seed is not None:
         np.random.seed(settings.random_seed)
 
-    fingerprints, inchikeys14_unique, spectra_selected = compute_fingerprints_for_training(spectrums,
-                                                                                           settings.fingerprint_type,
-                                                                                           settings.fingerprint_nbits)
+    fingerprints, inchikeys14_unique, spectra_selected = compute_fingerprints_for_training(
+        spectrums,
+        settings.fingerprint_type,
+        settings.fingerprint_nbits)
 
-    selected_pairs_per_bin = compute_jaccard_similarity_per_bin(fingerprints,
-                                                                settings.tanimoto_bins,
-                                                                settings.max_pairs_per_bin,
-                                                                settings.include_diagonal)
-    selected_pairs_per_bin = fix_bias(selected_pairs_per_bin, settings.average_pairs_per_bin)
-    scores_sparse = convert_selected_pairs_per_bin_to_coo_array(selected_pairs_per_bin, fingerprints.shape[0])
+    selected_pairs_per_bin, selected_scores_per_bin = compute_jaccard_similarity_per_bin(
+        fingerprints,
+        settings.max_pairs_per_bin,
+        settings.tanimoto_bins,
+        settings.include_diagonal)
+    selected_pairs_per_bin = balanced_selection(
+        selected_pairs_per_bin,
+        selected_scores_per_bin,
+        fingerprints.shape[0] * settings.average_pairs_per_bin)
+    scores_sparse = convert_pair_list_to_coo_array(selected_pairs_per_bin, fingerprints.shape[0])
     return SelectedCompoundPairs(scores_sparse, inchikeys14_unique), spectra_selected
 
 
-def convert_selected_pairs_per_bin_to_coo_array(selected_pairs_per_bin: List[List[Tuple[int, float]]], size):
+def convert_pair_array_to_coo_data(
+        selected_pairs_per_bin, selected_scores_per_bin):
     data = []
     inchikey_indexes_i = []
     inchikey_indexes_j = []
-    for scores_per_inchikey in selected_pairs_per_bin:
-        assert len(scores_per_inchikey) == size
-        for inchikey_idx_i, scores_list in enumerate(scores_per_inchikey):
-            for scores in scores_list:
-                inchikey_idx_j, score = scores
-                data.append(score)
-                inchikey_indexes_i.append(inchikey_idx_i)
-                inchikey_indexes_j.append(inchikey_idx_j)
+    for row_id in range(selected_pairs_per_bin.shape[1]):
+        idx = np.where(selected_pairs_per_bin[:, row_id, :] != -1)
+        data.extend(selected_scores_per_bin[idx[0], row_id, idx[1]])
+        inchikey_indexes_i.extend(row_id * np.ones(len(idx[0])))
+        inchikey_indexes_j.extend(selected_pairs_per_bin[idx[0], row_id, idx[1]])
+    return np.array(data), np.array(inchikey_indexes_i), np.array(inchikey_indexes_j)
+
+
+def convert_pair_array_to_coo_array(
+        selected_pairs_per_bin, selected_scores_per_bin, size):
+    data, inchikey_indexes_i, inchikey_indexes_j = convert_pair_array_to_coo_data(
+        selected_pairs_per_bin, selected_scores_per_bin)
+    return coo_array((data, (inchikey_indexes_i, np.array(inchikey_indexes_j))),
+                     shape=(size, size))
+
+
+def convert_pair_list_to_coo_array(selected_pairs: List[List[Tuple[int, float]]], size):
+    data = []
+    inchikey_indexes_i = []
+    inchikey_indexes_j = []
+    for inchikey_idx_i, inchikey_idx_j, score in selected_pairs:
+        data.append(score)
+        inchikey_indexes_i.append(inchikey_idx_i)
+        inchikey_indexes_j.append(inchikey_idx_j)
     return coo_array((np.array(data), (np.array(inchikey_indexes_i), np.array(inchikey_indexes_j))),
                      shape=(size, size))
 
-# todo refactor so numba.njit can be used again
-# @numba.njit
+
+@jit(nopython=True, parallel=True)
 def compute_jaccard_similarity_per_bin(
-        fingerprints: np.ndarray,
-        selection_bins: np.ndarray = np.array([(x/10, x/10 + 0.1) for x in range(0, 10)]),
-        max_pairs_per_bin: Optional[int] = None,
-        include_diagonal: bool = True) -> List[List[Tuple[int, float]]]:
-    """For each inchikey for each bin matches are stored within this bin.
-    The max pairs per bin specifies how many pairs are selected per bin. This helps reduce the memory load.
-
-    fingerprints
-        Fingerprint vectors as 2D numpy array.
-    selection_bins
-        List of tuples with upper and lower bound for score bins.
-        The goal is to pick equal numbers of pairs for each score bin.
-        Sidenote: bins do not have to be of equal size, nor do they have to cover the entire
-        range of the used scores.
-    max_pairs_per_bin
-        Specifies the desired maximum number of pairs to be added for each score bin.
-        Set to None to select everything (more memory intensive)
-
-    returns:
-        A list were the indexes are the bin numbers. This contains Lists were the index is the spectrum_i index.
-        This list contains a Tuple, with first the spectrum_j index and second the score.
-    """
-    # pylint: disable=too-many-locals
+        fingerprints,
+        max_pairs_per_bin,
+        selection_bins = np.array([(x / 10, x / 10 + 0.1) for x in range(10)]),
+        include_diagonal = True):
+    
     size = fingerprints.shape[0]
-    # initialize storing scores
-    selected_pairs_per_bin = [[] for _ in range(len(selection_bins))]
+    num_bins = len(selection_bins)
 
-    # loop over the fingerprints
-    for idx_fingerprint_i in range(size):
-        fingerprint_i = fingerprints[idx_fingerprint_i, :]
+    selected_pairs_per_bin = -1 * np.ones((num_bins, size, max_pairs_per_bin), dtype=np.int32)
+    selected_scores_per_bin = np.zeros((num_bins, size, max_pairs_per_bin), dtype=np.float32)
+    # pylint: disable=not-an-iterable
+    for idx_fingerprint_i in prange(size):
+        tanimoto_scores = tanimoto_scores_row(fingerprints, idx_fingerprint_i, include_diagonal)
 
-        # Calculate all tanimoto scores for 1 fingerprint
-        tanimoto_scores = np.zeros(size)
-        for idx_fingerprint_j in range(size):
-            if idx_fingerprint_i == idx_fingerprint_j and not include_diagonal:
-                # skip matching fingerprint score against itself.
-                continue
-            fingerprint_j = fingerprints[idx_fingerprint_j, :]
-            tanimoto_score = jaccard_index(fingerprint_i, fingerprint_j)
-            tanimoto_scores[idx_fingerprint_j] = tanimoto_score
+        for bin_number in range(num_bins):
+            selection_bin = selection_bins[bin_number]
+            indices = np.nonzero((tanimoto_scores > selection_bin[0]) & (tanimoto_scores <= selection_bin[1]))[0]
+            np.random.shuffle(indices)
+            indices = indices[:max_pairs_per_bin]
 
-        # Select pairs per bin with a maximum of max_pairs_per_bin
-        for bin_number, selection_bin in enumerate(selection_bins):
-            selected_pairs_per_bin[bin_number].append([])
-            # Indices of scores within the current bin
-            idx = np.where((tanimoto_scores > selection_bin[0]) & (tanimoto_scores <= selection_bin[1]))[0]
-            # Randomly select up to max_pairs_per_bin scores within the bin
-            np.random.shuffle(idx)
-            idx_selected = idx[:max_pairs_per_bin]
-            for index in idx_selected:
-                selected_pairs_per_bin[bin_number][idx_fingerprint_i].append((index, tanimoto_scores[index]))
-    return selected_pairs_per_bin
+            selected_pairs_per_bin[bin_number, idx_fingerprint_i, :len(indices)] = indices
+            selected_scores_per_bin[bin_number, idx_fingerprint_i, :len(indices)] = tanimoto_scores[indices]
+
+    return selected_pairs_per_bin, selected_scores_per_bin
 
 
-def fix_bias(selected_pairs_per_bin, expected_average_pairs_per_bin):
+@jit(nopython=True)
+def tanimoto_scores_row(fingerprints, idx, include_diagonal):
+    size = fingerprints.shape[0]
+    tanimoto_scores = np.zeros(size)
+
+    fingerprint_i = fingerprints[idx, :]
+    for idx_fingerprint_j in range(size):
+        if idx == idx_fingerprint_j and not include_diagonal:
+            continue
+        fingerprint_j = fingerprints[idx_fingerprint_j, :]
+        tanimoto_score = jaccard_index(fingerprint_i, fingerprint_j)
+        tanimoto_scores[idx_fingerprint_j] = tanimoto_score
+    return tanimoto_scores
+
+
+desired_average_pairs_per_bin = 5000
+
+def balanced_selection(selected_pairs_per_bin, selected_scores_per_bin,
+             desired_pairs_per_bin,
+             max_oversampling_rate: float = 1):
     """
     Adjusts the selected pairs for each bin to align with the expected average pairs per bin.
     
@@ -213,26 +227,45 @@ def fix_bias(selected_pairs_per_bin, expected_average_pairs_per_bin):
     ----------
     selected_pairs_per_bin: list of list
         The list containing bins and for each bin, the list of pairs for each spectrum.
-    expected_average_pairs_per_bin: int
-        The expected average number of pairs per bin.
+    desired_pairs_per_bin: int
+        The desired number of pairs per bin. Will be used if sufficient scores in each bin are found.
+    max_oversampling_rate: float
+        Maximum factor for oversampling. Default is 2.
     """
+    if max_oversampling_rate != 1:
+        raise NotImplementedError("oversampling is not yet supported")
+    available_pairs = (selected_pairs_per_bin[:, :, :] != -1).sum(axis=2).sum(axis=1)
+    minimum_bin_occupation = available_pairs.min()
+    print(f"Found minimum bin occupation of {minimum_bin_occupation} pairs.")
+    print(f"Bin occupations are: {available_pairs}.")
+    
+    pairs_per_bin = min(minimum_bin_occupation * max_oversampling_rate, desired_pairs_per_bin)
+    if desired_pairs_per_bin > minimum_bin_occupation * max_oversampling_rate:
+        print(f"The desired number of {desired_pairs_per_bin} pairs per bin cannot be reached with the current setting.")
+        print(f"The number of pairs per bin will be set to {minimum_bin_occupation * max_oversampling_rate}.")
+    
     new_selected_pairs_per_bin = []
-    for bin_nr, scores_per_compound in enumerate(selected_pairs_per_bin):
-        new_selected_pairs_per_bin.append([])
-        # Calculate the nr_of_pairs_in_bin_per_compound
-        nr_of_pairs_in_bin_per_compound = [len(score_and_idx) for score_and_idx in scores_per_compound]
-
-        cut_offs_to_use = get_nr_of_pairs_needed_to_fix_bias(nr_of_pairs_in_bin_per_compound,
-                                                             expected_average_pairs_per_bin)
-        if sum(cut_offs_to_use)/len(cut_offs_to_use) != expected_average_pairs_per_bin:
-            print(f"For bin {bin_nr} the expected average number of pairs: {expected_average_pairs_per_bin} "
-                  f"does not match the actual average number of pairs: {sum(cut_offs_to_use)/len(cut_offs_to_use)}")
-        for i, cut_off in enumerate(cut_offs_to_use):
-            new_selected_pairs_per_bin[bin_nr].append(scores_per_compound[i][:cut_off])
+    
+    for bin_id in range(selected_pairs_per_bin.shape[0]):
+        goal = pairs_per_bin
+        for _ in range(int(np.ceil(max_oversampling_rate))):
+            for col in range(selected_pairs_per_bin.shape[2]):
+                idx = np.where(selected_pairs_per_bin[bin_id, :, col] != -1)[0]
+                if len(idx) > goal:
+                    idx = np.random.choice(idx, goal)
+                if len(idx) == 0 and goal > 0:
+                    print(f"Apply oversampling for bin {bin_id}.")
+                    break
+                goal -= len(idx)
+                pairs = [(idx[i], selected_pairs_per_bin[bin_id, idx[i], col],
+                          selected_scores_per_bin[bin_id, idx[i], col]) for i in range(len(idx))]
+                new_selected_pairs_per_bin.extend(pairs)
+                if goal <= 0:
+                    break
     return new_selected_pairs_per_bin
 
 
-def get_nr_of_pairs_needed_to_fix_bias(nr_of_pairs_in_bin_per_compound: List[int],
+def get_nr_of_pairs_needed_to_balanced_selection(nr_of_pairs_in_bin_per_compound: List[int],
                                        expected_average_pairs_per_bin: int
                                        ):
     """Calculates how many pairs should be selected to get the exact number o """
@@ -245,11 +278,23 @@ def get_nr_of_pairs_needed_to_fix_bias(nr_of_pairs_in_bin_per_compound: List[int
 def compute_fingerprints_for_training(spectrums,
                                       fingerprint_type: str = "daylight",
                                       nbits: int = 2048):
-    """Calculates fingerprints for each unique inchikey and removes spectra for which no fingerprint could be created"""
+    """Calculates fingerprints for each unique inchikey.
+    
+    Function also removes spectra for which no fingerprint could be created.
+    
+    Parameters
+    ----------
+    fingerprint_type:
+        The fingerprint type that should be used for tanimoto score calculations.
+    fingerprint_nbits:
+        The number of bits to use for the fingerprint.
+    """
     if len(spectrums) == 0:
         raise ValueError("No spectra were selected to calculate fingerprints")
+
     spectra_selected, inchikeys14_unique = select_inchi_for_unique_inchikeys(spectrums)
     print(f"Selected {len(spectra_selected)} spectra with unique inchikeys (out of {len(spectrums)} spectra)")
+
     # Compute fingerprints using matchms
     spectra_selected = [add_fingerprint(s, fingerprint_type, nbits)\
                         if s.get("fingerprint") is None else s for s in spectra_selected]
@@ -262,6 +307,7 @@ def compute_fingerprints_for_training(spectrums,
         raise ValueError("No fingerprints could be computed")
     if len(idx) < len(fingerprints):
         print(f"Successfully generated fingerprints for {len(idx)} of {len(fingerprints)} spectra")
+
     fingerprints = np.array([fingerprints[i] for i in idx])
     inchikeys14_unique = [inchikeys14_unique[i] for i in idx]
     spectra_selected = [spectra_selected[i] for i in idx]
