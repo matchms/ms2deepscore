@@ -73,6 +73,22 @@ class SiameseSpectralModel(nn.Module):
         cos_sim = nn.CosineSimilarity(dim=1, eps=1e-6)(encoded_x1, encoded_x2)
         return cos_sim
 
+    def save(self, filepath):
+        """
+        Save the model's parameters and state dictionary to a file.
+
+        Parameters
+        ----------
+        filepath: str
+            The file path where the model will be saved.
+        """
+        # Ensure the model is in evaluation mode
+        self.eval()
+        settings_dict = {
+            'model_params': self.model_parameters,
+            'model_state_dict': self.state_dict(),
+        }
+        torch.save(settings_dict, filepath)
 
 class PeakBinner(nn.Module):
     def __init__(self, input_size, group_size, output_per_group):
@@ -172,7 +188,7 @@ class SpectralEncoder(nn.Module):
 
 ### Model training
 
-def train(model: torch.nn.Module,
+def train(model: SiameseSpectralModel,
           data_generator,
           num_epochs: int,
           learning_rate: float,
@@ -261,7 +277,7 @@ def train(model: torch.nn.Module,
             if val_loss < min_val_loss:
                 if checkpoint_filename:
                     print("Saving checkpoint model.")
-                    torch.save(model, checkpoint_filename)
+                    model.save(checkpoint_filename)
                 epochs_no_improve = 0
                 min_val_loss = val_loss
             else:
