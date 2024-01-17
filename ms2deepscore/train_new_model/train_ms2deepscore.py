@@ -3,57 +3,14 @@ This script is not needed for normally running MS2Deepscore, it is only needed t
 """
 
 import os
-from typing import List, Optional
-from matchms import Spectrum
+from typing import Optional
 from matplotlib import pyplot as plt
-from ms2deepscore import SpectrumBinner
 from ms2deepscore.train_new_model.SettingMS2Deepscore import \
     SettingsMS2Deepscore
 from ms2deepscore.train_new_model.spectrum_pair_selection import \
     select_compound_pairs_wrapper
-from ms2deepscore.utils import return_non_existing_file_name, save_pickled_file
 from ms2deepscore.data_generators import DataGeneratorPytorch
 from ms2deepscore.models.SiameseSpectralModel import SiameseSpectralModel, train
-
-
-def bin_spectra(
-    training_spectra: List[Spectrum],
-    validation_spectra: List[Spectrum],
-    additional_metadata=(),
-    save_folder=None):
-    """Bins spectra and stores binner and binned spectra in the specified folder.
-    training_spectra:
-        Spectra will be binned and will be used to decide which bins are used.
-    validation_spectra:
-        These spectra are binned based on the bins determined for the training_spectra.
-    additional_metadata:
-        Additional metadata that should be used in training the model. e.g. precursor_mz
-    save_folder:
-        The folder that will save the binned spectra if provided."""
-
-    # Bin training spectra
-    spectrum_binner = SpectrumBinner(
-        10000,
-        mz_min=10.0,
-        mz_max=1000.0,
-        peak_scaling=0.5,
-        allowed_missing_percentage=100.0,
-        additional_metadata=additional_metadata,
-    )
-    binned_spectrums_training = spectrum_binner.fit_transform(training_spectra)
-    # Bin validation spectra using the binner based on the training spectra.
-    # Peaks that do not occur in the training spectra will not be binned in the validation spectra.
-    binned_spectrums_val = spectrum_binner.transform(validation_spectra)
-
-    if save_folder:
-        os.makedirs(save_folder, exist_ok=True)
-        save_pickled_file(binned_spectrums_training, return_non_existing_file_name(
-                os.path.join(save_folder, "binned_training_spectra.pickle")), )
-        save_pickled_file(binned_spectrums_val, return_non_existing_file_name(
-                os.path.join(save_folder, "binned_validation_spectra.pickle")), )
-        save_pickled_file(spectrum_binner, return_non_existing_file_name(
-                os.path.join(save_folder, "spectrum_binner.pickle")), )
-    return binned_spectrums_training, binned_spectrums_val, spectrum_binner
 
 
 def train_ms2ds_model(
