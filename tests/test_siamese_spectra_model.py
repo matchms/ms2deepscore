@@ -146,16 +146,17 @@ def test_model_training(simple_training_spectra):
 
     # Create and train model
     model_simple = SiameseSpectralModel(peak_inputs=1000, additional_inputs=0, train_binning_layer=False)
-    losses, val_losses, collection_targets = train(model_simple, train_generator_simple,
-                                                   val_generator=val_generator_simple,
-                                                   num_epochs=25,
-                                                   learning_rate=0.001, lambda_l1=0, lambda_l2=0,
-                                                   progress_bar=False, early_stopping=False,
-                                                   )
+    history = train(
+        model_simple, train_generator_simple,
+        val_generator=val_generator_simple,
+        num_epochs=25,
+        learning_rate=0.001, lambda_l1=0, lambda_l2=0,
+        progress_bar=False, early_stopping=False,
+        )
 
-    assert len(losses) == len(val_losses) == 25
+    assert len(history["losses"]) == len(history["val_losses"]) == 25
     # Check if model trained to at least an OK result
-    assert np.mean(losses[-5:]) < 0.03, "Training was not succesfull!"
+    assert np.mean(history["losses"][-5:]) < 0.03, "Training was not succesfull!"
     # Check if bias in data is handled correctly
-    assert (np.array(collection_targets) == 1).sum() == 500
-    assert (np.array(collection_targets) < .2).sum() == 500
+    assert (np.array(history["collection_targets"]) == 1).sum() == 500
+    assert (np.array(history["collection_targets"]) < .2).sum() == 500

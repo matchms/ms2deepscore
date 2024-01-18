@@ -181,6 +181,8 @@ def train(model: torch.nn.Module,
           early_stopping=True,
           patience: int = 10,
           checkpoint_filename: str = None, 
+          loss_function = torch.nn.MSELoss(),
+          monitor_rmse: bool = True,
           lambda_l1: float = 1e-6,
           lambda_l2: float = 1e-6,
           progress_bar: bool = True):
@@ -204,6 +206,10 @@ def train(model: torch.nn.Module,
         Number of epochs to wait for improvement before stopping.
     checkpoint_filename
         File path to save the model checkpoint.
+    loss_function
+        Pass a loss function (e.g. a pytorch default or a custom function).
+    monitor_rmse
+        If True rmse will be monitored turing training.
     lambda_l1
         L1 regularization strength.
     lambda_l2 
@@ -211,10 +217,16 @@ def train(model: torch.nn.Module,
     """
     # pylint: disable=too-many-arguments, too-many-locals
     device = initialize_device()
-    criterion, optimizer = setup_model(model, learning_rate, device)
     model.to(device)
+    optimizer = optim.Adam(model.parameters(), lr=learning_rate)
 
-    losses, val_losses, collection_targets = [], [], []
+    history = {
+        "losses": [],
+        "val_losses": [],
+        "rmse": [],
+        "val_rmse": [],
+        "collection_targets": [],
+        }
     min_val_loss = np.inf
     epochs_no_improve = 0
 
@@ -223,9 +235,10 @@ def train(model: torch.nn.Module,
         with tqdm(data_generator, unit="batch", mininterval=0, disable=(not progress_bar)) as training:
             training.set_description(f"Epoch {epoch}")
             batch_losses = []
+            batch_rmse = []
             for spectra_1, spectra_2, meta_1, meta_2, targets in training:
                 # For debugging: keep track of biases
-                collection_targets.extend(targets)
+                history["collection_targets"].extend(targets)
                 
                 optimizer.zero_grad()
 
@@ -234,10 +247,13 @@ def train(model: torch.nn.Module,
                                 meta_1.to(device), meta_2.to(device))
 
                 # Calculate loss
-                loss = criterion(outputs, targets.to(device))
+                loss = loss_function(outputs, targets.to(device))
                 if lambda_l1 > 0 or lambda_l2 > 0:
                     loss += l1_regularization(model, lambda_l1) + l2_regularization(model, lambda_l2)
                 batch_losses.append(float(loss))
+
+                if monitor_rmse:
+                    batch_rmse.append(rmse_loss(outputs, targets.to(device)).detach().numpy())
 
                 # Backward pass and optimize
                 loss.backward()
@@ -246,19 +262,24 @@ def train(model: torch.nn.Module,
                 # Print progress
                 training.set_postfix(
                     loss=float(loss),
+                    rmse=np.mean(batch_rmse),
                 )
-        losses.append(np.mean(batch_losses))
+        history["losses"].append(np.mean(batch_losses))
+        history["rmse"].append(np.mean(batch_rmse))
 
         if val_generator is not None:
             model.eval()
             val_batch_losses = []
+            val_batch_rmse = []
             for spectra_1, spectra_2, meta_1, meta_2, targets in val_generator:
                 predictions = model(spectra_1.to(device), spectra_2.to(device), 
                                     meta_1.to(device), meta_2.to(device))
-                loss = criterion(predictions, targets.to(device))
+                loss = loss_function(predictions, targets.to(device))
                 val_batch_losses.append(float(loss))
+                val_batch_rmse.append(rmse_loss(predictions, targets.to(device)).detach().numpy())
             val_loss = np.mean(val_batch_losses)
-            val_losses.append(val_loss)
+            history["val_losses"].append(val_loss)
+            history["val_rmse"].append(np.mean(val_batch_rmse))
             if val_loss < min_val_loss:
                 if checkpoint_filename:
                     print("Saving checkpoint model.")
@@ -274,9 +295,9 @@ def train(model: torch.nn.Module,
         # Print statistics
         print(f"Epoch [{epoch+1}/{num_epochs}], Loss: {np.mean(batch_losses):.4f}")
         if val_generator is not None:
-            print(f"Validation Loss: {val_loss:.4f}")
+            print(f"Validation Loss: {val_loss:.4f} (RMSE: {np.mean(np.mean(val_batch_rmse))}).")
 
-    return losses, val_losses, collection_targets
+    return history
 
 
 def initialize_device():
@@ -303,3 +324,7 @@ def setup_model(model, learning_rate, device):
     criterion = mse_away_from_mean  # Alternative for nn.MSELoss()
     optimizer = optim.Adam(model.parameters(), lr=learning_rate)
     return criterion, optimizer
+
+
+def rmse_loss(outputs, targets):
+        return torch.sqrt(torch.mean((outputs - targets) ** 2))
