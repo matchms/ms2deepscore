@@ -14,7 +14,7 @@ def l2_regularization(model, lambda_l2):
     return lambda_l2 * l2_loss
 
 
-def risk_aware_loss(output, target, percentiles=None):
+def risk_aware_loss(outputs, targets, percentiles=None):
     """Higher linear loss for predictions towards the majority of datapoints.
 
     Greedy implementation, using either actual percentiles or assuming a uniform
@@ -22,16 +22,19 @@ def risk_aware_loss(output, target, percentiles=None):
     """
     if percentiles is None:
         percentiles = torch.linspace(0.01, 1.0, 100)
+    idx = []
+    for target in targets:
+        idx.append(torch.argmin(torch.abs(percentiles - target)))
+    idx = torch.tensor(idx)
     max_bin = percentiles.shape[0]
-    idx_bin = torch.argmin(torch.abs(percentiles - target))
-    factor = (idx_bin + 1) / max_bin
-    
-    error = target - output
-    upper =  factor * error
-    lower = (factor - 1) * error 
+    factors = (idx + 1) / max_bin
 
-    losses = max(lower, upper)
-    return losses
+    errors = targets - outputs
+    uppers =  factors * errors
+    lowers = (factors - 1) * errors
+
+    losses = torch.max(lowers, uppers)
+    return losses.mean()
 
 
 def mse_away_from_mean(output, target):
