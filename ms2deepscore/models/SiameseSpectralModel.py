@@ -5,6 +5,7 @@ import torch.nn.functional as F
 from torch import optim
 from tqdm import tqdm
 
+from ms2deepscore.models.helper_functions import mse_away_from_mean
 
 class SiameseSpectralModel(nn.Module):
     """
@@ -302,28 +303,3 @@ def setup_model(model, learning_rate, device):
     criterion = mse_away_from_mean  # Alternative for nn.MSELoss()
     optimizer = optim.Adam(model.parameters(), lr=learning_rate)
     return criterion, optimizer
-
-
-### Helper functions
-
-def l1_regularization(model, lambda_l1):
-    """L1 regulatization for first dense layer of model."""
-    l1_loss = torch.linalg.vector_norm(next(model.encoder.dense_layers[0].parameters()), ord=1)
-    return lambda_l1 * l1_loss
-
-def l2_regularization(model, lambda_l2):
-    """L2 regulatization for first dense layer of model."""
-    l2_loss = torch.linalg.vector_norm(next(model.encoder.dense_layers[0].parameters()), ord=2)
-    return lambda_l2 * l2_loss
-
-def mse_away_from_mean(output, target):
-    """MSE weighted to get higher loss for predictions towards the mean of 0.5.
-    
-    In addition, we are usually more intereted in the precision for higher scores.
-    And, we have often fewer pairs in that regime. This is included by an additional
-    linear factor to shift attention to higher scores.
-    """
-    weighting = torch.exp(-10 * (output - 0.5)**2) + 1
-    focus_high_scores = 1 + 0.5 * target
-    loss = torch.mean(weighting * focus_high_scores * (output - target)**2)
-    return loss
