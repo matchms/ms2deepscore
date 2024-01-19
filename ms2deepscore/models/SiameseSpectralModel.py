@@ -76,6 +76,12 @@ class SiameseSpectralModel(nn.Module):
 
 
 class PeakBinner(nn.Module):
+    """
+    This model element is meant to be a "smart binning" element to reduce
+    a high number of inputs through using many smaller densely connected units (groups).
+    The initial input tensors will thereby be divided into groups of `group_size` inputs
+    which are connected to `output_per_group` outputs.
+    """
     def __init__(self, input_size, group_size, output_per_group):
         super().__init__()
         self.group_size = group_size
