@@ -133,7 +133,6 @@ class SpectralEncoder(nn.Module):
         """
         # pylint: disable=too-many-arguments
         super().__init__()
-        #self.binning_layer = BinnedSpectraLayer(min_mz, max_mz, mz_bin_width, intensity_scaling)
         self.train_binning_layer = train_binning_layer
 
         # First dense layer (no dropout!)
@@ -183,8 +182,8 @@ def train(model: torch.nn.Module,
           checkpoint_filename: str = None, 
           loss_function = torch.nn.MSELoss(),
           monitor_rmse: bool = True,
-          lambda_l1: float = 1e-6,
-          lambda_l2: float = 1e-6,
+          lambda_l1: float = 0,
+          lambda_l2: float = 0,
           progress_bar: bool = True):
     """Train a model with given parameters.
 
@@ -305,25 +304,6 @@ def initialize_device():
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"Training will happen on {device}.")
     return device
-
-
-def setup_model(model, learning_rate, device):
-    """
-    Set up the model for training.
-
-    Parameters
-    ----------
-    model
-        The model to be set up.
-    learning_rate
-        Learning rate for the optimizer.
-    device
-        The device to be used for training.
-    """
-    model.to(device)
-    criterion = mse_away_from_mean  # Alternative for nn.MSELoss()
-    optimizer = optim.Adam(model.parameters(), lr=learning_rate)
-    return criterion, optimizer
 
 
 def rmse_loss(outputs, targets):
