@@ -5,11 +5,11 @@ import torch.nn.functional as F
 from torch import optim
 from tqdm import tqdm
 
-from ms2deepscore.models.helper_functions import mse_away_from_mean
+from ms2deepscore.models.helper_functions import risk_aware_mae, l1_regularization, l2_regularization
 
 class SiameseSpectralModel(nn.Module):
     """
-    Class for training and evaluating a siamese neural network, implemented in PyTorch.
+    Class for training and evaluating a Siamese neural network, implemented in PyTorch.
     It consists of a dense 'base' network that produces an embedding for each of the 2 inputs.
     This head model computes the cosine similarity between the embeddings.
     """
@@ -36,10 +36,10 @@ class SiameseSpectralModel(nn.Module):
         train_binning_layer
             Default is True in which case the model contains a first dense multi-group peak binning layer.
         group_size
-            When binning layer is used the group_size determins how many input bins are taken into
+            When a smart binning layer is used the group_size determines how many input bins are taken into
             one dense micro-network.
         output_per_group
-            This sets the number of next layer bins each group_size sized group of inputs shares.
+            This sets the number of next layer bins each group_size group of inputs shares.
         dropout_rate
             Dropout rate to be used in the base model.
         peak_inputs
@@ -78,7 +78,7 @@ class SiameseSpectralModel(nn.Module):
 class PeakBinner(nn.Module):
     """
     This model element is meant to be a "smart binning" element to reduce
-    a high number of inputs through using many smaller densely connected units (groups).
+    a high number of inputs by using many smaller densely connected units (groups).
     The initial input tensors will thereby be divided into groups of `group_size` inputs
     which are connected to `output_per_group` outputs.
     """
@@ -126,10 +126,10 @@ class SpectralEncoder(nn.Module):
         train_binning_layer
             Default is True in which case the model contains a first dense multi-group peak binning layer.
         group_size
-            When binning layer is used the group_size determins how many input bins are taken into
+            When binning layer is used the group_size determines how many input bins are taken into
             one dense micro-network.
         output_per_group
-            This sets the number of next layer bins each group_size sized group of inputs shares.
+            This sets the number of next layer bins each group_size group of inputs shares.
         dropout_rate
             Dropout rate to be used in the base model.
         peak_inputs
@@ -149,15 +149,17 @@ class SpectralEncoder(nn.Module):
             input_size = self.peak_binner.output_size() + additional_inputs
         else:
             input_size = peak_inputs + additional_inputs
-        self.dense_layers.append(nn.Linear(input_size, base_dims[0]))
+        self.dense_layers.append(
+            dense_layer(input_size, base_dims[0], "relu")
+        )
         input_dim = base_dims[0]
 
         # Create additional dense layers
         for output_dim in base_dims[1:]:
-            self.dense_layers.append(nn.Linear(input_dim, output_dim))
+            self.dense_layers.append(dense_layer(input_dim, output_dim, "relu"))
             input_dim = output_dim
 
-        self.embedding_layer = nn.Linear(base_dims[-1], embedding_dim)
+        self.embedding_layer = dense_layer(base_dims[-1], embedding_dim, "relu")
         self.dropout = nn.Dropout(dropout_rate)
 
     def forward(self, spectra_tensors, metadata_tensors):
@@ -166,10 +168,10 @@ class SpectralEncoder(nn.Module):
             x = torch.cat([metadata_tensors, x], dim=1)
         else:
             x = torch.cat([metadata_tensors, spectra_tensors], dim=1)
-        x = F.relu(self.dense_layers[0](x))
+        x = self.dense_layers[0](x)
 
         for layer in self.dense_layers[1:]:
-            x = F.relu(layer(x))
+            x = layer(x)
             x = self.dropout(x)
 
         x = self.embedding_layer(x)
@@ -305,6 +307,18 @@ def train(model: torch.nn.Module,
     return history
 
 
+def dense_layer(input_size, output_size, activation="relu"):
+    """Combines a densely connected layer and an activation function."""
+    activations = nn.ModuleDict([
+        ['lrelu', nn.LeakyReLU()],
+        ['relu', nn.ReLU()]
+    ])
+    return nn.Sequential(
+        nn.Linear(input_size, output_size),
+        activations[activation]
+    )
+
+
 def initialize_device():
     """Initialize and return the device for training."""
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -312,5 +326,13 @@ def initialize_device():
     return device
 
 
+def loss_functions(type:str = "mse"):
+    return nn.ModuleDict([
+        ["mse", nn.MSELoss()],
+        ["rmse", rmse_loss],
+        ["risk_mae", risk_aware_mae]
+    ])[type]
+
+
 def rmse_loss(outputs, targets):
-        return torch.sqrt(torch.mean((outputs - targets) ** 2))
+    return torch.sqrt(torch.mean((outputs - targets) ** 2))

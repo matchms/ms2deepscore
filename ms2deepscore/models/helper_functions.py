@@ -14,7 +14,7 @@ def l2_regularization(model, lambda_l2):
     return lambda_l2 * l2_loss
 
 
-def risk_aware_loss(outputs, targets, percentiles=None):
+def risk_aware_mae(outputs, targets, percentiles=None):
     """Higher linear loss for predictions towards the majority of datapoints.
 
     Greedy implementation, using either actual percentiles or assuming a uniform

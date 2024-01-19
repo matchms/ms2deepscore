@@ -97,7 +97,7 @@ def test_siamese_model_additional_metadata(dummy_spectra):
     spec_tensors, meta_tensors = tensorize_spectra(dummy_spectra, vectorizer, 10, 1000, 0.1, 0.5)
     similarity_score = model(spec_tensors, spec_tensors, meta_tensors, meta_tensors)
     assert similarity_score.shape[0] == 2
-    assert model.encoder.dense_layers[0].weight.shape[1] == 9901
+    assert model.encoder.dense_layers[0][0].weight.shape[1] == 9901
 
     # Include dense binning layer
     model = SiameseSpectralModel(peak_inputs=9900, additional_inputs=1)
@@ -105,7 +105,7 @@ def test_siamese_model_additional_metadata(dummy_spectra):
     # Test forward pass
     spec_tensors, meta_tensors = tensorize_spectra(dummy_spectra, vectorizer, 10, 1000, 0.1, 0.5)
     similarity_score = model(spec_tensors, spec_tensors, meta_tensors, meta_tensors)
-    assert model.encoder.dense_layers[0].weight.shape[1] == 991
+    assert model.encoder.dense_layers[0][0].weight.shape[1] == 991
 
     # Compare to no metadata_vectorizer
     model = SiameseSpectralModel(peak_inputs=9900, additional_inputs=0)
@@ -113,7 +113,7 @@ def test_siamese_model_additional_metadata(dummy_spectra):
     # Test forward pass
     spec_tensors, meta_tensors = tensorize_spectra(dummy_spectra, None, 10, 1000, 0.1, 0.5)
     similarity_score = model(spec_tensors, spec_tensors, meta_tensors, meta_tensors)
-    assert model.encoder.dense_layers[0].weight.shape[1] == 990
+    assert model.encoder.dense_layers[0][0].weight.shape[1] == 990
 
 
 def test_model_training(simple_training_spectra):
