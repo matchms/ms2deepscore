@@ -3,10 +3,11 @@ import pytest
 from matchms import Spectrum
 from scipy.sparse import coo_array
 from ms2deepscore.train_new_model.spectrum_pair_selection import (
-    SelectedCompoundPairs, compute_jaccard_similarity_per_bin,
-    convert_pair_array_to_coo_array,
-    convert_pair_list_to_coo_array, balanced_selection,
-    get_nr_of_pairs_needed_to_balanced_selection, select_inchi_for_unique_inchikeys)
+    SelectedCompoundPairs, balanced_selection,
+    compute_jaccard_similarity_per_bin, convert_pair_array_to_coo_array,
+    convert_pair_list_to_coo_array,
+    get_nr_of_pairs_needed_to_balanced_selection,
+    select_inchi_for_unique_inchikeys)
 
 
 @pytest.fixture

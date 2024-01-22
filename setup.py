@@ -30,13 +30,11 @@ setup(
     install_requires=[
         "matchms>=0.18.0",
         "numba",
-        "numpy>= 1.20.3",
+        "numpy>=1.20.3",
         "pandas",
         "torch",
-        "tensorflow-macos;platform_machine=='arm64'",
-        "tensorflow-metal;platform_machine=='arm64'",
-        "tensorflow;platform_machine!='arm64'",
         "tqdm",
+        "matplotlib==3.7.2"
     ],
     extras_require={"train": ["rdkit"],
                     "dev": ["bump2version",

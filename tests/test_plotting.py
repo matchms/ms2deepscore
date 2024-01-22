@@ -1,10 +1,11 @@
 import numpy as np
+from ms2deepscore.benchmarking_models.plot_rmse_per_bin import (
+    plot_rmse_per_bin, plot_rmse_per_bin_multiple_benchmarks)
 from ms2deepscore.benchmarking_models.plot_stacked_histogram import (
     calculate_all_histograms, plot_reversed_stacked_histogram_plot,
     plot_stacked_histogram_plot_wrapper)
 from ms2deepscore.benchmarking_models.plotting import \
     create_confusion_matrix_plot
-from ms2deepscore.benchmarking_models.plot_rmse_per_bin import plot_rmse_per_bin_multiple_benchmarks, plot_rmse_per_bin
 
 
 def test_create_confusion_matrix_plot():

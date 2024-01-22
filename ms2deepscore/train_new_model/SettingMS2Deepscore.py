@@ -51,7 +51,7 @@ class SettingsMS2Deepscore:
 
         # training settings
         self.dropout_rate = 0.2
-        self.learning_rate = 0.001
+        self.learning_rate = 0.00025
         self.epochs = 150
         self.patience = 10
 
@@ -71,8 +71,7 @@ class SettingsMS2Deepscore:
 
         # Folder names for storing
         self.binned_spectra_folder_name = "binned_spectra"
-        self.model_file_name = "ms2deepscore_model.hdf5"
-        self.history_file_name = "history.txt"
+        self.model_file_name = "ms2deepscore_model.pt"
         self.history_plot_file_name = "history.svg"
 
         if settings:

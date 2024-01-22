@@ -1,6 +1,6 @@
 import os
-from matchms.exporting import save_as_mgf
 import numpy as np
+from matchms.exporting import save_as_mgf
 from ms2deepscore.train_new_model.SettingMS2Deepscore import \
     SettingsMS2Deepscore
 from ms2deepscore.wrapper_functions.training_wrapper_functions import (
@@ -34,8 +34,5 @@ def test_train_wrapper_ms2ds_model(tmp_path):
     assert os.path.isfile(os.path.join(tmp_path, expected_file_names.trained_models_folder,
                                        settings.model_directory_name, "benchmarking_results",
                                        "plots_1_spectrum_per_inchikey", "both_vs_both_stacked_histogram.svg"))
-    assert os.path.isfile(os.path.join(tmp_path, expected_file_names.trained_models_folder,
-                                       settings.model_directory_name, "binned_spectra",
-                                       "binned_training_spectra.pickle"))
     assert os.path.isfile(os.path.join(tmp_path, expected_file_names.trained_models_folder,
                                        settings.model_directory_name, "settings.json"))

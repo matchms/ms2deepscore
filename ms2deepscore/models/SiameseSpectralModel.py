@@ -1,9 +1,9 @@
 import numpy as np
 import torch
-from torch import nn
 import torch.nn.functional as F
-from torch import optim
+from torch import nn, optim
 from tqdm import tqdm
+from ms2deepscore.data_generators import TensorizationSettings
 
 from ms2deepscore.models.helper_functions import risk_aware_mae, risk_aware_mse, l1_regularization, l2_regularization
 
@@ -14,15 +14,14 @@ class SiameseSpectralModel(nn.Module):
     This head model computes the cosine similarity between the embeddings.
     """
     def __init__(self,
-                 peak_inputs: int,
-                 additional_inputs: int = 0,
+                 tensorisaton_settings: TensorizationSettings,
                  base_dims: tuple[int, ...] = (1000, 800, 800),
                  embedding_dim: int = 400,
                  train_binning_layer: bool = False,
                  group_size: int = 20,
                  output_per_group: int = 2,
                  dropout_rate: float = 0.2,
-                ):
+                 ):
         """
         Construct SiameseSpectralModel
 
@@ -42,10 +41,6 @@ class SiameseSpectralModel(nn.Module):
             This sets the number of next layer bins each group_size group of inputs shares.
         dropout_rate
             Dropout rate to be used in the base model.
-        peak_inputs
-            Integer to specify the number of binned peaks in the input spectra.
-        additional_inputs
-            Integer to specify the number of additional (metadata) input fields.
         pytorch_model
             When provided, this pytorch model will be used to construct the SiameseModel instance.
             Default is None.
@@ -59,11 +54,11 @@ class SiameseSpectralModel(nn.Module):
             "group_size": group_size,
             "output_per_group": output_per_group,
             "dropout_rate": dropout_rate,
-            "peak_inputs": peak_inputs,
-            "additional_inputs": additional_inputs,
-            #TODO: add ms2deepscore version
         }
-        self.encoder = SpectralEncoder(**self.model_parameters)
+        self.tensorization_parameters = tensorisaton_settings
+        self.encoder = SpectralEncoder(**self.model_parameters,
+                                       peak_inputs=tensorisaton_settings.num_bins,
+                                       additional_inputs=len(tensorisaton_settings.additional_metadata))
 
     def forward(self, spectra_tensors_1, spectra_tensors_2, metadata_1, metadata_2):
         # Pass both inputs through the same encoder
@@ -73,6 +68,24 @@ class SiameseSpectralModel(nn.Module):
         # Calculate cosine similarity
         cos_sim = nn.CosineSimilarity(dim=1, eps=1e-6)(encoded_x1, encoded_x2)
         return cos_sim
+
+    def save(self, filepath):
+        """
+        Save the model's parameters and state dictionary to a file.
+
+        Parameters
+        ----------
+        filepath: str
+            The file path where the model will be saved.
+        """
+        # Ensure the model is in evaluation mode
+        self.eval()
+        settings_dict = {
+            'model_params': self.model_parameters,
+            'model_state_dict': self.state_dict(),
+            'tensorization_parameters': self.tensorization_parameters.get_dict()
+        }
+        torch.save(settings_dict, filepath)
 
 
 class PeakBinner(nn.Module):
@@ -185,7 +198,7 @@ class SpectralEncoder(nn.Module):
 
 ### Model training
 
-def train(model: torch.nn.Module,
+def train(model: SiameseSpectralModel,
           data_generator,
           num_epochs: int,
           learning_rate: float,
@@ -310,7 +323,7 @@ def train(model: torch.nn.Module,
             if val_loss < min_val_loss:
                 if checkpoint_filename:
                     print("Saving checkpoint model.")
-                    torch.save(model, checkpoint_filename)
+                    model.save(checkpoint_filename)
                 epochs_no_improve = 0
                 min_val_loss = val_loss
             else:

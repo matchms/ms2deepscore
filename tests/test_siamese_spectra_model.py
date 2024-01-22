@@ -1,10 +1,13 @@
-import pytest
 import numpy as np
+import pytest
 from matchms import Spectrum
-from ms2deepscore.models.SiameseSpectralModel import SiameseSpectralModel, train
+from ms2deepscore.data_generators import (DataGeneratorPytorch,
+                                          TensorizationSettings,
+                                          tensorize_spectra)
 from ms2deepscore.MetadataFeatureGenerator import (MetadataVectorizer,
                                                    StandardScaler)
-from ms2deepscore.data_generators import DataGeneratorPytorch, tensorize_spectra
+from ms2deepscore.models.SiameseSpectralModel import (SiameseSpectralModel,
+                                                      train)
 from ms2deepscore.train_new_model.SettingMS2Deepscore import \
     SettingsMS2Deepscore
 from ms2deepscore.train_new_model.spectrum_pair_selection import \
@@ -56,8 +59,8 @@ def simple_training_spectra():
 
 
 def test_siamese_model_defaults():
-    # Create the model instance
-    model = SiameseSpectralModel(peak_inputs=9900, additional_inputs=0)
+    tensorization_settings = TensorizationSettings()    # Create the model instance
+    model = SiameseSpectralModel(tensorization_settings)
 
     assert model.model_parameters == {
         'base_dims': (1000, 800, 800),
@@ -66,55 +69,60 @@ def test_siamese_model_defaults():
         'group_size': 20,
         'output_per_group': 2,
         'dropout_rate': 0.2,
-        'peak_inputs': 9900,
-        'additional_inputs': 0
     }
 
 
 def test_siamese_model_forward_pass(dummy_spectra):
-    model = SiameseSpectralModel(peak_inputs=990, additional_inputs=0)
-    spec_tensors, meta_tensors = tensorize_spectra(dummy_spectra, None, 10, 1000, 1, 0.5)
+    tensorization_settings = TensorizationSettings(mz_bin_width=1,)
+    model = SiameseSpectralModel(tensorization_settings)
+    spec_tensors, meta_tensors = tensorize_spectra(dummy_spectra, tensorization_settings)
     similarity_score = model(spec_tensors, spec_tensors, meta_tensors, meta_tensors)
     assert similarity_score.shape[0] == 2
 
 
 def test_siamese_model_no_binning_layer(dummy_spectra):
-    model = SiameseSpectralModel(peak_inputs=990, additional_inputs=0, train_binning_layer=False)
+    tensorization_settings = TensorizationSettings(mz_bin_width=1,)
+    model = SiameseSpectralModel(tensorization_settings, train_binning_layer=False)
     assert not model.model_parameters["train_binning_layer"]
 
     # Test forward pass
-    spec_tensors, meta_tensors = tensorize_spectra(dummy_spectra, None, 10, 1000, 1, 0.5)
+    spec_tensors, meta_tensors = tensorize_spectra(dummy_spectra, tensorization_settings)
     similarity_score = model(spec_tensors, spec_tensors, meta_tensors, meta_tensors)
     assert similarity_score.shape[0] == 2
 
 
 def test_siamese_model_additional_metadata(dummy_spectra):
-    scaler = StandardScaler("precursor_mz", 200.0, 250.0)
-    vectorizer = MetadataVectorizer([scaler])
-    model = SiameseSpectralModel(peak_inputs=9900, additional_inputs=1, train_binning_layer=False)
+    tensorization_settings = TensorizationSettings(
+        mz_bin_width=0.1,
+        additional_metadata=[("StandardScaler", {"metadata_field": "precursor_mz",
+                                                 "mean": 200.0,
+                                                 "standard_deviation": 250.0}), ])
+
+    model = SiameseSpectralModel(tensorization_settings, train_binning_layer=False)
 
     # Test forward pass
-    spec_tensors, meta_tensors = tensorize_spectra(dummy_spectra, vectorizer, 10, 1000, 0.1, 0.5)
+    spec_tensors, meta_tensors = tensorize_spectra(dummy_spectra, tensorization_settings)
     similarity_score = model(spec_tensors, spec_tensors, meta_tensors, meta_tensors)
     assert similarity_score.shape[0] == 2
     assert model.encoder.dense_layers[0][0].weight.shape[1] == 9901
 
     # Include dense binning layer
-    model = SiameseSpectralModel(peak_inputs=9900, additional_inputs=1,
+    model = SiameseSpectralModel(tensorization_settings,
                                  train_binning_layer=True, group_size=20, output_per_group=1)
-                                 
+
 
     # Test forward pass
-    spec_tensors, meta_tensors = tensorize_spectra(dummy_spectra, vectorizer, 10, 1000, 0.1, 0.5)
+    spec_tensors, meta_tensors = tensorize_spectra(dummy_spectra, tensorization_settings)
     similarity_score = model(spec_tensors, spec_tensors, meta_tensors, meta_tensors)
     assert model.encoder.dense_layers[0][0].weight.shape[1] == 990
 
-    # Compare to no metadata_vectorizer
-    model = SiameseSpectralModel(peak_inputs=9900, additional_inputs=0,
-                                 train_binning_layer=True, group_size=20, output_per_group=1)
+    tensorisaton_settings = TensorizationSettings(mz_bin_width=0.1, )
+    # Compare to no additional_metadata
+    model = SiameseSpectralModel(tensorisaton_settings, train_binning_layer=True, group_size=20, output_per_group=1)
+
 
     # Test forward pass
-    spec_tensors, meta_tensors = tensorize_spectra(dummy_spectra, None, 10, 1000, 0.1, 0.5)
+    spec_tensors, meta_tensors = tensorize_spectra(dummy_spectra, tensorisaton_settings)
     similarity_score = model(spec_tensors, spec_tensors, meta_tensors, meta_tensors)
     assert model.encoder.dense_layers[0][0].weight.shape[1] == 989
 
@@ -126,12 +134,12 @@ def test_model_training(simple_training_spectra):
         "average_pairs_per_bin": 20
     })
     scp_simple, _ = select_compound_pairs_wrapper(simple_training_spectra, settings)
-
+    tensorization_settings = TensorizationSettings(min_mz=0, max_mz=200, mz_bin_width=0.2,
+                                                   intensity_scaling=0.5,)
     # Create generators
     train_generator_simple = DataGeneratorPytorch(
         spectrums=simple_training_spectra,
-        min_mz=0, max_mz=200, mz_bin_width=0.2, intensity_scaling=0.5,
-        metadata_vectorizer=None,
+        tensorization_settings=tensorization_settings,
         selected_compound_pairs=scp_simple,
         batch_size=2,
         num_turns=20,
@@ -139,8 +147,7 @@ def test_model_training(simple_training_spectra):
 
     val_generator_simple = DataGeneratorPytorch(
         spectrums=simple_training_spectra,
-        min_mz=0, max_mz=200, mz_bin_width=0.2, intensity_scaling=0.5,
-        metadata_vectorizer=None,
+        tensorization_settings=tensorization_settings,
         selected_compound_pairs=scp_simple,
         batch_size=2,
         num_turns=2,
@@ -148,7 +155,8 @@ def test_model_training(simple_training_spectra):
     )
 
     # Create and train model
-    model_simple = SiameseSpectralModel(peak_inputs=1000, additional_inputs=0, train_binning_layer=False)
+
+    model_simple = SiameseSpectralModel(tensorization_settings, train_binning_layer=False)
     history = train(
         model_simple, train_generator_simple,
         val_generator=val_generator_simple,

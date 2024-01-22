@@ -1,12 +1,11 @@
 from pathlib import Path
 from typing import Union
-import h5py
-from tensorflow import keras
-from ms2deepscore.SpectrumBinner import SpectrumBinner
-from .SiameseModel import SiameseModel
+import torch
+from ms2deepscore.data_generators import TensorizationSettings
+from ms2deepscore.models.SiameseSpectralModel import SiameseSpectralModel
 
 
-def load_model(filename: Union[str, Path]) -> SiameseModel:
+def load_model(filename: Union[str, Path]) -> SiameseSpectralModel:
     """
     Load a MS2DeepScore model (SiameseModel) from file.
 
@@ -23,9 +22,15 @@ def load_model(filename: Union[str, Path]) -> SiameseModel:
         Filename. Expecting saved SiameseModel.
 
     """
-    with h5py.File(filename, mode='r') as f:
-        binner_json = f.attrs['spectrum_binner']
-        keras_model = keras.models.load_model(f)
+    model_settings = torch.load(filename)
 
-    spectrum_binner = SpectrumBinner.from_json(binner_json)
-    return SiameseModel(spectrum_binner, keras_model=keras_model)
+    # Extract model parameters from the checkpoint
+    model_params = model_settings['model_params']
+
+    # Instantiate the SiameseSpectralModel with the loaded parameters
+    model = SiameseSpectralModel(**model_params,
+                                 tensorisaton_settings=TensorizationSettings(
+                                     **model_settings["tensorization_parameters"]))
+    model.load_state_dict(model_settings['model_state_dict'])
+    model.eval()
+    return model
