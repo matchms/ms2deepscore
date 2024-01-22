@@ -1,8 +1,9 @@
 from pathlib import Path
 from typing import Union
 import torch
-from ms2deepscore.models.SiameseSpectralModel import SiameseSpectralModel
 from ms2deepscore.data_generators import TensorizationSettings
+from ms2deepscore.models.SiameseSpectralModel import SiameseSpectralModel
+
 
 def load_model(filename: Union[str, Path]) -> SiameseSpectralModel:
     """

@@ -3,10 +3,11 @@ import numpy as np
 import torch
 from matchms import Spectrum
 from matchms.similarity.BaseSimilarity import BaseSimilarity
-from .vector_operations import cosine_similarity, cosine_similarity_matrix
+from tqdm import tqdm
 from ms2deepscore.data_generators import tensorize_spectra
 from ms2deepscore.models.SiameseSpectralModel import SiameseSpectralModel
-from tqdm import tqdm
+from .vector_operations import cosine_similarity, cosine_similarity_matrix
+
 
 class MS2DeepScore(BaseSimilarity):
     """Calculate MS2DeepScore similarity scores between a reference and a query.

@@ -1,6 +1,6 @@
 import os
-from matchms.exporting import save_as_mgf
 import numpy as np
+from matchms.exporting import save_as_mgf
 from ms2deepscore.train_new_model.SettingMS2Deepscore import \
     SettingsMS2Deepscore
 from ms2deepscore.wrapper_functions.training_wrapper_functions import (

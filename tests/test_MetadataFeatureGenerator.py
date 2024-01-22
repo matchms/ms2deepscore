@@ -1,5 +1,5 @@
-import pytest
 import numpy as np
+import pytest
 import torch
 from matchms import Metadata, Spectrum
 from ms2deepscore.MetadataFeatureGenerator import (CategoricalToBinary,

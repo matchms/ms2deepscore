@@ -1,10 +1,10 @@
 import numpy as np
 import torch
-from torch import nn
 import torch.nn.functional as F
-from torch import optim
+from torch import nn, optim
 from tqdm import tqdm
 from ms2deepscore.data_generators import TensorizationSettings
+
 
 class SiameseSpectralModel(nn.Module):
     """

@@ -1,15 +1,17 @@
-import pytest
 import numpy as np
+import pytest
 from matchms import Spectrum
-from ms2deepscore.models.SiameseSpectralModel import SiameseSpectralModel, train
+from ms2deepscore.data_generators import (DataGeneratorPytorch,
+                                          TensorizationSettings,
+                                          tensorize_spectra)
 from ms2deepscore.MetadataFeatureGenerator import (MetadataVectorizer,
                                                    StandardScaler)
-from ms2deepscore.data_generators import DataGeneratorPytorch, tensorize_spectra
+from ms2deepscore.models.SiameseSpectralModel import (SiameseSpectralModel,
+                                                      train)
 from ms2deepscore.train_new_model.SettingMS2Deepscore import \
     SettingsMS2Deepscore
 from ms2deepscore.train_new_model.spectrum_pair_selection import \
     select_compound_pairs_wrapper
-from ms2deepscore.data_generators import TensorizationSettings
 
 
 @pytest.fixture
