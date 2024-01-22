@@ -5,7 +5,7 @@ import torch.nn.functional as F
 from torch import optim
 from tqdm import tqdm
 
-from ms2deepscore.models.helper_functions import risk_aware_mae, l1_regularization, l2_regularization
+from ms2deepscore.models.helper_functions import risk_aware_mae, risk_aware_mse, l1_regularization, l2_regularization
 
 class SiameseSpectralModel(nn.Module):
     """
@@ -331,12 +331,13 @@ def initialize_device():
     return device
 
 
-def loss_functions(type:str = "mse"):
+def loss_functions(choicee: str = "mse"):
     return nn.ModuleDict([
         ["mse", nn.MSELoss()],
         ["rmse", rmse_loss],
         ["risk_mae", risk_aware_mae]
-    ])[type]
+        ["risk_mse", risk_aware_mse]
+    ])[choice]
 
 
 def rmse_loss(outputs, targets):
