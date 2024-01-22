@@ -1,15 +1,16 @@
 """ Data generators for training/inference with siamese Keras model.
 """
 from typing import NamedTuple
-from matchms import Spectrum
 import numba
 import numpy as np
 import torch
+from matchms import Spectrum
+from ms2deepscore.MetadataFeatureGenerator import (MetadataVectorizer,
+                                                   load_from_json)
 from ms2deepscore.train_new_model.spectrum_pair_selection import \
     SelectedCompoundPairs
 from .train_new_model.SettingMS2Deepscore import GeneratorSettings
 from .typing import BinnedSpectrumType
-from ms2deepscore.MetadataFeatureGenerator import MetadataVectorizer, load_from_json
 
 
 class TensorizationSettings:
