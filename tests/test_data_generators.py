@@ -141,6 +141,8 @@ def test_compute_validation_generator():
     })
     val_generator = compute_validation_set(spectrums, TensorizationSettings(), settings)
     batch_0 = val_generator.__getitem__(0)
+    assert "spectrums" not in val_generator.__dict__, "Spectrums should have been removed"
+    assert len(val_generator) == 3
     assert torch.allclose(batch_0[4], torch.tensor([0.5000, 0.2500, 0.4286, 0.4286, 0.1429]), atol=1e8)
 
 
