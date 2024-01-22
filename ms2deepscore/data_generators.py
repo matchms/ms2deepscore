@@ -90,9 +90,8 @@ class DataGeneratorPytorch:
             if selected_compound_pairs.shuffling:
                 raise ValueError("The generator cannot run reproducibly when shuffling is on for `SelectedCompoundPairs`.")
             if self.settings.random_seed is None:
-                self.rng = np.random.default_rng(0)
-            else:
-                self.rng = np.random.default_rng(self.settings.random_seed)
+                self.settings.random_seed = 0
+        self.rng = np.random.default_rng(self.settings.random_seed)
 
         unique_inchikeys = np.unique(self.spectrum_inchikeys)
         if len(unique_inchikeys) < self.settings.batch_size:
