@@ -65,9 +65,9 @@ def test_siamese_model_defaults():
     assert model.model_parameters == {
         'base_dims': (1000, 800, 800),
         'embedding_dim': 400,
-        'train_binning_layer': True,
-        'group_size': 30,
-        'output_per_group': 3,
+        'train_binning_layer': False,
+        'group_size': 20,
+        'output_per_group': 2,
         'dropout_rate': 0.2,
     }
 
@@ -104,24 +104,27 @@ def test_siamese_model_additional_metadata(dummy_spectra):
     spec_tensors, meta_tensors = tensorize_spectra(dummy_spectra, tensorization_settings)
     similarity_score = model(spec_tensors, spec_tensors, meta_tensors, meta_tensors)
     assert similarity_score.shape[0] == 2
-    assert model.encoder.dense_layers[0].weight.shape[1] == 9901
+    assert model.encoder.dense_layers[0][0].weight.shape[1] == 9901
 
     # Include dense binning layer
-    model = SiameseSpectralModel(tensorization_settings)
+    model = SiameseSpectralModel(tensorization_settings,
+                                 train_binning_layer=True, group_size=20, output_per_group=1)
+
 
     # Test forward pass
     spec_tensors, meta_tensors = tensorize_spectra(dummy_spectra, tensorization_settings)
     similarity_score = model(spec_tensors, spec_tensors, meta_tensors, meta_tensors)
-    assert model.encoder.dense_layers[0].weight.shape[1] == 991
+    assert model.encoder.dense_layers[0][0].weight.shape[1] == 990
 
     tensorisaton_settings = TensorizationSettings(mz_bin_width=0.1, )
     # Compare to no additional_metadata
-    model = SiameseSpectralModel(tensorisaton_settings)
+    model = SiameseSpectralModel(tensorisaton_settings, train_binning_layer=True, group_size=20, output_per_group=1)
+
 
     # Test forward pass
     spec_tensors, meta_tensors = tensorize_spectra(dummy_spectra, tensorisaton_settings)
     similarity_score = model(spec_tensors, spec_tensors, meta_tensors, meta_tensors)
-    assert model.encoder.dense_layers[0].weight.shape[1] == 990
+    assert model.encoder.dense_layers[0][0].weight.shape[1] == 989
 
 
 def test_model_training(simple_training_spectra):
@@ -152,17 +155,19 @@ def test_model_training(simple_training_spectra):
     )
 
     # Create and train model
-    model_simple = SiameseSpectralModel(tensorization_settings, train_binning_layer=False)
-    losses, val_losses, collection_targets = train(model_simple, train_generator_simple,
-                                                   val_generator=val_generator_simple,
-                                                   num_epochs=25,
-                                                   learning_rate=0.001, lambda_l1=0, lambda_l2=0,
-                                                   progress_bar=False, early_stopping=False,
-                                                   )
 
-    assert len(losses) == len(val_losses) == 25
+    model_simple = SiameseSpectralModel(tensorization_settings, train_binning_layer=False)
+    history = train(
+        model_simple, train_generator_simple,
+        val_generator=val_generator_simple,
+        num_epochs=25,
+        learning_rate=0.001, lambda_l1=0, lambda_l2=0,
+        progress_bar=False, early_stopping=False,
+        )
+
+    assert len(history["losses"]) == len(history["val_losses"]) == 25
     # Check if model trained to at least an OK result
-    assert np.mean(losses[-5:]) < 0.03, "Training was not succesfull!"
+    assert np.mean(history["losses"][-5:]) < 0.03, "Training was not succesfull!"
     # Check if bias in data is handled correctly
-    assert (np.array(collection_targets) == 1).sum() == 500
-    assert (np.array(collection_targets) < .2).sum() == 500
+    assert (np.array(history["collection_targets"]) == 1).sum() == 500
+    assert (np.array(history["collection_targets"]) < .2).sum() == 500
