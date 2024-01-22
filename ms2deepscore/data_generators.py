@@ -1,6 +1,6 @@
 """ Data generators for training/inference with MS2DeepScore model.
 """
-from typing import NamedTuple
+import pickle
 import numba
 import numpy as np
 import torch
