@@ -18,9 +18,9 @@ class SiameseSpectralModel(nn.Module):
                  additional_inputs: int = 0,
                  base_dims: tuple[int, ...] = (1000, 800, 800),
                  embedding_dim: int = 400,
-                 train_binning_layer: bool = True,
-                 group_size: int = 30,
-                 output_per_group: int = 3,
+                 train_binning_layer: bool = False,
+                 group_size: int = 20,
+                 output_per_group: int = 2,
                  dropout_rate: float = 0.2,
                 ):
         """
@@ -34,7 +34,7 @@ class SiameseSpectralModel(nn.Module):
         embedding_dim
             Dimension of the embedding (i.e. the output of the base model)
         train_binning_layer
-            Default is True in which case the model contains a first dense multi-group peak binning layer.
+            Default is False in which case the model contains a first dense multi-group peak binning layer.
         group_size
             When a smart binning layer is used the group_size determines how many input bins are taken into
             one dense micro-network.
@@ -85,19 +85,24 @@ class PeakBinner(nn.Module):
     def __init__(self, input_size, group_size, output_per_group):
         super().__init__()
         self.group_size = group_size
+        self.step_width = int(group_size/2)
         self.output_per_group = output_per_group
-        self.groups = input_size // group_size
+        self.groups = 2 * input_size // group_size - 1 # overlapping groups
 
         # Create a ModuleList of linear layers, each mapping group_size inputs to output_per_group outputs
-        self.linear_layers = nn.ModuleList([nn.Linear(group_size, output_per_group) for _ in range(self.groups)])
+        self.linear_layers = nn.ModuleList([nn.Linear(group_size, output_per_group, bias=False) for _ in range(self.groups)])
+
+        # Initialize weights
+        for x in self.linear_layers:
+            nn.init.uniform_(x.weight, 0.9, 1.1)
 
     def forward(self, x):
         # Split the input into groups and apply each linear layer to each group
-        outputs = [linear(x[:, i*self.group_size:(i+1)*self.group_size]) for i, linear in enumerate(self.linear_layers)]
+        outputs = [linear(x[:, i*self.step_width :(i+2)*self.step_width ]) for i, linear in enumerate(self.linear_layers)]
 
         # Make sure all inputs get a connection to the next layer
         i = self.groups - 1
-        outputs[-1] = self.linear_layers[-1](x[:, i*self.group_size:(i+1)*self.group_size])
+        outputs[-1] = self.linear_layers[-1](x[:, i*self.step_width:(i+2)*self.step_width ])
 
         # Concatenate all outputs
         return F.relu(torch.cat(outputs, dim=1))

@@ -62,9 +62,9 @@ def test_siamese_model_defaults():
     assert model.model_parameters == {
         'base_dims': (1000, 800, 800),
         'embedding_dim': 400,
-        'train_binning_layer': True,
-        'group_size': 30,
-        'output_per_group': 3,
+        'train_binning_layer': False,
+        'group_size': 20,
+        'output_per_group': 2,
         'dropout_rate': 0.2,
         'peak_inputs': 9900,
         'additional_inputs': 0
@@ -100,20 +100,23 @@ def test_siamese_model_additional_metadata(dummy_spectra):
     assert model.encoder.dense_layers[0][0].weight.shape[1] == 9901
 
     # Include dense binning layer
-    model = SiameseSpectralModel(peak_inputs=9900, additional_inputs=1)
+    model = SiameseSpectralModel(peak_inputs=9900, additional_inputs=1,
+                                 train_binning_layer=True, group_size=20, output_per_group=1)
+                                 
 
     # Test forward pass
     spec_tensors, meta_tensors = tensorize_spectra(dummy_spectra, vectorizer, 10, 1000, 0.1, 0.5)
     similarity_score = model(spec_tensors, spec_tensors, meta_tensors, meta_tensors)
-    assert model.encoder.dense_layers[0][0].weight.shape[1] == 991
+    assert model.encoder.dense_layers[0][0].weight.shape[1] == 990
 
     # Compare to no metadata_vectorizer
-    model = SiameseSpectralModel(peak_inputs=9900, additional_inputs=0)
+    model = SiameseSpectralModel(peak_inputs=9900, additional_inputs=0,
+                                 train_binning_layer=True, group_size=20, output_per_group=1)
 
     # Test forward pass
     spec_tensors, meta_tensors = tensorize_spectra(dummy_spectra, None, 10, 1000, 0.1, 0.5)
     similarity_score = model(spec_tensors, spec_tensors, meta_tensors, meta_tensors)
-    assert model.encoder.dense_layers[0][0].weight.shape[1] == 990
+    assert model.encoder.dense_layers[0][0].weight.shape[1] == 989
 
 
 def test_model_training(simple_training_spectra):
