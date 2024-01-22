@@ -5,7 +5,6 @@ import torch
 from matchms import Metadata
 from matchms.typing import SpectrumType
 from tqdm import tqdm
-from .typing import BinnedSpectrumType
 
 
 class MetadataVectorizer:

@@ -20,6 +20,7 @@ def train_ms2ds_model(
         settings: SettingsMS2Deepscore):
     """Full workflow to train a MS2DeepScore model.
     """
+    # pylint: disable=too-many-locals
     model_directory = os.path.join(results_folder, settings.model_directory_name)
     os.makedirs(model_directory, exist_ok=True)
     # Save settings
@@ -62,7 +63,7 @@ def train_ms2ds_model(
     model = SiameseSpectralModel(tensorisaton_settings=tensoriztion_settings,
                                  train_binning_layer=False)
 
-    losses, val_losses, collection_targets = train(
+    losses, val_losses, _ = train(
         model, train_generator, 200,
         val_generator=val_generator,
         checkpoint_filename=output_model_file_name,

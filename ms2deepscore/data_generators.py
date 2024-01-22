@@ -74,7 +74,6 @@ class DataGeneratorPytorch:
         settings
             The available settings can be found in GeneratorSettings
         """
-        # pylint: disable=too-many-arguments  
         self.current_index = 0
         self.spectrums = spectrums
 
