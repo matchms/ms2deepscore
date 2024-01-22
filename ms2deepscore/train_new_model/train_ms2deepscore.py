@@ -65,13 +65,13 @@ def train_ms2ds_model(
     model = SiameseSpectralModel(tensorisaton_settings=tensoriztion_settings,
                                  train_binning_layer=False)
 
-    losses, val_losses, _ = train(
+    history = train(
         model, train_generator, 200,
         val_generator=val_generator,
         checkpoint_filename=output_model_file_name,
         learning_rate=settings.learning_rate, lambda_l1=0, lambda_l2=0, patience=settings.patience)
     # Save plot of history
-    plot_history(losses, val_losses, ms2ds_history_plot_file_name)
+    plot_history(history["losses"], history["val_losses"], ms2ds_history_plot_file_name)
 
 
 def plot_history(losses, val_losses, file_name: Optional[str] = None):
