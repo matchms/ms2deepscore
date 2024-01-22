@@ -12,7 +12,7 @@ from ms2deepscore.train_new_model.SettingMS2Deepscore import \
 from ms2deepscore.train_new_model.train_ms2deepscore import train_ms2ds_model
 from ms2deepscore.utils import load_pickled_file
 from tests.test_data_generators import create_test_spectra
-
+from ms2deepscore.MS2DeepScore import MS2DeepScore
 
 TEST_RESOURCES_PATH = Path(__file__).parent / 'resources'
 
@@ -32,6 +32,10 @@ def test_train_ms2ds_model(tmp_path):
     assert os.path.isfile(model_file_name), "Expecte ms2ds model to be created and saved"
     ms2ds_model = load_ms2deepscore_model(model_file_name)
     assert isinstance(ms2ds_model, SiameseSpectralModel), "Expected a siamese model"
+    ms2deepscore = MS2DeepScore(ms2ds_model)
+    assert ms2deepscore.pair(spectra[0], spectra[0]) == 1
+    result = ms2deepscore.matrix(spectra, spectra)
+    assert result.shape == (len(spectra), len(spectra))
 
 
 def test_too_little_spectra(tmp_path):

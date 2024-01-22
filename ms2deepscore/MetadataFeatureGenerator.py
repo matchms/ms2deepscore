@@ -24,7 +24,7 @@ class MetadataVectorizer:
         self.additional_metadata = additional_metadata
 
     def transform(self, spectra: List[SpectrumType],
-                  progress_bar=False) -> List[BinnedSpectrumType]:
+                  progress_bar=False):
         """Transforms the input *spectrums* into metadata vectors as needed for
         MS2DeepScore.
 

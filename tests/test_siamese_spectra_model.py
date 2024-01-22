@@ -57,11 +57,7 @@ def simple_training_spectra():
 
 
 def test_siamese_model_defaults():
-    tensorization_settings = TensorizationSettings(min_mz=10,
-                                                   max_mz=1000,
-                                                   mz_bin_width=0.1,
-                                                   intensity_scaling=0.5,
-                                                   additional_metadata=())    # Create the model instance
+    tensorization_settings = TensorizationSettings()    # Create the model instance
     model = SiameseSpectralModel(tensorization_settings)
 
     assert model.model_parameters == {
@@ -71,8 +67,6 @@ def test_siamese_model_defaults():
         'group_size': 30,
         'output_per_group': 3,
         'dropout_rate': 0.2,
-        'peak_inputs': 9900,
-        'additional_inputs': 0
     }
 
 

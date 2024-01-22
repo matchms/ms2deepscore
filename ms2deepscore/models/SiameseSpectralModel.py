@@ -20,7 +20,7 @@ class SiameseSpectralModel(nn.Module):
                  group_size: int = 30,
                  output_per_group: int = 3,
                  dropout_rate: float = 0.2,
-                ):
+                 ):
         """
         Construct SiameseSpectralModel
 
@@ -40,8 +40,6 @@ class SiameseSpectralModel(nn.Module):
             This sets the number of next layer bins each group_size sized group of inputs shares.
         dropout_rate
             Dropout rate to be used in the base model.
-        additional_inputs
-            Integer to specify the number of additional (metadata) input fields.
         pytorch_model
             When provided, this pytorch model will be used to construct the SiameseModel instance.
             Default is None.
