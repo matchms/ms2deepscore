@@ -5,7 +5,7 @@ from torch import nn, optim
 from tqdm import tqdm
 from ms2deepscore.data_generators import TensorizationSettings
 
-from ms2deepscore.models.helper_functions import risk_aware_mae, risk_aware_mse, l1_regularization, l2_regularization
+from ms2deepscore.models.helper_functions import LOSS_FUNCTIONS, rmse_loss
 
 class SiameseSpectralModel(nn.Module):
     """
@@ -247,16 +247,9 @@ def train(model: SiameseSpectralModel,
     device = initialize_device()
     model.to(device)
 
-    if loss_function.lower() == "mse":
-        criterion = nn.MSELoss()
-    elif loss_function.lower() == "mse_extra":
-        criterion = mse_away_from_mean
-    elif loss_function.lower() == "risk_aware_mae":
-        criterion = RiskAwareLoss(device=device)
-    elif loss_function.lower() == "risk_aware_mse":
-        criterion = risk_aware_mse
-    else:
-        raise ValueError("Unknown loss function")
+    if loss_function.lower() not in LOSS_FUNCTIONS.keys():
+        raise ValueError(f"Unknown loss function. Must be one of: {LOSS_FUNCTIONS.keys()}")
+    criterion = LOSS_FUNCTIONS[loss_function.lower()]
 
     optimizer = optim.Adam(model.parameters(), lr=learning_rate)
 
@@ -357,16 +350,3 @@ def initialize_device():
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"Training will happen on {device}.")
     return device
-
-
-def loss_functions(loss_type: str = "mse"):
-    return nn.ModuleDict([
-        ["mse", nn.MSELoss()],
-        ["rmse", rmse_loss],
-        ["risk_mae", risk_aware_mae]
-        ["risk_mse", risk_aware_mse]
-    ])[loss_type]
-
-
-def rmse_loss(outputs, targets):
-    return torch.sqrt(torch.mean((outputs - targets) ** 2))
