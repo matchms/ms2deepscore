@@ -344,12 +344,12 @@ def initialize_device():
     return device
 
 
-def loss_functions(type:str = "mse"):
+def loss_functions(loss_type: str = "mse"):
     return nn.ModuleDict([
         ["mse", nn.MSELoss()],
         ["rmse", rmse_loss],
         ["risk_mae", risk_aware_mae]
-    ])[type]
+    ])[loss_type]
 
 
 def rmse_loss(outputs, targets):
