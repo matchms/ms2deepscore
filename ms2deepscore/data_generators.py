@@ -1,4 +1,4 @@
-""" Data generators for training/inference with siamese Keras model.
+""" Data generators for training/inference with MS2DeepScore model.
 """
 from typing import NamedTuple
 import numba
@@ -9,7 +9,7 @@ from ms2deepscore.MetadataFeatureGenerator import (MetadataVectorizer,
                                                    load_from_json)
 from ms2deepscore.train_new_model.spectrum_pair_selection import \
     SelectedCompoundPairs
-from .train_new_model.SettingMS2Deepscore import GeneratorSettings
+from .SettingsMS2Deepscore import GeneratorSettings
 from .typing import BinnedSpectrumType
 
 
@@ -89,6 +89,10 @@ class DataGeneratorPytorch:
         if len(unique_inchikeys) < self.settings.batch_size:
             raise ValueError("The number of unique inchikeys must be larger than the batch size.")
         self.fixed_set = {}
+        if self.settings["use_fixed_set"]:
+            if selected_compound_pairs.shuffling:
+                raise ValueError("The generator cannot run reproducibly when shuffling is on for `SelectedCompoundPairs`.")
+
         self.selected_compound_pairs = selected_compound_pairs
         self.on_epoch_end()
 

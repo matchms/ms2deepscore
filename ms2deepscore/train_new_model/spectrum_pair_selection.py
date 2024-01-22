@@ -7,7 +7,7 @@ from matchms.similarity.vector_similarity_functions import jaccard_index
 from numba import jit, prange
 from scipy.sparse import coo_array
 from tqdm import tqdm
-from ms2deepscore.train_new_model.SettingMS2Deepscore import \
+from ms2deepscore.SettingsMS2Deepscore import \
     SettingsMS2Deepscore
 
 

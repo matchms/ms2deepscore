@@ -1,7 +1,7 @@
 import json
 import os
 import pytest
-from ms2deepscore.train_new_model.SettingMS2Deepscore import \
+from ms2deepscore.SettingsMS2Deepscore import \
     SettingsMS2Deepscore
 
 
@@ -28,4 +28,4 @@ def test_save_settings(tmp_path):
         result = json.load(file)
     assert result["epochs"] == 200
     assert result["base_dims"] == [200, 200]
-    assert result["embedding_dim"] == 200
+    assert result["embedding_dim"] == 400

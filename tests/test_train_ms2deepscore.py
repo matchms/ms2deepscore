@@ -3,12 +3,11 @@ from pathlib import Path
 import numpy as np
 import pytest
 from matchms.importing import load_from_mgf
-from ms2deepscore import BinnedSpectrum, SpectrumBinner
 from ms2deepscore.models.load_model import \
     load_model as load_ms2deepscore_model
 from ms2deepscore.models.SiameseSpectralModel import SiameseSpectralModel
 from ms2deepscore.MS2DeepScore import MS2DeepScore
-from ms2deepscore.train_new_model.SettingMS2Deepscore import \
+from ms2deepscore.SettingsMS2Deepscore import \
     SettingsMS2Deepscore
 from ms2deepscore.train_new_model.train_ms2deepscore import train_ms2ds_model
 from ms2deepscore.utils import load_pickled_file

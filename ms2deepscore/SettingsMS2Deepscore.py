@@ -44,8 +44,8 @@ class SettingsMS2Deepscore:
         """
     def __init__(self, settings=None):
         # model structure
-        self.base_dims = (500, 500)
-        self.embedding_dim = 200
+        self.base_dims = (1000, 1000)
+        self.embedding_dim = 400
         self.additional_metadata = ()
         self.ionisation_mode = "positive"
 

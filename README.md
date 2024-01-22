@@ -120,7 +120,7 @@ Training your own model is only recommended if you have some familiarity with ma
 To train your own model you can run the code below.
 Please first ensure cleaning your spectra. We recommend using the cleaning pipeline in [matchms](https://github.com/matchms/matchms).
 ```python
-from ms2deepscore.train_new_model.SettingMS2Deepscore import \
+from ms2deepscore.SettingsMS2Deepscore import \
     SettingsMS2Deepscore
 from ms2deepscore.wrapper_functions.training_wrapper_functions import \
     train_ms2deepscore_wrapper

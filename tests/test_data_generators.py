@@ -1,16 +1,14 @@
 import string
 import numpy as np
 import pandas as pd
-import pytest
 import torch
 from matchms import Spectrum
-from ms2deepscore import SpectrumBinner
 from ms2deepscore.data_generators import (DataGeneratorPytorch,
                                           TensorizationSettings,
                                           tensorize_spectra)
 from ms2deepscore.MetadataFeatureGenerator import (CategoricalToBinary,
                                                    StandardScaler)
-from ms2deepscore.train_new_model.SettingMS2Deepscore import \
+from ms2deepscore.SettingsMS2Deepscore import \
     SettingsMS2Deepscore
 from ms2deepscore.train_new_model.spectrum_pair_selection import \
     select_compound_pairs_wrapper
