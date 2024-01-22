@@ -2,7 +2,7 @@ from pathlib import Path
 from typing import Union
 import torch
 from ms2deepscore.models.SiameseSpectralModel import SiameseSpectralModel
-
+from ms2deepscore.data_generators import TensorizationSettings
 
 def load_model(filename: Union[str, Path]) -> SiameseSpectralModel:
     """
@@ -27,7 +27,9 @@ def load_model(filename: Union[str, Path]) -> SiameseSpectralModel:
     model_params = model_settings['model_params']
 
     # Instantiate the SiameseSpectralModel with the loaded parameters
-    model = SiameseSpectralModel(**model_params)
+    model = SiameseSpectralModel(**model_params,
+                                 tensorisaton_settings=TensorizationSettings(
+                                     **model_settings["tensorization_parameters"]))
     model.load_state_dict(model_settings['model_state_dict'])
     model.eval()
     return model

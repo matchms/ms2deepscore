@@ -9,7 +9,7 @@ from ms2deepscore.train_new_model.SettingMS2Deepscore import \
     SettingsMS2Deepscore
 from ms2deepscore.train_new_model.spectrum_pair_selection import \
     select_compound_pairs_wrapper
-from ms2deepscore.data_generators import DataGeneratorPytorch
+from ms2deepscore.data_generators import DataGeneratorPytorch, TensorizationSettings
 from ms2deepscore.models.SiameseSpectralModel import SiameseSpectralModel, train
 
 
@@ -33,12 +33,12 @@ def train_ms2ds_model(
     selected_compound_pairs_training, selected_training_spectra = select_compound_pairs_wrapper(
         training_spectra, settings=settings)
 
+    tensoriztion_settings = TensorizationSettings()
     # todo check if num_turns=2 and augment_noise_max = 10 should still be added.
     # Create generators
     train_generator = DataGeneratorPytorch(
         spectrums=selected_training_spectra,
-        min_mz=10, max_mz=1000, mz_bin_width=0.1, intensity_scaling=0.5,
-        metadata_vectorizer=None,
+        tensorization_settings=tensoriztion_settings,
         selected_compound_pairs=selected_compound_pairs_training,
         augment_intensity=0.1,
         batch_size=settings.batch_size,
@@ -48,8 +48,7 @@ def train_ms2ds_model(
     # todo maybe add num_turns=10 # Number of pairs for each InChiKey14 during each epoch. again?
     val_generator = DataGeneratorPytorch(
         spectrums=selected_validation_spectra,
-        min_mz=10, max_mz=1000, mz_bin_width=0.1, intensity_scaling=0.5,
-        metadata_vectorizer=None,
+        tensorization_settings=tensoriztion_settings,
         selected_compound_pairs=selected_compound_pair_val,
         batch_size=settings.batch_size,
         use_fixed_set=True,
@@ -60,7 +59,7 @@ def train_ms2ds_model(
     )
     # todo check if dropout rate, layers, base dim and embedding size should still be integrated.
     # todo Check where we specify the loss type. Should that happen here as well, maybe settings?
-    model = SiameseSpectralModel(peak_inputs=train_generator.num_bins, additional_inputs=0,
+    model = SiameseSpectralModel(tensorisaton_settings=tensoriztion_settings,
                                  train_binning_layer=False)
 
     losses, val_losses, collection_targets = train(

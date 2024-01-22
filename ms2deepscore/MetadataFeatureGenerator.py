@@ -1,6 +1,6 @@
 import json
 from importlib import import_module
-from typing import List, Union
+from typing import List, Union, Tuple
 import torch
 from matchms import Metadata
 from matchms.typing import SpectrumType
@@ -13,7 +13,7 @@ class MetadataVectorizer:
     """
 
     def __init__(self, 
-                 additional_metadata = ()):
+                 additional_metadata=()):
         """
 
         Parameters
@@ -152,7 +152,7 @@ class CategoricalToBinary(MetadataFeatureGenerator):
                    json_dict["entries_becoming_zero"],)
 
 
-def load_from_json(list_of_json_metadata_feature_generators: List[str]):
+def load_from_json(list_of_json_metadata_feature_generators: List[Tuple[str, dict]]):
     """Creates an object from json for any of the subclasses of MetadataFeatureGenerator
 
     This is used for loading in the MetadataFeatureGenerator in SpectrumBinner.
@@ -162,9 +162,7 @@ def load_from_json(list_of_json_metadata_feature_generators: List[str]):
     """
     possible_metadata_classes = import_module(__name__)
     metadata_feature_generator_list = []
-    for metadata_feature_json in list_of_json_metadata_feature_generators:
-        metadata_feature = json.loads(metadata_feature_json)
-        class_name, settings = metadata_feature
+    for class_name, settings in list_of_json_metadata_feature_generators:
         # loads in all the classes in MetadataFeatureGenerator.py
         metadata_class = getattr(possible_metadata_classes, class_name)
         assert issubclass(metadata_class, MetadataFeatureGenerator), "Unknown feature generator class."

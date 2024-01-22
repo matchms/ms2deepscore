@@ -6,7 +6,8 @@ from ms2deepscore.MetadataFeatureGenerator import (CategoricalToBinary,
                                                    MetadataFeatureGenerator,
                                                    MetadataVectorizer,
                                                    OneHotEncoder,
-                                                   StandardScaler)
+                                                   StandardScaler,
+                                                   load_from_json)
 
 
 @pytest.fixture
@@ -97,3 +98,16 @@ def test_equality():
     scaler3 = StandardScaler("mass", 4.0, 1.0)
     assert scaler1 == scaler2
     assert scaler1 != scaler3
+
+
+def test_load_from_json():
+    feature_generators = load_from_json([("StandardScaler", {"metadata_field": "precursor_mz",
+                                        "mean": 200.0,
+                                        "standard_deviation": 250.0}),
+                    ("CategoricalToBinary", {"metadata_field": "ionmode",
+                                             "entries_becoming_one": "positive",
+                                             "entries_becoming_zero": "negative"}),
+                    ])
+    assert len(feature_generators) == 2
+    assert isinstance(feature_generators[0], StandardScaler)
+    assert isinstance(feature_generators[1], CategoricalToBinary)

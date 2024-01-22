@@ -4,7 +4,7 @@ from torch import nn
 import torch.nn.functional as F
 from torch import optim
 from tqdm import tqdm
-
+from ms2deepscore.data_generators import TensorizationSettings
 
 class SiameseSpectralModel(nn.Module):
     """
@@ -13,8 +13,7 @@ class SiameseSpectralModel(nn.Module):
     This head model computes the cosine similarity between the embeddings.
     """
     def __init__(self,
-                 peak_inputs: int,
-                 additional_inputs: int = 0,
+                 tensorisaton_settings: TensorizationSettings,
                  base_dims: tuple[int, ...] = (1000, 800, 800),
                  embedding_dim: int = 400,
                  train_binning_layer: bool = True,
@@ -41,8 +40,6 @@ class SiameseSpectralModel(nn.Module):
             This sets the number of next layer bins each group_size sized group of inputs shares.
         dropout_rate
             Dropout rate to be used in the base model.
-        peak_inputs
-            Integer to specify the number of binned peaks in the input spectra.
         additional_inputs
             Integer to specify the number of additional (metadata) input fields.
         pytorch_model
@@ -58,11 +55,11 @@ class SiameseSpectralModel(nn.Module):
             "group_size": group_size,
             "output_per_group": output_per_group,
             "dropout_rate": dropout_rate,
-            "peak_inputs": peak_inputs,
-            "additional_inputs": additional_inputs,
-            #TODO: add ms2deepscore version
         }
-        self.encoder = SpectralEncoder(**self.model_parameters)
+        self.tensorization_parameters = tensorisaton_settings
+        self.encoder = SpectralEncoder(**self.model_parameters,
+                                       peak_inputs=tensorisaton_settings.num_bins,
+                                       additional_inputs=len(tensorisaton_settings.additional_metadata))
 
     def forward(self, spectra_tensors_1, spectra_tensors_2, metadata_1, metadata_2):
         # Pass both inputs through the same encoder
@@ -87,8 +84,10 @@ class SiameseSpectralModel(nn.Module):
         settings_dict = {
             'model_params': self.model_parameters,
             'model_state_dict': self.state_dict(),
+            'tensorization_parameters': self.tensorization_parameters.get_dict()
         }
         torch.save(settings_dict, filepath)
+
 
 class PeakBinner(nn.Module):
     def __init__(self, input_size, group_size, output_per_group):

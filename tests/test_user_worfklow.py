@@ -1,10 +1,10 @@
 from pathlib import Path
-import numpy as np
+# import numpy as np
 import pandas as pd
-import pytest
+# import pytest
 from matchms.importing import load_from_mgf
-from ms2deepscore import MS2DeepScore, SpectrumBinner
-from ms2deepscore.models import SiameseModel
+# from ms2deepscore import MS2DeepScore, SpectrumBinner
+# from ms2deepscore.models import SiameseModel
 
 
 TEST_RESOURCES_PATH = Path(__file__).parent / 'resources'
@@ -21,7 +21,7 @@ def get_reference_scores():
     score_file = TEST_RESOURCES_PATH / "pesticides_tanimoto_scores.json"
     tanimoto_scores_df = pd.read_json(score_file)
     return tanimoto_scores_df
-
+#
 
 # @pytest.mark.integtest
 # def test_user_workflow():

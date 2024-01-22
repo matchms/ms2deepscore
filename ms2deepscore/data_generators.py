@@ -9,6 +9,32 @@ from ms2deepscore.train_new_model.spectrum_pair_selection import \
     SelectedCompoundPairs
 from .train_new_model.SettingMS2Deepscore import GeneratorSettings
 from .typing import BinnedSpectrumType
+from ms2deepscore.MetadataFeatureGenerator import MetadataVectorizer, load_from_json
+
+
+class TensorizationSettings:
+    """Stores the settings for tensorizing Spectra"""
+    def __init__(self,
+                 **settings):
+        self.min_mz = 10
+        self.max_mz = 1000
+        self.mz_bin_width = 0.1
+        self.intensity_scaling = 0.5
+        self.additional_metadata = []
+        if settings:
+            for key, value in settings.items():
+                if hasattr(self, key):
+                    setattr(self, key, value)
+                else:
+                    raise ValueError(f"Unknown setting: {key}")
+        self.num_bins = int((self.max_mz - self.min_mz) / self.mz_bin_width)
+
+    def get_dict(self):
+        return {"min_mz": self.min_mz,
+                "max_mz": self.max_mz,
+                "mz_bin_width": self.mz_bin_width,
+                "intensity_scaling": self.intensity_scaling,
+                "additional_metadata": self.additional_metadata}
 
 
 class DataGeneratorPytorch:
@@ -22,8 +48,7 @@ class DataGeneratorPytorch:
     """
     def __init__(self, spectrums: list[Spectrum],
                  selected_compound_pairs: SelectedCompoundPairs,
-                 min_mz, max_mz, mz_bin_width, intensity_scaling,
-                 metadata_vectorizer,
+                 tensorization_settings: TensorizationSettings,
                  **settings):
         """Generates data for training a siamese Keras model.
 
@@ -58,12 +83,7 @@ class DataGeneratorPytorch:
 
         # Set all other settings to input (or otherwise to defaults):
         self.settings = GeneratorSettings(settings)
-        self.min_mz = min_mz
-        self.max_mz = max_mz
-        self.mz_bin_width = mz_bin_width
-        self.intensity_scaling = intensity_scaling
-        self.num_bins = int((max_mz - min_mz) / mz_bin_width)
-        self.metadata_vectorizer = metadata_vectorizer
+        self.tensorization_settings = tensorization_settings
 
         unique_inchikeys = np.unique(self.spectrum_inchikeys)
         if len(unique_inchikeys) < self.settings.batch_size:
@@ -137,15 +157,11 @@ class DataGeneratorPytorch:
 
         binned_spectra_1, metadata_1 = tensorize_spectra(
             spectra_1,
-            self.metadata_vectorizer,
-            self.min_mz, self.max_mz,
-            self.mz_bin_width, self.intensity_scaling
+            self.tensorization_settings
             )
         binned_spectra_2, metadata_2 = tensorize_spectra(
             spectra_2,
-            self.metadata_vectorizer,
-            self.min_mz, self.max_mz,
-            self.mz_bin_width, self.intensity_scaling
+            self.tensorization_settings
             )
         return binned_spectra_1, binned_spectra_2, metadata_1, metadata_2, torch.tensor(targets, dtype=torch.float32)
     
@@ -204,25 +220,24 @@ class DataGeneratorPytorch:
 
 def tensorize_spectra(
     spectra,
-    metadata_vectorizer,
-    min_mz,
-    max_mz,
-    mz_bin_width,
-    intensity_scaling
+    tensorization_settings: TensorizationSettings,
     ):
     """Convert list of matchms Spectrum objects to pytorch peak and metadata tensors.
     """
-    # pylint: disable=too-many-arguments
-    num_bins = int((max_mz - min_mz) / mz_bin_width)
-    if metadata_vectorizer is None:
+    if len(tensorization_settings.additional_metadata) == 0:
         metadata_tensors = torch.zeros((len(spectra), 0))
     else:
+        feature_generators = load_from_json(tensorization_settings.additional_metadata)
+        metadata_vectorizer = MetadataVectorizer(additional_metadata=feature_generators)
         metadata_tensors = metadata_vectorizer.transform(spectra)
 
-    binned_spectra = torch.zeros((len(spectra), num_bins))
+    binned_spectra = torch.zeros((len(spectra), tensorization_settings.num_bins))
     for i, spectrum in enumerate(spectra):
         binned_spectra[i, :] = torch.tensor(vectorize_spectrum(spectrum.peaks.mz, spectrum.peaks.intensities,
-                                                               min_mz, max_mz, mz_bin_width, intensity_scaling
+                                                               tensorization_settings.min_mz,
+                                                               tensorization_settings.max_mz,
+                                                               tensorization_settings.mz_bin_width,
+                                                               tensorization_settings.intensity_scaling
                                                                ))
     return binned_spectra, metadata_tensors
 
