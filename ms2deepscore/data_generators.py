@@ -86,15 +86,18 @@ class DataGeneratorPytorch:
         self.tensorization_settings = tensorization_settings
 
         # Initialize random number generator
-        self.rng = np.random.default_rng(self.settings.random_seed)
+        if self.settings.use_fixed_set:
+            if selected_compound_pairs.shuffling:
+                raise ValueError("The generator cannot run reproducibly when shuffling is on for `SelectedCompoundPairs`.")
+            if self.settings.random_seed is None:
+                self.rng = np.random.default_rng(0)
+            else:
+                self.rng = np.random.default_rng(self.settings.random_seed)
 
         unique_inchikeys = np.unique(self.spectrum_inchikeys)
         if len(unique_inchikeys) < self.settings.batch_size:
             raise ValueError("The number of unique inchikeys must be larger than the batch size.")
         self.fixed_set = {}
-        if self.settings.use_fixed_set:
-            if selected_compound_pairs.shuffling:
-                raise ValueError("The generator cannot run reproducibly when shuffling is on for `SelectedCompoundPairs`.")
 
         self.selected_compound_pairs = selected_compound_pairs
         self.on_epoch_end()
