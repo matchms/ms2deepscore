@@ -70,7 +70,8 @@ class SelectedCompoundPairs:
         if self._row_generator_index[row_idx] >= len(self._cols[row_idx]):
             self._row_generator_index[row_idx] = 0
             # Went through all scores in this row --> shuffle again
-            self._shuffle_row(row_idx)
+            if self.shuffling:
+                self._shuffle_row(row_idx)
 
         return score, self._idx_to_inchikey[col_idx]
 
@@ -212,8 +213,6 @@ def tanimoto_scores_row(fingerprints, idx, include_diagonal):
     return tanimoto_scores
 
 
-desired_average_pairs_per_bin = 5000
-
 def balanced_selection(selected_pairs_per_bin, selected_scores_per_bin,
              desired_pairs_per_bin,
              max_oversampling_rate: float = 1):
@@ -315,8 +314,8 @@ def compute_fingerprints_for_training(spectrums,
 
 
 def select_inchi_for_unique_inchikeys(
-    list_of_spectra: List['Spectrum']
-) -> Tuple[List['Spectrum'], List[str]]:
+        list_of_spectra: List['Spectrum']
+        ) -> Tuple[List['Spectrum'], List[str]]:
     """Select spectra with most frequent inchi for unique inchikeys.
 
     Method needed to calculate Tanimoto scores.

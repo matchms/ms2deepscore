@@ -5,6 +5,7 @@ import torch
 from matchms import Spectrum
 from ms2deepscore.data_generators import (DataGeneratorPytorch,
                                           TensorizationSettings,
+                                          compute_validation_set,
                                           tensorize_spectra)
 from ms2deepscore.MetadataFeatureGenerator import (CategoricalToBinary,
                                                    StandardScaler)
@@ -125,6 +126,22 @@ def test_DataGeneratorPytorch():
     assert ((np.array(counts) > 0.25) & (np.array(counts) <= 0.5)).sum() > 0.22 * total
     assert ((np.array(counts) > 0.5) & (np.array(counts) <= 0.75)).sum() > 0.22 * total
     assert (np.array(counts) > 0.75).sum() > 0.22 * total
+
+
+def test_compute_validation_generator():
+    num_of_unique_inchikeys = 15
+    spectrums = create_test_spectra(num_of_unique_inchikeys)
+
+    settings = GeneratorSettings({
+        "same_prob_bins": np.array([(x / 2, x / 2 + 1/2) for x in range(0, 2)]),
+        "average_pairs_per_bin": 2,
+        "use_fixed_set": True,
+        "batch_size": 5,
+        "num_turns": 1
+    })
+    val_generator = compute_validation_set(spectrums, TensorizationSettings(), settings)
+    batch_0 = val_generator.__getitem__(0)
+    assert torch.allclose(batch_0[4], torch.tensor([0.5000, 0.2500, 0.4286, 0.4286, 0.1429]), atol=1e8)
 
 
 # def test_DataGeneratorCherrypicked():

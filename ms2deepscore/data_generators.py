@@ -8,9 +8,8 @@ from matchms import Spectrum
 from ms2deepscore.MetadataFeatureGenerator import (MetadataVectorizer,
                                                    load_from_json)
 from ms2deepscore.train_new_model.spectrum_pair_selection import \
-    SelectedCompoundPairs
+    SelectedCompoundPairs, select_compound_pairs_wrapper
 from .SettingsMS2Deepscore import GeneratorSettings
-from .typing import BinnedSpectrumType
 
 
 class TensorizationSettings:
@@ -36,6 +35,49 @@ class TensorizationSettings:
                 "mz_bin_width": self.mz_bin_width,
                 "intensity_scaling": self.intensity_scaling,
                 "additional_metadata": self.additional_metadata}
+
+
+def compute_validation_set(spectrums, tensorization_settings, generator_settings):
+    """Since the pair selection is a highly randomized process,
+    this functions will generate a validation data generator that can be stored
+    using pickle. This is meant for consistent use throughout a larger project,
+    e.g. for consistent hyperparameter optimization.
+    """
+    if not generator_settings.use_fixed_set:
+        print("Expected use_fixed_set to be True (was changed to True)")
+        generator_settings.use_fixed_set = True
+    if not generator_settings.random_seed:
+        print("Expected random seed (was set to 0)")
+        generator_settings.random_seed = 0
+
+    scp_val, _ = select_compound_pairs_wrapper(spectrums, generator_settings, shuffling=False)
+
+    val_generator = DataGeneratorPytorch(
+        spectrums=spectrums,
+        tensorization_settings=tensorization_settings,
+        selected_compound_pairs=scp_val,
+        **generator_settings.__dict__,
+    )
+    # Collect batches
+    print(f"Collecting {len(val_generator)} batches of size {val_generator.settings.batch_size}")
+    for _ in val_generator:
+        pass
+
+    # Remove spectrums (no longer needed)
+    del val_generator.spectrums
+
+    return val_generator
+
+
+def write_to_pickle(generator, filepath):
+    with open(filepath, "wb") as f:
+        pickle.dump(generator, f, protocol=pickle.HIGHEST_PROTOCOL)
+
+
+def load_generator_from_pickle(filepath):
+    with open(filepath, "rb") as f:
+        generator = pickle.load(f)
+    return generator
 
 
 class DataGeneratorPytorch:
@@ -265,12 +307,3 @@ def vectorize_spectrum(mz_array, intensities_array, min_mz, max_mz, mz_bin_width
             # Alternative: Sum all intensties for all peaks in each bin
             # vector[bin_index] += intensity ** intensity_scaling
     return vector
-
-
-class SpectrumPair(NamedTuple):
-    """
-    Represents a pair of binned spectrums
-    """
-    spectrum1: BinnedSpectrumType
-    spectrum2: BinnedSpectrumType
-    score: float
