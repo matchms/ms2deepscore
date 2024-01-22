@@ -155,6 +155,7 @@ def test_model_training(simple_training_spectra):
         num_epochs=25,
         learning_rate=0.001, lambda_l1=0, lambda_l2=0,
         progress_bar=False, early_stopping=False,
+        collect_all_targets=True,
         )
 
     assert len(history["losses"]) == len(history["val_losses"]) == 25

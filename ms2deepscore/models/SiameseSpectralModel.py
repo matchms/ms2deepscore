@@ -193,8 +193,9 @@ def train(model: torch.nn.Module,
           early_stopping=True,
           patience: int = 10,
           checkpoint_filename: str = None, 
-          loss_function = torch.nn.MSELoss(),
+          loss_function = "MSE",
           monitor_rmse: bool = True,
+          collect_all_targets: bool = False,
           lambda_l1: float = 0,
           lambda_l2: float = 0,
           progress_bar: bool = True):
@@ -222,6 +223,8 @@ def train(model: torch.nn.Module,
         Pass a loss function (e.g. a pytorch default or a custom function).
     monitor_rmse
         If True rmse will be monitored turing training.
+    collect_all_targets
+        If True, all training targets will be collected (e.g. for later statistics).
     lambda_l1
         L1 regularization strength.
     lambda_l2 
@@ -230,6 +233,18 @@ def train(model: torch.nn.Module,
     # pylint: disable=too-many-arguments, too-many-locals
     device = initialize_device()
     model.to(device)
+
+    if loss_function.lower() == "mse":
+        criterion = nn.MSELoss()
+    elif loss_function.lower() == "mse_extra":
+        criterion = mse_away_from_mean
+    elif loss_function.lower() == "risk_aware_mae":
+        criterion = RiskAwareLoss(device=device)
+    elif loss_function.lower() == "risk_aware_mse":
+        criterion = risk_aware_mse
+    else:
+        raise ValueError("Unknown loss function")
+
     optimizer = optim.Adam(model.parameters(), lr=learning_rate)
 
     history = {
@@ -249,8 +264,8 @@ def train(model: torch.nn.Module,
             batch_losses = []
             batch_rmse = []
             for spectra_1, spectra_2, meta_1, meta_2, targets in training:
-                # For debugging: keep track of biases
-                history["collection_targets"].extend(targets)
+                if collect_all_targets:
+                    history["collection_targets"].extend(targets)
                 
                 optimizer.zero_grad()
 
@@ -259,7 +274,7 @@ def train(model: torch.nn.Module,
                                 meta_1.to(device), meta_2.to(device))
 
                 # Calculate loss
-                loss = loss_function(outputs, targets.to(device))
+                loss = criterion(outputs, targets.to(device))
                 if lambda_l1 > 0 or lambda_l2 > 0:
                     loss += l1_regularization(model, lambda_l1) + l2_regularization(model, lambda_l2)
                 batch_losses.append(float(loss))
@@ -286,7 +301,7 @@ def train(model: torch.nn.Module,
             for spectra_1, spectra_2, meta_1, meta_2, targets in val_generator:
                 predictions = model(spectra_1.to(device), spectra_2.to(device), 
                                     meta_1.to(device), meta_2.to(device))
-                loss = loss_function(predictions, targets.to(device))
+                loss = criterion(predictions, targets.to(device))
                 val_batch_losses.append(float(loss))
                 val_batch_rmse.append(rmse_loss(predictions, targets.to(device)).detach().numpy())
             val_loss = np.mean(val_batch_losses)
