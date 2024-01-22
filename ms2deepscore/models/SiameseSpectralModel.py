@@ -5,7 +5,7 @@ from torch import nn, optim
 from tqdm import tqdm
 from ms2deepscore.data_generators import TensorizationSettings
 
-from ms2deepscore.models.helper_functions import LOSS_FUNCTIONS, rmse_loss
+from ms2deepscore.models.helper_functions import LOSS_FUNCTIONS, rmse_loss, l1_regularization, l2_regularization
 
 class SiameseSpectralModel(nn.Module):
     """
@@ -247,7 +247,7 @@ def train(model: SiameseSpectralModel,
     device = initialize_device()
     model.to(device)
 
-    if loss_function.lower() not in LOSS_FUNCTIONS.keys():
+    if loss_function.lower() not in LOSS_FUNCTIONS:
         raise ValueError(f"Unknown loss function. Must be one of: {LOSS_FUNCTIONS.keys()}")
     criterion = LOSS_FUNCTIONS[loss_function.lower()]
 
