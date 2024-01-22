@@ -37,6 +37,20 @@ def risk_aware_mae(outputs, targets, percentiles=None):
     return losses.mean()
 
 
+def risk_aware_mse(outputs, targets):
+    """MSE weighted by target position on scale 0 to 1.
+    """
+    factors = targets - 1
+
+    errors = targets - outputs
+    errors = torch.sign(errors) * errors ** 2
+    uppers =  factors * errors
+    lowers = (factors - 1) * errors
+
+    losses = torch.max(lowers, uppers)
+    return losses.mean()
+
+
 def mse_away_from_mean(output, target):
     """MSE weighted to get higher loss for predictions towards the mean of 0.5.
     
