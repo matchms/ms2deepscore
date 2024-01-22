@@ -85,11 +85,14 @@ class DataGeneratorPytorch:
         self.settings = GeneratorSettings(settings)
         self.tensorization_settings = tensorization_settings
 
+        # Initialize random number generator
+        self.rng = np.random.default_rng(self.settings.random_seed)
+
         unique_inchikeys = np.unique(self.spectrum_inchikeys)
         if len(unique_inchikeys) < self.settings.batch_size:
             raise ValueError("The number of unique inchikeys must be larger than the batch size.")
         self.fixed_set = {}
-        if self.settings["use_fixed_set"]:
+        if self.settings.use_fixed_set:
             if selected_compound_pairs.shuffling:
                 raise ValueError("The generator cannot run reproducibly when shuffling is on for `SelectedCompoundPairs`.")
 
@@ -127,7 +130,7 @@ class DataGeneratorPytorch:
         """Updates indexes after each epoch."""
         self.indexes = np.tile(np.arange(len(self.selected_compound_pairs.scores)), int(self.settings.num_turns))
         if self.settings.shuffle:
-            np.random.shuffle(self.indexes)
+            self.rng.shuffle(self.indexes)
 
     def __getitem__(self, batch_index: int):
         """Generate one batch of data.
@@ -138,7 +141,7 @@ class DataGeneratorPytorch:
         if self.settings.use_fixed_set and batch_index in self.fixed_set:
             return self.fixed_set[batch_index]
         if self.settings.random_seed is not None and batch_index == 0:
-            np.random.seed(self.settings.random_seed)
+            self.rng = np.random.default_rng(self.settings.random_seed)
         spectrum_pairs = self._spectrum_pair_generator(batch_index)
         spectra_1, spectra_2, meta_1, meta_2, targets = self._tensorize_all(spectrum_pairs)
 
@@ -179,7 +182,7 @@ class DataGeneratorPytorch:
         matching_spectrum_id = np.where(self.spectrum_inchikeys == inchikey)[0]
         if len(matching_spectrum_id) <= 0:
             raise ValueError("No matching inchikey found (note: expected first 14 characters)")
-        return self.spectrums[np.random.choice(matching_spectrum_id)]
+        return self.spectrums[self.rng.choice(matching_spectrum_id)]
 
     def _data_augmentation(self, spectra_tensors):
         for i in range(spectra_tensors.shape[0]):
@@ -200,8 +203,8 @@ class DataGeneratorPytorch:
             
             indices_select = torch.where((spectrum_tensor > 0) 
                                         & (spectrum_tensor < self.settings.augment_removal_max))[0]
-            removal_part = np.random.random(1) * self.settings.augment_removal_max
-            indices = np.random.choice(indices_select, int(np.ceil((1 - removal_part)*len(indices_select))))
+            removal_part = self.rng.random(1) * self.settings.augment_removal_max
+            indices = self.rng.choice(indices_select, int(np.ceil((1 - removal_part)*len(indices_select))))
             if len(indices) > 0:
                 spectrum_tensor[indices] = 0
 
@@ -214,8 +217,8 @@ class DataGeneratorPytorch:
         if self.settings.augment_noise_max and self.settings.augment_noise_max > 0:
             indices_select = torch.where(spectrum_tensor == 0)[0]
             if len(indices_select) > self.settings.augment_noise_max:
-                indices_noise = np.random.choice(indices_select,
-                                                 np.random.randint(0, self.settings.augment_noise_max),
+                indices_noise = self.rng.choice(indices_select,
+                                                 self.rng.integers(0, self.settings.augment_noise_max),
                                                  replace=False,
                                                 )
             spectrum_tensor[indices_noise] = self.settings.augment_noise_intensity * torch.rand(len(indices_noise))

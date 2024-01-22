@@ -22,25 +22,6 @@ class SettingsMS2Deepscore:
             The learning rate that should be used during training.
         epochs:
             The number of epochs that should be used during training.
-        average_pairs_per_bin:
-            The aimed average number of pairs of spectra per spectrum in each bin.
-        max_pairs_per_bin:
-            The max_pairs_per_bin is used to reduce memory load.
-            Since some spectra will have less than the average_pairs_per_bin, we can compensate by selecting more pairs for
-            other spectra in this bin. For each spectrum initially max_pairs_per_bin is selected.
-            If the max_oversampling_rate is too low, no good division can be created for the spectra.
-            If the max_oversampling_rate is high the memory load on your system will be higher.
-            If None, all pairs will be initially stored.
-        tanimoto_bins:
-            The tanimoto score bins that should be used. Default is 10 bins equally spread between 0 and 1.
-        include_diagonal:
-            determines if a spectrum can be matched against itself when selection pairs.
-        random_seed:
-            The random seed to use for selecting compound pairs. Default is None.
-        fingerprint_type:
-            The fingerprint type that should be used for tanimoto score calculations.
-        fingerprint_nbits:
-            The number of bits to use for the fingerprint.
         """
     def __init__(self, settings=None):
         # model structure
@@ -57,17 +38,6 @@ class SettingsMS2Deepscore:
 
         # Generator settings
         self.batch_size = 32
-
-        # Compound pairs selection settings
-        self.average_pairs_per_bin = 20
-        self.max_pairs_per_bin = 100
-        self.tanimoto_bins: np.ndarray = np.array([(x / 10, x / 10 + 0.1) for x in range(0, 10)])
-        self.include_diagonal: bool = True
-        self.random_seed: Optional[int] = None
-
-        # Tanimioto score setings
-        self.fingerprint_type: str = "daylight"
-        self.fingerprint_nbits: int = 2048
 
         # Folder names for storing
         self.binned_spectra_folder_name = "binned_spectra"
@@ -132,13 +102,30 @@ class GeneratorSettings:
             Number of pairs for each InChiKey14 during each epoch. Default=1
         shuffle
             Set to True to shuffle IDs every epoch. Default=True
-        ignore_equal_pairs
+        ignore_equal_pairs TODO: check against include_diagonal
             Set to True to ignore pairs of two identical spectra. Default=True
         same_prob_bins
             List of tuples that define ranges of the true label to be trained with
             equal frequencies. Default is set to [(0, 0.5), (0.5, 1)], which means
             that pairs with scores <=0.5 will be picked as often as pairs with scores
             > 0.5.
+        average_pairs_per_bin:
+            The aimed average number of pairs of spectra per spectrum in each bin.
+        max_pairs_per_bin:
+            The max_pairs_per_bin is used to reduce memory load.
+            Since some spectra will have less than the average_pairs_per_bin, we can compensate by selecting more pairs for
+            other spectra in this bin. For each spectrum initially max_pairs_per_bin is selected.
+            If the max_oversampling_rate is too low, no good division can be created for the spectra.
+            If the max_oversampling_rate is high the memory load on your system will be higher.
+            If None, all pairs will be initially stored.
+        include_diagonal:
+            determines if a spectrum can be matched against itself when selection pairs.
+        random_seed:
+            The random seed to use for selecting compound pairs. Default is None.
+        fingerprint_type:
+            The fingerprint type that should be used for tanimoto score calculations.
+        fingerprint_nbits:
+            The number of bits to use for the fingerprint.
         augment_removal_max
             Maximum fraction of peaks (if intensity < below augment_removal_intensity)
             to be removed randomly. Default is set to 0.2, which means that between
@@ -168,7 +155,19 @@ class GeneratorSettings:
         self.num_turns = 1
         self.ignore_equal_pairs = True
         self.shuffle = True
-        self.same_prob_bins = [(0, 0.5), (0.5, 1)]
+
+        # Compound pairs selection settings
+        self.average_pairs_per_bin = 20
+        self.max_pairs_per_bin = 100
+        self.same_prob_bins = np.array([(x / 10, x / 10 + 0.1) for x in range(0, 10)])
+        self.include_diagonal: bool = True
+        self.random_seed: Optional[int] = None
+
+        # Tanimioto score setings
+        self.fingerprint_type: str = "daylight"
+        self.fingerprint_nbits: int = 2048
+
+        # Data augmentation
         self.augment_removal_max = 0.3
         self.augment_removal_intensity = 0.2
         self.augment_intensity = 0.4

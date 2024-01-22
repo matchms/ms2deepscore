@@ -8,7 +8,7 @@ from numba import jit, prange
 from scipy.sparse import coo_array
 from tqdm import tqdm
 from ms2deepscore.SettingsMS2Deepscore import \
-    SettingsMS2Deepscore
+    SettingsMS2Deepscore, GeneratorSettings
 
 
 class SelectedCompoundPairs:
@@ -100,7 +100,8 @@ class SelectedCompoundPairs:
 
 def select_compound_pairs_wrapper(
         spectrums: List[Spectrum],
-        settings: SettingsMS2Deepscore
+        settings: GeneratorSettings,
+        shuffling: bool = True,
         ) -> Tuple[SelectedCompoundPairs, List[Spectrum]]:
     """Returns a SelectedCompoundPairs object containing equally balanced pairs over the different bins
 
@@ -126,14 +127,14 @@ def select_compound_pairs_wrapper(
     selected_pairs_per_bin, selected_scores_per_bin = compute_jaccard_similarity_per_bin(
         fingerprints,
         settings.max_pairs_per_bin,
-        settings.tanimoto_bins,
+        settings.same_prob_bins,
         settings.include_diagonal)
     selected_pairs_per_bin = balanced_selection(
         selected_pairs_per_bin,
         selected_scores_per_bin,
         fingerprints.shape[0] * settings.average_pairs_per_bin)
     scores_sparse = convert_pair_list_to_coo_array(selected_pairs_per_bin, fingerprints.shape[0])
-    return SelectedCompoundPairs(scores_sparse, inchikeys14_unique), spectra_selected
+    return SelectedCompoundPairs(scores_sparse, inchikeys14_unique, shuffling=shuffling), spectra_selected
 
 
 def convert_pair_array_to_coo_data(

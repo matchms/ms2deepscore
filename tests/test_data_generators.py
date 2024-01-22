@@ -9,59 +9,11 @@ from ms2deepscore.data_generators import (DataGeneratorPytorch,
 from ms2deepscore.MetadataFeatureGenerator import (CategoricalToBinary,
                                                    StandardScaler)
 from ms2deepscore.SettingsMS2Deepscore import \
-    SettingsMS2Deepscore
+    GeneratorSettings
 from ms2deepscore.train_new_model.spectrum_pair_selection import \
     select_compound_pairs_wrapper
 from tests.test_user_worfklow import (get_reference_scores,
                                       load_processed_spectrums)
-
-
-def create_dummy_data():
-    """Create fake data to test generators.
-    """
-    mz, intens = 100.0, 0.1
-    spectrums = []
-
-    letters = list(string.ascii_uppercase[:10])
-
-    # Create fake similarities
-    similarities = {}
-    for i, letter1 in enumerate(letters):
-        for j, letter2 in enumerate(letters):
-            similarities[(letter1, letter2)] = (len(letters) - abs(i - j)) / len(letters)
-
-    tanimoto_fake = pd.DataFrame(similarities.values(),
-                                 index=similarities.keys()).unstack()
-
-    # Create fake spectra
-    fake_inchikeys = []
-    for i, letter in enumerate(letters):
-        dummy_inchikey = f"{14 * letter}-{10 * letter}-N"
-        fake_inchikeys.append(dummy_inchikey)
-        spectrums.append(Spectrum(mz=np.array([mz + (i+1) * 25.0]), intensities=np.array([intens]),
-                                  metadata={"inchikey": dummy_inchikey,
-                                            "compound_name": letter}))
-        # Generate a duplicated spectrum for half the inchikeys
-        if i >= 5:
-            spectrums.append(Spectrum(mz=np.array([mz + (i+1) * 25.0]), intensities=np.array([2*intens]),
-                                      metadata={"inchikey": dummy_inchikey,
-                                                "compound_name": f"{letter}-2"}))
-
-    # Set the column and index names
-    tanimoto_fake.columns = [x[:14] for x in fake_inchikeys]
-    tanimoto_fake.index = [x[:14] for x in fake_inchikeys]
-
-    ms2ds_binner = SpectrumBinner(100, mz_min=10.0, mz_max=1000.0, peak_scaling=1)
-    binned_spectrums = ms2ds_binner.fit_transform(spectrums)
-    return binned_spectrums, tanimoto_fake, ms2ds_binner
-
-
-def create_test_data():
-    spectrums = load_processed_spectrums()
-    tanimoto_scores_df = get_reference_scores()
-    ms2ds_binner = SpectrumBinner(100, mz_min=10.0, mz_max=1000.0, peak_scaling=0.5)
-    binned_spectrums = ms2ds_binner.fit_transform(spectrums)
-    return binned_spectrums, tanimoto_scores_df, ms2ds_binner
 
 
 def collect_results(generator, batch_size, dimension):
@@ -129,8 +81,8 @@ def test_DataGeneratorPytorch():
     spectrums = create_test_spectra(num_of_unique_inchikeys)
     batch_size = 8
 
-    settings = SettingsMS2Deepscore({"tanimoto_bins": np.array([(x / 4, x / 4 + 0.25) for x in range(0, 4)]),
-                                    "average_pairs_per_bin": 1})
+    settings = GeneratorSettings({"same_prob_bins": np.array([(x / 4, x / 4 + 0.25) for x in range(0, 4)]),
+                                  "average_pairs_per_bin": 1})
     scp, spectrums = select_compound_pairs_wrapper(spectrums, settings)
     tensorization_settings = TensorizationSettings(min_mz=10,
                                                    max_mz=1000,
