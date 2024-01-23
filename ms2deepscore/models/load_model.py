@@ -1,7 +1,7 @@
 from pathlib import Path
 from typing import Union
 import torch
-from ms2deepscore.train_new_model.data_generators import TensorizationSettings
+from ms2deepscore.SettingsMS2Deepscore import TensorizationSettings
 from ms2deepscore.models.SiameseSpectralModel import SiameseSpectralModel
 
 

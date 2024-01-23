@@ -10,32 +10,7 @@ from ms2deepscore.MetadataFeatureGenerator import (MetadataVectorizer,
                                                    load_from_json)
 from ms2deepscore.train_new_model.spectrum_pair_selection import (
     SelectedCompoundPairs, select_compound_pairs_wrapper)
-from ms2deepscore.SettingsMS2Deepscore import GeneratorSettings
-
-
-class TensorizationSettings:
-    """Stores the settings for tensorizing Spectra"""
-    def __init__(self,
-                 **settings):
-        self.min_mz = 10
-        self.max_mz = 1000
-        self.mz_bin_width = 0.1
-        self.intensity_scaling = 0.5
-        self.additional_metadata = []
-        if settings:
-            for key, value in settings.items():
-                if hasattr(self, key):
-                    setattr(self, key, value)
-                else:
-                    raise ValueError(f"Unknown setting: {key}")
-        self.num_bins = int((self.max_mz - self.min_mz) / self.mz_bin_width)
-
-    def get_dict(self):
-        return {"min_mz": self.min_mz,
-                "max_mz": self.max_mz,
-                "mz_bin_width": self.mz_bin_width,
-                "intensity_scaling": self.intensity_scaling,
-                "additional_metadata": self.additional_metadata}
+from ms2deepscore.SettingsMS2Deepscore import GeneratorSettings, TensorizationSettings
 
 
 def compute_validation_set(spectrums, tensorization_settings, generator_settings):
