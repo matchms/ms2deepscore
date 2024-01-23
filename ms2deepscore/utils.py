@@ -5,18 +5,6 @@ from matchms import Spectrum
 from matchms.importing import load_spectra
 
 
-def create_peak_dict(peak_list):
-    """ Create dictionary of merged peaks (keep max-intensity peak per bin).
-    """
-    peaks = {}
-    for (ID, weight) in peak_list:
-        if ID in peaks:
-            peaks[ID] = max(weight, peaks[ID])
-        else:
-            peaks[ID] = weight
-    return peaks
-
-
 def save_pickled_file(obj, filename: str):
     assert not os.path.exists(filename), "File already exists"
     with open(filename, "wb") as f:
