@@ -1,3 +1,4 @@
+import os
 import string
 import numpy as np
 import pandas as pd
@@ -6,7 +7,9 @@ from matchms import Spectrum
 from ms2deepscore.data_generators import (DataGeneratorPytorch,
                                           TensorizationSettings,
                                           compute_validation_set,
-                                          tensorize_spectra)
+                                          tensorize_spectra,
+                                          write_to_pickle,
+                                          load_generator_from_pickle)
 from ms2deepscore.MetadataFeatureGenerator import (CategoricalToBinary,
                                                    StandardScaler)
 from ms2deepscore.SettingsMS2Deepscore import \
@@ -128,7 +131,9 @@ def test_DataGeneratorPytorch():
     assert (np.array(counts) > 0.75).sum() > 0.22 * total
 
 
-def test_compute_validation_generator():
+def test_compute_validation_generator(tmp_path):
+
+
     num_of_unique_inchikeys = 15
     spectrums = create_test_spectra(num_of_unique_inchikeys)
 
@@ -140,7 +145,15 @@ def test_compute_validation_generator():
         "num_turns": 1
     })
     val_generator = compute_validation_set(spectrums, TensorizationSettings(), settings)
+    generator_file = os.path.join(tmp_path, "generator.pickle")
+
+    write_to_pickle(val_generator, generator_file)
+    loaded_generator = load_generator_from_pickle(generator_file)
     batch_0 = val_generator.__getitem__(0)
+    batch_0_saved = loaded_generator.__getitem__(0)
+    assert len(batch_0) == 5 == len(batch_0_saved)
+    for i, tensor in enumerate(batch_0):
+        torch.equal(tensor, batch_0_saved[i])
     assert "spectrums" not in val_generator.__dict__, "Spectrums should have been removed"
     assert len(val_generator) == 3
     assert torch.allclose(batch_0[4], torch.tensor([0.5000, 0.2500, 0.4286, 0.4286, 0.1429]), atol=1e8)
