@@ -3,9 +3,9 @@ import numpy as np
 from matchms import Spectrum
 from matchms.similarity.BaseSimilarity import BaseSimilarity
 from tqdm import tqdm
-from .typing import BinnedSpectrumType
 from .vector_operations import (cosine_similarity_matrix, iqr_pooling,
                                 mean_pooling, median_pooling, std_pooling)
+# todo reimplement monte carlo dropout for pytorch model. _create_input_vector now still uses binnned spectrum instance
 
 
 class MS2DeepScoreMonteCarlo(BaseSimilarity):
@@ -82,7 +82,7 @@ class MS2DeepScoreMonteCarlo(BaseSimilarity):
         self.progress_bar = progress_bar
         self.partial_model = self._create_monte_carlo_base()
 
-    def _create_input_vector(self, binned_spectrum: BinnedSpectrumType):
+    def _create_input_vector(self, binned_spectrum):
         """Creates input vector for model.base based on binned peaks and intensities"""
         X = np.zeros((1, self.input_vector_dim))
 
