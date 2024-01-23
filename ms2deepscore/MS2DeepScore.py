@@ -1,9 +1,7 @@
 from typing import List
 import numpy as np
-import torch
 from matchms import Spectrum
 from matchms.similarity.BaseSimilarity import BaseSimilarity
-from tqdm import tqdm
 from ms2deepscore.models.SiameseSpectralModel import (
     compute_embedding_array, SiameseSpectralModel)
 from .vector_operations import cosine_similarity, cosine_similarity_matrix

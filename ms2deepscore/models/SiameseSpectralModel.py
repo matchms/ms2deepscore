@@ -374,7 +374,7 @@ def compute_embedding_array(model, spectrums):
 def compute_validation_losses(model, spectrums,
                               target_scores,
                               score_bins,
-                              loss_types = ["mse"]):
+                              loss_types = ("mse")):
     """Benchmark the model against a validation set.
     """
     if target_scores.shape[0] != target_scores.shape[0]:
