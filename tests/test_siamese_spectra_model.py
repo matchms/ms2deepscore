@@ -8,8 +8,7 @@ from ms2deepscore.MetadataFeatureGenerator import (MetadataVectorizer,
                                                    StandardScaler)
 from ms2deepscore.models.SiameseSpectralModel import (SiameseSpectralModel,
                                                       train)
-from ms2deepscore.train_new_model.SettingMS2Deepscore import \
-    SettingsMS2Deepscore
+from ms2deepscore.SettingsMS2Deepscore import GeneratorSettings
 from ms2deepscore.train_new_model.spectrum_pair_selection import \
     select_compound_pairs_wrapper
 
@@ -129,18 +128,19 @@ def test_siamese_model_additional_metadata(dummy_spectra):
 
 def test_model_training(simple_training_spectra):
     # Select pairs
-    settings = SettingsMS2Deepscore({
-        "tanimoto_bins": np.array([(0, 0.5), (0.5, 1)]),
+    settings = GeneratorSettings({
+        "same_prob_bins": np.array([(0, 0.5), (0.5, 1)]),
         "average_pairs_per_bin": 20
     })
-    scp_simple, _ = select_compound_pairs_wrapper(simple_training_spectra, settings)
+    scp_train, _ = select_compound_pairs_wrapper(simple_training_spectra, settings)
+    scp_val, _ = select_compound_pairs_wrapper(simple_training_spectra, settings, shuffling=False)  # obviously: for real cases this need different spectra...
     tensorization_settings = TensorizationSettings(min_mz=0, max_mz=200, mz_bin_width=0.2,
                                                    intensity_scaling=0.5,)
     # Create generators
     train_generator_simple = DataGeneratorPytorch(
         spectrums=simple_training_spectra,
         tensorization_settings=tensorization_settings,
-        selected_compound_pairs=scp_simple,
+        selected_compound_pairs=scp_train,
         batch_size=2,
         num_turns=20,
     )
@@ -148,7 +148,7 @@ def test_model_training(simple_training_spectra):
     val_generator_simple = DataGeneratorPytorch(
         spectrums=simple_training_spectra,
         tensorization_settings=tensorization_settings,
-        selected_compound_pairs=scp_simple,
+        selected_compound_pairs=scp_val,
         batch_size=2,
         num_turns=2,
         use_fixed_set=True,

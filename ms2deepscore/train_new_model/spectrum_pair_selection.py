@@ -7,8 +7,7 @@ from matchms.similarity.vector_similarity_functions import jaccard_index
 from numba import jit, prange
 from scipy.sparse import coo_array
 from tqdm import tqdm
-from ms2deepscore.train_new_model.SettingMS2Deepscore import \
-    SettingsMS2Deepscore
+from ms2deepscore.SettingsMS2Deepscore import GeneratorSettings
 
 
 class SelectedCompoundPairs:
@@ -71,7 +70,8 @@ class SelectedCompoundPairs:
         if self._row_generator_index[row_idx] >= len(self._cols[row_idx]):
             self._row_generator_index[row_idx] = 0
             # Went through all scores in this row --> shuffle again
-            self._shuffle_row(row_idx)
+            if self.shuffling:
+                self._shuffle_row(row_idx)
 
         return score, self._idx_to_inchikey[col_idx]
 
@@ -100,7 +100,8 @@ class SelectedCompoundPairs:
 
 def select_compound_pairs_wrapper(
         spectrums: List[Spectrum],
-        settings: SettingsMS2Deepscore
+        settings: GeneratorSettings,
+        shuffling: bool = True,
         ) -> Tuple[SelectedCompoundPairs, List[Spectrum]]:
     """Returns a SelectedCompoundPairs object containing equally balanced pairs over the different bins
 
@@ -126,14 +127,14 @@ def select_compound_pairs_wrapper(
     selected_pairs_per_bin, selected_scores_per_bin = compute_jaccard_similarity_per_bin(
         fingerprints,
         settings.max_pairs_per_bin,
-        settings.tanimoto_bins,
+        settings.same_prob_bins,
         settings.include_diagonal)
     selected_pairs_per_bin = balanced_selection(
         selected_pairs_per_bin,
         selected_scores_per_bin,
         fingerprints.shape[0] * settings.average_pairs_per_bin)
     scores_sparse = convert_pair_list_to_coo_array(selected_pairs_per_bin, fingerprints.shape[0])
-    return SelectedCompoundPairs(scores_sparse, inchikeys14_unique), spectra_selected
+    return SelectedCompoundPairs(scores_sparse, inchikeys14_unique, shuffling=shuffling), spectra_selected
 
 
 def convert_pair_array_to_coo_data(
@@ -211,8 +212,6 @@ def tanimoto_scores_row(fingerprints, idx, include_diagonal):
         tanimoto_scores[idx_fingerprint_j] = tanimoto_score
     return tanimoto_scores
 
-
-desired_average_pairs_per_bin = 5000
 
 def balanced_selection(selected_pairs_per_bin, selected_scores_per_bin,
              desired_pairs_per_bin,
@@ -315,8 +314,8 @@ def compute_fingerprints_for_training(spectrums,
 
 
 def select_inchi_for_unique_inchikeys(
-    list_of_spectra: List['Spectrum']
-) -> Tuple[List['Spectrum'], List[str]]:
+        list_of_spectra: List['Spectrum']
+        ) -> Tuple[List['Spectrum'], List[str]]:
     """Select spectra with most frequent inchi for unique inchikeys.
 
     Method needed to calculate Tanimoto scores.

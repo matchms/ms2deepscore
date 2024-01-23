@@ -18,6 +18,7 @@ xunit-result.xml
 
 docs/_build
 docs/apidocs
+prototyping/
 
 # ide
 .idea

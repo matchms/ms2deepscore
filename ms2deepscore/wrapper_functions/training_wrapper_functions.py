@@ -6,8 +6,8 @@ from matchms.exporting import save_spectra
 from matchms.importing import load_spectra
 from ms2deepscore.benchmarking_models.calculate_scores_for_validation import \
     calculate_true_values_and_predictions_for_validation_spectra
-from ms2deepscore.train_new_model.SettingMS2Deepscore import \
-    SettingsMS2Deepscore
+from ms2deepscore.SettingsMS2Deepscore import (GeneratorSettings,
+                                               SettingsMS2Deepscore)
 from ms2deepscore.train_new_model.split_positive_and_negative_mode import \
     split_by_ionmode
 from ms2deepscore.train_new_model.train_ms2deepscore import train_ms2ds_model
@@ -19,7 +19,8 @@ from ms2deepscore.wrapper_functions.plotting_wrapper_functions import \
 
 
 def train_ms2deepscore_wrapper(spectra_file_path,
-                               settings: SettingsMS2Deepscore,
+                               model_settings: SettingsMS2Deepscore,
+                               generator_settings: GeneratorSettings,
                                validation_split_fraction=20
                                ):
     """Splits data, trains a ms2deepscore model, and does benchmarking.
@@ -28,8 +29,8 @@ def train_ms2deepscore_wrapper(spectra_file_path,
 
     spectra_file_path:
         The path to the spectra that should be used for training. (it will be split in train, val and test)
-    settings:
-        An object with the MS2Deepscore settings.
+    model_settings:
+        An object with the MS2Deepscore model settings.
     validation_split_fraction:
         The fraction of the inchikeys that will be used for validation and test.
     """
@@ -38,28 +39,28 @@ def train_ms2deepscore_wrapper(spectra_file_path,
                                              split_fraction=validation_split_fraction)
 
     # Split training in pos and neg and create val and training split and select for the right ionisation mode.
-    training_spectra = stored_training_data.load_training_data(settings.ionisation_mode, "training")
-    validation_spectra = stored_training_data.load_training_data(settings.ionisation_mode, "validation")
+    training_spectra = stored_training_data.load_training_data(model_settings.ionisation_mode, "training")
+    validation_spectra = stored_training_data.load_training_data(model_settings.ionisation_mode, "validation")
 
     # Train model
     train_ms2ds_model(training_spectra, validation_spectra,
                       stored_training_data.trained_models_folder,
-                      settings)
+                      model_settings, generator_settings)
 
     # Create performance plots for validation spectra
     ms2deepsore_model_file_name = os.path.join(stored_training_data.trained_models_folder,
-                                               settings.model_directory_name,
-                                               settings.model_file_name)
+                                               model_settings.model_directory_name,
+                                               model_settings.model_file_name)
     calculate_true_values_and_predictions_for_validation_spectra(
         positive_validation_spectra=stored_training_data.load_positive_train_split("validation"),
         negative_validation_spectra=stored_training_data.load_negative_train_split("validation"),
         ms2deepsore_model_file_name=ms2deepsore_model_file_name,
         results_directory=os.path.join(stored_training_data.trained_models_folder,
-                                       settings.model_directory_name, "benchmarking_results"))
+                                       model_settings.model_directory_name, "benchmarking_results"))
 
     create_plots_between_all_ionmodes(model_directory=os.path.join(stored_training_data.trained_models_folder,
-                                                                   settings.model_directory_name))
-    return settings.model_directory_name
+                                                                   model_settings.model_directory_name))
+    return model_settings.model_directory_name
 
 
 class StoreTrainingData:
