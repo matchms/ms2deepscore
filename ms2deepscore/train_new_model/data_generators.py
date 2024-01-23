@@ -2,40 +2,13 @@
 """
 import pickle
 from typing import List
-import numba
 import numpy as np
 import torch
 from matchms import Spectrum
-from ms2deepscore.MetadataFeatureGenerator import (MetadataVectorizer,
-                                                   load_from_json)
+from ms2deepscore.tensorize_spectra import tensorize_spectra
 from ms2deepscore.train_new_model.spectrum_pair_selection import (
     SelectedCompoundPairs, select_compound_pairs_wrapper)
-from .SettingsMS2Deepscore import GeneratorSettings
-
-
-class TensorizationSettings:
-    """Stores the settings for tensorizing Spectra"""
-    def __init__(self,
-                 **settings):
-        self.min_mz = 10
-        self.max_mz = 1000
-        self.mz_bin_width = 0.1
-        self.intensity_scaling = 0.5
-        self.additional_metadata = []
-        if settings:
-            for key, value in settings.items():
-                if hasattr(self, key):
-                    setattr(self, key, value)
-                else:
-                    raise ValueError(f"Unknown setting: {key}")
-        self.num_bins = int((self.max_mz - self.min_mz) / self.mz_bin_width)
-
-    def get_dict(self):
-        return {"min_mz": self.min_mz,
-                "max_mz": self.max_mz,
-                "mz_bin_width": self.mz_bin_width,
-                "intensity_scaling": self.intensity_scaling,
-                "additional_metadata": self.additional_metadata}
+from ms2deepscore.SettingsMS2Deepscore import GeneratorSettings, TensorizationSettings
 
 
 def compute_validation_set(spectrums, tensorization_settings, generator_settings):
@@ -268,43 +241,3 @@ class DataGeneratorPytorch:
                                                 )
             spectrum_tensor[indices_noise] = self.settings.augment_noise_intensity * torch.rand(len(indices_noise))
         return spectrum_tensor
-
-
-def tensorize_spectra(
-    spectra,
-    tensorization_settings: TensorizationSettings,
-    ):
-    """Convert list of matchms Spectrum objects to pytorch peak and metadata tensors.
-    """
-    if len(tensorization_settings.additional_metadata) == 0:
-        metadata_tensors = torch.zeros((len(spectra), 0))
-    else:
-        feature_generators = load_from_json(tensorization_settings.additional_metadata)
-        metadata_vectorizer = MetadataVectorizer(additional_metadata=feature_generators)
-        metadata_tensors = metadata_vectorizer.transform(spectra)
-
-    binned_spectra = torch.zeros((len(spectra), tensorization_settings.num_bins))
-    for i, spectrum in enumerate(spectra):
-        binned_spectra[i, :] = torch.tensor(vectorize_spectrum(spectrum.peaks.mz, spectrum.peaks.intensities,
-                                                               tensorization_settings.min_mz,
-                                                               tensorization_settings.max_mz,
-                                                               tensorization_settings.mz_bin_width,
-                                                               tensorization_settings.intensity_scaling
-                                                               ))
-    return binned_spectra, metadata_tensors
-
-
-@numba.jit(nopython=True)
-def vectorize_spectrum(mz_array, intensities_array, min_mz, max_mz, mz_bin_width, intensity_scaling):
-    """Fast function to convert mz and intensity arrays into dense spectrum vector."""
-    # pylint: disable=too-many-arguments
-    num_bins = int((max_mz - min_mz) / mz_bin_width)
-    vector = np.zeros((num_bins))
-    for mz, intensity in zip(mz_array, intensities_array):
-        if min_mz <= mz < max_mz:
-            bin_index = int((mz - min_mz) / mz_bin_width)
-            # Take max intensity peak per bin
-            vector[bin_index] = max(vector[bin_index], intensity ** intensity_scaling)
-            # Alternative: Sum all intensties for all peaks in each bin
-            # vector[bin_index] += intensity ** intensity_scaling
-    return vector
