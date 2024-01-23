@@ -1,11 +1,14 @@
+from typing import Tuple
 import numpy as np
 import torch
 import torch.nn.functional as F
 from torch import nn, optim
 from tqdm import tqdm
 from ms2deepscore.data_generators import TensorizationSettings
+from ms2deepscore.models.helper_functions import (LOSS_FUNCTIONS,
+                                                  l1_regularization,
+                                                  l2_regularization, rmse_loss)
 
-from ms2deepscore.models.helper_functions import LOSS_FUNCTIONS, rmse_loss, l1_regularization, l2_regularization
 
 class SiameseSpectralModel(nn.Module):
     """
@@ -15,7 +18,7 @@ class SiameseSpectralModel(nn.Module):
     """
     def __init__(self,
                  tensorisaton_settings: TensorizationSettings,
-                 base_dims: tuple[int, ...] = (1000, 800, 800),
+                 base_dims: Tuple[int, ...] = (1000, 800, 800),
                  embedding_dim: int = 400,
                  train_binning_layer: bool = False,
                  group_size: int = 20,

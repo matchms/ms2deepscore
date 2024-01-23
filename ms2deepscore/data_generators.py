@@ -1,14 +1,15 @@
 """ Data generators for training/inference with MS2DeepScore model.
 """
 import pickle
+from typing import List
 import numba
 import numpy as np
 import torch
 from matchms import Spectrum
 from ms2deepscore.MetadataFeatureGenerator import (MetadataVectorizer,
                                                    load_from_json)
-from ms2deepscore.train_new_model.spectrum_pair_selection import \
-    SelectedCompoundPairs, select_compound_pairs_wrapper
+from ms2deepscore.train_new_model.spectrum_pair_selection import (
+    SelectedCompoundPairs, select_compound_pairs_wrapper)
 from .SettingsMS2Deepscore import GeneratorSettings
 
 
@@ -89,7 +90,7 @@ class DataGeneratorPytorch:
     particularly in scenarios where certain compound pairs are of specific interest or
     have higher significance in the training dataset.
     """
-    def __init__(self, spectrums: list[Spectrum],
+    def __init__(self, spectrums: List[Spectrum],
                  selected_compound_pairs: SelectedCompoundPairs,
                  tensorization_settings: TensorizationSettings,
                  **settings):

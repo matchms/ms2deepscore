@@ -5,6 +5,8 @@ from matchms.similarity.BaseSimilarity import BaseSimilarity
 from tqdm import tqdm
 from .vector_operations import (cosine_similarity_matrix, iqr_pooling,
                                 mean_pooling, median_pooling, std_pooling)
+
+
 # todo reimplement monte carlo dropout for pytorch model. _create_input_vector now still uses binnned spectrum instance
 
 

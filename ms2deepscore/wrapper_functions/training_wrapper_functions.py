@@ -6,8 +6,8 @@ from matchms.exporting import save_spectra
 from matchms.importing import load_spectra
 from ms2deepscore.benchmarking_models.calculate_scores_for_validation import \
     calculate_true_values_and_predictions_for_validation_spectra
-from ms2deepscore.SettingsMS2Deepscore import \
-    GeneratorSettings, SettingsMS2Deepscore
+from ms2deepscore.SettingsMS2Deepscore import (GeneratorSettings,
+                                               SettingsMS2Deepscore)
 from ms2deepscore.train_new_model.split_positive_and_negative_mode import \
     split_by_ionmode
 from ms2deepscore.train_new_model.train_ms2deepscore import train_ms2ds_model
