@@ -4,7 +4,7 @@ import torch
 import torch.nn.functional as F
 from torch import nn, optim
 from tqdm import tqdm
-from ms2deepscore.data_generators import TensorizationSettings
+from ms2deepscore.train_new_model.data_generators import TensorizationSettings
 from ms2deepscore.models.helper_functions import (LOSS_FUNCTIONS,
                                                   l1_regularization,
                                                   l2_regularization, rmse_loss)

@@ -4,7 +4,7 @@ import torch
 from matchms import Spectrum
 from matchms.similarity.BaseSimilarity import BaseSimilarity
 from tqdm import tqdm
-from ms2deepscore.data_generators import tensorize_spectra
+from ms2deepscore.train_new_model.data_generators import tensorize_spectra
 from ms2deepscore.models.SiameseSpectralModel import SiameseSpectralModel
 from .vector_operations import cosine_similarity, cosine_similarity_matrix
 

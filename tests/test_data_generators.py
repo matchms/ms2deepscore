@@ -3,12 +3,12 @@ import string
 import numpy as np
 import torch
 from matchms import Spectrum
-from ms2deepscore.data_generators import (DataGeneratorPytorch,
-                                          TensorizationSettings,
-                                          compute_validation_set,
-                                          tensorize_spectra,
-                                          write_to_pickle,
-                                          load_generator_from_pickle)
+from ms2deepscore.train_new_model.data_generators import (DataGeneratorPytorch,
+                                                          TensorizationSettings,
+                                                          compute_validation_set,
+                                                          tensorize_spectra,
+                                                          write_to_pickle,
+                                                          load_generator_from_pickle)
 from ms2deepscore.SettingsMS2Deepscore import \
     GeneratorSettings
 from ms2deepscore.train_new_model.spectrum_pair_selection import \

@@ -1,11 +1,9 @@
 import numpy as np
 import pytest
 from matchms import Spectrum
-from ms2deepscore.data_generators import (DataGeneratorPytorch,
-                                          TensorizationSettings,
-                                          tensorize_spectra)
-from ms2deepscore.MetadataFeatureGenerator import (MetadataVectorizer,
-                                                   StandardScaler)
+from ms2deepscore.train_new_model.data_generators import (DataGeneratorPytorch,
+                                                          TensorizationSettings,
+                                                          tensorize_spectra)
 from ms2deepscore.models.SiameseSpectralModel import (SiameseSpectralModel,
                                                       train)
 from ms2deepscore.SettingsMS2Deepscore import GeneratorSettings

@@ -10,7 +10,7 @@ from ms2deepscore.MetadataFeatureGenerator import (MetadataVectorizer,
                                                    load_from_json)
 from ms2deepscore.train_new_model.spectrum_pair_selection import (
     SelectedCompoundPairs, select_compound_pairs_wrapper)
-from .SettingsMS2Deepscore import GeneratorSettings
+from ms2deepscore.SettingsMS2Deepscore import GeneratorSettings
 
 
 class TensorizationSettings:
