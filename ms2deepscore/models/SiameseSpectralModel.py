@@ -8,6 +8,7 @@ from ms2deepscore.SettingsMS2Deepscore import TensorizationSettings
 from ms2deepscore.models.helper_functions import (LOSS_FUNCTIONS,
                                                   l1_regularization,
                                                   l2_regularization, rmse_loss)
+from ms2deepscore.tensorize_spectra import tensorize_spectra
 
 
 class SiameseSpectralModel(nn.Module):
@@ -353,3 +354,23 @@ def initialize_device():
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"Training will happen on {device}.")
     return device
+
+
+def compute_embedding_array(model, spectrums):
+    """Compute the embeddings of all spectra in spectrums.
+    """
+    embeddings = np.zeros((len(spectrums), model.model_parameters["embedding_dim"]))
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    model.to(device)
+    for i, spec in tqdm(enumerate(spectrums)):
+        X = tensorize_spectra([spec], model.tensorization_parameters)
+        with torch.no_grad():
+            embeddings[i, :] = model.encoder(X[0].to(device), X[1].to(device)).cpu().detach().numpy()
+    return embeddings
+
+
+def compute_validation_losses(model, spectrums, loss_types = ["mse"]):
+    """Benchmark the model against a validation set.
+    """
+    embeddings = compute_embedding_array(model, spectrums)
+    
