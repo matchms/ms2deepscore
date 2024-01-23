@@ -4,6 +4,8 @@ import torch
 import torch.nn.functional as F
 from torch import nn, optim
 from tqdm import tqdm
+from matchms.similarity.vector_similarity_functions import cosine_similarity_matrix
+from ms2deepscore.benchmarking import bin_dependent_losses
 from ms2deepscore.SettingsMS2Deepscore import TensorizationSettings
 from ms2deepscore.models.helper_functions import (LOSS_FUNCTIONS,
                                                   l1_regularization,
@@ -369,8 +371,21 @@ def compute_embedding_array(model, spectrums):
     return embeddings
 
 
-def compute_validation_losses(model, spectrums, loss_types = ["mse"]):
+def compute_validation_losses(model, spectrums,
+                              target_scores,
+                              score_bins,
+                              loss_types = ["mse"]):
     """Benchmark the model against a validation set.
     """
+    if target_scores.shape[0] != target_scores.shape[0]:
+        raise ValueError("Expected all-vs-all style score array")
+    if target_scores.shape[0] != len(spectrums):
+        raise ValueError("Number of spectrums does not match number of target scores.")
+
     embeddings = compute_embedding_array(model, spectrums)
-    
+    ms2ds_scores = cosine_similarity_matrix(embeddings, embeddings)
+    losses = bin_dependent_losses(ms2ds_scores, target_scores, 
+                                  score_bins,
+                                  loss_types=loss_types
+                                  )
+    return losses

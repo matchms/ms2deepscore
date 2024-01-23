@@ -4,7 +4,7 @@ reducing the amount of rerunning that is necessary"""
 import os
 from matchms.exporting import save_spectra
 from matchms.importing import load_spectra
-from ms2deepscore.benchmarking_models.calculate_scores_for_validation import \
+from ms2deepscore.benchmarking.calculate_scores_for_validation import \
     calculate_true_values_and_predictions_for_validation_spectra
 from ms2deepscore.SettingsMS2Deepscore import (GeneratorSettings,
                                                SettingsMS2Deepscore)
