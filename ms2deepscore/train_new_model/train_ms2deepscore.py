@@ -24,7 +24,6 @@ def train_ms2ds_model(
         ):
     """Full workflow to train a MS2DeepScore model.
     """
-    # pylint: disable=too-many-locals
     model_directory = os.path.join(results_folder, model_settings.model_directory_name)
     os.makedirs(model_directory, exist_ok=True)
     # Save settings

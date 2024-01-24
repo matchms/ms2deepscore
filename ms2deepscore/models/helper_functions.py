@@ -12,4 +12,3 @@ def l2_regularization(model, lambda_l2):
     """L2 regulatization for first dense layer of model."""
     l2_loss = torch.linalg.vector_norm(next(model.encoder.dense_layers[0].parameters()), ord=2)
     return lambda_l2 * l2_loss
-

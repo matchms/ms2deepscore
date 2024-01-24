@@ -41,6 +41,7 @@ def create_plots_for_all_models(models_directory,
 def create_plots_between_all_ionmodes(model_directory,
                                       results_folder=None,
                                       ref_score_bins=np.array([(x / 10, x / 10 + 0.1) for x in range(0, 10)])):
+    # pylint: disable=too-many-locals
     spectra_folder = os.path.join(model_directory, "..", "..", "training_and_validation_split")
     if results_folder is None:
         results_folder = os.path.join(model_directory, "benchmarking_results", "plots_1_spectrum_per_inchikey")
