@@ -4,9 +4,7 @@ import torch
 import torch.nn.functional as F
 from torch import nn, optim
 from tqdm import tqdm
-from matchms.similarity.vector_similarity_functions import cosine_similarity_matrix
-from ms2deepscore.benchmarking.calculate_scores_for_validation import get_tanimoto_score_between_spectra
-from ms2deepscore.models.loss_functions import bin_dependent_losses, rmse_loss, LOSS_FUNCTIONS
+from ms2deepscore.models.loss_functions import rmse_loss, LOSS_FUNCTIONS
 from ms2deepscore.SettingsMS2Deepscore import TensorizationSettings
 from ms2deepscore.models.helper_functions import (l1_regularization,
                                                   l2_regularization)
@@ -363,32 +361,3 @@ def compute_embedding_array(model,
         with torch.no_grad():
             embeddings[i, :] = model.encoder(X[0].to(device), X[1].to(device)).cpu().detach().numpy()
     return embeddings
-
-
-class ValidationLossCalculator:
-    def __init__(self,
-                 val_spectrums,
-                 score_bins):
-        # Check if the spectra only are unique inchikeys
-        inchikeys_list = [s.get("inchikey") for s in val_spectrums]
-        assert len(set(inchikeys_list)) == len(val_spectrums), 'Expected 1 spectrum per inchikey'
-        self.target_scores = get_tanimoto_score_between_spectra(val_spectrums, val_spectrums)
-        self.val_spectrums = val_spectrums
-        self.score_bins = score_bins
-
-    def compute_binned_validation_loss(self,
-                                       model: SiameseSpectralModel,
-                                       loss_types):
-        """Benchmark the model against a validation set.
-        """
-        embeddings = compute_embedding_array(model, self.val_spectrums)
-        ms2ds_scores = cosine_similarity_matrix(embeddings, embeddings)
-        losses = bin_dependent_losses(ms2ds_scores,
-                                      self.target_scores,
-                                      self.score_bins,
-                                      loss_types=loss_types
-                                      )
-        average_losses = {}
-        for loss_type in losses:
-            average_losses[loss_type] = np.mean(losses[loss_type])
-        return average_losses
