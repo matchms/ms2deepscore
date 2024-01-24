@@ -69,6 +69,7 @@ LOSS_FUNCTIONS = {
     "risk_mse": risk_aware_mse,
 }
 
+
 def bin_dependent_losses(predictions,
                          true_values,
                          ref_score_bins,
@@ -90,7 +91,8 @@ def bin_dependent_losses(predictions,
     bin_content = []
     losses = {"bin": []}
     for loss_type in loss_types:
-        assert loss_type in LOSS_FUNCTIONS, f"The loss_type {loss_type} is unknown"
+        if loss_type not in LOSS_FUNCTIONS:
+            raise ValueError(f"Unknown loss function: {loss_type}. Must be one of: {LOSS_FUNCTIONS.keys()}")
         losses[loss_type] = []
     bounds = []
     ref_scores_bins_inclusive = ref_score_bins.copy()
