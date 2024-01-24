@@ -127,7 +127,7 @@ def test_siamese_model_additional_metadata(dummy_spectra):
 def test_model_training(simple_training_spectra):
     # Select pairs
     settings = GeneratorSettings({
-        "same_prob_bins": np.array([(0, 0.5), (0.5, 1)]),
+        "same_prob_bins": np.array([(0, 0.5), (0.5, 1.000001)]),
         "average_pairs_per_bin": 20
     })
     scp_train, _ = select_compound_pairs_wrapper(simple_training_spectra, settings)
@@ -141,9 +141,10 @@ def test_model_training(simple_training_spectra):
         batch_size=2,
         num_turns=20,
     )
+
     validation_loss_calculator = ValidationLossCalculator(
         simple_training_spectra,
-        np.linspace(0, 1.0000001, 1)) # Just calculating the loss in one bin (since we have just two inchikeys)
+        [(0, 1.00001),]) # Just calculating the loss in one bin (since we have just two inchikeys)
 
     # Create and train model
     model_simple = SiameseSpectralModel(tensorization_settings, train_binning_layer=False)

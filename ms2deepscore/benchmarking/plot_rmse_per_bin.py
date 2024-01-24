@@ -3,9 +3,10 @@ from matplotlib import pyplot as plt
 from ms2deepscore.models.loss_functions import bin_dependent_losses
 
 
-def plot_rmse_per_bin(predicted_scores, true_scores):
-    ref_score_bins = np.linspace(0, 1.0000001, 11)
-    bin_content, bounds, losses =  bin_dependent_losses(
+def plot_rmse_per_bin(predicted_scores, true_scores,
+                      ref_score_bins=np.array([(x / 10, x / 10 + 0.1) for x in range(0, 10)])):
+    ref_score_bins[-1][1] = 1.0000001
+    bin_content, bounds, losses = bin_dependent_losses(
         predicted_scores, true_scores, ref_score_bins, loss_types=["rmse"]
         )
     rmses = losses["rmse"]
@@ -29,11 +30,12 @@ def plot_rmse_per_bin(predicted_scores, true_scores):
 
 def plot_rmse_per_bin_multiple_benchmarks(list_of_predicted_scores,
                                           list_of_true_values,
-                                          labels):
+                                          labels,
+                                          ref_score_bins = np.array([(x / 10, x / 10 + 0.1) for x in range(0, 10)])):
     """Combines the plot of multiple comparisons into one plot
 
     """
-    ref_score_bins = np.linspace(0, 1.0000001, 11)
+    ref_score_bins[-1][1] = 1.0000001
     if not len(list_of_true_values) == len(list_of_true_values) == len(labels):
         raise ValueError("The number of predicted scores and true values should be equal.")
     fig, (ax1, ax2) = plt.subplots(2, 1, sharex=True,
@@ -57,7 +59,7 @@ def plot_rmse_per_bin_multiple_benchmarks(list_of_predicted_scores,
     ax2.set_ylabel("# of spectrum pairs")
     ax2.set_xlabel("Tanimoto score bin")
     ax2.set_ylim(bottom=0)
-    plt.xticks(np.arange(len(ref_score_bins) - 1),
+    plt.xticks(np.arange(len(ref_score_bins)),
                [f"{a:.1f} to < {b:.1f}" for (a, b) in bounds], fontsize=9, rotation='vertical')
     ax2.grid(True)
     plt.tight_layout(rect=[0, 0, 0.75, 1])

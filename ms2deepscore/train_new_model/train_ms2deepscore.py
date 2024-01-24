@@ -55,7 +55,8 @@ def train_ms2ds_model(
     model = SiameseSpectralModel(tensorisaton_settings=tensoriztion_settings,
                                  train_binning_layer=False)  # TODO: add model_settings 
 
-    validation_loss_calculator = ValidationLossCalculator(validation_spectra)
+    validation_loss_calculator = ValidationLossCalculator(validation_spectra,
+                                                          score_bins=generator_settings.same_prob_bins)
     history = train(model, train_generator, 200, learning_rate=model_settings.learning_rate,
                     validation_loss_calculator=validation_loss_calculator,
                     patience=model_settings.patience,

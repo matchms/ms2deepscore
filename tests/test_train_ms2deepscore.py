@@ -24,7 +24,7 @@ def test_train_ms2ds_model(tmp_path):
         "batch_size": 8
         })
     generator_settings = GeneratorSettings({
-        "same_prob_bins": np.array([(0, 0.5), (0.5, 1)]),
+        "same_prob_bins": np.array([(0, 0.5), (0.5, 1.000001)]),
         "average_pairs_per_bin": 2,
         "batch_size": 8
         })
