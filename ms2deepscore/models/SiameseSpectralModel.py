@@ -5,7 +5,7 @@ import torch.nn.functional as F
 from torch import nn, optim
 from tqdm import tqdm
 from matchms.similarity.vector_similarity_functions import cosine_similarity_matrix
-from ms2deepscore.benchmarking import bin_dependent_losses
+from ms2deepscore.benchmarking import bin_dependent_losses, get_tanimoto_score_between_spectra
 from ms2deepscore.SettingsMS2Deepscore import TensorizationSettings
 from ms2deepscore.models.helper_functions import (LOSS_FUNCTIONS,
                                                   l1_regularization,
@@ -208,7 +208,8 @@ def train(model: SiameseSpectralModel,
           data_generator,
           num_epochs: int,
           learning_rate: float,
-          val_generator=None, 
+          val_spectra=None,
+          val_scores=None,
           early_stopping=True,
           patience: int = 10,
           checkpoint_filename: str = None, 
@@ -358,7 +359,8 @@ def initialize_device():
     return device
 
 
-def compute_embedding_array(model, spectrums):
+def compute_embedding_array(model,
+                            spectrums):
     """Compute the embeddings of all spectra in spectrums.
     """
     embeddings = np.zeros((len(spectrums), model.model_parameters["embedding_dim"]))
@@ -371,22 +373,28 @@ def compute_embedding_array(model, spectrums):
     return embeddings
 
 
-def compute_validation_losses(model,
-                              spectrums,
-                              target_scores,
-                              score_bins,
-                              loss_types=("mse",)):
-    """Benchmark the model against a validation set.
-    """
-    if target_scores.shape[0] != target_scores.shape[1]:
-        raise ValueError("Expected all-vs-all style score array")
-    if target_scores.shape[0] != len(spectrums):
-        raise ValueError("Number of spectrums does not match number of target scores.")
+class ValidationLossCalculator:
+    def __init__(self,
+                 val_spectrums,
+                 score_bins,
+                 loss_types=("mse",)):
+        # Check if the spectra only are unique inchikeys
+        inchikeys_list = [s.get("inchikey") for s in val_spectrums]
+        assert len(set(inchikeys_list)) == len(val_spectrums), 'Expected 1 spectrum per inchikey'
+        self.target_scores = get_tanimoto_score_between_spectra(val_spectrums, val_spectrums)
+        self.val_spectrums = val_spectrums
+        self.score_bins = score_bins
+        self.loss_types = loss_types
 
-    embeddings = compute_embedding_array(model, spectrums)
-    ms2ds_scores = cosine_similarity_matrix(embeddings, embeddings)
-    losses = bin_dependent_losses(ms2ds_scores, target_scores, 
-                                  score_bins,
-                                  loss_types=loss_types
-                                  )
-    return losses
+    def compute_validation_losses(self,
+                                  model: SiameseSpectralModel):
+        """Benchmark the model against a validation set.
+        """
+        embeddings = compute_embedding_array(model, self.val_spectrums)
+        ms2ds_scores = cosine_similarity_matrix(embeddings, embeddings)
+        losses = bin_dependent_losses(ms2ds_scores,
+                                      self.target_scores,
+                                      self.score_bins,
+                                      loss_types=self.loss_types
+                                      )
+        return losses
