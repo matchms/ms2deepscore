@@ -6,6 +6,7 @@ from ms2deepscore.benchmarking.calculate_scores_for_validation import \
 from ms2deepscore.models.loss_functions import bin_dependent_losses
 from ms2deepscore.models.SiameseSpectralModel import (SiameseSpectralModel,
                                                       compute_embedding_array)
+from ms2deepscore.benchmarking.select_spectrum_pairs_for_visualization import remove_diagonal
 
 
 class ValidationLossCalculator:
@@ -14,7 +15,9 @@ class ValidationLossCalculator:
                  score_bins=np.linspace(0, 1.0000001, 11),
                  random_seed=42):
         self.val_spectrums = select_one_spectrum_per_inchikey(val_spectrums, random_seed)
-        self.target_scores = get_tanimoto_score_between_spectra(self.val_spectrums, self.val_spectrums)
+        tanimoto_scores = get_tanimoto_score_between_spectra(self.val_spectrums, self.val_spectrums)
+        # Remove comparisons against themselves
+        self.target_scores = remove_diagonal(tanimoto_scores)
         self.score_bins = score_bins
 
     def compute_binned_validation_loss(self,
@@ -24,7 +27,7 @@ class ValidationLossCalculator:
         """
         embeddings = compute_embedding_array(model, self.val_spectrums)
         ms2ds_scores = cosine_similarity_matrix(embeddings, embeddings)
-        _, _, losses = bin_dependent_losses(ms2ds_scores,
+        _, _, losses = bin_dependent_losses(remove_diagonal(ms2ds_scores),
                                             self.target_scores,
                                             self.score_bins,
                                             loss_types=loss_types
