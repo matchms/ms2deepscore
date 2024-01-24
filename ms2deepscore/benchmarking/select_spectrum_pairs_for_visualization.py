@@ -98,4 +98,4 @@ def sample_spectra_multiple_times(val_spectra: List[Spectrum],
             select_pairs_one_spectrum_per_inchikey(val_spectra, val_spectra_other_mode, predicted_values, true_values)
         combined_predictions = np.concatenate((combined_predictions, predictions_one_spectrum_per_inchikey), axis=0)
         combined_true_values = np.concatenate((combined_true_values, true_values_one_spectrum_per_inchikey), axis=0)
-    return combined_true_values, combined_predictions
+    return combined_predictions, combined_true_values
