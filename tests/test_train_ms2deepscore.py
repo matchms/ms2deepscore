@@ -12,7 +12,7 @@ from ms2deepscore.SettingsMS2Deepscore import \
 from ms2deepscore.train_new_model.train_ms2deepscore import train_ms2ds_model
 from ms2deepscore.utils import load_pickled_file
 from tests.test_data_generators import create_test_spectra
-
+from tests.create_test_spectra import pesticides_test_spectra
 
 TEST_RESOURCES_PATH = Path(__file__).parent / 'resources'
 
@@ -28,7 +28,9 @@ def test_train_ms2ds_model(tmp_path):
         "average_pairs_per_bin": 2,
         "batch_size": 8
         })
-    train_ms2ds_model(spectra, spectra, tmp_path, model_settings,
+    train_ms2ds_model(spectra,
+                      pesticides_test_spectra(),  # Needed to have real smiles and have a pair in each tanimoto bin
+                      tmp_path, model_settings,
                       generator_settings=generator_settings)
 
     # check if model is saved
