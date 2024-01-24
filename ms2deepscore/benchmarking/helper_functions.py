@@ -4,7 +4,7 @@ import numpy as np
 def bin_dependent_losses(predictions,
                          true_values,
                          ref_score_bins,
-                         loss_types=("mse"),
+                         loss_types=("mse",),
                          ):
     """Compute errors (RMSE and MSE) for different bins of the reference scores (scores_ref).
 
@@ -16,7 +16,7 @@ def bin_dependent_losses(predictions,
         Reference scores (= ground truth).
     ref_score_bins
         Bins for the refernce score to evaluate the performance of scores.
-    loss_type
+    loss_types
         Specify list of loss types out of "mse", "mae", "rmse".
     """
     bin_content = []
