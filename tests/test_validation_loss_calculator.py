@@ -1,10 +1,11 @@
 import numpy as np
 import pytest
 from matchms.Spectrum import Spectrum
-from ms2deepscore.train_new_model.ValidationLossCalculator import ValidationLossCalculator, \
-    select_one_spectrum_per_inchikey
-from tests.create_test_spectra import siamese_spectral_model, pesticides_test_spectra
 from ms2deepscore.models.loss_functions import LOSS_FUNCTIONS
+from ms2deepscore.train_new_model.ValidationLossCalculator import (
+    ValidationLossCalculator, select_one_spectrum_per_inchikey)
+from tests.create_test_spectra import (pesticides_test_spectra,
+                                       siamese_spectral_model)
 
 
 @pytest.fixture()

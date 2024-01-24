@@ -4,8 +4,7 @@ from ms2deepscore.benchmarking.plot_rmse_per_bin import (
 from ms2deepscore.benchmarking.plot_stacked_histogram import (
     calculate_all_histograms, plot_reversed_stacked_histogram_plot,
     plot_stacked_histogram_plot_wrapper)
-from ms2deepscore.benchmarking.plotting import \
-    create_confusion_matrix_plot
+from ms2deepscore.benchmarking.plotting import create_confusion_matrix_plot
 
 
 def test_create_confusion_matrix_plot():

@@ -7,12 +7,13 @@ from ms2deepscore.models.load_model import \
     load_model as load_ms2deepscore_model
 from ms2deepscore.models.SiameseSpectralModel import SiameseSpectralModel
 from ms2deepscore.MS2DeepScore import MS2DeepScore
-from ms2deepscore.SettingsMS2Deepscore import \
-    SettingsMS2Deepscore, GeneratorSettings
+from ms2deepscore.SettingsMS2Deepscore import (GeneratorSettings,
+                                               SettingsMS2Deepscore)
 from ms2deepscore.train_new_model.train_ms2deepscore import train_ms2ds_model
 from ms2deepscore.utils import load_pickled_file
-from tests.test_data_generators import create_test_spectra
 from tests.create_test_spectra import pesticides_test_spectra
+from tests.test_data_generators import create_test_spectra
+
 
 TEST_RESOURCES_PATH = Path(__file__).parent / 'resources'
 
