@@ -2,7 +2,7 @@ import numpy as np
 from matchms.similarity.vector_similarity_functions import cosine_similarity_matrix
 
 from ms2deepscore.benchmarking.calculate_scores_for_validation import get_tanimoto_score_between_spectra
-from ms2deepscore.models import SiameseSpectralModel, compute_embedding_array
+from ms2deepscore.models.SiameseSpectralModel import SiameseSpectralModel, compute_embedding_array
 from ms2deepscore.models.loss_functions import bin_dependent_losses
 
 

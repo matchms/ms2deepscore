@@ -8,6 +8,7 @@ from ms2deepscore.models.SiameseSpectralModel import (SiameseSpectralModel,
 from ms2deepscore.SettingsMS2Deepscore import GeneratorSettings, TensorizationSettings
 from ms2deepscore.train_new_model.spectrum_pair_selection import \
     select_compound_pairs_wrapper
+from ms2deepscore.train_new_model.ValidationLossCalculator import ValidationLossCalculator
 
 
 @pytest.fixture
@@ -130,7 +131,6 @@ def test_model_training(simple_training_spectra):
         "average_pairs_per_bin": 20
     })
     scp_train, _ = select_compound_pairs_wrapper(simple_training_spectra, settings)
-    scp_val, _ = select_compound_pairs_wrapper(simple_training_spectra, settings, shuffling=False)  # obviously: for real cases this need different spectra...
     tensorization_settings = TensorizationSettings(min_mz=0, max_mz=200, mz_bin_width=0.2,
                                                    intensity_scaling=0.5,)
     # Create generators
@@ -141,28 +141,16 @@ def test_model_training(simple_training_spectra):
         batch_size=2,
         num_turns=20,
     )
-
-    val_generator_simple = DataGeneratorPytorch(
-        spectrums=simple_training_spectra,
-        tensorization_settings=tensorization_settings,
-        selected_compound_pairs=scp_val,
-        batch_size=2,
-        num_turns=2,
-        use_fixed_set=True,
-    )
+    validation_loss_calculator = ValidationLossCalculator(
+        simple_training_spectra,
+        np.linspace(0, 1.0000001, 1)) # Just calculating the loss in one bin (since we have just two inchikeys)
 
     # Create and train model
-
     model_simple = SiameseSpectralModel(tensorization_settings, train_binning_layer=False)
-    history = train(
-        model_simple, train_generator_simple,
-        val_generator=val_generator_simple,
-        num_epochs=25,
-        learning_rate=0.001, lambda_l1=0, lambda_l2=0,
-        progress_bar=False, early_stopping=False,
-        collect_all_targets=True,
-        )
-
+    history = train(model_simple, train_generator_simple, num_epochs=25, learning_rate=0.001,
+                    validation_loss_calculator=validation_loss_calculator, early_stopping=False,
+                    collect_all_targets=True,
+                    lambda_l1=0, lambda_l2=0, progress_bar=False)
     assert len(history["losses"]) == len(history["val_losses"]) == 25
     # Check if model trained to at least an OK result
     assert np.mean(history["losses"][-5:]) < 0.03, "Training was not succesfull!"
