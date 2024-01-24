@@ -63,12 +63,12 @@ class RiskAwareMAE(nn.Module):
 
 LOSS_FUNCTIONS = {
     "mse": nn.MSELoss(),
+    "mae": nn.L1Loss(),
     "rmse": rmse_loss,
     "risk_mae": risk_aware_mae,
     "risk_mse": risk_aware_mse,
 }
 
-#todo integrate with loss functions in model helper functions
 def bin_dependent_losses(predictions,
                          true_values,
                          ref_score_bins,
@@ -88,13 +88,10 @@ def bin_dependent_losses(predictions,
         Specify list of loss types out of "mse", "mae", "rmse".
     """
     bin_content = []
-    losses = {
-        "bin": [],
-        "mae": [],
-        "mse": [],
-        "rmse": [],
-    }
-    # maes = []
+    losses = {"bin": []}
+    for loss_type in loss_types:
+        assert loss_type in LOSS_FUNCTIONS, f"The loss_type {loss_type} is unknown"
+        losses[loss_type] = []
     bounds = []
     ref_scores_bins_inclusive = ref_score_bins.copy()
     for i in range(len(ref_scores_bins_inclusive) - 1):
@@ -105,13 +102,8 @@ def bin_dependent_losses(predictions,
         bin_content.append(idx[0].shape[0])
         # Add values
         losses["bin"].append((low, high))
-        if "mae" in loss_types:
-            mae = np.abs(true_values[idx] - predictions[idx]).mean()
-            losses["mae"].append(mae)
-        if "mse" in loss_types:
-            mse = np.square(true_values[idx] - predictions[idx]).mean()
-            losses["mse"].append(mse)
-        if "rmse" in loss_types:
-            rmse = np.sqrt(np.square(true_values[idx] - predictions[idx]).mean())
-            losses["rmse"].append(rmse)
+        for loss_type in loss_types:
+            criterion = LOSS_FUNCTIONS[loss_type]
+            loss = criterion(true_values[idx], predictions[idx])
+            losses[loss_type].append(loss)
     return bin_content, bounds, losses
