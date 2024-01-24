@@ -4,12 +4,14 @@ import torch
 import torch.nn.functional as F
 from torch import nn, optim
 from tqdm import tqdm
-from ms2deepscore.models.loss_functions import rmse_loss, LOSS_FUNCTIONS
-from ms2deepscore.SettingsMS2Deepscore import TensorizationSettings
 from ms2deepscore.models.helper_functions import (l1_regularization,
                                                   l2_regularization)
+from ms2deepscore.models.loss_functions import LOSS_FUNCTIONS, rmse_loss
+from ms2deepscore.SettingsMS2Deepscore import TensorizationSettings
 from ms2deepscore.tensorize_spectra import tensorize_spectra
-from ms2deepscore.train_new_model.ValidationLossCalculator import ValidationLossCalculator
+from ms2deepscore.train_new_model.ValidationLossCalculator import \
+    ValidationLossCalculator
+
 
 class SiameseSpectralModel(nn.Module):
     """

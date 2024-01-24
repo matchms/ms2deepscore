@@ -5,14 +5,16 @@ This script is not needed for normally running MS2Deepscore, it is only needed t
 import os
 from typing import Optional
 from matplotlib import pyplot as plt
-from ms2deepscore.train_new_model.data_generators import (DataGeneratorPytorch)
 from ms2deepscore.models.SiameseSpectralModel import (SiameseSpectralModel,
                                                       train)
 from ms2deepscore.SettingsMS2Deepscore import (GeneratorSettings,
-                                               SettingsMS2Deepscore, TensorizationSettings)
+                                               SettingsMS2Deepscore,
+                                               TensorizationSettings)
+from ms2deepscore.train_new_model.data_generators import DataGeneratorPytorch
 from ms2deepscore.train_new_model.spectrum_pair_selection import \
     select_compound_pairs_wrapper
-from ms2deepscore.train_new_model.ValidationLossCalculator import ValidationLossCalculator
+from ms2deepscore.train_new_model.ValidationLossCalculator import \
+    ValidationLossCalculator
 
 
 def train_ms2ds_model(

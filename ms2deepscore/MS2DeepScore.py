@@ -2,8 +2,8 @@ from typing import List
 import numpy as np
 from matchms import Spectrum
 from matchms.similarity.BaseSimilarity import BaseSimilarity
-from ms2deepscore.models.SiameseSpectralModel import (
-    compute_embedding_array, SiameseSpectralModel)
+from ms2deepscore.models.SiameseSpectralModel import (SiameseSpectralModel,
+                                                      compute_embedding_array)
 from .vector_operations import cosine_similarity, cosine_similarity_matrix
 
 
