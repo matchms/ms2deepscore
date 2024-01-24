@@ -9,8 +9,6 @@ from ms2deepscore.models.helper_functions import (l1_regularization,
 from ms2deepscore.models.loss_functions import LOSS_FUNCTIONS, rmse_loss
 from ms2deepscore.SettingsMS2Deepscore import TensorizationSettings
 from ms2deepscore.tensorize_spectra import tensorize_spectra
-from ms2deepscore.train_new_model.ValidationLossCalculator import \
-    ValidationLossCalculator
 
 
 class SiameseSpectralModel(nn.Module):
@@ -208,7 +206,7 @@ def train(model: SiameseSpectralModel,
           data_generator,
           num_epochs: int,
           learning_rate: float,
-          validation_loss_calculator: ValidationLossCalculator = None,
+          validation_loss_calculator = None,
           early_stopping=True,
           patience: int = 10,
           checkpoint_filename: str = None,
