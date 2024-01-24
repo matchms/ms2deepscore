@@ -9,7 +9,7 @@ from ms2deepscore.models.loss_functions import bin_dependent_losses
 class ValidationLossCalculator:
     def __init__(self,
                  val_spectrums,
-                 score_bins,
+                 score_bins=np.linspace(0, 1.0000001, 11),
                  random_seed=42):
         self.val_spectrums = select_one_spectrum_per_inchikey(val_spectrums, random_seed)
         self.target_scores = get_tanimoto_score_between_spectra(self.val_spectrums, self.val_spectrums)
