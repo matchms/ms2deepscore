@@ -5,6 +5,7 @@ import torch.nn.functional as F
 from torch import nn, optim
 from tqdm import tqdm
 from matchms.similarity.vector_similarity_functions import cosine_similarity_matrix
+from ms2deepscore.benchmarking.calculate_scores_for_validation import get_tanimoto_score_between_spectra
 from ms2deepscore.models.loss_functions import bin_dependent_losses, rmse_loss, LOSS_FUNCTIONS
 from ms2deepscore.SettingsMS2Deepscore import TensorizationSettings
 from ms2deepscore.models.helper_functions import (l1_regularization,
@@ -207,12 +208,11 @@ def train(model: SiameseSpectralModel,
           data_generator,
           num_epochs: int,
           learning_rate: float,
-          val_spectra=None,
-          val_scores=None,
+          validation_loss_calculator: "ValidationLossCalculator" = None,
           early_stopping=True,
           patience: int = 10,
-          checkpoint_filename: str = None, 
-          loss_function = "MSE",
+          checkpoint_filename: str = None,
+          loss_function="MSE",
           monitor_rmse: bool = True,
           collect_all_targets: bool = False,
           lambda_l1: float = 0,
@@ -306,19 +306,12 @@ def train(model: SiameseSpectralModel,
         history["losses"].append(np.mean(batch_losses))
         history["rmse"].append(np.mean(batch_rmse))
 
-        if val_generator is not None:
-            model.eval()
-            val_batch_losses = []
-            val_batch_rmse = []
-            for spectra_1, spectra_2, meta_1, meta_2, targets in val_generator:
-                predictions = model(spectra_1.to(device), spectra_2.to(device), 
-                                    meta_1.to(device), meta_2.to(device))
-                loss = criterion(predictions, targets.to(device))
-                val_batch_losses.append(float(loss))
-                val_batch_rmse.append(rmse_loss(predictions, targets.to(device)).detach().numpy())
-            val_loss = np.mean(val_batch_losses)
+        if validation_loss_calculator is not None:
+            val_losses = validation_loss_calculator.compute_binned_validation_loss(model,
+                                                                                   loss_types=(loss_function, "rmse"))
+            val_loss = val_losses[loss_function]
             history["val_losses"].append(val_loss)
-            history["val_rmse"].append(np.mean(val_batch_rmse))
+            history["val_rmse"].append(val_losses["rmse"])
             if val_loss < min_val_loss:
                 if checkpoint_filename:
                     print("Saving checkpoint model.")
@@ -333,9 +326,8 @@ def train(model: SiameseSpectralModel,
 
         # Print statistics
         print(f"Epoch [{epoch+1}/{num_epochs}], Loss: {np.mean(batch_losses):.4f}")
-        if val_generator is not None:
-            print(f"Validation Loss: {val_loss:.4f} (RMSE: {np.mean(np.mean(val_batch_rmse))}).")
-
+        if validation_loss_calculator is not None:
+            print(f"Validation Loss: {val_loss:.4f} (RMSE: {val_losses['rmse']}).")
     return history
 
 
@@ -362,6 +354,7 @@ def compute_embedding_array(model,
                             spectrums):
     """Compute the embeddings of all spectra in spectrums.
     """
+    model.eval()
     embeddings = np.zeros((len(spectrums), model.model_parameters["embedding_dim"]))
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model.to(device)
@@ -375,18 +368,17 @@ def compute_embedding_array(model,
 class ValidationLossCalculator:
     def __init__(self,
                  val_spectrums,
-                 score_bins,
-                 loss_types=("mse",)):
+                 score_bins):
         # Check if the spectra only are unique inchikeys
         inchikeys_list = [s.get("inchikey") for s in val_spectrums]
         assert len(set(inchikeys_list)) == len(val_spectrums), 'Expected 1 spectrum per inchikey'
         self.target_scores = get_tanimoto_score_between_spectra(val_spectrums, val_spectrums)
         self.val_spectrums = val_spectrums
         self.score_bins = score_bins
-        self.loss_types = loss_types
 
-    def compute_validation_losses(self,
-                                  model: SiameseSpectralModel):
+    def compute_binned_validation_loss(self,
+                                       model: SiameseSpectralModel,
+                                       loss_types):
         """Benchmark the model against a validation set.
         """
         embeddings = compute_embedding_array(model, self.val_spectrums)
@@ -394,6 +386,9 @@ class ValidationLossCalculator:
         losses = bin_dependent_losses(ms2ds_scores,
                                       self.target_scores,
                                       self.score_bins,
-                                      loss_types=self.loss_types
+                                      loss_types=loss_types
                                       )
-        return losses
+        average_losses = {}
+        for loss_type in losses:
+            average_losses[loss_type] = np.mean(losses[loss_type])
+        return average_losses
