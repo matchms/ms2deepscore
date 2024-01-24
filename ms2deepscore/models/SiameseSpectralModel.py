@@ -371,13 +371,14 @@ def compute_embedding_array(model, spectrums):
     return embeddings
 
 
-def compute_validation_losses(model, spectrums,
+def compute_validation_losses(model,
+                              spectrums,
                               target_scores,
                               score_bins,
                               loss_types = ("mse")):
     """Benchmark the model against a validation set.
     """
-    if target_scores.shape[0] != target_scores.shape[0]:
+    if target_scores.shape[0] != target_scores.shape[1]:
         raise ValueError("Expected all-vs-all style score array")
     if target_scores.shape[0] != len(spectrums):
         raise ValueError("Number of spectrums does not match number of target scores.")
