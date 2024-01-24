@@ -5,11 +5,10 @@ import torch.nn.functional as F
 from torch import nn, optim
 from tqdm import tqdm
 from matchms.similarity.vector_similarity_functions import cosine_similarity_matrix
-from ms2deepscore.benchmarking import bin_dependent_losses, get_tanimoto_score_between_spectra
+from ms2deepscore.models.loss_functions import bin_dependent_losses, rmse_loss, LOSS_FUNCTIONS
 from ms2deepscore.SettingsMS2Deepscore import TensorizationSettings
-from ms2deepscore.models.helper_functions import (LOSS_FUNCTIONS,
-                                                  l1_regularization,
-                                                  l2_regularization, rmse_loss)
+from ms2deepscore.models.helper_functions import (l1_regularization,
+                                                  l2_regularization)
 from ms2deepscore.tensorize_spectra import tensorize_spectra
 
 

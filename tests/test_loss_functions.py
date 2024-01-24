@@ -1,5 +1,5 @@
 import torch
-from ms2deepscore.models.helper_functions import risk_aware_mae, risk_aware_mse
+from ms2deepscore.models.loss_functions import risk_aware_mae, risk_aware_mse
 
 
 def test_risk_aware_mae():

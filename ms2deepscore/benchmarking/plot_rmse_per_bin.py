@@ -1,6 +1,6 @@
 import numpy as np
 from matplotlib import pyplot as plt
-from ms2deepscore.benchmarking import bin_dependent_losses
+from ms2deepscore.models.loss_functions import bin_dependent_losses
 
 
 def plot_rmse_per_bin(predicted_scores, true_scores):
