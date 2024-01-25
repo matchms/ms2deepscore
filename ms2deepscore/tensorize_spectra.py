@@ -1,8 +1,8 @@
 import numba
 import numpy as np
 import torch
-
-from ms2deepscore.MetadataFeatureGenerator import load_from_json, MetadataVectorizer
+from ms2deepscore.MetadataFeatureGenerator import (MetadataVectorizer,
+                                                   load_from_json)
 from ms2deepscore.SettingsMS2Deepscore import TensorizationSettings
 
 

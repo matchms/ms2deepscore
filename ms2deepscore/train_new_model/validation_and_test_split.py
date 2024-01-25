@@ -27,10 +27,11 @@ def select_spectra_belonging_to_inchikey(
 
 
 def split_spectra_in_random_inchikey_sets(
-    spectra: List[Spectrum], k: int
+    spectra: List[Spectrum], k: int, random_seed
 ) -> Tuple[List[Spectrum], List[Spectrum], List[Spectrum]]:
     """Splits a set of spectra into a val, test and train set. The size of the val and test set are n/k"""
     unique_inchikeys = select_unique_inchikeys(spectra)
+    random.seed(random_seed)
     random.shuffle(unique_inchikeys)
     fraction_size = len(unique_inchikeys) // k
 

@@ -36,7 +36,8 @@ def train_ms2deepscore_wrapper(spectra_file_path,
     """
 
     stored_training_data = StoreTrainingData(spectra_file_path,
-                                             split_fraction=validation_split_fraction)
+                                             split_fraction=validation_split_fraction,
+                                             random_seed=generator_settings.random_seed)
 
     # Split training in pos and neg and create val and training split and select for the right ionisation mode.
     training_spectra = stored_training_data.load_training_data(model_settings.ionisation_mode, "training")
@@ -59,7 +60,8 @@ def train_ms2deepscore_wrapper(spectra_file_path,
                                        model_settings.model_directory_name, "benchmarking_results"))
 
     create_plots_between_all_ionmodes(model_directory=os.path.join(stored_training_data.trained_models_folder,
-                                                                   model_settings.model_directory_name))
+                                                                   model_settings.model_directory_name),
+                                      ref_score_bins=generator_settings.same_prob_bins)
     return model_settings.model_directory_name
 
 
@@ -71,12 +73,14 @@ class StoreTrainingData:
     To do this, just specify the same spectrum file name and directory."""
 
     def __init__(self, spectra_file_name,
-                 split_fraction=20):
+                 split_fraction=20,
+                 random_seed=None):
         self.root_directory = os.path.dirname(spectra_file_name)
         assert os.path.isdir(self.root_directory)
         self.spectra_file_name = spectra_file_name
         assert os.path.isfile(self.spectra_file_name)
         self.split_fraction = split_fraction
+        self.random_seed = random_seed
         self.trained_models_folder = os.path.join(self.root_directory, "trained_models")
         os.makedirs(self.trained_models_folder, exist_ok=True)
 
@@ -132,7 +136,8 @@ class StoreTrainingData:
         # If it could not be loaded do the data split and save the files.
         if not os.path.isfile(spectra_file_name):
             positive_validation_spectra, positive_testing_spectra, positive_training_spectra = \
-                split_spectra_in_random_inchikey_sets(self.load_positive_mode_spectra(), self.split_fraction)
+                split_spectra_in_random_inchikey_sets(self.load_positive_mode_spectra(),
+                                                      self.split_fraction, self.random_seed)
             save_spectra(positive_training_spectra, self.positive_training_spectra_file)
             save_spectra(positive_validation_spectra, self.positive_validation_spectra_file)
             save_spectra(positive_testing_spectra, self.positive_testing_spectra_file)
@@ -154,7 +159,8 @@ class StoreTrainingData:
         # If it could not be loaded do the data split and save the files.
         if not os.path.isfile(spectra_file_name):
             negative_validation_spectra, negative_testing_spectra, negative_training_spectra = \
-                split_spectra_in_random_inchikey_sets(self.load_negative_mode_spectra(), self.split_fraction)
+                split_spectra_in_random_inchikey_sets(self.load_negative_mode_spectra(),
+                                                      self.split_fraction, self.random_seed)
             save_spectra(negative_training_spectra, self.negative_training_spectra_file)
             save_spectra(negative_validation_spectra, self.negative_validation_spectra_file)
             save_spectra(negative_testing_spectra, self.negative_testing_spectra_file)

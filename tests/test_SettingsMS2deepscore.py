@@ -1,8 +1,8 @@
 import json
 import os
 import pytest
-from ms2deepscore.SettingsMS2Deepscore import \
-    SettingsMS2Deepscore, GeneratorSettings
+from ms2deepscore.SettingsMS2Deepscore import (GeneratorSettings,
+                                               SettingsMS2Deepscore)
 
 
 def test_initiate_settingsms2deepscore():

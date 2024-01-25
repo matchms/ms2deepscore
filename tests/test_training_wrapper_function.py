@@ -1,8 +1,8 @@
 import os
 import numpy as np
 from matchms.exporting import save_as_mgf
-from ms2deepscore.SettingsMS2Deepscore import \
-    GeneratorSettings, SettingsMS2Deepscore
+from ms2deepscore.SettingsMS2Deepscore import (GeneratorSettings,
+                                               SettingsMS2Deepscore)
 from ms2deepscore.wrapper_functions.training_wrapper_functions import (
     StoreTrainingData, train_ms2deepscore_wrapper)
 from tests.create_test_spectra import pesticides_test_spectra
@@ -22,9 +22,10 @@ def test_train_wrapper_ms2ds_model(tmp_path):
         "batch_size": 2
         })
     generator_settings = GeneratorSettings({
-        "same_prob_bins": np.array([(0, 0.5), (0.5, 1)]),
+        "same_prob_bins": np.array([(0, 0.2), (0.2, 1.0000001)]),
         "average_pairs_per_bin": 2,
-        "batch_size": 2
+        "batch_size": 2,
+        "random_seed": 42
     })
     train_ms2deepscore_wrapper(spectra_file_name, model_settings, generator_settings, validation_split_fraction=5)
     expected_file_names = StoreTrainingData(spectra_file_name)
