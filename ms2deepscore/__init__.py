@@ -8,7 +8,7 @@ from .SettingsMS2Deepscore import SettingsMS2Deepscore
 
 logging.getLogger(__name__).addHandler(logging.NullHandler())
 
-__author__ = "Netherlands eScience Center"
+__author__ = "MS2DeepScore developer community"
 __all__ = [
     "models",
     "__version__",
