@@ -24,7 +24,7 @@ def test_train_wrapper_ms2ds_model(tmp_path):
         "embedding_dim": 100  # to speed up tests --> usually larger
         })
     generator_settings = GeneratorSettings({
-        "same_prob_bins": np.array([(0, 0.2), (0.2, 1.0000001)]),
+        "same_prob_bins": np.array([(0, 0.2), (0.2, 1.0)]),
         "average_pairs_per_bin": 2,
         "batch_size": 2,
         "random_seed": 42
