@@ -144,8 +144,12 @@ def calculate_all_histograms(scores_y_axis: np.array,
     used_ms2deepscore_bins_per_bin = []
     percentage_of_total_pairs_per_bin = []
     for i in range(len(bins_splitting_y_axis) - 1):
-        indexes_within_bin = np.where(
-            (scores_y_axis >= bins_splitting_y_axis[i]) & (scores_y_axis < bins_splitting_y_axis[i + 1]))
+        if i == 0:
+            indexes_within_bin = np.where(
+                (scores_y_axis >= bins_splitting_y_axis[i]) & (scores_y_axis <= bins_splitting_y_axis[i + 1]))
+        else:
+            indexes_within_bin = np.where(
+                (scores_y_axis > bins_splitting_y_axis[i]) & (scores_y_axis <= bins_splitting_y_axis[i + 1]))
 
         # Adjust the hist_resolution based on the nr_of_pairs in the bin
         nr_of_pairs = indexes_within_bin[0].shape[0]
