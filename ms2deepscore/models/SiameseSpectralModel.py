@@ -327,7 +327,7 @@ def train(model: SiameseSpectralModel,
         # Print statistics
         print(f"Epoch [{epoch+1}/{num_epochs}], Loss: {np.mean(batch_losses):.4f}")
         if validation_loss_calculator is not None:
-            print(f"Validation Loss: {val_loss:.4f} (RMSE: {val_losses['rmse']}).")
+            print(f"Validation Loss: {val_loss:.4f} (RMSE: {val_losses['rmse']:.4f}).")
     return history
 
 
