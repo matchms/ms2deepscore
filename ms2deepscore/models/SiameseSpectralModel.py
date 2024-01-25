@@ -290,7 +290,7 @@ def train(model: SiameseSpectralModel,
                 batch_losses.append(float(loss))
 
                 if monitor_rmse:
-                    batch_rmse.append(rmse_loss(outputs, targets.to(device)).detach().numpy())
+                    batch_rmse.append(rmse_loss(outputs, targets.to(device)).cpu().detach().numpy())
 
                 # Backward pass and optimize
                 loss.backward()
