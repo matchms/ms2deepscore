@@ -5,7 +5,6 @@ from ms2deepscore.models.loss_functions import bin_dependent_losses
 
 def plot_rmse_per_bin(predicted_scores, true_scores,
                       ref_score_bins=np.array([(x / 10, x / 10 + 0.1) for x in range(0, 10)])):
-    ref_score_bins[-1][1] = 1.0000001
     bin_content, bounds, losses = bin_dependent_losses(
         predicted_scores, true_scores, ref_score_bins, loss_types=["rmse"]
         )
@@ -35,7 +34,6 @@ def plot_rmse_per_bin_multiple_benchmarks(list_of_predicted_scores,
     """Combines the plot of multiple comparisons into one plot
 
     """
-    ref_score_bins[-1][1] = 1.0000001
     if not len(list_of_true_values) == len(list_of_true_values) == len(labels):
         raise ValueError("The number of predicted scores and true values should be equal.")
     fig, (ax1, ax2) = plt.subplots(2, 1, sharex=True,
