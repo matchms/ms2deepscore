@@ -21,8 +21,10 @@ TEST_RESOURCES_PATH = Path(__file__).parent / 'resources'
 def test_train_ms2ds_model(tmp_path):
     spectra = create_test_spectra(8)
     model_settings = SettingsMS2Deepscore({
-        "epochs": 2,
-        "batch_size": 8
+        "epochs": 2,  # to speed up tests --> usually many more
+        "batch_size": 8,
+        "base_dims": [200, 200],  # to speed up tests --> usually larger
+        "embedding_dim": 100  # to speed up tests --> usually larger
         })
     generator_settings = GeneratorSettings({
         "same_prob_bins": np.array([(0, 0.5), (0.5, 1.000001)]),

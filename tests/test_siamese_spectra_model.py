@@ -149,7 +149,10 @@ def test_model_training(simple_training_spectra):
         [(0, 1.00001),]) # Just calculating the loss in one bin (since we have just two inchikeys)
 
     # Create and train model
-    model_simple = SiameseSpectralModel(tensorization_settings, train_binning_layer=False)
+    model_simple = SiameseSpectralModel(tensorization_settings,
+                                        base_dims=[200, 200],
+                                        embedding_dim=100,
+                                        train_binning_layer=False)
     history = train(model_simple, train_generator_simple, num_epochs=25, learning_rate=0.001,
                     validation_loss_calculator=validation_loss_calculator, early_stopping=False,
                     collect_all_targets=True,
