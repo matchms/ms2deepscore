@@ -50,17 +50,25 @@ def train_ms2ds_model(
         batch_size=generator_settings.batch_size,
     )
 
-
-    # todo check if dropout rate, layers, base dim and embedding size should still be integrated.
-    # todo Check where we specify the loss type. Should that happen here as well, maybe settings?
     model = SiameseSpectralModel(tensorisaton_settings=tensoriztion_settings,
-                                 train_binning_layer=False)  # TODO: add model_settings 
+                                 base_dims=model_settings.base_dims,
+                                 embedding_dim=model_settings.embedding_dim,
+                                 dropout_rate=model_settings.dropout_rate,
+                                 train_binning_layer= model_settings.train_binning_layer,
+                                 group_size = model_settings.train_binning_layer_group_size,
+                                 output_per_group = model_settings.train_binning_layer_output_per_group,
+                                 )
 
     validation_loss_calculator = ValidationLossCalculator(validation_spectra,
                                                           score_bins=generator_settings.same_prob_bins)
-    history = train(model, train_generator, 200, learning_rate=model_settings.learning_rate,
+
+    history = train(model,
+                    train_generator,
+                    num_epochs=model_settings.epochs,
+                    learning_rate=model_settings.learning_rate,
                     validation_loss_calculator=validation_loss_calculator,
                     patience=model_settings.patience,
+                    loss_function=model_settings.loss_function,
                     checkpoint_filename=output_model_file_name, lambda_l1=0, lambda_l2=0)
     # Save plot of history
     plot_history(history["losses"], history["val_losses"], ms2ds_history_plot_file_name)

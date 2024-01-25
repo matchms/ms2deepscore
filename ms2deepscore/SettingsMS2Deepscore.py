@@ -22,25 +22,38 @@ class SettingsMS2Deepscore:
             The learning rate that should be used during training.
         epochs:
             The number of epochs that should be used during training.
+        patience:
+            How long the model should keep training if validation does not improve
+        loss_function:
+            The loss function to use. The options can be found in models.loss_functions
+        train_binning_layer
+            Default is False in which case the model contains a first dense multi-group peak binning layer. If True a
+            smart binning layer is used.
+        train_binning_layer_group_size
+            When a smart binning layer is used the group_size determines how many input bins are taken into
+            one dense micro-network.
+        train_binning_layer_output_per_group
+            This sets the number of next layer bins each group_size group of inputs shares.
         """
     def __init__(self, settings=None):
         # model structure
         self.base_dims = (1000, 1000)
         self.embedding_dim = 400
-        self.additional_metadata = ()
         self.ionisation_mode = "positive"
+
+        # additional model structure options
+        self.train_binning_layer: bool = False
+        self.train_binning_layer_group_size: int = 20
+        self.train_binning_layer_output_per_group: int = 2
 
         # training settings
         self.dropout_rate = 0.2
         self.learning_rate = 0.00025
         self.epochs = 150
         self.patience = 10
-
-        # Generator settings
-        self.batch_size = 32
+        self.loss_function = "mse"
 
         # Folder names for storing
-        self.binned_spectra_folder_name = "binned_spectra"
         self.model_file_name = "ms2deepscore_model.pt"
         self.history_plot_file_name = "history.svg"
 
@@ -175,7 +188,6 @@ class GeneratorSettings:
         self.augment_noise_max = 10
         self.augment_noise_intensity = 0.01
         self.use_fixed_set = False
-        self.random_seed = None
         if settings:
             for key, value in settings.items():
                 if hasattr(self, key):
