@@ -9,6 +9,7 @@ from ms2deepscore.models.helper_functions import (l1_regularization,
 from ms2deepscore.models.loss_functions import LOSS_FUNCTIONS, rmse_loss
 from ms2deepscore.SettingsMS2Deepscore import TensorizationSettings
 from ms2deepscore.tensorize_spectra import tensorize_spectra
+from ms2deepscore.__version__ import __version__
 
 
 class SiameseSpectralModel(nn.Module):
@@ -87,7 +88,8 @@ class SiameseSpectralModel(nn.Module):
         settings_dict = {
             'model_params': self.model_parameters,
             'model_state_dict': self.state_dict(),
-            'tensorization_parameters': self.tensorization_parameters.get_dict()
+            'tensorization_parameters': self.tensorization_parameters.get_dict(),
+            'version': __version__
         }
         torch.save(settings_dict, filepath)
 

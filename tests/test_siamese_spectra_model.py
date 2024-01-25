@@ -150,7 +150,7 @@ def test_model_training(simple_training_spectra):
 
     # Create and train model
     model_simple = SiameseSpectralModel(tensorization_settings,
-                                        base_dims=[200, 200],
+                                        base_dims=(200, 200),
                                         embedding_dim=100,
                                         train_binning_layer=False)
     history = train(model_simple, train_generator_simple, num_epochs=25, learning_rate=0.001,
