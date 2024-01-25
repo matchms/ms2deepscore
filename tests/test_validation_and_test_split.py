@@ -35,5 +35,5 @@ def test_select_spectra_belonging_to_inchikey(sample_spectra):
 
 def test_split_spectra_in_random_inchikey_sets(sample_spectra):
     # TODO: this is still a dummy test mostly
-    val, test, train = split_spectra_in_random_inchikey_sets(sample_spectra, 2)
+    val, test, train = split_spectra_in_random_inchikey_sets(sample_spectra, 2, 42)
     assert len(val) + len(test) + len(train) == 4

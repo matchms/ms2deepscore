@@ -160,6 +160,7 @@ class GeneratorSettings:
         self.average_pairs_per_bin = 20
         self.max_pairs_per_bin = 100
         self.same_prob_bins = np.array([(x / 10, x / 10 + 0.1) for x in range(0, 10)])
+        self.same_prob_bins[-1][1] = 1.0000001
         self.include_diagonal: bool = True
         self.random_seed: Optional[int] = None
 

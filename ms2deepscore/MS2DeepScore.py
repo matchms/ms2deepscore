@@ -1,11 +1,9 @@
 from typing import List
 import numpy as np
-import torch
 from matchms import Spectrum
 from matchms.similarity.BaseSimilarity import BaseSimilarity
-from tqdm import tqdm
-from .tensorize_spectra import tensorize_spectra
-from ms2deepscore.models.SiameseSpectralModel import SiameseSpectralModel
+from ms2deepscore.models.SiameseSpectralModel import (SiameseSpectralModel,
+                                                      compute_embedding_array)
 from .vector_operations import cosine_similarity, cosine_similarity_matrix
 
 
@@ -58,15 +56,8 @@ class MS2DeepScore(BaseSimilarity):
         self.output_vector_dim = self.model.model_parameters["embedding_dim"]
         self.progress_bar = progress_bar
 
-    def get_embedding_array(self, spectrums
-                            ):
-        embeddings = np.zeros((len(spectrums), self.model.model_parameters["embedding_dim"]))
-        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-        for i, spec in tqdm(enumerate(spectrums)):
-            X = tensorize_spectra([spec], self.model.tensorization_parameters)
-            with torch.no_grad():
-                embeddings[i, :] = self.model.encoder(X[0].to(device), X[1].to(device)).cpu().detach().numpy()
-        return embeddings
+    def get_embedding_array(self, spectrums):
+        return compute_embedding_array(self.model, spectrums)
 
     def pair(self, reference: Spectrum, query: Spectrum) -> float:
         """Calculate the MS2DeepScore similaritiy between a reference and a query spectrum.

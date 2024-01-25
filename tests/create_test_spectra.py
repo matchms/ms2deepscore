@@ -13,8 +13,12 @@ def pesticides_test_spectra():
 
 
 def ms2deepscore_model_file_name():
-    return os.path.join(TEST_RESOURCES_PATH, "testmodel.hdf5")
+    return os.path.join(TEST_RESOURCES_PATH, "testmodel.pt")
 
 
-def ms2deepscore_model():
+def siamese_spectral_model():
+    return load_model(ms2deepscore_model_file_name())
+
+
+def ms2deepscore_object():
     return MS2DeepScore(load_model(ms2deepscore_model_file_name()))

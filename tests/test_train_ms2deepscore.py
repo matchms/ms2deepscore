@@ -7,10 +7,11 @@ from ms2deepscore.models.load_model import \
     load_model as load_ms2deepscore_model
 from ms2deepscore.models.SiameseSpectralModel import SiameseSpectralModel
 from ms2deepscore.MS2DeepScore import MS2DeepScore
-from ms2deepscore.SettingsMS2Deepscore import \
-    SettingsMS2Deepscore, GeneratorSettings
+from ms2deepscore.SettingsMS2Deepscore import (GeneratorSettings,
+                                               SettingsMS2Deepscore)
 from ms2deepscore.train_new_model.train_ms2deepscore import train_ms2ds_model
 from ms2deepscore.utils import load_pickled_file
+from tests.create_test_spectra import pesticides_test_spectra
 from tests.test_data_generators import create_test_spectra
 
 
@@ -20,15 +21,19 @@ TEST_RESOURCES_PATH = Path(__file__).parent / 'resources'
 def test_train_ms2ds_model(tmp_path):
     spectra = create_test_spectra(8)
     model_settings = SettingsMS2Deepscore({
-        "epochs": 2,
-        "batch_size": 8
+        "epochs": 2,  # to speed up tests --> usually many more
+        "batch_size": 8,
+        "base_dims": [200, 200],  # to speed up tests --> usually larger
+        "embedding_dim": 100  # to speed up tests --> usually larger
         })
     generator_settings = GeneratorSettings({
-        "same_prob_bins": np.array([(0, 0.5), (0.5, 1)]),
+        "same_prob_bins": np.array([(0, 0.5), (0.5, 1.000001)]),
         "average_pairs_per_bin": 2,
         "batch_size": 8
         })
-    train_ms2ds_model(spectra, spectra, tmp_path, model_settings,
+    train_ms2ds_model(spectra,
+                      pesticides_test_spectra(),  # Needed to have real smiles and have a pair in each tanimoto bin
+                      tmp_path, model_settings,
                       generator_settings=generator_settings)
 
     # check if model is saved

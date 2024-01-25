@@ -5,10 +5,11 @@ from typing import List
 import numpy as np
 import torch
 from matchms import Spectrum
+from ms2deepscore.SettingsMS2Deepscore import (GeneratorSettings,
+                                               TensorizationSettings)
 from ms2deepscore.tensorize_spectra import tensorize_spectra
 from ms2deepscore.train_new_model.spectrum_pair_selection import (
     SelectedCompoundPairs, select_compound_pairs_wrapper)
-from ms2deepscore.SettingsMS2Deepscore import GeneratorSettings, TensorizationSettings
 
 
 def compute_validation_set(spectrums, tensorization_settings, generator_settings):
