@@ -88,6 +88,7 @@ def bin_dependent_losses(predictions,
     loss_types
         Specify list of loss types out of "mse", "mae", "rmse", "risk_mae", "risk_mse".
     """
+    # pylint: disable=too-many-locals
     if predictions.shape != true_values.shape:
         raise ValueError("Expected true values and predictions to have the same shape")
     bin_content = []
