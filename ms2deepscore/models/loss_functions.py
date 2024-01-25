@@ -105,7 +105,7 @@ def bin_dependent_losses(predictions,
         else:
             idx = np.where((true_values > low) & (true_values <= high))
         if idx[0].shape[0] == 0:
-            raise ValueError("No tanimoto scores within bin")
+            raise ValueError("No reference scores within bin")
         bin_content.append(idx[0].shape[0])
         # Add values
         losses["bin"].append((low, high))
