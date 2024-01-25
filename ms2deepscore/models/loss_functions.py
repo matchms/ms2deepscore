@@ -90,8 +90,6 @@ def bin_dependent_losses(predictions,
     """
     if predictions.shape != true_values.shape:
         raise ValueError("Expected true values and predictions to have the same shape")
-    if ref_score_bins[-1][1] <= 1:
-        raise ValueError("Expected the highest bin to be higher than one (otherwise exact matches are excluded)")
     bin_content = []
     losses = {"bin": []}
     for loss_type in loss_types:
@@ -99,9 +97,12 @@ def bin_dependent_losses(predictions,
             raise ValueError(f"Unknown loss function: {loss_type}. Must be one of: {LOSS_FUNCTIONS.keys()}")
         losses[loss_type] = []
     bounds = []
-    for low, high in ref_score_bins:
+    for i, (low, high) in enumerate(ref_score_bins):
         bounds.append((low, high))
-        idx = np.where((true_values >= low) & (true_values < high))
+        if i == 0:
+            idx = np.where((true_values >= low) & (true_values <= high))
+        else:
+            idx = np.where((true_values > low) & (true_values <= high))
         if idx[0].shape[0] == 0:
             raise ValueError("No tanimoto scores within bin")
         bin_content.append(idx[0].shape[0])
