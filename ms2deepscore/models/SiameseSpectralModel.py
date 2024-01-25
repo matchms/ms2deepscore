@@ -8,8 +8,8 @@ from ms2deepscore.models.helper_functions import (l1_regularization,
                                                   l2_regularization)
 from ms2deepscore.models.loss_functions import LOSS_FUNCTIONS, rmse_loss
 from ms2deepscore.SettingsMS2Deepscore import TensorizationSettings
-from ms2deepscore.__version__ import __version__
 from ms2deepscore.tensorize_spectra import tensorize_spectra
+from ms2deepscore.__version__ import __version__
 
 
 class SiameseSpectralModel(nn.Module):
