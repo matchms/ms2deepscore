@@ -24,7 +24,7 @@ class DataGeneratorPytorch:
     def __init__(self, spectrums: List[Spectrum],
                  selected_compound_pairs: SelectedCompoundPairs,
                  tensorization_settings: TensorizationSettings,
-                 **settings):
+                 generator_settings: GeneratorSettings,):
         """Generates data for training a siamese Keras model.
 
         Parameters
@@ -56,7 +56,7 @@ class DataGeneratorPytorch:
         self.spectrum_inchikeys = np.array([s.get("inchikey")[:14] for s in self.spectrums])
 
         # Set all other settings to input (or otherwise to defaults):
-        self.settings = GeneratorSettings(settings)
+        self.settings = generator_settings
         self.tensorization_settings = tensorization_settings
 
         # Initialize random number generator

@@ -90,11 +90,11 @@ def test_DataGeneratorPytorch():
         spectrums=spectrums,
         tensorization_settings=tensorization_settings,
         selected_compound_pairs=scp,
-        batch_size=batch_size,
-        augment_removal_max=0.0,
-        augment_removal_intensity=0.0,
-        augment_intensity=0.0,
-        augment_noise_max=0,
+        generator_settings=GeneratorSettings({"batch_size": batch_size,
+                                              "augment_removal_max": 0.0,
+                                              "augment_removal_intensity": 0.0,
+                                              "augment_intensity": 0.0,
+                                              "augment_noise_max": 0})
     )
 
     spec1, spec2, meta1, meta2, targets = test_generator.__getitem__(0)

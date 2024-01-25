@@ -166,8 +166,9 @@ class GeneratorSettings:
     def __init__(self, settings=None):
         self.batch_size = 32
         self.num_turns = 1
-        self.ignore_equal_pairs = True
+        # todo shuffle and use fixed set can be removed, right? Since we dont use the datagenerator for val data.
         self.shuffle = True
+        self.use_fixed_set = False
 
         # Compound pairs selection settings
         self.average_pairs_per_bin = 20
@@ -187,7 +188,6 @@ class GeneratorSettings:
         self.augment_intensity = 0.4
         self.augment_noise_max = 10
         self.augment_noise_intensity = 0.01
-        self.use_fixed_set = False
         if settings:
             for key, value in settings.items():
                 if hasattr(self, key):

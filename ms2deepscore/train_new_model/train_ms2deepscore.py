@@ -34,20 +34,16 @@ def train_ms2ds_model(
     output_model_file_name = os.path.join(model_directory, model_settings.model_file_name)
     ms2ds_history_plot_file_name = os.path.join(model_directory, model_settings.history_plot_file_name)
 
-    # todo remove the binned spectra folder and bin spectra in training wrapper
-
     selected_compound_pairs_training, selected_training_spectra = select_compound_pairs_wrapper(
         training_spectra, settings=generator_settings)
 
     tensoriztion_settings = TensorizationSettings()
-    # todo check if num_turns=2 and augment_noise_max = 10 should still be added.
     # Create generators
     train_generator = DataGeneratorPytorch(
         spectrums=selected_training_spectra,
         tensorization_settings=tensoriztion_settings,
         selected_compound_pairs=selected_compound_pairs_training,
-        augment_intensity=0.1,
-        batch_size=generator_settings.batch_size,
+        generator_settings=generator_settings
     )
 
     model = SiameseSpectralModel(tensorisaton_settings=tensoriztion_settings,

@@ -140,8 +140,8 @@ def test_model_training(simple_training_spectra):
         spectrums=simple_training_spectra,
         tensorization_settings=tensorization_settings,
         selected_compound_pairs=scp_train,
-        batch_size=2,
-        num_turns=20,
+        generator_settings=GeneratorSettings({"batch_size": 2,
+                                              "num_turns": 20})
     )
 
     validation_loss_calculator = ValidationLossCalculator(
