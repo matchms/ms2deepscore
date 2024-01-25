@@ -34,7 +34,7 @@ class MS2DeepScoreMonteCarlo(BaseSimilarity):
         queries = load_from_json("xyz.json")
 
         # Load pretrained model
-        model = load_model("model_file_123.hdf5")
+        model = load_model("model_file_123.pt")
 
         similarity_measure = MS2DeepScoreMonteCarlo(model, n_ensembles=10)
         # Calculate scores and get matchms.Scores object
@@ -55,8 +55,8 @@ class MS2DeepScoreMonteCarlo(BaseSimilarity):
         ----------
         model:
             Expected input is a SiameseModel that has been trained on
-            the desired set of spectra. The model contains the keras deep neural
-            network (model.model) as well as the used spectrum binner (model.spectrum_binner).
+            the desired set of spectra. The model contains the pytorch deep neural
+            network as well as the used model parameters.
         n_ensembles
             Number of embeddings to create for every spectrum using Monte-Carlo Dropout.
             n_ensembles will lead to n_ensembles^2 scores of which the mean and STD will
