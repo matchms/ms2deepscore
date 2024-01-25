@@ -86,7 +86,7 @@ def bin_dependent_losses(predictions,
     ref_score_bins
         Bins for the reference score to evaluate the performance of scores. in the form [(0.0, 0.1), (0.1, 0.2) ...]
     loss_types
-        Specify list of loss types out of "mse", "mae", "rmse".
+        Specify list of loss types out of "mse", "mae", "rmse", "risk_mae", "risk_mse".
     """
     if predictions.shape != true_values.shape:
         raise ValueError("Expected true values and predictions to have the same shape")
