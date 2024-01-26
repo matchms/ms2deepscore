@@ -6,7 +6,7 @@ from tqdm import tqdm
 from ms2deepscore.models.helper_functions import (l1_regularization,
                                                   l2_regularization)
 from ms2deepscore.models.loss_functions import LOSS_FUNCTIONS, rmse_loss
-from ms2deepscore.SettingsMS2Deepscore import TensorizationSettings, SettingsMS2Deepscore
+from ms2deepscore.SettingsMS2Deepscore import SettingsMS2Deepscore
 from ms2deepscore.tensorize_spectra import tensorize_spectra
 from ms2deepscore.__version__ import __version__
 
@@ -18,15 +18,13 @@ class SiameseSpectralModel(nn.Module):
     This head model computes the cosine similarity between the embeddings.
     """
     def __init__(self,
-                 tensorisation_settings: TensorizationSettings,
                  model_settings: SettingsMS2Deepscore,
                  ):
         super().__init__()
-        self.tensorization_parameters = tensorisation_settings
         self.model_settings = model_settings
         self.encoder = SpectralEncoder(model_settings=self.model_settings,
-                                       peak_inputs=tensorisation_settings.num_bins,
-                                       additional_inputs=len(tensorisation_settings.additional_metadata))
+                                       peak_inputs=self.model_settings.number_of_bins(),
+                                       additional_inputs=len(self.model_settings.additional_metadata))
 
     def forward(self, spectra_tensors_1, spectra_tensors_2, metadata_1, metadata_2):
         # Pass both inputs through the same encoder
@@ -51,7 +49,6 @@ class SiameseSpectralModel(nn.Module):
         settings_dict = {
             'model_params': self.model_settings.__dict__,
             'model_state_dict': self.state_dict(),
-            'tensorization_parameters': self.tensorization_parameters.get_dict(),
             'version': __version__
         }
         torch.save(settings_dict, filepath)
@@ -307,7 +304,7 @@ def compute_embedding_array(model: SiameseSpectralModel,
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model.to(device)
     for i, spec in tqdm(enumerate(spectrums)):
-        X = tensorize_spectra([spec], model.tensorization_parameters)
+        X = tensorize_spectra([spec], model.model_settings)
         with torch.no_grad():
             embeddings[i, :] = model.encoder(X[0].to(device), X[1].to(device)).cpu().detach().numpy()
     return embeddings

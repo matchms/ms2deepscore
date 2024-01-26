@@ -40,8 +40,7 @@ class SettingsMS2Deepscore:
         self.base_dims = (1000, 1000)
         self.embedding_dim = 400
         self.ionisation_mode = "positive"
-        # todo merge with tenzorization, since this is not used now
-        self.additional_metadata = ()
+
         # additional model structure options
         self.train_binning_layer: bool = False
         self.train_binning_layer_group_size: int = 20
@@ -58,16 +57,28 @@ class SettingsMS2Deepscore:
         self.model_file_name = "ms2deepscore_model.pt"
         self.history_plot_file_name = "history.svg"
         self.time_stamp = datetime.now().strftime("%Y_%m_%d_%H_%M_%S")
+
+        # tensorization settings
+        self.min_mz = 10
+        self.max_mz = 1000
+        self.mz_bin_width = 0.1
+        self.intensity_scaling = 0.5
+        self.additional_metadata = []
+
         if settings:
             for key, value in settings.items():
                 if hasattr(self, key):
                     setattr(self, key, value)
                 else:
                     raise ValueError(f"Unknown setting: {key}")
+
         self.validate_settings()
 
     def validate_settings(self):
         assert self.ionisation_mode in ("positive", "negative", "both")
+
+    def number_of_bins(self):
+        return int((self.max_mz - self.min_mz) / self.mz_bin_width)
 
     def get_dict(self):
         """returns a dictionary representation of the settings"""
@@ -191,28 +202,3 @@ class GeneratorSettings:
             warnings.warn('When using a fixed set, data will not be shuffled')
         if self.random_seed is not None:
             assert isinstance(self.random_seed, int), "Random seed must be integer number."
-
-
-class TensorizationSettings:
-    """Stores the settings for tensorizing Spectra"""
-    def __init__(self,
-                 **settings):
-        self.min_mz = 10
-        self.max_mz = 1000
-        self.mz_bin_width = 0.1
-        self.intensity_scaling = 0.5
-        self.additional_metadata = []
-        if settings:
-            for key, value in settings.items():
-                if hasattr(self, key):
-                    setattr(self, key, value)
-                else:
-                    raise ValueError(f"Unknown setting: {key}")
-        self.num_bins = int((self.max_mz - self.min_mz) / self.mz_bin_width)
-
-    def get_dict(self):
-        return {"min_mz": self.min_mz,
-                "max_mz": self.max_mz,
-                "mz_bin_width": self.mz_bin_width,
-                "intensity_scaling": self.intensity_scaling,
-                "additional_metadata": self.additional_metadata}

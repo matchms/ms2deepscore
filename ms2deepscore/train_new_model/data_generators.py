@@ -6,7 +6,7 @@ import numpy as np
 import torch
 from matchms import Spectrum
 from ms2deepscore.SettingsMS2Deepscore import (GeneratorSettings,
-                                               TensorizationSettings)
+                                               SettingsMS2Deepscore)
 from ms2deepscore.tensorize_spectra import tensorize_spectra
 from ms2deepscore.train_new_model.spectrum_pair_selection import (
     SelectedCompoundPairs)
@@ -23,7 +23,7 @@ class DataGeneratorPytorch:
     """
     def __init__(self, spectrums: List[Spectrum],
                  selected_compound_pairs: SelectedCompoundPairs,
-                 tensorization_settings: TensorizationSettings,
+                 model_settings: SettingsMS2Deepscore,
                  generator_settings: GeneratorSettings,):
         """Generates data for training a siamese Keras model.
 
@@ -57,7 +57,7 @@ class DataGeneratorPytorch:
 
         # Set all other settings to input (or otherwise to defaults):
         self.settings = generator_settings
-        self.tensorization_settings = tensorization_settings
+        self.model_settings = model_settings
 
         # Initialize random number generator
         if self.settings.use_fixed_set:
@@ -138,14 +138,8 @@ class DataGeneratorPytorch:
             spectra_2.append(pair[1])
             targets.append(pair[2])
 
-        binned_spectra_1, metadata_1 = tensorize_spectra(
-            spectra_1,
-            self.tensorization_settings
-            )
-        binned_spectra_2, metadata_2 = tensorize_spectra(
-            spectra_2,
-            self.tensorization_settings
-            )
+        binned_spectra_1, metadata_1 = tensorize_spectra(spectra_1, self.model_settings)
+        binned_spectra_2, metadata_2 = tensorize_spectra(spectra_2, self.model_settings)
         return binned_spectra_1, binned_spectra_2, metadata_1, metadata_2, torch.tensor(targets, dtype=torch.float32)
     
     def _get_spectrum_with_inchikey(self, inchikey: str) -> Spectrum:

@@ -4,7 +4,7 @@ import numpy as np
 import torch
 from matchms import Spectrum
 from ms2deepscore.SettingsMS2Deepscore import (GeneratorSettings,
-                                               TensorizationSettings)
+                                               SettingsMS2Deepscore)
 from ms2deepscore.tensorize_spectra import tensorize_spectra
 from ms2deepscore.train_new_model.data_generators import (
     DataGeneratorPytorch)
@@ -57,12 +57,12 @@ def create_test_spectra(num_of_unique_inchikeys):
 
 def test_tensorize_spectra():
     spectrum = Spectrum(mz=np.array([10, 500, 999.9]), intensities=np.array([0.5, 0.5, 1]))
-    tensorization_settings = TensorizationSettings(min_mz=10,
-                                                   max_mz=1000,
-                                                   mz_bin_width=1,
-                                                   intensity_scaling=0.5,
-                                                   additional_metadata=())
-    spec_tensors, meta_tensors = tensorize_spectra([spectrum, spectrum], tensorization_settings)
+    model_settings = SettingsMS2Deepscore(min_mz=10,
+                                          max_mz=1000,
+                                          mz_bin_width=1,
+                                          intensity_scaling=0.5,
+                                          additional_metadata=())
+    spec_tensors, meta_tensors = tensorize_spectra([spectrum, spectrum], model_settings)
 
     assert meta_tensors.shape == torch.Size([2, 0])
     assert spec_tensors.shape == torch.Size([2, 990])
@@ -80,7 +80,7 @@ def test_DataGeneratorPytorch():
     settings = GeneratorSettings(**{"same_prob_bins": np.array([(x / 4, x / 4 + 0.25) for x in range(0, 4)]),
                                   "average_pairs_per_bin": 1})
     scp, spectrums = select_compound_pairs_wrapper(spectrums, settings)
-    tensorization_settings = TensorizationSettings(min_mz=10,
+    model_settings = SettingsMS2Deepscore(min_mz=10,
                                                    max_mz=1000,
                                                    mz_bin_width=0.1,
                                                    intensity_scaling=0.5,
@@ -88,7 +88,7 @@ def test_DataGeneratorPytorch():
     # Create generator
     test_generator = DataGeneratorPytorch(
         spectrums=spectrums,
-        tensorization_settings=tensorization_settings,
+        model_settings=model_settings,
         selected_compound_pairs=scp,
         generator_settings=GeneratorSettings(**{"batch_size": batch_size,
                                               "augment_removal_max": 0.0,

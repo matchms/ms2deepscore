@@ -3,29 +3,29 @@ import numpy as np
 import torch
 from ms2deepscore.MetadataFeatureGenerator import (MetadataVectorizer,
                                                    load_from_json)
-from ms2deepscore.SettingsMS2Deepscore import TensorizationSettings
+from ms2deepscore.SettingsMS2Deepscore import SettingsMS2Deepscore
 
 
 def tensorize_spectra(
     spectra,
-    tensorization_settings: TensorizationSettings,
+    model_settings: SettingsMS2Deepscore,
     ):
     """Convert list of matchms Spectrum objects to pytorch peak and metadata tensors.
     """
-    if len(tensorization_settings.additional_metadata) == 0:
+    if len(model_settings.additional_metadata) == 0:
         metadata_tensors = torch.zeros((len(spectra), 0))
     else:
-        feature_generators = load_from_json(tensorization_settings.additional_metadata)
+        feature_generators = load_from_json(model_settings.additional_metadata)
         metadata_vectorizer = MetadataVectorizer(additional_metadata=feature_generators)
         metadata_tensors = metadata_vectorizer.transform(spectra)
 
-    binned_spectra = torch.zeros((len(spectra), tensorization_settings.num_bins))
+    binned_spectra = torch.zeros((len(spectra), model_settings.number_of_bins()))
     for i, spectrum in enumerate(spectra):
         binned_spectra[i, :] = torch.tensor(vectorize_spectrum(spectrum.peaks.mz, spectrum.peaks.intensities,
-                                                               tensorization_settings.min_mz,
-                                                               tensorization_settings.max_mz,
-                                                               tensorization_settings.mz_bin_width,
-                                                               tensorization_settings.intensity_scaling
+                                                               model_settings.min_mz,
+                                                               model_settings.max_mz,
+                                                               model_settings.mz_bin_width,
+                                                               model_settings.intensity_scaling
                                                                ))
     return binned_spectra, metadata_tensors
 

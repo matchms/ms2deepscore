@@ -8,8 +8,7 @@ from matplotlib import pyplot as plt
 from ms2deepscore.models.SiameseSpectralModel import (SiameseSpectralModel,
                                                       train)
 from ms2deepscore.SettingsMS2Deepscore import (GeneratorSettings,
-                                               SettingsMS2Deepscore,
-                                               TensorizationSettings)
+                                               SettingsMS2Deepscore)
 from ms2deepscore.train_new_model.data_generators import DataGeneratorPytorch
 from ms2deepscore.train_new_model.spectrum_pair_selection import \
     select_compound_pairs_wrapper
@@ -37,17 +36,15 @@ def train_ms2ds_model(
     selected_compound_pairs_training, selected_training_spectra = select_compound_pairs_wrapper(
         training_spectra, settings=generator_settings)
 
-    tensoriztion_settings = TensorizationSettings()
     # Create generators
     train_generator = DataGeneratorPytorch(
         spectrums=selected_training_spectra,
-        tensorization_settings=tensoriztion_settings,
+        model_settings=model_settings,
         selected_compound_pairs=selected_compound_pairs_training,
         generator_settings=generator_settings
     )
 
-    model = SiameseSpectralModel(tensorisation_settings=tensoriztion_settings,
-                                 model_settings=model_settings)
+    model = SiameseSpectralModel(model_settings=model_settings)
 
     validation_loss_calculator = ValidationLossCalculator(validation_spectra,
                                                           score_bins=generator_settings.same_prob_bins)
