@@ -1,7 +1,7 @@
 from .load_model import load_model
 from .loss_functions import bin_dependent_losses
-from .SiameseSpectralModel import (compute_embedding_array,
-                                   train, SiameseSpectralModel)
+from .SiameseSpectralModel import (SiameseSpectralModel,
+                                   compute_embedding_array, train)
 
 
 __all__ = [

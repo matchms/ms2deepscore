@@ -108,7 +108,6 @@ class SpectralEncoder(nn.Module):
         additional_inputs
             Integer to specify the number of additional (metadata) input fields.
         """
-        # pylint: disable=too-many-arguments
         super().__init__()
         self.train_binning_layer = model_settings.train_binning_layer
 
