@@ -26,14 +26,13 @@ def train_ms2ds_model(
         ):
     """Full workflow to train a MS2DeepScore model.
     """
-    model_directory = os.path.join(results_folder, model_settings.create_model_directory_name())
-    os.makedirs(model_directory, exist_ok=True)
+    os.makedirs(results_folder, exist_ok=True)
     # todo remove once this is automatically saved with the model
     # Save settings
-    model_settings.save_to_file(os.path.join(model_directory, "settings.json"))
+    model_settings.save_to_file(os.path.join(results_folder, "settings.json"))
 
-    output_model_file_name = os.path.join(model_directory, model_settings.model_file_name)
-    ms2ds_history_plot_file_name = os.path.join(model_directory, model_settings.history_plot_file_name)
+    output_model_file_name = os.path.join(results_folder, model_settings.model_file_name)
+    ms2ds_history_plot_file_name = os.path.join(results_folder, model_settings.history_plot_file_name)
 
     selected_compound_pairs_training, selected_training_spectra = select_compound_pairs_wrapper(
         training_spectra, settings=generator_settings)

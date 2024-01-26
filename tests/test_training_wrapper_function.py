@@ -28,9 +28,9 @@ def test_train_wrapper_ms2ds_model(tmp_path):
         "batch_size": 2, # to speed up tests --> usually larger
         "random_seed": 42
     })
-    train_ms2deepscore_wrapper(spectra_file_name, model_settings, generator_settings, validation_split_fraction=5)
+    model_directory_name = train_ms2deepscore_wrapper(spectra_file_name, model_settings, generator_settings,
+                                                      validation_split_fraction=5)
     expected_file_names = StoreTrainingData(spectra_file_name)
-    model_directory_name = model_settings.create_model_directory_name()
     assert os.path.isfile(os.path.join(tmp_path, expected_file_names.trained_models_folder,
                                        model_directory_name, model_settings.model_file_name))
     assert os.path.isfile(expected_file_names.negative_mode_spectra_file)

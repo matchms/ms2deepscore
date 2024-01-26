@@ -54,7 +54,6 @@ class SettingsMS2Deepscore:
         self.patience = 10
         self.loss_function = "mse"
 
-
         # Folder names for storing
         self.model_file_name = "ms2deepscore_model.pt"
         self.history_plot_file_name = "history.svg"
@@ -69,25 +68,6 @@ class SettingsMS2Deepscore:
 
     def validate_settings(self):
         assert self.ionisation_mode in ("positive", "negative", "both")
-
-    def create_model_directory_name(self):
-        """Creates a directory name using metadata, it will contain the metadata, the binned spectra and final model"""
-        binning_file_label = ""
-        for metadata_generator in self.additional_metadata:
-            binning_file_label += metadata_generator.metadata_field + "_"
-
-        # Define a neural net structure label
-        neural_net_structure_label = ""
-        for layer in self.base_dims:
-            neural_net_structure_label += str(layer) + "_"
-        neural_net_structure_label += "layers"
-
-        if self.embedding_dim:
-            neural_net_structure_label += f"_{str(self.embedding_dim)}_embedding"
-        model_folder_file_name = f"{self.ionisation_mode}_mode_{binning_file_label}" \
-                                 f"{neural_net_structure_label}_{self.time_stamp}"
-        print(f"The model will be stored in the folder: {model_folder_file_name}")
-        return model_folder_file_name
 
     def get_dict(self):
         """returns a dictionary representation of the settings"""
