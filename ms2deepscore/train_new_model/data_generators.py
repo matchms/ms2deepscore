@@ -7,8 +7,8 @@ import torch
 from matchms import Spectrum
 from ms2deepscore.SettingsMS2Deepscore import SettingsMS2Deepscore
 from ms2deepscore.tensorize_spectra import tensorize_spectra
-from ms2deepscore.train_new_model.spectrum_pair_selection import (
-    SelectedCompoundPairs)
+from ms2deepscore.train_new_model.spectrum_pair_selection import \
+    SelectedCompoundPairs
 
 
 class DataGeneratorPytorch:
