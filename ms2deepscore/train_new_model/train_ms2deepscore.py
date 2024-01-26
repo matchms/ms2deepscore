@@ -46,14 +46,8 @@ def train_ms2ds_model(
         generator_settings=generator_settings
     )
 
-    model = SiameseSpectralModel(tensorisaton_settings=tensoriztion_settings,
-                                 base_dims=model_settings.base_dims,
-                                 embedding_dim=model_settings.embedding_dim,
-                                 dropout_rate=model_settings.dropout_rate,
-                                 train_binning_layer= model_settings.train_binning_layer,
-                                 group_size = model_settings.train_binning_layer_group_size,
-                                 output_per_group = model_settings.train_binning_layer_output_per_group,
-                                 )
+    model = SiameseSpectralModel(tensorisation_settings=tensoriztion_settings,
+                                 model_settings=model_settings)
 
     validation_loss_calculator = ValidationLossCalculator(validation_spectra,
                                                           score_bins=generator_settings.same_prob_bins)

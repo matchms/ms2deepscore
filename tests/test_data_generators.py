@@ -77,7 +77,7 @@ def test_DataGeneratorPytorch():
     spectrums = create_test_spectra(num_of_unique_inchikeys)
     batch_size = 8
 
-    settings = GeneratorSettings({"same_prob_bins": np.array([(x / 4, x / 4 + 0.25) for x in range(0, 4)]),
+    settings = GeneratorSettings(**{"same_prob_bins": np.array([(x / 4, x / 4 + 0.25) for x in range(0, 4)]),
                                   "average_pairs_per_bin": 1})
     scp, spectrums = select_compound_pairs_wrapper(spectrums, settings)
     tensorization_settings = TensorizationSettings(min_mz=10,
@@ -90,7 +90,7 @@ def test_DataGeneratorPytorch():
         spectrums=spectrums,
         tensorization_settings=tensorization_settings,
         selected_compound_pairs=scp,
-        generator_settings=GeneratorSettings({"batch_size": batch_size,
+        generator_settings=GeneratorSettings(**{"batch_size": batch_size,
                                               "augment_removal_max": 0.0,
                                               "augment_removal_intensity": 0.0,
                                               "augment_intensity": 0.0,

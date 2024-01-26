@@ -20,13 +20,12 @@ TEST_RESOURCES_PATH = Path(__file__).parent / 'resources'
 
 def test_train_ms2ds_model(tmp_path):
     spectra = create_test_spectra(8)
-    model_settings = SettingsMS2Deepscore({
+    model_settings = SettingsMS2Deepscore(**{
         "epochs": 2,  # to speed up tests --> usually many more
-        "batch_size": 8,
         "base_dims": [200, 200],  # to speed up tests --> usually larger
         "embedding_dim": 100  # to speed up tests --> usually larger
         })
-    generator_settings = GeneratorSettings({
+    generator_settings = GeneratorSettings(**{
         "same_prob_bins": np.array([(0, 0.5), (0.5, 1.000001)]),
         "average_pairs_per_bin": 2,
         "batch_size": 8
@@ -52,11 +51,10 @@ def test_too_little_spectra(tmp_path):
 
     See PR #155 for more details"""
     spectra = create_test_spectra(4)
-    model_settings = SettingsMS2Deepscore({
+    model_settings = SettingsMS2Deepscore(**{
         "epochs": 2,
-        "batch_size": 8
         })
-    generator_settings = GeneratorSettings({
+    generator_settings = GeneratorSettings(**{
         "average_pairs_per_bin": 2,
         "batch_size": 8
         })

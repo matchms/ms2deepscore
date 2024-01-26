@@ -35,12 +35,13 @@ class SettingsMS2Deepscore:
         train_binning_layer_output_per_group
             This sets the number of next layer bins each group_size group of inputs shares.
         """
-    def __init__(self, settings=None):
+    def __init__(self, **settings):
         # model structure
         self.base_dims = (1000, 1000)
         self.embedding_dim = 400
         self.ionisation_mode = "positive"
-
+        # todo merge with tenzorization, since this is not used now
+        self.additional_metadata = ()
         # additional model structure options
         self.train_binning_layer: bool = False
         self.train_binning_layer_group_size: int = 20
@@ -163,7 +164,7 @@ class GeneratorSettings:
         additional_inputs
             Array of additional values to be used in training for e.g. ["precursor_mz", "parent_mass"]
     """
-    def __init__(self, settings=None):
+    def __init__(self, **settings):
         self.batch_size = 32
         self.num_turns = 1
         # todo shuffle and use fixed set can be removed, right? Since we dont use the datagenerator for val data.

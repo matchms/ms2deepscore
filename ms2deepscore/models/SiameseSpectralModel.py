@@ -7,7 +7,7 @@ from tqdm import tqdm
 from ms2deepscore.models.helper_functions import (l1_regularization,
                                                   l2_regularization)
 from ms2deepscore.models.loss_functions import LOSS_FUNCTIONS, rmse_loss
-from ms2deepscore.SettingsMS2Deepscore import TensorizationSettings
+from ms2deepscore.SettingsMS2Deepscore import TensorizationSettings, SettingsMS2Deepscore
 from ms2deepscore.tensorize_spectra import tensorize_spectra
 from ms2deepscore.__version__ import __version__
 
@@ -19,51 +19,23 @@ class SiameseSpectralModel(nn.Module):
     This head model computes the cosine similarity between the embeddings.
     """
     def __init__(self,
-                 tensorisaton_settings: TensorizationSettings,
-                 base_dims: Tuple[int, ...] = (1000, 800, 800),
-                 embedding_dim: int = 400,
-                 train_binning_layer: bool = False,
-                 group_size: int = 20,
-                 output_per_group: int = 2,
-                 dropout_rate: float = 0.2,
+                 tensorisation_settings: TensorizationSettings,
+                 model_settings: SettingsMS2Deepscore,
                  ):
-        """
-        Construct SiameseSpectralModel
-
-        Parameters
-        ----------
-        base_dims
-            Tuple of integers depicting the dimensions of the desired hidden
-            layers of the base model
-        embedding_dim
-            Dimension of the embedding (i.e. the output of the base model)
-        train_binning_layer
-            Default is False in which case the model contains a first dense multi-group peak binning layer.
-        group_size
-            When a smart binning layer is used the group_size determines how many input bins are taken into
-            one dense micro-network.
-        output_per_group
-            This sets the number of next layer bins each group_size group of inputs shares.
-        dropout_rate
-            Dropout rate to be used in the base model.
-        pytorch_model
-            When provided, this pytorch model will be used to construct the SiameseModel instance.
-            Default is None.
-        """
-        # pylint: disable=too-many-arguments
         super().__init__()
+        # todo replace this, with actually saving all settings
         self.model_parameters = {
-            "base_dims": base_dims,
-            "embedding_dim": embedding_dim,
-            "train_binning_layer": train_binning_layer,
-            "group_size": group_size,
-            "output_per_group": output_per_group,
-            "dropout_rate": dropout_rate,
+            "base_dims": model_settings.base_dims,
+            "embedding_dim": model_settings.embedding_dim,
+            "train_binning_layer": model_settings.train_binning_layer,
+            "train_binning_layer_group_size": model_settings.train_binning_layer_group_size,
+            "train_binning_layer_output_per_group": model_settings.train_binning_layer_output_per_group,
+            "dropout_rate": model_settings.dropout_rate,
         }
-        self.tensorization_parameters = tensorisaton_settings
-        self.encoder = SpectralEncoder(**self.model_parameters,
-                                       peak_inputs=tensorisaton_settings.num_bins,
-                                       additional_inputs=len(tensorisaton_settings.additional_metadata))
+        self.tensorization_parameters = tensorisation_settings
+        self.encoder = SpectralEncoder(model_settings=model_settings,
+                                       peak_inputs=tensorisation_settings.num_bins,
+                                       additional_inputs=len(tensorisation_settings.additional_metadata))
 
     def forward(self, spectra_tensors_1, spectra_tensors_2, metadata_1, metadata_2):
         # Pass both inputs through the same encoder
@@ -101,15 +73,17 @@ class PeakBinner(nn.Module):
     The initial input tensors will thereby be divided into groups of `group_size` inputs
     which are connected to `output_per_group` outputs.
     """
-    def __init__(self, input_size, group_size, output_per_group):
+    def __init__(self, input_size, model_settings: SettingsMS2Deepscore):
         super().__init__()
-        self.group_size = group_size
-        self.step_width = int(group_size/2)
-        self.output_per_group = output_per_group
-        self.groups = 2 * input_size // group_size - 1 # overlapping groups
+        self.group_size = model_settings.train_binning_layer_group_size
+        self.step_width = int(model_settings.train_binning_layer_group_size/2)
+        self.output_per_group = model_settings.train_binning_layer_output_per_group
+        self.groups = 2 * input_size // model_settings.train_binning_layer_group_size - 1 # overlapping groups
 
         # Create a ModuleList of linear layers, each mapping group_size inputs to output_per_group outputs
-        self.linear_layers = nn.ModuleList([nn.Linear(group_size, output_per_group, bias=False) for _ in range(self.groups)])
+        self.linear_layers = nn.ModuleList([nn.Linear(model_settings.train_binning_layer_group_size,
+                                                      model_settings.train_binning_layer_output_per_group,
+                                                      bias=False) for _ in range(self.groups)])
 
         # Initialize weights
         for x in self.linear_layers:
@@ -132,30 +106,15 @@ class PeakBinner(nn.Module):
 
 class SpectralEncoder(nn.Module):
     def __init__(self,
-                 base_dims,
-                 embedding_dim,
-                 dropout_rate,
-                 train_binning_layer: bool, group_size: int, output_per_group: int,
+                 model_settings: SettingsMS2Deepscore,
                  peak_inputs: int,
                  additional_inputs: int,
                  ):
         """
         Parameters
         ----------
-        base_dims
-            Tuple of integers depicting the dimensions of the desired hidden
-            layers of the base model
-        embedding_dim
-            Dimension of the embedding (i.e. the output of the base model)
-        train_binning_layer
-            Default is True in which case the model contains a first dense multi-group peak binning layer.
-        group_size
-            When binning layer is used the group_size determines how many input bins are taken into
-            one dense micro-network.
-        output_per_group
-            This sets the number of next layer bins each group_size group of inputs shares.
-        dropout_rate
-            Dropout rate to be used in the base model.
+        model_settings:
+            SettingsMS2Deepscore object storing all the settings
         peak_inputs
             Integer to specify the number of binned peaks in the input spectra.
         additional_inputs
@@ -163,28 +122,28 @@ class SpectralEncoder(nn.Module):
         """
         # pylint: disable=too-many-arguments
         super().__init__()
-        self.train_binning_layer = train_binning_layer
+        self.train_binning_layer = model_settings.train_binning_layer
 
         # First dense layer (no dropout!)
         self.dense_layers = nn.ModuleList()
         if self.train_binning_layer:
             self.peak_binner = PeakBinner(peak_inputs,
-                                          group_size, output_per_group)
+                                          model_settings)
             input_size = self.peak_binner.output_size() + additional_inputs
         else:
             input_size = peak_inputs + additional_inputs
         self.dense_layers.append(
-            dense_layer(input_size, base_dims[0], "relu")
+            dense_layer(input_size, model_settings.base_dims[0], "relu")
         )
-        input_dim = base_dims[0]
+        input_dim = model_settings.base_dims[0]
 
         # Create additional dense layers
-        for output_dim in base_dims[1:]:
+        for output_dim in model_settings.base_dims[1:]:
             self.dense_layers.append(dense_layer(input_dim, output_dim, "relu"))
             input_dim = output_dim
 
-        self.embedding_layer = dense_layer(base_dims[-1], embedding_dim, "relu")
-        self.dropout = nn.Dropout(dropout_rate)
+        self.embedding_layer = dense_layer(model_settings.base_dims[-1], model_settings.embedding_dim, "relu")
+        self.dropout = nn.Dropout(model_settings.dropout_rate)
 
     def forward(self, spectra_tensors, metadata_tensors):
         if self.train_binning_layer:
@@ -201,8 +160,6 @@ class SpectralEncoder(nn.Module):
         x = self.embedding_layer(x)
         return x
 
-
-### Model training
 
 def train(model: SiameseSpectralModel,
           data_generator,

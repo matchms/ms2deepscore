@@ -16,17 +16,16 @@ def test_train_wrapper_ms2ds_model(tmp_path):
     spectra_file_name = os.path.join(tmp_path, "clean_spectra.mgf")
     save_as_mgf(positive_mode_spectra+negative_mode_spectra,
                 filename=spectra_file_name)
-    model_settings = SettingsMS2Deepscore({
+    model_settings = SettingsMS2Deepscore(**{
         "epochs": 2,  # to speed up tests --> usually many more
         "ionisation_mode": "negative",
-        "batch_size": 2,  # to speed up tests --> usually larger
         "base_dims": [200, 200],  # to speed up tests --> usually larger
         "embedding_dim": 100  # to speed up tests --> usually larger
         })
-    generator_settings = GeneratorSettings({
+    generator_settings = GeneratorSettings(**{
         "same_prob_bins": np.array([(0, 0.2), (0.2, 1.0000001)]),
         "average_pairs_per_bin": 2,
-        "batch_size": 2,
+        "batch_size": 2, # to speed up tests --> usually larger
         "random_seed": 42
     })
     train_ms2deepscore_wrapper(spectra_file_name, model_settings, generator_settings, validation_split_fraction=5)
