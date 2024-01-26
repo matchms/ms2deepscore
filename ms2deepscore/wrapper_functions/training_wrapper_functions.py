@@ -50,19 +50,19 @@ def train_ms2deepscore_wrapper(spectra_file_path,
 
     # Create performance plots for validation spectra
     ms2deepsore_model_file_name = os.path.join(stored_training_data.trained_models_folder,
-                                               model_settings.model_directory_name,
+                                               model_settings.create_model_directory_name(),
                                                model_settings.model_file_name)
     calculate_true_values_and_predictions_for_validation_spectra(
         positive_validation_spectra=stored_training_data.load_positive_train_split("validation"),
         negative_validation_spectra=stored_training_data.load_negative_train_split("validation"),
         ms2deepsore_model_file_name=ms2deepsore_model_file_name,
         results_directory=os.path.join(stored_training_data.trained_models_folder,
-                                       model_settings.model_directory_name, "benchmarking_results"))
+                                       model_settings.create_model_directory_name(), "benchmarking_results"))
 
     create_plots_between_all_ionmodes(model_directory=os.path.join(stored_training_data.trained_models_folder,
-                                                                   model_settings.model_directory_name),
+                                                                   model_settings.create_model_directory_name()),
                                       ref_score_bins=generator_settings.same_prob_bins)
-    return model_settings.model_directory_name
+    return model_settings.create_model_directory_name()
 
 
 class StoreTrainingData:

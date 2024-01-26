@@ -26,8 +26,9 @@ def train_ms2ds_model(
         ):
     """Full workflow to train a MS2DeepScore model.
     """
-    model_directory = os.path.join(results_folder, model_settings.model_directory_name)
+    model_directory = os.path.join(results_folder, model_settings.create_model_directory_name())
     os.makedirs(model_directory, exist_ok=True)
+    # todo remove once this is automatically saved with the model
     # Save settings
     model_settings.save_to_file(os.path.join(model_directory, "settings.json"))
 

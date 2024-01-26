@@ -30,15 +30,16 @@ def test_train_wrapper_ms2ds_model(tmp_path):
     })
     train_ms2deepscore_wrapper(spectra_file_name, model_settings, generator_settings, validation_split_fraction=5)
     expected_file_names = StoreTrainingData(spectra_file_name)
+    model_directory_name = model_settings.create_model_directory_name()
     assert os.path.isfile(os.path.join(tmp_path, expected_file_names.trained_models_folder,
-                                       model_settings.model_directory_name, model_settings.model_file_name))
+                                       model_directory_name, model_settings.model_file_name))
     assert os.path.isfile(expected_file_names.negative_mode_spectra_file)
     assert os.path.isfile(expected_file_names.negative_validation_spectra_file)
     assert os.path.isfile(os.path.join(tmp_path, expected_file_names.trained_models_folder,
-                                       model_settings.model_directory_name, "benchmarking_results",
+                                       model_directory_name, "benchmarking_results",
                                        "both_both_predictions.pickle"))
     assert os.path.isfile(os.path.join(tmp_path, expected_file_names.trained_models_folder,
-                                       model_settings.model_directory_name, "benchmarking_results",
+                                       model_directory_name, "benchmarking_results",
                                        "plots_1_spectrum_per_inchikey", "both_vs_both_stacked_histogram.svg"))
     assert os.path.isfile(os.path.join(tmp_path, expected_file_names.trained_models_folder,
-                                       model_settings.model_directory_name, "settings.json"))
+                                       model_directory_name, "settings.json"))

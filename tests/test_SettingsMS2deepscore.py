@@ -36,3 +36,8 @@ def test_default_generator_settings():
     assert settings.num_turns == 1
     assert settings.include_diagonal
     assert settings.shuffle
+
+
+def test_get_dict():
+    result = SettingsMS2Deepscore().get_dict()
+    print(result)

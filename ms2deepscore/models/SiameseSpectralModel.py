@@ -1,4 +1,3 @@
-from typing import Tuple
 import numpy as np
 import torch
 import torch.nn.functional as F
@@ -23,17 +22,9 @@ class SiameseSpectralModel(nn.Module):
                  model_settings: SettingsMS2Deepscore,
                  ):
         super().__init__()
-        # todo replace this, with actually saving all settings
-        self.model_parameters = {
-            "base_dims": model_settings.base_dims,
-            "embedding_dim": model_settings.embedding_dim,
-            "train_binning_layer": model_settings.train_binning_layer,
-            "train_binning_layer_group_size": model_settings.train_binning_layer_group_size,
-            "train_binning_layer_output_per_group": model_settings.train_binning_layer_output_per_group,
-            "dropout_rate": model_settings.dropout_rate,
-        }
         self.tensorization_parameters = tensorisation_settings
-        self.encoder = SpectralEncoder(model_settings=model_settings,
+        self.model_settings = model_settings
+        self.encoder = SpectralEncoder(model_settings=self.model_settings,
                                        peak_inputs=tensorisation_settings.num_bins,
                                        additional_inputs=len(tensorisation_settings.additional_metadata))
 
@@ -58,7 +49,7 @@ class SiameseSpectralModel(nn.Module):
         # Ensure the model is in evaluation mode
         self.eval()
         settings_dict = {
-            'model_params': self.model_parameters,
+            'model_params': self.model_settings.__dict__,
             'model_state_dict': self.state_dict(),
             'tensorization_parameters': self.tensorization_parameters.get_dict(),
             'version': __version__
@@ -307,12 +298,12 @@ def initialize_device():
     return device
 
 
-def compute_embedding_array(model,
+def compute_embedding_array(model: SiameseSpectralModel,
                             spectrums):
     """Compute the embeddings of all spectra in spectrums.
     """
     model.eval()
-    embeddings = np.zeros((len(spectrums), model.model_parameters["embedding_dim"]))
+    embeddings = np.zeros((len(spectrums), model.model_settings.embedding_dim))
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model.to(device)
     for i, spec in tqdm(enumerate(spectrums)):

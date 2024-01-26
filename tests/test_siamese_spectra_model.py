@@ -54,21 +54,7 @@ def simple_training_spectra():
                      },
                      )
         )
-    return spectra    
-
-
-def test_siamese_model_defaults():
-    tensorization_settings = TensorizationSettings()    # Create the model instance
-    model = SiameseSpectralModel(tensorization_settings, SettingsMS2Deepscore())
-
-    assert model.model_parameters == {
-        'base_dims': (1000, 1000),
-        'embedding_dim': 400,
-        'train_binning_layer': False,
-        'group_size': 20,
-        'output_per_group': 2,
-        'dropout_rate': 0.2,
-    }
+    return spectra
 
 
 def test_siamese_model_forward_pass(dummy_spectra):
@@ -82,7 +68,7 @@ def test_siamese_model_forward_pass(dummy_spectra):
 def test_siamese_model_no_binning_layer(dummy_spectra):
     tensorization_settings = TensorizationSettings(mz_bin_width=1,)
     model = SiameseSpectralModel(tensorization_settings, SettingsMS2Deepscore())
-    assert not model.model_parameters["train_binning_layer"]
+    assert not model.model_settings.train_binning_layer
 
     # Test forward pass
     spec_tensors, meta_tensors = tensorize_spectra(dummy_spectra, tensorization_settings)
