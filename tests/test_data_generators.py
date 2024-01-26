@@ -3,8 +3,7 @@ import string
 import numpy as np
 import torch
 from matchms import Spectrum
-from ms2deepscore.SettingsMS2Deepscore import (GeneratorSettings,
-                                               SettingsMS2Deepscore)
+from ms2deepscore.SettingsMS2Deepscore import SettingsMS2Deepscore
 from ms2deepscore.tensorize_spectra import tensorize_spectra
 from ms2deepscore.train_new_model.data_generators import (
     DataGeneratorPytorch)
@@ -76,26 +75,23 @@ def test_DataGeneratorPytorch():
     num_of_unique_inchikeys = 15
     spectrums = create_test_spectra(num_of_unique_inchikeys)
     batch_size = 8
-
-    settings = GeneratorSettings(**{"same_prob_bins": np.array([(x / 4, x / 4 + 0.25) for x in range(0, 4)]),
-                                  "average_pairs_per_bin": 1})
-    scp, spectrums = select_compound_pairs_wrapper(spectrums, settings)
     model_settings = SettingsMS2Deepscore(min_mz=10,
-                                                   max_mz=1000,
-                                                   mz_bin_width=0.1,
-                                                   intensity_scaling=0.5,
-                                                   additional_metadata=())
+                                          max_mz=1000,
+                                          mz_bin_width=0.1,
+                                          intensity_scaling=0.5,
+                                          additional_metadata=(),
+                                          same_prob_bins=np.array([(x / 4, x / 4 + 0.25) for x in range(0, 4)]),
+                                          average_pairs_per_bin=1,
+                                          batch_size=batch_size,
+                                          augment_removal_max=0.0,
+                                          augment_removal_intensity=0.0,
+                                          augment_intensity=0.0,
+                                          augment_noise_max=0)
+    scp, spectrums = select_compound_pairs_wrapper(spectrums, model_settings)
+
     # Create generator
-    test_generator = DataGeneratorPytorch(
-        spectrums=spectrums,
-        model_settings=model_settings,
-        selected_compound_pairs=scp,
-        generator_settings=GeneratorSettings(**{"batch_size": batch_size,
-                                              "augment_removal_max": 0.0,
-                                              "augment_removal_intensity": 0.0,
-                                              "augment_intensity": 0.0,
-                                              "augment_noise_max": 0})
-    )
+    test_generator = DataGeneratorPytorch(spectrums=spectrums, selected_compound_pairs=scp,
+                                          model_settings=model_settings)
 
     spec1, spec2, meta1, meta2, targets = test_generator.__getitem__(0)
     assert meta1.shape[0] == meta2.shape[0] == batch_size

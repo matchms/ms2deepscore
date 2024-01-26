@@ -7,8 +7,7 @@ from typing import Optional
 from matplotlib import pyplot as plt
 from ms2deepscore.models.SiameseSpectralModel import (SiameseSpectralModel,
                                                       train)
-from ms2deepscore.SettingsMS2Deepscore import (GeneratorSettings,
-                                               SettingsMS2Deepscore)
+from ms2deepscore.SettingsMS2Deepscore import SettingsMS2Deepscore
 from ms2deepscore.train_new_model.data_generators import DataGeneratorPytorch
 from ms2deepscore.train_new_model.spectrum_pair_selection import \
     select_compound_pairs_wrapper
@@ -21,7 +20,6 @@ def train_ms2ds_model(
         validation_spectra,
         results_folder,
         model_settings: SettingsMS2Deepscore,
-        generator_settings: GeneratorSettings,
         ):
     """Full workflow to train a MS2DeepScore model.
     """
@@ -34,20 +32,17 @@ def train_ms2ds_model(
     ms2ds_history_plot_file_name = os.path.join(results_folder, model_settings.history_plot_file_name)
 
     selected_compound_pairs_training, selected_training_spectra = select_compound_pairs_wrapper(
-        training_spectra, settings=generator_settings)
+        training_spectra, settings=model_settings)
 
     # Create generators
-    train_generator = DataGeneratorPytorch(
-        spectrums=selected_training_spectra,
-        model_settings=model_settings,
-        selected_compound_pairs=selected_compound_pairs_training,
-        generator_settings=generator_settings
-    )
+    train_generator = DataGeneratorPytorch(spectrums=selected_training_spectra,
+                                           selected_compound_pairs=selected_compound_pairs_training,
+                                           model_settings=model_settings)
 
     model = SiameseSpectralModel(model_settings=model_settings)
 
     validation_loss_calculator = ValidationLossCalculator(validation_spectra,
-                                                          score_bins=generator_settings.same_prob_bins)
+                                                          score_bins=model_settings.same_prob_bins)
 
     history = train(model,
                     train_generator,

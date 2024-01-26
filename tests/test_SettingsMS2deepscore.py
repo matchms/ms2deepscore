@@ -1,8 +1,7 @@
 import json
 import os
 import pytest
-from ms2deepscore.SettingsMS2Deepscore import (GeneratorSettings,
-                                               SettingsMS2Deepscore)
+from ms2deepscore.SettingsMS2Deepscore import SettingsMS2Deepscore
 
 
 def test_initiate_settingsms2deepscore():
@@ -30,14 +29,5 @@ def test_save_settings(tmp_path):
     assert result["embedding_dim"] == 400
 
 
-def test_default_generator_settings():
-    settings = GeneratorSettings()
-    assert settings.max_pairs_per_bin == 100
-    assert settings.num_turns == 1
-    assert settings.include_diagonal
-    assert settings.shuffle
-
-
 def test_get_dict():
     result = SettingsMS2Deepscore().get_dict()
-    print(result)

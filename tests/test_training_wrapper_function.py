@@ -1,8 +1,7 @@
 import os
 import numpy as np
 from matchms.exporting import save_as_mgf
-from ms2deepscore.SettingsMS2Deepscore import (GeneratorSettings,
-                                               SettingsMS2Deepscore)
+from ms2deepscore.SettingsMS2Deepscore import SettingsMS2Deepscore
 from ms2deepscore.wrapper_functions.training_wrapper_functions import (
     StoreTrainingData, train_ms2deepscore_wrapper)
 from tests.create_test_spectra import pesticides_test_spectra
@@ -20,16 +19,14 @@ def test_train_wrapper_ms2ds_model(tmp_path):
         "epochs": 2,  # to speed up tests --> usually many more
         "ionisation_mode": "negative",
         "base_dims": [200, 200],  # to speed up tests --> usually larger
-        "embedding_dim": 100  # to speed up tests --> usually larger
-        })
-    generator_settings = GeneratorSettings(**{
+        "embedding_dim": 100,  # to speed up tests --> usually larger
         "same_prob_bins": np.array([(0, 0.2), (0.2, 1.0000001)]),
         "average_pairs_per_bin": 2,
-        "batch_size": 2, # to speed up tests --> usually larger
+        "batch_size": 2,  # to speed up tests --> usually larger
         "random_seed": 42
-    })
-    model_directory_name = train_ms2deepscore_wrapper(spectra_file_name, model_settings, generator_settings,
-                                                      validation_split_fraction=5)
+        })
+
+    model_directory_name = train_ms2deepscore_wrapper(spectra_file_name, model_settings, validation_split_fraction=5)
     expected_file_names = StoreTrainingData(spectra_file_name)
     assert os.path.isfile(os.path.join(tmp_path, expected_file_names.trained_models_folder,
                                        model_directory_name, model_settings.model_file_name))

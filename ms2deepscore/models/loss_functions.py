@@ -91,7 +91,8 @@ def bin_dependent_losses(predictions,
     if predictions.shape != true_values.shape:
         raise ValueError("Expected true values and predictions to have the same shape")
     if ref_score_bins[-1][1] <= 1:
-        raise ValueError("Expected the highest bin to be higher than one (otherwise exact matches are excluded)")
+        raise ValueError("Expected the highest bin to be smaller or equal to one, "
+                         "since tanimoto scores cannot be higher than one")
     bin_content = []
     losses = {"bin": []}
     for loss_type in loss_types:

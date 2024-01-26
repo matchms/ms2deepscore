@@ -3,7 +3,7 @@ import pytest
 from matchms import Spectrum
 from ms2deepscore.models.SiameseSpectralModel import (SiameseSpectralModel,
                                                       train)
-from ms2deepscore.SettingsMS2Deepscore import (GeneratorSettings, SettingsMS2Deepscore)
+from ms2deepscore.SettingsMS2Deepscore import SettingsMS2Deepscore
 from ms2deepscore.tensorize_spectra import tensorize_spectra
 from ms2deepscore.train_new_model.data_generators import DataGeneratorPytorch
 from ms2deepscore.train_new_model.spectrum_pair_selection import \
@@ -121,23 +121,21 @@ def test_siamese_model_additional_metadata(dummy_spectra):
 
 def test_model_training(simple_training_spectra):
     # Select pairs
-    settings = GeneratorSettings(**{
-        "same_prob_bins": np.array([(0, 0.5), (0.5, 1.000001)]),
-        "average_pairs_per_bin": 20
-    })
-    scp_train, _ = select_compound_pairs_wrapper(simple_training_spectra, settings)
     model_settings = SettingsMS2Deepscore(min_mz=0, max_mz=200, mz_bin_width=0.2,
                                           intensity_scaling=0.5, base_dims=(200, 200),
                                           embedding_dim=100,
-                                          train_binning_layer=False)
+                                          train_binning_layer=False,
+                                          same_prob_bins=np.array([(0, 0.5), (0.5, 1)]),
+                                          average_pairs_per_bin=20,
+                                          batch_size=2,
+                                          num_turns=20
+                                          )
+    scp_train, _ = select_compound_pairs_wrapper(simple_training_spectra, model_settings)
+
     # Create generators
-    train_generator_simple = DataGeneratorPytorch(
-        spectrums=simple_training_spectra,
-        model_settings=model_settings,
-        selected_compound_pairs=scp_train,
-        generator_settings=GeneratorSettings(**{"batch_size": 2,
-                                                "num_turns": 20})
-    )
+    train_generator_simple = DataGeneratorPytorch(spectrums=simple_training_spectra,
+                                                  selected_compound_pairs=scp_train,
+                                                  model_settings=model_settings)
 
     validation_loss_calculator = ValidationLossCalculator(
         simple_training_spectra,

@@ -7,7 +7,7 @@ from matchms.similarity.vector_similarity_functions import jaccard_index
 from numba import jit, prange
 from scipy.sparse import coo_array
 from tqdm import tqdm
-from ms2deepscore.SettingsMS2Deepscore import GeneratorSettings
+from ms2deepscore.SettingsMS2Deepscore import SettingsMS2Deepscore
 
 
 class SelectedCompoundPairs:
@@ -100,7 +100,7 @@ class SelectedCompoundPairs:
 
 def select_compound_pairs_wrapper(
         spectrums: List[Spectrum],
-        settings: GeneratorSettings,
+        settings: SettingsMS2Deepscore,
         shuffling: bool = True,
         ) -> Tuple[SelectedCompoundPairs, List[Spectrum]]:
     """Returns a SelectedCompoundPairs object containing equally balanced pairs over the different bins
