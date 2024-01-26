@@ -10,6 +10,7 @@ from ms2deepscore.models.SiameseSpectralModel import (SiameseSpectralModel,
                                                       compute_embedding_array)
 
 
+
 class ValidationLossCalculator:
     def __init__(self,
                  val_spectrums,

@@ -23,7 +23,7 @@ def test_train_ms2ds_model(tmp_path):
         "epochs": 2,  # to speed up tests --> usually many more
         "base_dims": [200, 200],  # to speed up tests --> usually larger
         "embedding_dim": 100,  # to speed up tests --> usually larger
-        "same_prob_bins": np.array([(0, 0.5), (0.5, 1.000001)]),
+        "same_prob_bins": np.array([(0, 0.5), (0.5, 1.0)]),
         "average_pairs_per_bin": 2,
         "batch_size": 8
         })

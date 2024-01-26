@@ -100,8 +100,8 @@ def derive_scatter_data(reference_scores,
                         n_bins_x, n_bins_y):
     """Helper function to collect actual scatter plot data"""
     # pylint: disable=too-many-arguments
-    bins_x = np.linspace(lower_bound,upper_bound+0.0001, n_bins_x+1)
-    bins_y = np.linspace(lower_bound,upper_bound+0.0001, n_bins_y+1)
+    bins_x = np.linspace(lower_bound,upper_bound, n_bins_x+1)
+    bins_y = np.linspace(lower_bound,upper_bound, n_bins_y+1)
     confusion_like_matrix = np.zeros((n_bins_x, n_bins_y))
     confusion_like_matrix_scatter = []
     for i in range(n_bins_x):
@@ -114,8 +114,12 @@ def derive_scatter_data(reference_scores,
                 low_y = bins_y[j]
             else:
                 low_y = np.min(comparison_scores)
-            idx = np.where((reference_scores>=low_x) & (reference_scores<bins_x[i+1]) &
-                          (comparison_scores>=low_y) & (comparison_scores<bins_y[j+1]))
+            if i == 0:
+                idx = np.where((reference_scores >= low_x) & (reference_scores <= bins_x[i+1]) &
+                            (comparison_scores >= low_y) & (comparison_scores <= bins_y[j+1]))
+            else:
+                idx = np.where((reference_scores > low_x) & (reference_scores <= bins_x[i+1]) &
+                            (comparison_scores > low_y) & (comparison_scores <= bins_y[j+1]))
             confusion_like_matrix[i, j] = idx[0].shape[0]
             confusion_like_matrix_scatter.append(((bins_x[i] + bins_x[i+1])/2,
                                                  (bins_y[j] + bins_y[j+1])/2,
