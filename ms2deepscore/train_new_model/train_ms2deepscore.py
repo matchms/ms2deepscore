@@ -42,7 +42,8 @@ def train_ms2ds_model(
     model = SiameseSpectralModel(settings=settings)
 
     validation_loss_calculator = ValidationLossCalculator(validation_spectra,
-                                                          score_bins=settings.same_prob_bins)
+                                                          score_bins=settings.same_prob_bins,
+                                                          random_seed=settings.random_seed)
 
     history = train(model,
                     train_generator,
