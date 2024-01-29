@@ -1,8 +1,9 @@
 from pathlib import Path
 from typing import Union
 import torch
+from ms2deepscore.__version__ import __version__
 from ms2deepscore.models.SiameseSpectralModel import SiameseSpectralModel
-from ms2deepscore.SettingsMS2Deepscore import TensorizationSettings
+from ms2deepscore.SettingsMS2Deepscore import SettingsMS2Deepscore
 
 
 def load_model(filename: Union[str, Path]) -> SiameseSpectralModel:
@@ -23,14 +24,14 @@ def load_model(filename: Union[str, Path]) -> SiameseSpectralModel:
 
     """
     model_settings = torch.load(filename)
-
+    if model_settings["version"] != __version__:
+        print(f"The model version ({model_settings['version']}) does not match the version of MS2Deepscore "
+              f"({__version__}), consider downloading a new model or changing the MS2Deepscore version")
     # Extract model parameters from the checkpoint
     model_params = model_settings['model_params']
 
     # Instantiate the SiameseSpectralModel with the loaded parameters
-    model = SiameseSpectralModel(**model_params,
-                                 tensorisaton_settings=TensorizationSettings(
-                                     **model_settings["tensorization_parameters"]))
+    model = SiameseSpectralModel(settings=SettingsMS2Deepscore(**model_params))
     model.load_state_dict(model_settings['model_state_dict'])
     model.eval()
     return model

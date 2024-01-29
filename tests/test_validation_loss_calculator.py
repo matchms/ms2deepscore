@@ -51,7 +51,6 @@ def test_validation_loss_calculator():
     model = siamese_spectral_model()
     test_spectra = pesticides_test_spectra()
     bins = np.array([(x / 10, x / 10 + 0.1) for x in range(0, 10)])
-    bins[-1][1] = 1.0000001
     validation_loss_calculator = ValidationLossCalculator(test_spectra,
                                                           bins,
                                                           random_seed=42)
