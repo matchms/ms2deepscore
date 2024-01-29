@@ -14,12 +14,15 @@ class ValidationLossCalculator:
     def __init__(self,
                  val_spectrums,
                  score_bins=np.array([(x / 10, x / 10 + 0.1) for x in range(0, 10)]),
+                 weighting_factor=0,
                  random_seed=42):
         self.val_spectrums = select_one_spectrum_per_inchikey(val_spectrums, random_seed)
         tanimoto_scores = get_tanimoto_score_between_spectra(self.val_spectrums, self.val_spectrums)
+
         # Remove comparisons against themselves
         self.target_scores = remove_diagonal(tanimoto_scores)
         self.score_bins = score_bins
+        self.weighting_factor = weighting_factor
 
     def compute_binned_validation_loss(self,
                                        model: SiameseSpectralModel,
@@ -31,7 +34,8 @@ class ValidationLossCalculator:
         _, _, losses = bin_dependent_losses(remove_diagonal(ms2ds_scores),
                                             self.target_scores,
                                             self.score_bins,
-                                            loss_types=loss_types
+                                            loss_types=loss_types,
+                                            weighting_factor=self.weighting_factor,
                                             )
         average_losses = {}
         for loss_type in loss_types:

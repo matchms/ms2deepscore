@@ -127,7 +127,7 @@ class SpectralEncoder(nn.Module):
             self.dense_layers.append(dense_layer(input_dim, output_dim, "relu"))
             input_dim = output_dim
 
-        self.embedding_layer = dense_layer(settings.base_dims[-1], settings.embedding_dim, "relu")
+        self.embedding_layer = dense_layer(settings.base_dims[-1], settings.embedding_dim, "tanh")
         self.dropout = nn.Dropout(settings.dropout_rate)
 
     def forward(self, spectra_tensors, metadata_tensors):
@@ -155,6 +155,7 @@ def train(model: SiameseSpectralModel,
           patience: int = 10,
           checkpoint_filename: str = None,
           loss_function="MSE",
+          weighting_factor=0,
           monitor_rmse: bool = True,
           collect_all_targets: bool = False,
           lambda_l1: float = 0,
@@ -182,6 +183,8 @@ def train(model: SiameseSpectralModel,
         File path to save the model checkpoint.
     loss_function
         Pass a loss function (e.g. a pytorch default or a custom function).
+    weighting_factor
+        Default is set to 0, set to value between 0 and 1 to shift attention to higher target scores.
     monitor_rmse
         If True rmse will be monitored turing training.
     collect_all_targets
@@ -228,7 +231,7 @@ def train(model: SiameseSpectralModel,
                                 meta_1.to(device), meta_2.to(device))
 
                 # Calculate loss
-                loss = criterion(outputs, targets.to(device))
+                loss = criterion(outputs, targets.to(device), weighting_factor=weighting_factor)
                 if lambda_l1 > 0 or lambda_l2 > 0:
                     loss += l1_regularization(model, lambda_l1) + l2_regularization(model, lambda_l2)
                 batch_losses.append(float(loss))
@@ -269,15 +272,17 @@ def train(model: SiameseSpectralModel,
         # Print statistics
         print(f"Epoch [{epoch+1}/{num_epochs}], Loss: {np.mean(batch_losses):.4f}")
         if validation_loss_calculator is not None:
-            print(f"Validation Loss: {val_loss:.4f} (RMSE: {val_losses['rmse']}).")
+            print(f"Validation Loss: {val_loss:.4f} (RMSE: {val_losses['rmse']:.4f}).")
     return history
 
 
 def dense_layer(input_size, output_size, activation="relu"):
     """Combines a densely connected layer and an activation function."""
     activations = nn.ModuleDict([
-        ['lrelu', nn.LeakyReLU()],
-        ['relu', nn.ReLU()]
+        ["lrelu", nn.LeakyReLU()],
+        ["relu", nn.ReLU()],
+        ["sigmoid", nn.Sigmoid()],
+        ["tanh", nn.Tanh()]
     ])
     return nn.Sequential(
         nn.Linear(input_size, output_size),
@@ -296,7 +301,6 @@ def compute_embedding_array(model: SiameseSpectralModel,
                             spectrums):
     """Compute the embeddings of all spectra in spectrums.
     """
-    model.eval()
     embeddings = np.zeros((len(spectrums), model.model_settings.embedding_dim))
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model.to(device)
