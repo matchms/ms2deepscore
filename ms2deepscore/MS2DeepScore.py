@@ -53,7 +53,7 @@ class MS2DeepScore(BaseSimilarity):
         """
         self.model = model
         self.model.eval()
-        self.output_vector_dim = self.model.model_parameters["embedding_dim"]
+        self.output_vector_dim = self.model.model_settings.embedding_dim
         self.progress_bar = progress_bar
 
     def get_embedding_array(self, spectrums):

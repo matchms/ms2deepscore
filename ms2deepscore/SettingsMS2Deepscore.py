@@ -22,88 +22,24 @@ class SettingsMS2Deepscore:
             The learning rate that should be used during training.
         epochs:
             The number of epochs that should be used during training.
-        """
-    def __init__(self, settings=None):
-        # model structure
-        self.base_dims = (1000, 1000)
-        self.embedding_dim = 400
-        self.additional_metadata = ()
-        self.ionisation_mode = "positive"
-
-        # training settings
-        self.dropout_rate = 0.2
-        self.learning_rate = 0.00025
-        self.epochs = 150
-        self.patience = 10
-
-        # Generator settings
-        self.batch_size = 32
-
-        # Folder names for storing
-        self.binned_spectra_folder_name = "binned_spectra"
-        self.model_file_name = "ms2deepscore_model.pt"
-        self.history_plot_file_name = "history.svg"
-
-        if settings:
-            for key, value in settings.items():
-                if hasattr(self, key):
-                    setattr(self, key, value)
-                else:
-                    raise ValueError(f"Unknown setting: {key}")
-        self.model_directory_name = self._create_model_directory_name()
-        self.validate_settings()
-
-    def validate_settings(self):
-        assert self.ionisation_mode in ("positive", "negative", "both")
-
-    def _create_model_directory_name(self):
-        """Creates a directory name using metadata, it will contain the metadata, the binned spectra and final model"""
-        binning_file_label = ""
-        for metadata_generator in self.additional_metadata:
-            binning_file_label += metadata_generator.metadata_field + "_"
-
-        # Define a neural net structure label
-        neural_net_structure_label = ""
-        for layer in self.base_dims:
-            neural_net_structure_label += str(layer) + "_"
-        neural_net_structure_label += "layers"
-
-        if self.embedding_dim:
-            neural_net_structure_label += f"_{str(self.embedding_dim)}_embedding"
-        time_stamp = datetime.now().strftime("%Y_%m_%d_%H_%M_%S")
-        model_folder_file_name = f"{self.ionisation_mode}_mode_{binning_file_label}" \
-                                 f"{neural_net_structure_label}_{time_stamp}"
-        print(f"The model will be stored in the folder: {model_folder_file_name}")
-        return model_folder_file_name
-
-    def save_to_file(self, file_path):
-        class NumpyArrayEncoder(JSONEncoder):
-            def default(self, o):
-                if isinstance(o, np.ndarray):
-                    return o.tolist()
-                return JSONEncoder.default(self, o)
-        with open(file_path, 'w', encoding="utf-8") as file:
-            json.dump(self.__dict__, file, indent=4, cls=NumpyArrayEncoder)
-
-
-class GeneratorSettings:
-    """
-    Set parameters for data generator. Use below listed defaults unless other
-    input is provided.
-
-    Parameters
-    ----------
-    settings:
-        A dictionary containing the settings that need to be changed. For parameters that are not given the default
-        will be used.
-        batch_size
+        patience:
+            How long the model should keep training if validation does not improve
+        loss_function:
+            The loss function to use. The options can be found in models.loss_functions
+        train_binning_layer
+            Default is False in which case the model contains a first dense multi-group peak binning layer. If True a
+            smart binning layer is used.
+        train_binning_layer_group_size
+            When a smart binning layer is used the group_size determines how many input bins are taken into
+            one dense micro-network.
+        train_binning_layer_output_per_group
+            This sets the number of next layer bins each group_size group of inputs shares.
+                batch_size
             Number of pairs per batch. Default=32.
         num_turns
             Number of pairs for each InChiKey14 during each epoch. Default=1
         shuffle
             Set to True to shuffle IDs every epoch. Default=True
-        ignore_equal_pairs TODO: check against include_diagonal
-            Set to True to ignore pairs of two identical spectra. Default=True
         same_prob_bins
             List of tuples that define ranges of the true label to be trained with
             equal frequencies. Default is set to [(0, 0.5), (0.5, 1)], which means
@@ -149,12 +85,43 @@ class GeneratorSettings:
             Specify random seed for reproducible random number generation.
         additional_inputs
             Array of additional values to be used in training for e.g. ["precursor_mz", "parent_mass"]
-    """
-    def __init__(self, settings=None):
+        """
+    def __init__(self, **settings):
+        # model structure
+        self.base_dims = (1000, 1000)
+        self.embedding_dim = 400
+        self.ionisation_mode = "positive"
+
+        # additional model structure options
+        self.train_binning_layer: bool = False
+        self.train_binning_layer_group_size: int = 20
+        self.train_binning_layer_output_per_group: int = 2
+
+        # training settings
+        self.dropout_rate = 0.2
+        self.learning_rate = 0.00025
+        self.epochs = 150
+        self.patience = 10
+        self.loss_function = "mse"
+
+        # Folder names for storing
+        self.model_file_name = "ms2deepscore_model.pt"
+        self.history_plot_file_name = "history.svg"
+        self.time_stamp = datetime.now().strftime("%Y_%m_%d_%H_%M_%S")
+
+        # tensorization settings
+        self.min_mz = 10
+        self.max_mz = 1000
+        self.mz_bin_width = 0.1
+        self.intensity_scaling = 0.5
+        self.additional_metadata = []
+
+        # Data generator settings
         self.batch_size = 32
         self.num_turns = 1
-        self.ignore_equal_pairs = True
+        # todo shuffle and use fixed set can be removed, right? Since we dont use the datagenerator for val data.
         self.shuffle = True
+        self.use_fixed_set = False
 
         # Compound pairs selection settings
         self.average_pairs_per_bin = 20
@@ -173,21 +140,20 @@ class GeneratorSettings:
         self.augment_intensity = 0.4
         self.augment_noise_max = 10
         self.augment_noise_intensity = 0.01
-        self.use_fixed_set = False
-        self.random_seed = None
+
         if settings:
             for key, value in settings.items():
                 if hasattr(self, key):
-                    print(f"The value for {key} is set from {getattr(self, key)} (default) to {value}")
                     setattr(self, key, value)
                 else:
                     raise ValueError(f"Unknown setting: {key}")
-        self.validate_settings()
 
+        self.validate_settings()
         if self.random_seed is not None:
             np.random.seed(self.random_seed)
 
     def validate_settings(self):
+        assert self.ionisation_mode in ("positive", "negative", "both")
         assert 0.0 <= self.augment_removal_max <= 1.0, "Expected value within [0,1]"
         assert 0.0 <= self.augment_removal_intensity <= 1.0, "Expected value within [0,1]"
         if self.use_fixed_set and self.shuffle:
@@ -195,27 +161,18 @@ class GeneratorSettings:
         if self.random_seed is not None:
             assert isinstance(self.random_seed, int), "Random seed must be integer number."
 
-
-class TensorizationSettings:
-    """Stores the settings for tensorizing Spectra"""
-    def __init__(self,
-                 **settings):
-        self.min_mz = 10
-        self.max_mz = 1000
-        self.mz_bin_width = 0.1
-        self.intensity_scaling = 0.5
-        self.additional_metadata = []
-        if settings:
-            for key, value in settings.items():
-                if hasattr(self, key):
-                    setattr(self, key, value)
-                else:
-                    raise ValueError(f"Unknown setting: {key}")
-        self.num_bins = int((self.max_mz - self.min_mz) / self.mz_bin_width)
+    def number_of_bins(self):
+        return int((self.max_mz - self.min_mz) / self.mz_bin_width)
 
     def get_dict(self):
-        return {"min_mz": self.min_mz,
-                "max_mz": self.max_mz,
-                "mz_bin_width": self.mz_bin_width,
-                "intensity_scaling": self.intensity_scaling,
-                "additional_metadata": self.additional_metadata}
+        """returns a dictionary representation of the settings"""
+        return self.__dict__
+
+    def save_to_file(self, file_path):
+        class NumpyArrayEncoder(JSONEncoder):
+            def default(self, o):
+                if isinstance(o, np.ndarray):
+                    return o.tolist()
+                return JSONEncoder.default(self, o)
+        with open(file_path, 'w', encoding="utf-8") as file:
+            json.dump(self.__dict__, file, indent=4, cls=NumpyArrayEncoder)
