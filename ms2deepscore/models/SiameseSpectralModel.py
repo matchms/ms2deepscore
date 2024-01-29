@@ -355,7 +355,6 @@ def compute_embedding_array(model,
                             spectrums):
     """Compute the embeddings of all spectra in spectrums.
     """
-    model.eval()
     embeddings = np.zeros((len(spectrums), model.model_parameters["embedding_dim"]))
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model.to(device)
