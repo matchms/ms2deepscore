@@ -55,9 +55,9 @@ def test_MS2DeepScoreMonteCarlo_pair(ms2_deep_score_instance):
     score = similarity_measure.pair(spectrums[0], spectrums[0])
     assert isinstance(score, np.ndarray), "Expected score to be numpy array"
     assert score["score"].size == 1
-    assert score["uncertainty"].size == 1
-    assert score['score'].dtype == np.float64, "Expected float as score."
-    assert score['uncertainty'].dtype == np.float64, "Expected float as uncertainty."
+    assert score["lower_bound"].size == score["upper_bound"].size == 1
+    assert score["score"].dtype == np.float64, "Expected float as score."
+    assert score["lower_bound"].dtype == np.float64, "Expected float as uncertainty."
 
 
 def test_MS2DeepScoreMonteCarlo_matrix(ms2_deep_score_instance):
@@ -68,5 +68,7 @@ def test_MS2DeepScoreMonteCarlo_matrix(ms2_deep_score_instance):
     scores_array = similarity_measure.matrix(spectrums[:4], spectrums[:4])
     assert isinstance(scores_array, np.ndarray), "Expected scores to be numpy array"
     assert scores_array["score"].shape == (4, 4)
-    assert scores_array["uncertainty"].shape == (4, 4)
-    assert np.max(scores_array['uncertainty']) < 0.2, "Expected lower uncertainty"
+    assert scores_array["lower_bound"].shape == (4, 4)
+    assert np.min(scores_array['lower_bound']) <= np.min(scores_array['score'])
+    assert scores_array["upper_bound"].shape == (4, 4)
+    assert np.min(scores_array['upper_bound']) >= np.min(scores_array['score'])

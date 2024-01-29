@@ -6,8 +6,10 @@ import torch
 from tqdm import tqdm
 from ms2deepscore.models.SiameseSpectralModel import (SiameseSpectralModel,
                                                       compute_embedding_array)
-from ms2deepscore.vector_operations import (cosine_similarity_matrix, iqr_pooling,
-                                mean_pooling, median_pooling, std_pooling)
+from ms2deepscore.vector_operations import (cosine_similarity_matrix, #iqr_pooling,
+                                mean_pooling, median_pooling,
+                                percentile_pooling)
+                                #std_pooling)
 from ms2deepscore.tensorize_spectra import tensorize_spectra
 
 
@@ -49,11 +51,13 @@ class MS2DeepScoreMonteCarlo(BaseSimilarity):
     # Set key characteristics as class attributes
     is_commutative = True
     # Set output data type, e.g. ("score", "float") or [("score", "float"), ("matches", "int")]
-    score_datatype = [("score", np.float64), ("uncertainty", np.float64)]
+    score_datatype = [("score", np.float64), ("lower_bound", np.float64), ("upper_bound", np.float64)]
 
     def __init__(self, model,
                  n_ensembles: int = 10,
                  average_type: str = "median",
+                 low=10,
+                 high=90,
                  progress_bar: bool = True):
         """
 
@@ -89,6 +93,8 @@ class MS2DeepScoreMonteCarlo(BaseSimilarity):
         self.average_type = average_type
         self.output_vector_dim = self.model.model_settings.embedding_dim
         self.progress_bar = progress_bar
+        self.low = low
+        self.high = high
 
     def get_embedding_array(self, spectrums):
         return compute_embedding_array(self.model, spectrums)
@@ -117,11 +123,11 @@ class MS2DeepScoreMonteCarlo(BaseSimilarity):
         scores_ensemble = cosine_similarity_matrix(reference_vectors, query_vectors)
         if self.average_type == "median":
             average_similarity = np.median(scores_ensemble)
-            uncertainty = iqr_pooling(scores_ensemble, self.n_ensembles)[0, 0]
+            lower_bound, upper_bound = np.percentile(scores_ensemble, [self.low, self.high])
         elif self.average_type == "mean":
             average_similarity = np.mean(scores_ensemble)
-            uncertainty = scores_ensemble.std()
-        return np.asarray((average_similarity, uncertainty),
+            lower_bound, upper_bound = np.percentile(scores_ensemble, [self.low, self.high])
+        return np.asarray((average_similarity, lower_bound, upper_bound),
                           dtype=self.score_datatype)
 
     def matrix(self, references: List[Spectrum], queries: List[Spectrum],
@@ -159,15 +165,20 @@ class MS2DeepScoreMonteCarlo(BaseSimilarity):
         ms2ds_similarity = cosine_similarity_matrix(reference_vectors, query_vectors)
         if self.average_type == "median":
             average_similarities = median_pooling(ms2ds_similarity, self.n_ensembles)
-            uncertainties = iqr_pooling(ms2ds_similarity, self.n_ensembles)
+            percentile_low, percentile_high = percentile_pooling(ms2ds_similarity,
+                                                                 self.n_ensembles,
+                                                                 self.low, self.high)
         elif self.average_type == "mean":
             average_similarities = mean_pooling(ms2ds_similarity, self.n_ensembles)
-            uncertainties = std_pooling(ms2ds_similarity, self.n_ensembles)
+            percentile_low, percentile_high = percentile_pooling(ms2ds_similarity,
+                                                                 self.n_ensembles,
+                                                                 self.low, self.high)
 
         similarities=np.empty((average_similarities.shape[0],
                               average_similarities.shape[1]), dtype=self.score_datatype)
-        similarities['score'] = average_similarities
-        similarities['uncertainty'] = uncertainties
+        similarities["score"] = average_similarities
+        similarities["lower_bound"] = percentile_low
+        similarities["upper_bound"] = percentile_high
         return similarities
 
     def calculate_vectors(self, spectrum_list: List[Spectrum]) -> Tuple[np.ndarray, np.ndarray]:

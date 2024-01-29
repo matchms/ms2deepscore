@@ -142,3 +142,25 @@ def iqr_pooling(scores_ensemble: np.ndarray, n_ensembles: int) -> np.ndarray:
                                      [75 ,25])
             scores_pooled[i, j] = q75 - q25
     return scores_pooled
+
+
+@numba.njit(fastmath=True)
+def percentile_pooling(scores_ensemble: np.ndarray,
+                       n_ensembles: int,
+                       low: float = 25,
+                       high: float = 75,
+                       ) -> np.ndarray:
+    """Do percentile computation on an ensemble of scores."""
+    dim_0 = int(scores_ensemble.shape[0]/n_ensembles)
+    dim_1 = int(scores_ensemble.shape[1]/n_ensembles)
+    percentile_low = np.zeros((dim_0, dim_1))
+    percentile_high = np.zeros((dim_0, dim_1))
+
+    for i in range(dim_0):
+        for j in range(dim_1):
+            perc_high, perc_low = np.percentile(scores_ensemble[i*n_ensembles:(i+1)*n_ensembles,
+                                                j*n_ensembles:(j+1)*n_ensembles],
+                                     [high ,low])
+            percentile_low[i, j] = perc_low
+            percentile_high[i, j] = perc_high
+    return percentile_low, percentile_high
