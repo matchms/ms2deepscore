@@ -213,6 +213,7 @@ def train(model: SiameseSpectralModel,
           patience: int = 10,
           checkpoint_filename: str = None,
           loss_function="MSE",
+          weighting_factor=0,
           monitor_rmse: bool = True,
           collect_all_targets: bool = False,
           lambda_l1: float = 0,
@@ -240,6 +241,8 @@ def train(model: SiameseSpectralModel,
         File path to save the model checkpoint.
     loss_function
         Pass a loss function (e.g. a pytorch default or a custom function).
+    weighting_factor
+        Default is set to 0, set to value between 0 and 1 to shift attention to higher target scores.
     monitor_rmse
         If True rmse will be monitored turing training.
     collect_all_targets
@@ -286,7 +289,7 @@ def train(model: SiameseSpectralModel,
                                 meta_1.to(device), meta_2.to(device))
 
                 # Calculate loss
-                loss = criterion(outputs, targets.to(device))
+                loss = criterion(outputs, targets.to(device), weighting_factor=weighting_factor)
                 if lambda_l1 > 0 or lambda_l2 > 0:
                     loss += l1_regularization(model, lambda_l1) + l2_regularization(model, lambda_l2)
                 batch_losses.append(float(loss))
