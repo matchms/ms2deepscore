@@ -21,7 +21,7 @@ class DataGeneratorPytorch:
     """
     def __init__(self, spectrums: List[Spectrum],
                  selected_compound_pairs: SelectedCompoundPairs,
-                 model_settings: SettingsMS2Deepscore):
+                 settings: SettingsMS2Deepscore):
         """Generates data for training a siamese Keras model.
 
         Parameters
@@ -31,7 +31,7 @@ class DataGeneratorPytorch:
         selected_compound_pairs
             SelectedCompoundPairs object which contains selected compounds pairs and the
             respective similarity scores.
-        model_settings
+        settings
             The available settings can be found in SettignsMS2Deepscore
         """
         self.current_index = 0
@@ -41,7 +41,7 @@ class DataGeneratorPytorch:
         self.spectrum_inchikeys = np.array([s.get("inchikey")[:14] for s in self.spectrums])
 
         # Set all other settings to input (or otherwise to defaults):
-        self.model_settings = model_settings
+        self.model_settings = settings
 
         # Initialize random number generator
         if self.model_settings.use_fixed_set:

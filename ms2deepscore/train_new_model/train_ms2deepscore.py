@@ -19,38 +19,38 @@ def train_ms2ds_model(
         training_spectra,
         validation_spectra,
         results_folder,
-        model_settings: SettingsMS2Deepscore,
+        settings: SettingsMS2Deepscore,
         ):
     """Full workflow to train a MS2DeepScore model.
     """
     os.makedirs(results_folder, exist_ok=True)
     # todo remove once this is automatically saved with the model
     # Save settings
-    model_settings.save_to_file(os.path.join(results_folder, "settings.json"))
+    settings.save_to_file(os.path.join(results_folder, "settings.json"))
 
-    output_model_file_name = os.path.join(results_folder, model_settings.model_file_name)
-    ms2ds_history_plot_file_name = os.path.join(results_folder, model_settings.history_plot_file_name)
+    output_model_file_name = os.path.join(results_folder, settings.model_file_name)
+    ms2ds_history_plot_file_name = os.path.join(results_folder, settings.history_plot_file_name)
 
     selected_compound_pairs_training, selected_training_spectra = select_compound_pairs_wrapper(
-        training_spectra, settings=model_settings)
+        training_spectra, settings=settings)
 
     # Create generators
     train_generator = DataGeneratorPytorch(spectrums=selected_training_spectra,
                                            selected_compound_pairs=selected_compound_pairs_training,
-                                           model_settings=model_settings)
+                                           settings=settings)
 
-    model = SiameseSpectralModel(model_settings=model_settings)
+    model = SiameseSpectralModel(settings=settings)
 
     validation_loss_calculator = ValidationLossCalculator(validation_spectra,
-                                                          score_bins=model_settings.same_prob_bins)
+                                                          score_bins=settings.same_prob_bins)
 
     history = train(model,
                     train_generator,
-                    num_epochs=model_settings.epochs,
-                    learning_rate=model_settings.learning_rate,
+                    num_epochs=settings.epochs,
+                    learning_rate=settings.learning_rate,
                     validation_loss_calculator=validation_loss_calculator,
-                    patience=model_settings.patience,
-                    loss_function=model_settings.loss_function,
+                    patience=settings.patience,
+                    loss_function=settings.loss_function,
                     checkpoint_filename=output_model_file_name, lambda_l1=0, lambda_l2=0)
     # Save plot of history
     plot_history(history["losses"], history["val_losses"], ms2ds_history_plot_file_name)

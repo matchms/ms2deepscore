@@ -31,7 +31,7 @@ def load_model(filename: Union[str, Path]) -> SiameseSpectralModel:
     model_params = model_settings['model_params']
 
     # Instantiate the SiameseSpectralModel with the loaded parameters
-    model = SiameseSpectralModel(model_settings=SettingsMS2Deepscore(**model_params))
+    model = SiameseSpectralModel(settings=SettingsMS2Deepscore(**model_params))
     model.load_state_dict(model_settings['model_state_dict'])
     model.eval()
     return model

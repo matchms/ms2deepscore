@@ -15,7 +15,7 @@ def test_train_wrapper_ms2ds_model(tmp_path):
     spectra_file_name = os.path.join(tmp_path, "clean_spectra.mgf")
     save_as_mgf(positive_mode_spectra+negative_mode_spectra,
                 filename=spectra_file_name)
-    model_settings = SettingsMS2Deepscore(**{
+    settings = SettingsMS2Deepscore(**{
         "epochs": 2,  # to speed up tests --> usually many more
         "ionisation_mode": "negative",
         "base_dims": [200, 200],  # to speed up tests --> usually larger
@@ -26,10 +26,10 @@ def test_train_wrapper_ms2ds_model(tmp_path):
         "random_seed": 42
         })
 
-    model_directory_name = train_ms2deepscore_wrapper(spectra_file_name, model_settings, validation_split_fraction=5)
+    model_directory_name = train_ms2deepscore_wrapper(spectra_file_name, settings, validation_split_fraction=5)
     expected_file_names = StoreTrainingData(spectra_file_name)
     assert os.path.isfile(os.path.join(tmp_path, expected_file_names.trained_models_folder,
-                                       model_directory_name, model_settings.model_file_name))
+                                       model_directory_name, settings.model_file_name))
     assert os.path.isfile(expected_file_names.negative_mode_spectra_file)
     assert os.path.isfile(expected_file_names.negative_validation_spectra_file)
     assert os.path.isfile(os.path.join(tmp_path, expected_file_names.trained_models_folder,
