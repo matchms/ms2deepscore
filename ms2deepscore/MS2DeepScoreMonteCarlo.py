@@ -6,14 +6,10 @@ import torch
 from tqdm import tqdm
 from ms2deepscore.models.SiameseSpectralModel import (SiameseSpectralModel,
                                                       compute_embedding_array)
-from ms2deepscore.vector_operations import (cosine_similarity_matrix, #iqr_pooling,
-                                mean_pooling, median_pooling,
-                                percentile_pooling)
-                                #std_pooling)
+from ms2deepscore.vector_operations import (cosine_similarity_matrix,
+                                            mean_pooling, median_pooling,
+                                            percentile_pooling)
 from ms2deepscore.tensorize_spectra import tensorize_spectra
-
-
-# todo reimplement monte carlo dropout for pytorch model. _create_input_vector now still uses binnned spectrum instance
 
 
 class MS2DeepScoreMonteCarlo(BaseSimilarity):
@@ -80,6 +76,7 @@ class MS2DeepScoreMonteCarlo(BaseSimilarity):
             Set to True to monitor the embedding creating with a progress bar.
             Default is False.
         """
+        # pylint: disable=too-many-arguments
         self.model = model
         if self.model.encoder.dropout.p == 0:
             raise TypeError("Monte Carlo Dropout is not supposed to be used with a model where dropout-rate=0.")
