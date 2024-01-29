@@ -2,9 +2,13 @@ from typing import List, Tuple
 import numpy as np
 from matchms import Spectrum
 from matchms.similarity.BaseSimilarity import BaseSimilarity
+import torch
 from tqdm import tqdm
-from .vector_operations import (cosine_similarity_matrix, iqr_pooling,
+from ms2deepscore.models.SiameseSpectralModel import (SiameseSpectralModel,
+                                                      compute_embedding_array)
+from ms2deepscore.vector_operations import (cosine_similarity_matrix, iqr_pooling,
                                 mean_pooling, median_pooling, std_pooling)
+from ms2deepscore.tensorize_spectra import tensorize_spectra
 
 
 # todo reimplement monte carlo dropout for pytorch model. _create_input_vector now still uses binnned spectrum instance
@@ -47,7 +51,9 @@ class MS2DeepScoreMonteCarlo(BaseSimilarity):
     # Set output data type, e.g. ("score", "float") or [("score", "float"), ("matches", "int")]
     score_datatype = [("score", np.float64), ("uncertainty", np.float64)]
 
-    def __init__(self, model, n_ensembles: int = 10, average_type: str = "median",
+    def __init__(self, model,
+                 n_ensembles: int = 10,
+                 average_type: str = "median",
                  progress_bar: bool = True):
         """
 
@@ -71,48 +77,24 @@ class MS2DeepScoreMonteCarlo(BaseSimilarity):
             Default is False.
         """
         self.model = model
-        self.multi_inputs = (model.nr_of_additional_inputs > 0)
+        if self.model.encoder.dropout.p == 0:
+            raise TypeError("Monte Carlo Dropout is not supposed to be used with a model where dropout-rate=0.")
+        # Set model to train mode (switch on the Dropout layer(s))
+        model.train()
+
         self.n_ensembles = n_ensembles
         assert average_type in ["median", "mean"], \
             "Non supported input for average_type. Must be 'median' or 'mean'."
+
         self.average_type = average_type
-        if self.multi_inputs:
-            self.input_vector_dim = [self.model.base.input_shape[0][1], self.model.base.input_shape[1][1]]
-        else:
-            self.input_vector_dim = self.model.base.input_shape[1]
-        self.output_vector_dim = self.model.base.output_shape[1]
+        self.output_vector_dim = self.model.model_settings.embedding_dim
         self.progress_bar = progress_bar
-        self.partial_model = self._create_monte_carlo_base()
 
-    def _create_input_vector(self, binned_spectrum):
-        """Creates input vector for model.base based on binned peaks and intensities"""
-        X = np.zeros((1, self.input_vector_dim))
+    def get_embedding_array(self, spectrums):
+        return compute_embedding_array(self.model, spectrums)
 
-        idx = np.array([int(x) for x in binned_spectrum.binned_peaks.keys()])
-        values = np.array(list(binned_spectrum.binned_peaks.values()))
-        X[0, idx] = values
-        return X
-
-    def _create_monte_carlo_base(self):
-        """Rebuild base network with training=True"""
-        base_dims = []
-        dropout_rates = []
-        for layer in self.model.base.layers:
-            if "dense" in layer.name:
-                base_dims.append(layer.units)
-            if "dropout" in layer.name:
-                dropout_rates.append(layer.rate)
-        if np.unique(dropout_rates).shape[0] > 1:
-            print(f"Found multiple different dropout rates. Selected 1st dropout rate: {dropout_rates[0]}")
-        dropout_rate = dropout_rates[0]
-
-        dropout_in_first_layer = ('dropout' in self.model.base.layers[3].name)
-
-        # re-build base network with dropout layers always on
-        base = self.model.get_base_model(base_dims=base_dims, embedding_dim=self.output_vector_dim, dropout_rate=dropout_rate,
-                                         dropout_in_first_layer=dropout_in_first_layer, dropout_always_on=True)
-        base.set_weights(self.model.base.get_weights())
-        return base
+    def get_embedding_ensemble(self, spectrum):
+        return compute_embedding_ensemble(self.model, spectrum, self.n_ensembles)
 
     def pair(self, reference: Spectrum, query: Spectrum) -> Tuple[float, float]:
         """Calculate the MS2DeepScoreMonteCarlo similaritiy between a reference
@@ -130,10 +112,8 @@ class MS2DeepScoreMonteCarlo(BaseSimilarity):
         ms2ds_ensemble_similarity, ms2ds_ensemble_uncertainty
             Tuple of MS2DeepScore similarity score and uncertainty measure (STD/IQR).
         """
-        binned_reference = self.model.spectrum_binner.transform([reference])[0]
-        binned_query = self.model.spectrum_binner.transform([query])[0]
-        reference_vectors = self.get_embedding_ensemble(binned_reference)
-        query_vectors = self.get_embedding_ensemble(binned_query)
+        reference_vectors = self.get_embedding_ensemble(reference)
+        query_vectors = self.get_embedding_ensemble(query)
         scores_ensemble = cosine_similarity_matrix(reference_vectors, query_vectors)
         if self.average_type == "median":
             average_similarity = np.median(scores_ensemble)
@@ -200,10 +180,8 @@ class MS2DeepScoreMonteCarlo(BaseSimilarity):
         """
         n_rows = len(spectrum_list) * self.n_ensembles
         reference_vectors = np.empty((n_rows, self.output_vector_dim), dtype="float")
-        binned_spectrums = self.model.spectrum_binner.transform(spectrum_list,
-                                                                progress_bar=self.progress_bar)
         for index_ref, reference in enumerate(
-                tqdm(binned_spectrums,
+                tqdm(spectrum_list,
                      desc='Calculating vectors of reference spectrums',
                      disable=(not self.progress_bar))):
             embeddings = self.get_embedding_ensemble(reference)
@@ -211,6 +189,16 @@ class MS2DeepScoreMonteCarlo(BaseSimilarity):
                               0:self.output_vector_dim] = embeddings
         return reference_vectors
 
-    def get_embedding_ensemble(self, spectrum_binned):
-        input_vector_array = np.tile(self._create_input_vector(spectrum_binned), (self.n_ensembles, 1))
-        return self.partial_model.predict(input_vector_array)
+
+def compute_embedding_ensemble(model: SiameseSpectralModel,
+                               spectrum,
+                               n_ensembles):
+    """Compute n_ensembles embeddings of one input spectrum.
+    This assumes that dropout layers are active and create embedding variation.
+    """
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    model.to(device)
+    X = tensorize_spectra(n_ensembles * [spectrum], model.model_settings)
+    with torch.no_grad():
+        embeddings = model.encoder(X[0].to(device), X[1].to(device)).cpu().detach().numpy()
+    return embeddings
