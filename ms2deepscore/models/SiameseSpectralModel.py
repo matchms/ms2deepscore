@@ -334,8 +334,9 @@ def train(model: SiameseSpectralModel,
 def dense_layer(input_size, output_size, activation="relu"):
     """Combines a densely connected layer and an activation function."""
     activations = nn.ModuleDict([
-        ['lrelu', nn.LeakyReLU()],
-        ['relu', nn.ReLU()]
+        ["lrelu", nn.LeakyReLU()],
+        ["relu", nn.ReLU()],
+        ["sigmoid", nn.Sigmoid()],
     ])
     return nn.Sequential(
         nn.Linear(input_size, output_size),
