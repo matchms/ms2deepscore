@@ -183,7 +183,7 @@ class SpectralEncoder(nn.Module):
             self.dense_layers.append(dense_layer(input_dim, output_dim, "relu"))
             input_dim = output_dim
 
-        self.embedding_layer = dense_layer(base_dims[-1], embedding_dim, "relu")  # TODO: why relu?
+        self.embedding_layer = dense_layer(base_dims[-1], embedding_dim, "tanh")
         self.dropout = nn.Dropout(dropout_rate)
 
     def forward(self, spectra_tensors, metadata_tensors):
@@ -337,6 +337,7 @@ def dense_layer(input_size, output_size, activation="relu"):
         ["lrelu", nn.LeakyReLU()],
         ["relu", nn.ReLU()],
         ["sigmoid", nn.Sigmoid()],
+        ["tanh", nn.Tanh()]
     ])
     return nn.Sequential(
         nn.Linear(input_size, output_size),
