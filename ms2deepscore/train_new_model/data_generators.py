@@ -1,58 +1,13 @@
 """ Data generators for training/inference with MS2DeepScore model.
 """
-import pickle
 from typing import List
 import numpy as np
 import torch
 from matchms import Spectrum
-from ms2deepscore.SettingsMS2Deepscore import (GeneratorSettings,
-                                               TensorizationSettings)
+from ms2deepscore.SettingsMS2Deepscore import SettingsMS2Deepscore
 from ms2deepscore.tensorize_spectra import tensorize_spectra
-from ms2deepscore.train_new_model.spectrum_pair_selection import (
-    SelectedCompoundPairs, select_compound_pairs_wrapper)
-
-
-def compute_validation_set(spectrums, tensorization_settings, generator_settings):
-    """Since the pair selection is a highly randomized process,
-    this functions will generate a validation data generator that can be stored
-    using pickle. This is meant for consistent use throughout a larger project,
-    e.g. for consistent hyperparameter optimization.
-    """
-    if not generator_settings.use_fixed_set:
-        print("Expected use_fixed_set to be True (was changed to True)")
-        generator_settings.use_fixed_set = True
-    if not generator_settings.random_seed:
-        print("Expected random seed (was set to 0)")
-        generator_settings.random_seed = 0
-
-    scp_val, _ = select_compound_pairs_wrapper(spectrums, generator_settings, shuffling=False)
-
-    val_generator = DataGeneratorPytorch(
-        spectrums=spectrums,
-        tensorization_settings=tensorization_settings,
-        selected_compound_pairs=scp_val,
-        **generator_settings.__dict__,
-    )
-    # Collect batches
-    print(f"Collecting {len(val_generator)} batches of size {val_generator.settings.batch_size}")
-    for _ in val_generator:
-        pass
-
-    # Remove spectrums (no longer needed)
-    del val_generator.spectrums
-
-    return val_generator
-
-
-def write_to_pickle(generator, filepath):
-    with open(filepath, "wb") as f:
-        pickle.dump(generator, f, protocol=pickle.HIGHEST_PROTOCOL)
-
-
-def load_generator_from_pickle(filepath):
-    with open(filepath, "rb") as f:
-        generator = pickle.load(f)
-    return generator
+from ms2deepscore.train_new_model.spectrum_pair_selection import \
+    SelectedCompoundPairs
 
 
 class DataGeneratorPytorch:
@@ -66,8 +21,7 @@ class DataGeneratorPytorch:
     """
     def __init__(self, spectrums: List[Spectrum],
                  selected_compound_pairs: SelectedCompoundPairs,
-                 tensorization_settings: TensorizationSettings,
-                 **settings):
+                 settings: SettingsMS2Deepscore):
         """Generates data for training a siamese Keras model.
 
         Parameters
@@ -77,20 +31,8 @@ class DataGeneratorPytorch:
         selected_compound_pairs
             SelectedCompoundPairs object which contains selected compounds pairs and the
             respective similarity scores.
-        min_mz
-            Lower bound for m/z values to consider.
-        max_mz
-            Upper bound for m/z values to consider.
-        mz_bin_width
-            Bin width for m/z sampling.
-        intensity_scaling
-            To put more attention on small and medium intensity peaks, peak intensities are
-             scaled by intensity to the power of intensity_scaling.
-        metadata_vectorizer
-            Add the specific MetadataVectorizer object for your data if the model should contain specific
-            metadata entries as input. Default is set to None which means this will be ignored.
         settings
-            The available settings can be found in GeneratorSettings
+            The available settings can be found in SettignsMS2Deepscore
         """
         self.current_index = 0
         self.spectrums = spectrums
@@ -99,19 +41,18 @@ class DataGeneratorPytorch:
         self.spectrum_inchikeys = np.array([s.get("inchikey")[:14] for s in self.spectrums])
 
         # Set all other settings to input (or otherwise to defaults):
-        self.settings = GeneratorSettings(settings)
-        self.tensorization_settings = tensorization_settings
+        self.model_settings = settings
 
         # Initialize random number generator
-        if self.settings.use_fixed_set:
+        if self.model_settings.use_fixed_set:
             if selected_compound_pairs.shuffling:
                 raise ValueError("The generator cannot run reproducibly when shuffling is on for `SelectedCompoundPairs`.")
-            if self.settings.random_seed is None:
-                self.settings.random_seed = 0
-        self.rng = np.random.default_rng(self.settings.random_seed)
+            if self.model_settings.random_seed is None:
+                self.model_settings.random_seed = 0
+        self.rng = np.random.default_rng(self.model_settings.random_seed)
 
         unique_inchikeys = np.unique(self.spectrum_inchikeys)
-        if len(unique_inchikeys) < self.settings.batch_size:
+        if len(unique_inchikeys) < self.model_settings.batch_size:
             raise ValueError("The number of unique inchikeys must be larger than the batch size.")
         self.fixed_set = {}
 
@@ -119,8 +60,8 @@ class DataGeneratorPytorch:
         self.on_epoch_end()
 
     def __len__(self):
-        return int(self.settings.num_turns)\
-            * int(np.ceil(len(self.selected_compound_pairs.scores) / self.settings.batch_size))
+        return int(self.model_settings.num_turns)\
+            * int(np.ceil(len(self.selected_compound_pairs.scores) / self.model_settings.batch_size))
 
     def __iter__(self):
         return self
@@ -136,7 +77,7 @@ class DataGeneratorPytorch:
 
     def _spectrum_pair_generator(self, batch_index: int):
         """Use the provided SelectedCompoundPairs object to pick pairs."""
-        batch_size = self.settings.batch_size
+        batch_size = self.model_settings.batch_size
         indexes = self.indexes[batch_index * batch_size:(batch_index + 1) * batch_size]
         for index in indexes:
             inchikey1 = self.selected_compound_pairs.idx_to_inchikey[index]
@@ -147,8 +88,8 @@ class DataGeneratorPytorch:
 
     def on_epoch_end(self):
         """Updates indexes after each epoch."""
-        self.indexes = np.tile(np.arange(len(self.selected_compound_pairs.scores)), int(self.settings.num_turns))
-        if self.settings.shuffle:
+        self.indexes = np.tile(np.arange(len(self.selected_compound_pairs.scores)), int(self.model_settings.num_turns))
+        if self.model_settings.shuffle:
             self.rng.shuffle(self.indexes)
 
     def __getitem__(self, batch_index: int):
@@ -157,14 +98,14 @@ class DataGeneratorPytorch:
         If use_fixed_set=True we try retrieving the batch from self.fixed_set (or store it if
         this is the first epoch). This ensures a fixed set of data is generated each epoch.
         """
-        if self.settings.use_fixed_set and batch_index in self.fixed_set:
+        if self.model_settings.use_fixed_set and batch_index in self.fixed_set:
             return self.fixed_set[batch_index]
-        if self.settings.random_seed is not None and batch_index == 0:
-            self.rng = np.random.default_rng(self.settings.random_seed)
+        if self.model_settings.random_seed is not None and batch_index == 0:
+            self.rng = np.random.default_rng(self.model_settings.random_seed)
         spectrum_pairs = self._spectrum_pair_generator(batch_index)
         spectra_1, spectra_2, meta_1, meta_2, targets = self._tensorize_all(spectrum_pairs)
 
-        if self.settings.use_fixed_set:
+        if self.model_settings.use_fixed_set:
             # Store batches for later epochs
             self.fixed_set[batch_index] = (spectra_1, spectra_2, meta_1, meta_2, targets)
         else:
@@ -181,14 +122,8 @@ class DataGeneratorPytorch:
             spectra_2.append(pair[1])
             targets.append(pair[2])
 
-        binned_spectra_1, metadata_1 = tensorize_spectra(
-            spectra_1,
-            self.tensorization_settings
-            )
-        binned_spectra_2, metadata_2 = tensorize_spectra(
-            spectra_2,
-            self.tensorization_settings
-            )
+        binned_spectra_1, metadata_1 = tensorize_spectra(spectra_1, self.model_settings)
+        binned_spectra_2, metadata_2 = tensorize_spectra(spectra_2, self.model_settings)
         return binned_spectra_1, binned_spectra_2, metadata_1, metadata_2, torch.tensor(targets, dtype=torch.float32)
     
     def _get_spectrum_with_inchikey(self, inchikey: str) -> Spectrum:
@@ -217,28 +152,28 @@ class DataGeneratorPytorch:
             Spectrum in Pytorch tensor form.
         """
         # Augmentation 1: peak removal (peaks < augment_removal_max)
-        if self.settings.augment_removal_max or self.settings.augment_removal_intensity:
+        if self.model_settings.augment_removal_max or self.model_settings.augment_removal_intensity:
             # TODO: Factor out function with documentation + example?
             
-            indices_select = torch.where((spectrum_tensor > 0) 
-                                        & (spectrum_tensor < self.settings.augment_removal_max))[0]
-            removal_part = self.rng.random(1) * self.settings.augment_removal_max
+            indices_select = torch.where((spectrum_tensor > 0)
+                                         & (spectrum_tensor < self.model_settings.augment_removal_max))[0]
+            removal_part = self.rng.random(1) * self.model_settings.augment_removal_max
             indices = self.rng.choice(indices_select, int(np.ceil((1 - removal_part)*len(indices_select))))
             if len(indices) > 0:
                 spectrum_tensor[indices] = 0
 
         # Augmentation 2: Change peak intensities
-        if self.settings.augment_intensity:
+        if self.model_settings.augment_intensity:
             # TODO: Factor out function with documentation + example?
-            spectrum_tensor = spectrum_tensor * (1 - self.settings.augment_intensity * 2 * (torch.rand(spectrum_tensor.shape) - 0.5))
+            spectrum_tensor = spectrum_tensor * (1 - self.model_settings.augment_intensity * 2 * (torch.rand(spectrum_tensor.shape) - 0.5))
 
         # Augmentation 3: Peak addition
-        if self.settings.augment_noise_max and self.settings.augment_noise_max > 0:
+        if self.model_settings.augment_noise_max and self.model_settings.augment_noise_max > 0:
             indices_select = torch.where(spectrum_tensor == 0)[0]
-            if len(indices_select) > self.settings.augment_noise_max:
+            if len(indices_select) > self.model_settings.augment_noise_max:
                 indices_noise = self.rng.choice(indices_select,
-                                                 self.rng.integers(0, self.settings.augment_noise_max),
-                                                 replace=False,
+                                                self.rng.integers(0, self.model_settings.augment_noise_max),
+                                                replace=False,
                                                 )
-            spectrum_tensor[indices_noise] = self.settings.augment_noise_intensity * torch.rand(len(indices_noise))
+            spectrum_tensor[indices_noise] = self.model_settings.augment_noise_intensity * torch.rand(len(indices_noise))
         return spectrum_tensor

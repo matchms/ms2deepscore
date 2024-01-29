@@ -119,11 +119,13 @@ In that scenario, `scores["score"]` contains the similarity scores (median of th
 Training your own model is only recommended if you have some familiarity with machine learning. 
 To train your own model you can run the code below.
 Please first ensure cleaning your spectra. We recommend using the cleaning pipeline in [matchms](https://github.com/matchms/matchms).
+
 ```python
-from ms2deepscore.SettingsMS2Deepscore import \
+from ms2deepscore.SettingsMS2Deepscore import
     SettingsMS2Deepscore
-from ms2deepscore.wrapper_functions.training_wrapper_functions import \
+from ms2deepscore.wrapper_functions.training_wrapper_functions import
     train_ms2deepscore_wrapper
+
 settings = SettingsMS2Deepscore({"epochs": 300,
                                  "base_dims": (1000, 1000, 1000),
                                  "embedding_dim": 500,
@@ -132,9 +134,7 @@ settings = SettingsMS2Deepscore({"epochs": 300,
                                  "learning_rate": 0.00025,
                                  "patience": 30,
                                  })
-train_ms2deepscore_wrapper(spectra_file_path=, 
-                           settings=settings, 
-                           validation_split_fraction=20)
+train_ms2deepscore_wrapper(spectra_file_path=, model_settings=, validation_split_fraction=20)
 ```
 ## Contributing
 We welcome contributions to the development of ms2deepscore! Have a look at the [contribution guidelines](https://github.com/matchms/ms2deepscore/blob/main/CONTRIBUTING.md).

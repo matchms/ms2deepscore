@@ -6,8 +6,7 @@ from matchms.exporting import save_spectra
 from matchms.importing import load_spectra
 from ms2deepscore.benchmarking.calculate_scores_for_validation import \
     calculate_true_values_and_predictions_for_validation_spectra
-from ms2deepscore.SettingsMS2Deepscore import (GeneratorSettings,
-                                               SettingsMS2Deepscore)
+from ms2deepscore.SettingsMS2Deepscore import SettingsMS2Deepscore
 from ms2deepscore.train_new_model.split_positive_and_negative_mode import \
     split_by_ionmode
 from ms2deepscore.train_new_model.train_ms2deepscore import train_ms2ds_model
@@ -19,8 +18,7 @@ from ms2deepscore.wrapper_functions.plotting_wrapper_functions import \
 
 
 def train_ms2deepscore_wrapper(spectra_file_path,
-                               model_settings: SettingsMS2Deepscore,
-                               generator_settings: GeneratorSettings,
+                               settings: SettingsMS2Deepscore,
                                validation_split_fraction=20
                                ):
     """Splits data, trains a ms2deepscore model, and does benchmarking.
@@ -37,32 +35,52 @@ def train_ms2deepscore_wrapper(spectra_file_path,
 
     stored_training_data = StoreTrainingData(spectra_file_path,
                                              split_fraction=validation_split_fraction,
-                                             random_seed=generator_settings.random_seed)
+                                             random_seed=settings.random_seed)
 
     # Split training in pos and neg and create val and training split and select for the right ionisation mode.
-    training_spectra = stored_training_data.load_training_data(model_settings.ionisation_mode, "training")
-    validation_spectra = stored_training_data.load_training_data(model_settings.ionisation_mode, "validation")
+    training_spectra = stored_training_data.load_training_data(settings.ionisation_mode, "training")
+    validation_spectra = stored_training_data.load_training_data(settings.ionisation_mode, "validation")
+
+    model_directory_name = create_model_directory_name(settings)
 
     # Train model
     train_ms2ds_model(training_spectra, validation_spectra,
-                      stored_training_data.trained_models_folder,
-                      model_settings, generator_settings)
-
+                      os.path.join(stored_training_data.trained_models_folder, model_directory_name), settings)
     # Create performance plots for validation spectra
     ms2deepsore_model_file_name = os.path.join(stored_training_data.trained_models_folder,
-                                               model_settings.model_directory_name,
-                                               model_settings.model_file_name)
+                                               model_directory_name,
+                                               settings.model_file_name)
     calculate_true_values_and_predictions_for_validation_spectra(
         positive_validation_spectra=stored_training_data.load_positive_train_split("validation"),
         negative_validation_spectra=stored_training_data.load_negative_train_split("validation"),
         ms2deepsore_model_file_name=ms2deepsore_model_file_name,
         results_directory=os.path.join(stored_training_data.trained_models_folder,
-                                       model_settings.model_directory_name, "benchmarking_results"))
+                                       model_directory_name, "benchmarking_results"))
 
     create_plots_between_all_ionmodes(model_directory=os.path.join(stored_training_data.trained_models_folder,
-                                                                   model_settings.model_directory_name),
-                                      ref_score_bins=generator_settings.same_prob_bins)
-    return model_settings.model_directory_name
+                                                                   model_directory_name),
+                                      ref_score_bins=settings.same_prob_bins)
+    return model_directory_name
+
+
+def create_model_directory_name(settings: SettingsMS2Deepscore):
+    """Creates a directory name using metadata, it will contain the metadata, the binned spectra and final model"""
+    binning_file_label = ""
+    for metadata_generator in settings.additional_metadata:
+        binning_file_label += metadata_generator.metadata_field + "_"
+
+    # Define a neural net structure label
+    neural_net_structure_label = ""
+    for layer in settings.base_dims:
+        neural_net_structure_label += str(layer) + "_"
+    neural_net_structure_label += "layers"
+
+    if settings.embedding_dim:
+        neural_net_structure_label += f"_{str(settings.embedding_dim)}_embedding"
+    model_folder_file_name = f"{settings.ionisation_mode}_mode_{binning_file_label}" \
+                             f"{neural_net_structure_label}_{settings.time_stamp}"
+    print(f"The model will be stored in the folder: {model_folder_file_name}")
+    return model_folder_file_name
 
 
 class StoreTrainingData:
