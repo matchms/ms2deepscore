@@ -135,11 +135,11 @@ class SettingsMS2Deepscore:
         self.fingerprint_nbits: int = 2048
 
         # Data augmentation
-        self.augment_removal_max = 0.3
+        self.augment_removal_max = 0.2
         self.augment_removal_intensity = 0.2
-        self.augment_intensity = 0.4
+        self.augment_intensity = 0.2
         self.augment_noise_max = 10
-        self.augment_noise_intensity = 0.01
+        self.augment_noise_intensity = 0.02
 
         if settings:
             for key, value in settings.items():

@@ -156,7 +156,7 @@ class DataGeneratorPytorch:
             # TODO: Factor out function with documentation + example?
             
             indices_select = torch.where((spectrum_tensor > 0)
-                                         & (spectrum_tensor < self.model_settings.augment_removal_max))[0]
+                                         & (spectrum_tensor < self.model_settings.augment_removal_intensity))[0]
             removal_part = self.rng.random(1) * self.model_settings.augment_removal_max
             indices = self.rng.choice(indices_select, int(np.ceil((1 - removal_part)*len(indices_select))))
             if len(indices) > 0:
