@@ -2,6 +2,7 @@ import os
 import pickle
 from typing import Generator, List
 import numba
+import numpy as np
 from matchms import Spectrum
 from matchms.importing import load_spectra
 
