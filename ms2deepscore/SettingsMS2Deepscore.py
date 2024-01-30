@@ -88,7 +88,7 @@ class SettingsMS2Deepscore:
         """
     def __init__(self, **settings):
         # model structure
-        self.base_dims = (1000, 1000)
+        self.base_dims = (2000, 2000, 2000)
         self.embedding_dim = 400
         self.ionisation_mode = "positive"
 
@@ -101,7 +101,7 @@ class SettingsMS2Deepscore:
         self.dropout_rate = 0.2
         self.learning_rate = 0.00025
         self.epochs = 150
-        self.patience = 10
+        self.patience = 15
         self.loss_function = "mse"
 
         # Folder names for storing
