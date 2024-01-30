@@ -14,12 +14,13 @@ Large scale expansion, revision, and restructuring of MS2Deepscore.
 - Additional smart binning layer that can handle input of much higher peak resolution (not used as a default!)
 - New validation concept --> all-vs-all scores for the validation spectra are computed, but loss is then computed per score bin. This gives better and more significant statistics of the model performance
 - New loss functions "Risk Aware MAE" and "Risk Aware MSE" which function similar to MAE or MSE but try to counteract the tendency of a model to predict towards 0.5.
+- Losses can now be weighted with a weighting_factor.
 
 
 ### Changed
 - No longer supports Tensorflow/Keras
 - The concept of Spectrum binning has changed and is now implemented differently (i.e. no more "missing peaks" as before)
-
+- Monte-Carlo Dropout does not return a score (mean or median) together with percentile-based upper and lower bound (instead of STD or IQR before).
 
 ## [Unreleased]
 
