@@ -292,7 +292,8 @@ def compute_fingerprints_for_training(spectrums,
         raise ValueError("No spectra were selected to calculate fingerprints")
 
     spectra_selected, inchikeys14_unique = select_inchi_for_unique_inchikeys(spectrums)
-    print(f"Selected {len(spectra_selected)} spectra with unique inchikeys (out of {len(spectrums)} spectra)")
+    print(f"Selected {len(spectra_selected)} spectra with unique inchikeys for calculating tanimoto scores "
+          f"(out of {len(spectrums)} spectra)")
 
     # Compute fingerprints using matchms
     spectra_selected = [add_fingerprint(s, fingerprint_type, nbits)\

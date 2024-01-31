@@ -81,8 +81,10 @@ class StandardScaler(MetadataFeatureGenerator):
 
     def generate_features(self, metadata: Metadata):
         feature = metadata.get(self.metadata_field, None)
-        assert self.metadata_field is not None, f"Metadata entry for {self.metadata_field} is missing."
-        assert isinstance(feature, (int, float))
+        if self.metadata_field is None:
+            raise ValueError(f"Metadata entry for {self.metadata_field} is missing.")
+        if not isinstance(feature, (int, float)):
+            raise TypeError(f"Expected float or int, got {feature}, for {self.metadata_field}")
         if self.standard_deviation:
             return (feature - self.mean) / self.standard_deviation
         return feature - self.mean
@@ -104,7 +106,8 @@ class OneHotEncoder(MetadataFeatureGenerator):
 
     def generate_features(self, metadata: Metadata):
         feature = metadata.get(self.metadata_field, None)
-        assert self.metadata_field is not None, f"Metadata entry for {self.metadata_field} is missing."
+        if self.metadata_field is None:
+            raise ValueError(f"Metadata entry for {self.metadata_field} is missing.")
         if feature == self.entries_becoming_one:
             return 1
         return 0
@@ -135,12 +138,13 @@ class CategoricalToBinary(MetadataFeatureGenerator):
 
     def generate_features(self, metadata: Metadata):
         feature = metadata.get(self.metadata_field, None)
-        assert self.metadata_field is not None, f"Metadata entry for {self.metadata_field} is missing."
+        if self.metadata_field is None:
+            raise ValueError(f"Metadata entry for {self.metadata_field} is missing.")
         if feature in self.entries_becoming_one:
             return 1
         if feature in self.entries_becoming_zero:
             return 0
-        assert False, f"Feature should be {self.entries_becoming_one} or {self.entries_becoming_zero}, not {feature}"
+        raise ValueError(f"Feature should be {self.entries_becoming_one} or {self.entries_becoming_zero}, not {feature}")
 
     @classmethod
     def load_from_dict(cls, json_dict: dict):
@@ -164,6 +168,7 @@ def load_from_json(list_of_json_metadata_feature_generators: List[Tuple[str, dic
     for class_name, settings in list_of_json_metadata_feature_generators:
         # loads in all the classes in MetadataFeatureGenerator.py
         metadata_class = getattr(possible_metadata_classes, class_name)
-        assert issubclass(metadata_class, MetadataFeatureGenerator), "Unknown feature generator class."
+        if not issubclass(metadata_class, MetadataFeatureGenerator):
+            raise TypeError("Unknown feature generator class.")
         metadata_feature_generator_list.append(metadata_class.load_from_dict(settings))
     return tuple(metadata_feature_generator_list)
