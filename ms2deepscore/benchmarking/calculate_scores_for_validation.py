@@ -6,7 +6,6 @@ from matchms.similarity.vector_similarity_functions import \
     jaccard_similarity_matrix
 from matchms.Spectrum import Spectrum
 from matchms.filtering.metadata_processing.add_fingerprint import _derive_fingerprint_from_smiles
-from rdkit import Chem
 from tqdm import tqdm
 from ms2deepscore import MS2DeepScore
 from ms2deepscore.models import load_model
