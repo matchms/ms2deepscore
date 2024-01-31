@@ -100,8 +100,8 @@ class SettingsMS2Deepscore:
         # training settings
         self.dropout_rate = 0.2
         self.learning_rate = 0.00025
-        self.epochs = 150
-        self.patience = 15
+        self.epochs = 250
+        self.patience = 30
         self.loss_function = "mse"
         self.weighting_factor = 0
 

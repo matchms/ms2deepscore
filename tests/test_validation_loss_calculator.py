@@ -53,9 +53,7 @@ def test_validation_loss_calculator():
     test_spectra = pesticides_test_spectra()
     bins = np.array([(x / 10, x / 10 + 0.1) for x in range(0, 10)])
     validation_loss_calculator = ValidationLossCalculator(test_spectra,
-                                                          settings=SettingsMS2Deepscore(),
-                                                          score_bins=bins,
-                                                          random_seed=42)
+                                                          settings=SettingsMS2Deepscore(same_prob_bins=bins))
 
     losses = validation_loss_calculator.compute_binned_validation_loss(model,
                                                                        LOSS_FUNCTIONS.keys())

@@ -56,7 +56,10 @@ def scaled_intensity_sum(mz_values, intensities, min_mz=0, max_mz=1000, scaling=
     return scaled_intensity
 
 
-def compute_scaled_intensitiy_sums(spectra, min_mz=0, max_mz=1000, scaling=2): 
+def compute_scaled_intensitiy_sums(spectra, min_mz=0, max_mz=1000, scaling=2):
+    """Calculates the scaled intensity sum
+
+    This can be used to filter out badly fragmented spectra"""
     scaled_intensities = np.zeros(len(spectra))
     for i, spectrum in enumerate(spectra):
         scaled_intensities[i] = scaled_intensity_sum(
