@@ -88,7 +88,7 @@ class SettingsMS2Deepscore:
         """
     def __init__(self, **settings):
         # model structure
-        self.base_dims = (1000, 1000)
+        self.base_dims = (2000, 2000, 2000)
         self.embedding_dim = 400
         self.ionisation_mode = "positive"
 
@@ -100,9 +100,10 @@ class SettingsMS2Deepscore:
         # training settings
         self.dropout_rate = 0.2
         self.learning_rate = 0.00025
-        self.epochs = 150
-        self.patience = 10
+        self.epochs = 250
+        self.patience = 30
         self.loss_function = "mse"
+        self.weighting_factor = 0
 
         # Folder names for storing
         self.model_file_name = "ms2deepscore_model.pt"
@@ -135,11 +136,11 @@ class SettingsMS2Deepscore:
         self.fingerprint_nbits: int = 2048
 
         # Data augmentation
-        self.augment_removal_max = 0.3
+        self.augment_removal_max = 0.2
         self.augment_removal_intensity = 0.2
-        self.augment_intensity = 0.4
+        self.augment_intensity = 0.2
         self.augment_noise_max = 10
-        self.augment_noise_intensity = 0.01
+        self.augment_noise_intensity = 0.02
 
         if settings:
             for key, value in settings.items():

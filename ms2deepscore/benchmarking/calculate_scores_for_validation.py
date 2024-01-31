@@ -5,7 +5,7 @@ import pandas as pd
 from matchms.similarity.vector_similarity_functions import \
     jaccard_similarity_matrix
 from matchms.Spectrum import Spectrum
-from rdkit import Chem
+from matchms.filtering.metadata_processing.add_fingerprint import _derive_fingerprint_from_smiles
 from tqdm import tqdm
 from ms2deepscore import MS2DeepScore
 from ms2deepscore.models import load_model
@@ -48,13 +48,19 @@ def calculate_true_values_and_predictions_for_validation_spectra(positive_valida
 
 
 def calculate_tanimoto_scores_unique_inchikey(list_of_spectra_1: List[Spectrum],
-                                              list_of_spectra_2: List[Spectrum]):
+                                              list_of_spectra_2: List[Spectrum],
+                                              fingerprint_type="daylight",
+                                              nbits=2048
+                                              ):
     """Returns a dataframe with the tanimoto scores between each unique inchikey in list of spectra"""
 
     def get_fingerprint(smiles: str):
-        fingerprint = np.array(Chem.RDKFingerprint(Chem.MolFromSmiles(smiles), fpSize=2048))
+        fingerprint = _derive_fingerprint_from_smiles(smiles,
+                                                      fingerprint_type=fingerprint_type,
+                                                      nbits=nbits)
         assert isinstance(fingerprint, np.ndarray), f"Fingerprint could not be set smiles is {smiles}"
         return fingerprint
+
     if len(list_of_spectra_1) == 0 or len(list_of_spectra_2) == 0:
         raise ValueError("The nr of spectra to calculate tanimoto scores should be larger than 0")
 
@@ -77,14 +83,18 @@ def calculate_tanimoto_scores_unique_inchikey(list_of_spectra_1: List[Spectrum],
 
 
 def get_tanimoto_score_between_spectra(spectra_1: List[Spectrum],
-                                       spectra_2: List[Spectrum]):
+                                       spectra_2: List[Spectrum],
+                                       fingerprint_type="daylight",
+                                       nbits=2048):
     """Gets the tanimoto scores between two list of spectra
 
     It is optimized by calculating the tanimoto scores only between unique fingerprints/smiles.
     The tanimoto scores are derived after.
 
     """
-    tanimoto_df = calculate_tanimoto_scores_unique_inchikey(spectra_1, spectra_2)
+    tanimoto_df = calculate_tanimoto_scores_unique_inchikey(spectra_1, spectra_2,
+                                                            fingerprint_type,
+                                                            nbits)
     inchikeys_1 = [spectrum.get("inchikey")[:14] for spectrum in spectra_1]
     inchikeys_2 = [spectrum.get("inchikey")[:14] for spectrum in spectra_2]
     tanimoto_scores = tanimoto_df.loc[inchikeys_1, inchikeys_2].values

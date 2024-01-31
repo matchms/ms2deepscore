@@ -2,6 +2,7 @@ import numpy as np
 import pytest
 from matchms.Spectrum import Spectrum
 from ms2deepscore.models.loss_functions import LOSS_FUNCTIONS
+from ms2deepscore.SettingsMS2Deepscore import SettingsMS2Deepscore
 from ms2deepscore.train_new_model.ValidationLossCalculator import (
     ValidationLossCalculator, select_one_spectrum_per_inchikey)
 from tests.create_test_spectra import (pesticides_test_spectra,
@@ -52,8 +53,7 @@ def test_validation_loss_calculator():
     test_spectra = pesticides_test_spectra()
     bins = np.array([(x / 10, x / 10 + 0.1) for x in range(0, 10)])
     validation_loss_calculator = ValidationLossCalculator(test_spectra,
-                                                          bins,
-                                                          random_seed=42)
+                                                          settings=SettingsMS2Deepscore(same_prob_bins=bins))
 
     losses = validation_loss_calculator.compute_binned_validation_loss(model,
                                                                        LOSS_FUNCTIONS.keys())
