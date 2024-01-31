@@ -8,21 +8,28 @@ from ms2deepscore.benchmarking.select_spectrum_pairs_for_visualization import \
 from ms2deepscore.models.loss_functions import bin_dependent_losses
 from ms2deepscore.models.SiameseSpectralModel import (SiameseSpectralModel,
                                                       compute_embedding_array)
+from ms2deepscore.SettingsMS2Deepscore import SettingsMS2Deepscore
 
 
 class ValidationLossCalculator:
     def __init__(self,
                  val_spectrums,
-                 score_bins=np.array([(x / 10, x / 10 + 0.1) for x in range(0, 10)]),
-                 weighting_factor=0,
+                 settings: SettingsMS2Deepscore,
+                 score_bins=None,
                  random_seed=42):
         self.val_spectrums = select_one_spectrum_per_inchikey(val_spectrums, random_seed)
-        tanimoto_scores = get_tanimoto_score_between_spectra(self.val_spectrums, self.val_spectrums)
+        if score_bins is None:  # Use same as for training
+            self.score_bins = settings.same_prob_bins
+        else:
+            self.score_bins = score_bins
+        self.settings = settings
+        tanimoto_scores = get_tanimoto_score_between_spectra(self.val_spectrums, self.val_spectrums,
+                                                             self.settings.fingerprint_type,
+                                                             self.settings.fingerprint_nbits,
+                                                             )
 
         # Remove comparisons against themselves
         self.target_scores = remove_diagonal(tanimoto_scores)
-        self.score_bins = score_bins
-        self.weighting_factor = weighting_factor
 
     def compute_binned_validation_loss(self,
                                        model: SiameseSpectralModel,
@@ -35,7 +42,7 @@ class ValidationLossCalculator:
                                             self.target_scores,
                                             self.score_bins,
                                             loss_types=loss_types,
-                                            weighting_factor=self.weighting_factor,
+                                            weighting_factor=self.settings.weighting_factor,
                                             )
         average_losses = {}
         for loss_type in loss_types:

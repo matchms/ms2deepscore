@@ -138,7 +138,8 @@ def test_model_training(simple_training_spectra):
 
     validation_loss_calculator = ValidationLossCalculator(
         simple_training_spectra,
-        [(0, 1.00001),]) # Just calculating the loss in one bin (since we have just two inchikeys)
+        settings=settings,
+        score_bins=[(0, 1.00001),]) # Just calculating the loss in one bin (since we have just two inchikeys)
 
     # Create and train model
     model_simple = SiameseSpectralModel(settings)

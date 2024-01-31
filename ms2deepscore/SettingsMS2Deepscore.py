@@ -103,6 +103,7 @@ class SettingsMS2Deepscore:
         self.epochs = 150
         self.patience = 15
         self.loss_function = "mse"
+        self.weighting_factor = 0
 
         # Folder names for storing
         self.model_file_name = "ms2deepscore_model.pt"
