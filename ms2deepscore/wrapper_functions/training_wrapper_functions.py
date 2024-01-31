@@ -67,7 +67,7 @@ def create_model_directory_name(settings: SettingsMS2Deepscore):
     """Creates a directory name using metadata, it will contain the metadata, the binned spectra and final model"""
     binning_file_label = ""
     for metadata_generator in settings.additional_metadata:
-        binning_file_label += metadata_generator.metadata_field + "_"
+        binning_file_label += metadata_generator[1]["metadata_field"] + "_"
 
     # Define a neural net structure label
     neural_net_structure_label = ""
@@ -136,7 +136,7 @@ class StoreTrainingData:
         assert not os.path.isfile(self.positive_mode_spectra_file), "the positive mode spectra file already exists"
         assert not os.path.isfile(self.negative_mode_spectra_file), "the negative mode spectra file already exists"
         positive_mode_spectra, negative_mode_spectra = split_by_ionmode(
-            load_spectra(self.spectra_file_name, metadata_harmonization=False))
+            load_spectra(self.spectra_file_name, metadata_harmonization=True))
         save_spectra(positive_mode_spectra, self.positive_mode_spectra_file)
         save_spectra(negative_mode_spectra, self.negative_mode_spectra_file)
         return positive_mode_spectra, negative_mode_spectra
