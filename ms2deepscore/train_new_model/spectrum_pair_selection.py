@@ -192,7 +192,7 @@ def compute_jaccard_similarity_per_bin(
                 indices = np.nonzero((tanimoto_scores >= selection_bin[0]) & (tanimoto_scores <= selection_bin[1]))[0]
             else:
                 indices = np.nonzero((tanimoto_scores > selection_bin[0]) & (tanimoto_scores <= selection_bin[1]))[0]
-            if not include_diagonal:
+            if not include_diagonal and idx_fingerprint_i in indices:
                 indices = np.delete(indices, idx_fingerprint_i)
             np.random.shuffle(indices)
             indices = indices[:max_pairs_per_bin]
