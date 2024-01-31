@@ -6,7 +6,10 @@ from ms2deepscore.models.loss_functions import bin_dependent_losses
 def plot_rmse_per_bin(predicted_scores, true_scores,
                       ref_score_bins=np.array([(x / 10, x / 10 + 0.1) for x in range(0, 10)])):
     bin_content, bounds, losses = bin_dependent_losses(
-        predicted_scores, true_scores, ref_score_bins, loss_types=["rmse"]
+        predictions=predicted_scores,
+        true_values=true_scores,
+        ref_score_bins=ref_score_bins,
+        loss_types=["rmse"]
         )
     rmses = losses["rmse"]
     _, (ax1, ax2) = plt.subplots(2, 1, sharex=True, figsize=(4, 5), dpi=120)
@@ -30,7 +33,7 @@ def plot_rmse_per_bin(predicted_scores, true_scores,
 def plot_rmse_per_bin_multiple_benchmarks(list_of_predicted_scores,
                                           list_of_true_values,
                                           labels,
-                                          ref_score_bins = np.array([(x / 10, x / 10 + 0.1) for x in range(0, 10)])):
+                                          ref_score_bins=np.array([(x / 10, x / 10 + 0.1) for x in range(0, 10)])):
     """Combines the plot of multiple comparisons into one plot
 
     """
