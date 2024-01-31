@@ -14,14 +14,9 @@ from ms2deepscore.SettingsMS2Deepscore import SettingsMS2Deepscore
 class ValidationLossCalculator:
     def __init__(self,
                  val_spectrums,
-                 settings: SettingsMS2Deepscore,
-                 score_bins=None,
-                 random_seed=42):
-        self.val_spectrums = select_one_spectrum_per_inchikey(val_spectrums, random_seed)
-        if score_bins is None:  # Use same as for training
-            self.score_bins = settings.same_prob_bins
-        else:
-            self.score_bins = score_bins
+                 settings: SettingsMS2Deepscore):
+        self.val_spectrums = select_one_spectrum_per_inchikey(val_spectrums, settings.random_seed)
+        self.score_bins = settings.same_prob_bins
         self.settings = settings
         tanimoto_scores = get_tanimoto_score_between_spectra(self.val_spectrums, self.val_spectrums,
                                                              self.settings.fingerprint_type,

@@ -98,10 +98,10 @@ class SettingsMS2Deepscore:
         self.train_binning_layer_output_per_group: int = 2
 
         # training settings
-        self.dropout_rate = 0.2
+        self.dropout_rate = 0.0
         self.learning_rate = 0.00025
-        self.epochs = 150
-        self.patience = 15
+        self.epochs = 250
+        self.patience = 30
         self.loss_function = "mse"
         self.weighting_factor = 0
 
