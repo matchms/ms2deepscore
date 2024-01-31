@@ -82,7 +82,7 @@ class StandardScaler(MetadataFeatureGenerator):
     def generate_features(self, metadata: Metadata):
         feature = metadata.get(self.metadata_field, None)
         assert self.metadata_field is not None, f"Metadata entry for {self.metadata_field} is missing."
-        assert isinstance(feature, (int, float))
+        assert isinstance(feature, (int, float)), f"Expected float or int, got {feature}, for {self.metadata_field}"
         if self.standard_deviation:
             return (feature - self.mean) / self.standard_deviation
         return feature - self.mean
