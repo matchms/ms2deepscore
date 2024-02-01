@@ -54,7 +54,7 @@ def test_standard_scaler_generate_features_assert():
     scaler = StandardScaler("mass", 5.0)
     metadata = Metadata()
 
-    with pytest.raises(AssertionError):
+    with pytest.raises(TypeError):
         scaler.generate_features(metadata)
 
 
@@ -75,7 +75,7 @@ def test_categorical_to_binary():
     assert converter.generate_features(metadata_a) == 1
     assert converter.generate_features(metadata_b) == 0
 
-    with pytest.raises(AssertionError):
+    with pytest.raises(ValueError):
         converter.generate_features(Metadata({"category": "C"}))
 
 

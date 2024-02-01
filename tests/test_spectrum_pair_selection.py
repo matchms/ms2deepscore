@@ -124,11 +124,11 @@ def test_global_bias(fingerprints, desired_average_pairs_per_bin):
         selected_pairs_per_bin, selected_scores_per_bin, fingerprints.shape[0] * desired_average_pairs_per_bin)
     matrix = convert_pair_list_to_coo_array(
         selected_pairs_per_bin_fixed_bias, fingerprints.shape[0])
-    dense_matrix = matrix.todense()
+
     # Check if in each bin the nr of pairs is equal to the nr_of_fingerprints
     expected_nr_of_pairs = fingerprints.shape[0] * desired_average_pairs_per_bin
     expected_histogram = np.array([expected_nr_of_pairs, expected_nr_of_pairs, expected_nr_of_pairs])
-    matrix_histogram = np.histogram(dense_matrix, [0.000001, 0.35000001, 0.6000001, 1.0])
+    matrix_histogram = np.histogram(matrix.data, [0.0, 0.35, 0.65, 1.0])
     assert np.all(matrix_histogram[0] == expected_histogram)
 
 

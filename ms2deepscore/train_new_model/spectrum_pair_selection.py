@@ -184,11 +184,16 @@ def compute_jaccard_similarity_per_bin(
     selected_scores_per_bin = np.zeros((num_bins, size, max_pairs_per_bin), dtype=np.float32)
     # pylint: disable=not-an-iterable
     for idx_fingerprint_i in prange(size):
-        tanimoto_scores = tanimoto_scores_row(fingerprints, idx_fingerprint_i, include_diagonal)
+        tanimoto_scores = tanimoto_scores_row(fingerprints, idx_fingerprint_i)
 
         for bin_number in range(num_bins):
             selection_bin = selection_bins[bin_number]
-            indices = np.nonzero((tanimoto_scores > selection_bin[0]) & (tanimoto_scores <= selection_bin[1]))[0]
+            if bin_number == 0:
+                indices = np.nonzero((tanimoto_scores >= selection_bin[0]) & (tanimoto_scores <= selection_bin[1]))[0]
+            else:
+                indices = np.nonzero((tanimoto_scores > selection_bin[0]) & (tanimoto_scores <= selection_bin[1]))[0]
+            if not include_diagonal and idx_fingerprint_i in indices:
+                indices = np.delete(indices, idx_fingerprint_i)
             np.random.shuffle(indices)
             indices = indices[:max_pairs_per_bin]
 
@@ -199,14 +204,12 @@ def compute_jaccard_similarity_per_bin(
 
 
 @jit(nopython=True)
-def tanimoto_scores_row(fingerprints, idx, include_diagonal):
+def tanimoto_scores_row(fingerprints, idx):
     size = fingerprints.shape[0]
     tanimoto_scores = np.zeros(size)
 
     fingerprint_i = fingerprints[idx, :]
     for idx_fingerprint_j in range(size):
-        if idx == idx_fingerprint_j and not include_diagonal:
-            continue
         fingerprint_j = fingerprints[idx_fingerprint_j, :]
         tanimoto_score = jaccard_index(fingerprint_i, fingerprint_j)
         tanimoto_scores[idx_fingerprint_j] = tanimoto_score
