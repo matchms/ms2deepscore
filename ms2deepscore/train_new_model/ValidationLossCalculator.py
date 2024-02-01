@@ -49,10 +49,10 @@ def select_one_spectrum_per_inchikey(spectra,
                                      random_seed):
     inchikeys14_array = np.array([s.get("inchikey")[:14] for s in spectra])
     unique_inchikeys = np.unique(inchikeys14_array)
-    np.random.seed(random_seed)
+    rng = np.random.default_rng(seed=random_seed)
     selected_spectra = []
     for inchikey in unique_inchikeys:
         matching_spectra_idx = np.where(inchikeys14_array == inchikey)[0]
-        specrum_id = np.random.choice(matching_spectra_idx)
+        specrum_id = rng.choice(matching_spectra_idx)
         selected_spectra.append(spectra[specrum_id])
     return selected_spectra
