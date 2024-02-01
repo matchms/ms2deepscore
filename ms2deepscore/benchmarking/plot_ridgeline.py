@@ -1,3 +1,8 @@
+import numpy as np
+from matplotlib import pyplot as plt
+from matplotlib.colors import LinearSegmentedColormap
+
+
 def create_combined_ridgeline_plot(reference_scores, comparison_scores, n_bins=10,
                                    min_resolution=20, max_resolution=100,
                          ref_score_name="Tanimoto similarity", compare_score_name="MS2DeepScore"):
@@ -45,6 +50,7 @@ def ridgeline_plot(histograms, y_score_bins,
     if ax is None:
         ax = plt.gca()
 
+    n_bins = len(y_score_bins)
     colors = ["crimson", "lightblue", "teal"]
     cmap1 = LinearSegmentedColormap.from_list("mycmap", colors)
     shift = 0.7
