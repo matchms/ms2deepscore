@@ -26,7 +26,7 @@ def create_combined_ridgeline_plot(reference_scores, comparison_scores, n_bins=1
     """
     histograms, used_bins, bin_content = calculate_histograms(reference_scores, comparison_scores, n_bins, hist_resolution)
 
-    fig, (ax_main, ax_hist) = plt.subplots(1, 2, gridspec_kw={'width_ratios': [4, 1]}, figsize=(14, 10))
+    _, (ax_main, ax_hist) = plt.subplots(1, 2, gridspec_kw={'width_ratios': [4, 1]}, figsize=(12, 9))
 
     # Plot ridge plot on main axis
     ridgeline_plot(histograms, used_bins, bin_content, hist_resolution,
@@ -59,10 +59,10 @@ def ridgeline_plot(histograms, y_score_bins, bin_content=None,
         ax.fill_between(histograms[0][1][:hist_resolution], -shift*i, [(-shift*i + x) for x in data], color=cmap1(i/10), alpha=alpha)
         ax.plot(histograms[0][1][:hist_resolution], [(-shift*i + x) for x in data], linewidth=2, color="white")
         ax.plot(histograms[0][1][:hist_resolution], [(-shift*i + x) for x in data], ".-", color="gray", alpha=0.5)
-        if bin_content:
-            ax.text(0.01, -shift*i+shift/6, f"{bin_content[::-1][i]} pairs")
 
-    ax.set_xticks([])
+    y_score_bins = [[a, b] for (a, b) in y_score_bins]
+    y_score_bins[0][0] = 0
+    y_score_bins[-1][1] = 1
     ax.set_yticks(-shift*np.arange(len(histograms)),
                   [f"{a:.1f} to < {b:.1f}" for (a, b) in y_score_bins[::-1]])
     ax.set_xlabel(xlabel)
@@ -84,14 +84,18 @@ def score_histogram(scores, n_bins, ax=None, ylabel="scores"):
         ax = plt.gca()
     bins, inclusive_bins = compute_bins(n_bins)
     bin_content, _ = np.histogram(scores.flatten(), bins=inclusive_bins)
-    print(bins, bin_content)
-    #ax.stairs(bin_content, bins, orientation='horizontal', color="teal")
-    ax.hist(bins[:-1], bins, weights=bin_content, orientation='horizontal', color="teal", rwidth=0.8)
-    #ax.bar(
+    ax.hist(bins[:-1], bins, weights=bin_content, orientation='horizontal', color="lightblue", rwidth=0.75)
+
+
+    ax.set_yticks(bins[1]/2 + bins[:-1],
+                  [f"{bins[i]:.1f} to < {bins[i+1]:.1f}" for i in range(len(bin_content))])
     ax.set_xlabel("Number of Pairs")
     ax.set_ylabel(ylabel)
     ax.set_ylim([0, (1 + 1/n_bins)])
     ax.set_xscale("log")
+    for i in range(len(bin_content)):
+        ax.text(0.05, 1/len(bins) * (i + 0.5), #bins[1]* (i + 0.5),
+                f"{bin_content[i]} pairs", transform=ax.transAxes, ha="left", va="center")
 
 
 def calculate_histograms(reference_scores, comparison_scores, n_bins=10, hist_resolution=100):
