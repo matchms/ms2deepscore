@@ -57,7 +57,6 @@ def ridgeline_plot(histograms,
                    ax=None):
     """Create a plot of (partly overlapping) distributions based on score comparison, on specified axis.
     """
-    # pylint: disable=too-many-arguments
     if ax is None:
         ax = plt.gca()
 
