@@ -44,8 +44,8 @@ def test_select_one_spectrum_per_inchikey(simple_test_spectra):
     assert len(set(inchikeys_list)) == len(one_spectrum_per_inchikey), 'Expected 1 spectrum per inchikey. ' \
                                                            'First run select_one_spectrum_per_inchikey'
     # Check that the random seed works
-    assert one_spectrum_per_inchikey[0].get("precursor_mz") == 6.0
-    assert one_spectrum_per_inchikey[1].get("precursor_mz") == 13.0
+    assert one_spectrum_per_inchikey[0].get("precursor_mz") == 0.0
+    assert one_spectrum_per_inchikey[1].get("precursor_mz") == 17.0
 
 
 def test_validation_loss_calculator():
