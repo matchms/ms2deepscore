@@ -11,10 +11,10 @@ from ms2deepscore.train_new_model.spectrum_pair_selection import \
 
 
 class DataGeneratorPytorch:
-    """Generates data for training a siamese Keras model.
+    """Generates data for training a siamese Pytorch model.
 
     This class provides a data generator specifically
-    designed for training a siamese Keras model with a curated set of compound pairs.
+    designed for training a Siamese Pytorch model with a curated set of compound pairs.
     It uses pre-selected compound pairs, allowing more control over the training process,
     particularly in scenarios where certain compound pairs are of specific interest or
     have higher significance in the training dataset.
@@ -22,7 +22,7 @@ class DataGeneratorPytorch:
     def __init__(self, spectrums: List[Spectrum],
                  selected_compound_pairs: SelectedCompoundPairs,
                  settings: SettingsMS2Deepscore):
-        """Generates data for training a siamese Keras model.
+        """Generates data for training a siamese Pytorch model.
 
         Parameters
         ----------
