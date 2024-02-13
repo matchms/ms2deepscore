@@ -3,8 +3,7 @@ from matchms.similarity.vector_similarity_functions import \
     cosine_similarity_matrix
 from ms2deepscore.benchmarking.calculate_scores_for_validation import \
     get_tanimoto_score_between_spectra
-from ms2deepscore.benchmarking.select_spectrum_pairs_for_visualization import \
-    remove_diagonal
+from ms2deepscore.benchmarking.utils import remove_diagonal
 from ms2deepscore.models.loss_functions import bin_dependent_losses
 from ms2deepscore.models.SiameseSpectralModel import (SiameseSpectralModel,
                                                       compute_embedding_array)
