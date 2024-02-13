@@ -2,22 +2,7 @@ from typing import List
 import numpy as np
 from matchms.Spectrum import Spectrum
 from tqdm import tqdm
-
-
-def remove_diagonal(matrix):
-    """Removes the diagonal from a matrix
-
-    meant for removing matches of spectra against itself. """
-    # Get the number of rows and columns
-    nr_of_rows, nr_of_cols = matrix.shape
-    if nr_of_rows != nr_of_cols:
-        raise ValueError("Expected predictions against itself")
-
-    # Create a mask for the diagonal elements
-    diagonal_mask = np.eye(nr_of_rows, dtype=bool)
-    # Use the mask to remove the diagonal elements
-    matrix_without_diagonal = matrix[~diagonal_mask].reshape(nr_of_rows, nr_of_cols - 1)
-    return matrix_without_diagonal
+from ms2deepscore.utils import remove_diagonal
 
 
 def select_one_spectrum_per_inchikey(spectra):
