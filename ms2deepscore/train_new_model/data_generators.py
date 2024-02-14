@@ -2,13 +2,15 @@
 """
 from typing import List
 import numpy as np
+import pandas as pd
 import torch
 from matchms import Spectrum
 from ms2deepscore.SettingsMS2Deepscore import SettingsMS2Deepscore
 from ms2deepscore.tensorize_spectra import tensorize_spectra
 from ms2deepscore.train_new_model.spectrum_pair_selection import \
     compute_fingerprints_for_training, SelectedCompoundPairs
-from ms2deepscore.vector_operations import cosine_similarity_matrix
+from ms2deepscore.vector_operations import cosine_similarity_matrix,\
+     jaccard_similarity_matrix
 
 
 class DataGeneratorPytorch:
