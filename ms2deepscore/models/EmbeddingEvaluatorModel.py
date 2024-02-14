@@ -1,6 +1,7 @@
+import numpy as np
 import torch
 import torch.nn.functional as F
-from torch import nn
+from torch import nn, optim
 from torch.nn.modules.module import Module
 from ms2deepscore.SettingsMS2Deepscore import SettingsMS2Deepscore
 from ms2deepscore.models.helper_functions import initialize_device
@@ -18,7 +19,7 @@ class EmbeddingEvaluationModel(nn.Module):
         self.inception_block = InceptionBlock(1,
                                               self.settings.evaluator_num_filters,
                                               depth=self.settings.evaluator_depth,
-                                              kernel_size=self.evaluator_kernel_size,
+                                              kernel_size=self.settings.evaluator_kernel_size,
                                               )
         self.global_avg_pool = nn.AdaptiveAvgPool1d(1)
         self.fc = nn.Linear(self.settings.evaluator_num_filters * 4, 1)        

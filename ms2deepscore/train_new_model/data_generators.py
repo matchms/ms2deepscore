@@ -200,7 +200,6 @@ class DataGeneratorEmbeddingEvaluation:
     def __init__(self, spectrums: List[Spectrum],
                  ms2ds_model,
                  settings: SettingsMS2Deepscore,
-                 batch_size: int,
                  device = "cpu",
                 ):
         """
