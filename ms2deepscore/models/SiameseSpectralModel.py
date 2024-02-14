@@ -4,7 +4,8 @@ import torch.nn.functional as F
 from torch import nn, optim
 from tqdm import tqdm
 from ms2deepscore.__version__ import __version__
-from ms2deepscore.models.helper_functions import (l1_regularization,
+from ms2deepscore.models.helper_functions import (initialize_device
+                                                  l1_regularization,
                                                   l2_regularization)
 from ms2deepscore.models.loss_functions import LOSS_FUNCTIONS, rmse_loss
 from ms2deepscore.SettingsMS2Deepscore import SettingsMS2Deepscore
@@ -288,13 +289,6 @@ def dense_layer(input_size, output_size, activation="relu"):
         nn.Linear(input_size, output_size),
         activations[activation]
     )
-
-
-def initialize_device():
-    """Initialize and return the device for training."""
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    print(f"Training will happen on {device}.")
-    return device
 
 
 def compute_embedding_array(model: SiameseSpectralModel,
