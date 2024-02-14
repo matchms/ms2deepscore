@@ -5,6 +5,7 @@ from matchms import Spectrum
 from matchms.filtering import add_fingerprint
 from matchms.similarity.vector_similarity_functions import jaccard_index
 from numba import jit, prange
+import pandas as pd
 from scipy.sparse import coo_array
 from tqdm import tqdm
 from ms2deepscore.SettingsMS2Deepscore import SettingsMS2Deepscore
@@ -135,6 +136,30 @@ def select_compound_pairs_wrapper(
         fingerprints.shape[0] * settings.average_pairs_per_bin)
     scores_sparse = convert_pair_list_to_coo_array(selected_pairs_per_bin, fingerprints.shape[0])
     return SelectedCompoundPairs(scores_sparse, inchikeys14_unique, shuffling=shuffling), spectra_selected
+
+
+def compute_fingerprint_dataframe(
+        spectrums: List[Spectrum],
+        settings: SettingsMS2Deepscore,
+        ) -> pd.DataFrame:
+    """Returns a SelectedCompoundPairs object containing equally balanced pairs over the different bins
+
+    spectrums:
+        A list of spectra
+    settings:
+        The settings that should be used for selecting the compound pairs wrapper. The settings should be specified as a
+        SettingsMS2Deepscore object.
+    """
+    if settings.random_seed is not None:
+        np.random.seed(settings.random_seed)
+
+    fingerprints, inchikeys14_unique, _ = compute_fingerprints_for_training(
+        spectrums,
+        settings.fingerprint_type,
+        settings.fingerprint_nbits)
+
+    fingerprints_df = pd.DataFrame(fingerprints, index=inchikeys14_unique)
+    return fingerprints_df
 
 
 def convert_pair_array_to_coo_data(

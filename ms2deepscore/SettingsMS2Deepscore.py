@@ -144,7 +144,6 @@ class SettingsMS2Deepscore:
 
         # Settings for embedding evaluator model
         self.evaluator_distribution_size = 1000
-        self
         self.evaluator_num_filters = 48
         self.evaluator_depth = 3
         self.evaluator_kernel_size = 20
