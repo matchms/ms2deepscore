@@ -4,7 +4,7 @@ import torch.nn.functional as F
 from torch import nn, optim
 from tqdm import tqdm
 from ms2deepscore.__version__ import __version__
-from ms2deepscore.models.helper_functions import (initialize_device
+from ms2deepscore.models.helper_functions import (initialize_device,
                                                   l1_regularization,
                                                   l2_regularization)
 from ms2deepscore.models.loss_functions import LOSS_FUNCTIONS, rmse_loss
