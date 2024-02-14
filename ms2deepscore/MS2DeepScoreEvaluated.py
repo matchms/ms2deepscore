@@ -7,7 +7,7 @@ from ms2deepscore.models.SiameseSpectralModel import (SiameseSpectralModel,
 from .vector_operations import cosine_similarity, cosine_similarity_matrix
 
 
-class MS2DeepScore(BaseSimilarity):
+class MS2DeepScoreEvaluated(BaseSimilarity):
     """Calculate MS2DeepScore similarity scores between a reference and a query.
 
     Using a trained model, binned spectrums will be converted into spectrum
@@ -38,7 +38,9 @@ class MS2DeepScore(BaseSimilarity):
 
     """
 
-    def __init__(self, model: SiameseSpectralModel, progress_bar: bool = True):
+    def __init__(self, model: SiameseSpectralModel,
+                 embedding_evaluator,
+                 progress_bar: bool = True):
         """
 
         Parameters
@@ -46,17 +48,28 @@ class MS2DeepScore(BaseSimilarity):
         model:
             Expected input is a SiameseModel that has been trained on
             the desired set of spectra.
+        embedding_evaluator:
+            Model trained on predicting the score quality (in form of MSE) based on an embedding.
         progress_bar:
             Set to True to monitor the embedding creating with a progress bar.
             Default is False.
         """
         self.model = model
         self.model.eval()
+        self.embedding_evaluator = embedding_evaluator
+        self.embedding_evaluator .eval()
         self.output_vector_dim = self.model.model_settings.embedding_dim
         self.progress_bar = progress_bar
 
     def get_embedding_array(self, spectrums):
         return compute_embedding_array(self.model, spectrums)
+
+    def get_embedding_evaluations(self, embeddings):
+        """Compute the RMSE.
+        """
+        predicted_mse = self.embedding_evaluator(embeddings)
+        predicted_mse[predicted_mse < 0] = 0
+        return predicted_mse ** 0.5
 
     def pair(self, reference: Spectrum, query: Spectrum) -> float:
         """Calculate the MS2DeepScore similaritiy between a reference and a query spectrum.

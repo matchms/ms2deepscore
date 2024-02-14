@@ -105,7 +105,7 @@ def train_evaluator(evaluator_model,
                             loss = criterion(outputs.to(device), mse_per_embedding.to(device, dtype=torch.float32))
                             val_losses.append(float(loss))
                         print(f">>> # of spectra: {batch_count * data_generator.batch_size}, val_loss: {np.mean(val_losses):.4f}")
-                        print(f">>> (Batch: {batch_count} | Epoch: {epoch}")
+                        print(f"--- (Batch: {batch_count} | Epoch: {epoch})")
 
                     evaluator_model.train()
 
