@@ -32,6 +32,7 @@ setup(
         "numba",
         "numpy>=1.20.3",
         "pandas",
+        "scikit-learn",
         "torch",
         "tqdm",
         "matplotlib==3.7.2"
