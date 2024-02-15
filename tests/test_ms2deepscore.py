@@ -52,15 +52,16 @@ def test_MS2DeepScore_score_matrix():
     assert np.allclose(expected_scores, scores, atol=1e-6), "Expected different scores."
 
 
-# def test_MS2DeepScore_score_matrix_symmetric():
-#     """Test score calculation using *.matrix* method."""
-#     spectrums, _, similarity_measure = get_test_ms2_deep_score_instance()
-#     scores = similarity_measure.matrix(spectrums[:4], spectrums[:4], is_symmetric=True)
-#     expected_scores = np.array([[1.        , 0.92501721, 0.8663899 , 0.91697757],
-#                                 [0.92501721, 1.        , 0.86038138, 0.89758966],
-#                                 [0.8663899 , 0.86038138, 1.        , 0.79661344],
-#                                 [0.91697757, 0.89758966, 0.79661344, 1.        ]])
-#     assert np.allclose(expected_scores, scores, atol=1e-6), "Expected different scores."
+def test_MS2DeepScore_score_matrix_symmetric():
+    """Test score calculation using *.matrix* method."""
+    spectrums, _, similarity_measure = get_test_ms2deepscore_instance()
+    scores = similarity_measure.matrix(spectrums[:4], spectrums[:4], is_symmetric=True)
+    expected_scores = np.array([
+        [1.        , 0.99036639, 0.99084978, 0.98811793],
+        [0.99036639, 1.        , 0.99399306, 0.96436209],
+        [0.99084978, 0.99399306, 1.        , 0.97351075],
+        [0.98811793, 0.96436209, 0.97351075, 1.        ]])
+    assert np.allclose(expected_scores, scores, atol=1e-6), "Expected different scores."
 
 
 # def test_MS2DeepScore_score_matrix_symmetric_wrong_use():
