@@ -1,8 +1,12 @@
+import json
 import numpy as np
+from sklearn.linear_model import LinearRegression
+from sklearn.preprocessing import PolynomialFeatures
 import torch
 import torch.nn.functional as F
 from torch import nn, optim
 from torch.nn.modules.module import Module
+from ms2deepscore.__version__ import __version__
 from ms2deepscore.SettingsMS2Deepscore import SettingsMS2Deepscore
 from ms2deepscore.models.helper_functions import initialize_device
 
@@ -29,6 +33,24 @@ class EmbeddingEvaluationModel(nn.Module):
         x = self.global_avg_pool(x).squeeze(-1)
         x = self.fc(x)
         return x
+
+    def save(self, filepath):
+        """
+        Save the model's parameters and state dictionary to a file.
+
+        Parameters
+        ----------
+        filepath: str
+            The file path where the model will be saved.
+        """
+        # Ensure the model is in evaluation mode
+        self.eval()
+        settings_dict = {
+            'model_params': self.settings.__dict__,
+            'model_state_dict': self.state_dict(),
+            'version': __version__
+        }
+        torch.save(settings_dict, filepath)
 
 
 def train_evaluator(evaluator_model,
@@ -89,7 +111,8 @@ def train_evaluator(evaluator_model,
             
             batch_count += 1
             if batch_count % batches_per_iteration == 0:
-                print(f"batch: {batch_count}, loss: {np.mean(iteration_losses)}")
+                print(f">>> Batch: {batch_count} ({batch_count * data_generator.batch_size} spectra, epoch: {epoch + 1})")
+                print(f">>> Training loss: {np.mean(iteration_losses):.6f}")
                 iteration_losses = []
                 if val_generator is not None:
                     with torch.no_grad():
@@ -104,8 +127,7 @@ def train_evaluator(evaluator_model,
                             
                             loss = criterion(outputs.to(device), mse_per_embedding.to(device, dtype=torch.float32))
                             val_losses.append(float(loss))
-                        print(f">>> # of spectra: {batch_count * data_generator.batch_size}, val_loss: {np.mean(val_losses):.4f}")
-                        print(f"--- (Batch: {batch_count} | Epoch: {epoch})")
+                        print(f">>> Val_loss: {np.mean(val_losses):.6f}")
 
                     evaluator_model.train()
 
@@ -193,3 +215,89 @@ class InceptionBlock(Module):
                 x = F.relu(x)
                 residual = x
         return x
+
+
+class LinearModel:
+    def __init__(self, degree = 2):
+        self.degree = degree
+        self.model = LinearRegression()
+        self.poly = PolynomialFeatures(degree=self.degree)
+    
+    def fit(self, X, y):
+        X_transformed = self.poly.fit_transform(X)
+        self.model.fit(X_transformed, y)
+
+    def predict(self, X):
+        X_transformed = self.poly.transform(X)
+        return self.model.predict(X_transformed)
+
+    def save(self, filepath):
+        # Extract the model's parameters
+        model_params = {
+            "coef": self.model.coef_.tolist(),  # Convert numpy array to list for JSON serialization
+            "intercept": self.model.intercept_.tolist() if hasattr(self.model.intercept_, "tolist") else self.model.intercept_,
+            "degree": self.degree,
+            "min_degree": self.poly._min_degree,
+            "max_degree": self.poly._max_degree,
+            "n_output_features_": self.poly.n_output_features_,
+            "_n_out_full": self.poly._n_out_full,
+            
+        
+        }
+
+        # Export to JSON
+        with open(filepath, 'w') as f:
+            json.dump(model_params, f)
+
+
+def load_linear_model(filepath):
+    """Load a LinearModel from json.
+    """
+    with open(filepath, "r") as f:
+        model_params = json.load(f)
+
+    loaded_model = LinearModel(model_params["degree"])
+    loaded_model.model.coef_ = np.array(model_params['coef'])
+    loaded_model.model.intercept_ = np.array(model_params['intercept'])
+    loaded_model.poly._min_degree = model_params["min_degree"]
+    loaded_model.poly._max_degree = model_params["max_degree"]
+    loaded_model.poly._n_out_full = model_params["_n_out_full"]
+    loaded_model.poly.n_output_features_= model_params["n_output_features_"]
+    return loaded_model
+
+
+def compute_embedding_evaluations(embedding_evaluator: EmbeddingEvaluationModel,
+                                  embeddings: np.ndarray,
+                                  device: str = None,
+                                 ):
+    """Compute the predicted evaluations of all embeddings.
+    """
+    embedding_dim = embeddings.shape[1]
+    num_embeddings = embeddings.shape[0]
+    evaluations = np.zeros((num_embeddings, ))
+    if device is None:
+        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+    embedding_evaluator.to(device)
+    evaluations = embedding_evaluator(torch.tensor(embeddings).reshape(-1, 1, embedding_dim).to(device, dtype=torch.float32))
+    return evaluations.cpu().detach().numpy()
+
+
+def compute_error_predictions(
+        embedding_evaluations_1,
+        embedding_evaluations_2,
+        linear_model):
+    n_samples_1 = embedding_evaluations_1.shape[0]
+    n_samples_2 = embedding_evaluations_2.shape[0]
+    predictions = np.zeros((n_samples_1, n_samples_2))
+    
+    for i in range(n_samples_1):
+        X_pair = np.vstack([np.tile(embedding_evaluations_1[i], n_samples_2), embedding_evaluations_2]).T
+        
+        # Predict using the linear model
+        prediction = linear_model.predict(X_pair)
+        
+        # Store the prediction
+        predictions[i, :] = prediction
+
+    return predictions
