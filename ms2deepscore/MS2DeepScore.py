@@ -29,7 +29,7 @@ class MS2DeepScore(BaseSimilarity):
         queries = load_from_json("xyz.json")
 
         # Load pretrained model
-        model = load_model("model_file_123.hdf5")
+        model = load_model("model_file_123.pt")
 
         similarity_measure = MS2DeepScore(model)
         # Calculate scores and get matchms.Scores object
@@ -101,13 +101,13 @@ class MS2DeepScore(BaseSimilarity):
         ms2ds_similarity
             Array of MS2DeepScore similarity scores.
         """
-        embedding_reference = self.get_embedding_array(references)
+        embeddings_reference = self.get_embedding_array(references)
         if is_symmetric:
             assert np.all(references == queries), \
                 "Expected references to be equal to queries for is_symmetric=True"
-            query_embeddings = embedding_reference
+            embeddings_query = embeddings_reference
         else:
-            query_embeddings = self.get_embedding_array(queries)
+            embeddings_query = self.get_embedding_array(queries)
 
-        ms2ds_similarity = cosine_similarity_matrix(embedding_reference, query_embeddings)
+        ms2ds_similarity = cosine_similarity_matrix(embeddings_reference, embeddings_query)
         return ms2ds_similarity
