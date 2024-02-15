@@ -232,6 +232,7 @@ class LinearModel:
         return self.model.predict(X_transformed)
 
     def save(self, filepath):
+        # pylint: disable=protected-access
         # Extract the model's parameters
         model_params = {
             "coef": self.model.coef_.tolist(),  # Convert numpy array to list for JSON serialization
@@ -253,6 +254,7 @@ class LinearModel:
 def load_linear_model(filepath):
     """Load a LinearModel from json.
     """
+    # pylint: disable=protected-access
     with open(filepath, "r") as f:
         model_params = json.load(f)
 
