@@ -28,10 +28,10 @@ def load_model(filename: Union[str, Path]) -> SiameseSpectralModel:
         print(f"The model version ({model_settings['version']}) does not match the version of MS2Deepscore "
               f"({__version__}), consider downloading a new model or changing the MS2Deepscore version")
     # Extract model parameters from the checkpoint
-    model_params = model_settings['model_params']
+    model_params = model_settings["model_params"]
 
     # Instantiate the SiameseSpectralModel with the loaded parameters
     model = SiameseSpectralModel(settings=SettingsMS2Deepscore(**model_params))
-    model.load_state_dict(model_settings['model_state_dict'])
+    model.load_state_dict(model_settings["model_state_dict"])
     model.eval()
     return model
