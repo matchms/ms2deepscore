@@ -247,7 +247,7 @@ class LinearModel:
         }
 
         # Export to JSON
-        with open(filepath, 'w') as f:
+        with open(filepath, 'w', encoding="utf-8") as f:
             json.dump(model_params, f)
 
 
@@ -255,7 +255,7 @@ def load_linear_model(filepath):
     """Load a LinearModel from json.
     """
     # pylint: disable=protected-access
-    with open(filepath, "r") as f:
+    with open(filepath, "r", encoding="utf-8") as f:
         model_params = json.load(f)
 
     loaded_model = LinearModel(model_params["degree"])

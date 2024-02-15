@@ -139,10 +139,10 @@ class MS2DeepScoreEvaluated(BaseSimilarity):
         embeddings_ref_mse = self.get_embedding_evaluations(embeddings_reference)
         embeddings_query_mse = self.get_embedding_evaluations(embeddings_query)   
 
-        ms2ds_similarity = cosine_similarity_matrix(embeddings_reference, query_embeddings)
+        ms2ds_similarity = cosine_similarity_matrix(embeddings_reference, embeddings_query)
         ms2ds_uncertainty = self.get_score_evaluations(embeddings_ref_mse, embeddings_query_mse)
         similarities=np.empty((ms2ds_similarity.shape[0],
-                              ms2ds_similaritys.shape[1]), dtype=self.score_datatype)
+                              ms2ds_similarity.shape[1]), dtype=self.score_datatype)
         similarities["score"] = ms2ds_similarity
         similarities["predicted_absolute_error"] = ms2ds_uncertainty
         return similarities
