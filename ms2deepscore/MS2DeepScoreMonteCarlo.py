@@ -47,7 +47,7 @@ class MS2DeepScoreMonteCarlo(BaseSimilarity):
     # Set key characteristics as class attributes
     is_commutative = True
     # Set output data type, e.g. ("score", "float") or [("score", "float"), ("matches", "int")]
-    score_datatype = [("score", np.float64), ("lower_bound", np.float64), ("upper_bound", np.float64)]
+    score_datatype = [("score", np.float32), ("lower_bound", np.float32), ("upper_bound", np.float32)]
 
     def __init__(self, model,
                  n_ensembles: int = 10,
