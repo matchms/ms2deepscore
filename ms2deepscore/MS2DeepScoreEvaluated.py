@@ -67,8 +67,8 @@ class MS2DeepScoreEvaluated(BaseSimilarity):
         self.output_vector_dim = self.model.model_settings.embedding_dim
         self.progress_bar = progress_bar
 
-    def get_embedding_array(self, spectrums, format="numpy"):
-        return compute_embedding_array(self.model, spectrums, format)
+    def get_embedding_array(self, spectrums, datatype="numpy"):
+        return compute_embedding_array(self.model, spectrums, datatype)
 
     def get_embedding_evaluations(self, embeddings):
         """Compute the RMSE.
@@ -95,8 +95,8 @@ class MS2DeepScoreEvaluated(BaseSimilarity):
         ms2ds_similarity
             MS2DeepScore similarity score.
         """
-        embedding_reference = self.get_embedding_array([reference], format="pytorch")
-        embedding_query = self.get_embedding_array([query], format="pytorch")
+        embedding_reference = self.get_embedding_array([reference], datatype="pytorch")
+        embedding_query = self.get_embedding_array([query], datatype="pytorch")
 
         embedding_ref_mse = self.get_embedding_evaluations(embedding_reference.reshape(-1, 1, self.output_vector_dim)).detach().numpy()
         embedding_query_mse = self.get_embedding_evaluations(embedding_query.reshape(-1, 1, self.output_vector_dim)).detach().numpy()
@@ -129,13 +129,13 @@ class MS2DeepScoreEvaluated(BaseSimilarity):
         ms2ds_similarity
             Array of MS2DeepScore similarity scores.
         """
-        embeddings_reference = self.get_embedding_array(references, format="pytorch")
+        embeddings_reference = self.get_embedding_array(references, datatypet="pytorch")
         if is_symmetric:
             assert np.all(references == queries), \
                 "Expected references to be equal to queries for is_symmetric=True"
             embeddings_query = embeddings_reference
         else:
-            embeddings_query = self.get_embedding_array(queries, format="pytorch")
+            embeddings_query = self.get_embedding_array(queries, datatype="pytorch")
 
         embeddings_ref_mse = self.get_embedding_evaluations(embeddings_reference.reshape(-1, 1, self.output_vector_dim)).detach().numpy()
         embeddings_query_mse = self.get_embedding_evaluations(embeddings_query.reshape(-1, 1, self.output_vector_dim)).detach().numpy()
