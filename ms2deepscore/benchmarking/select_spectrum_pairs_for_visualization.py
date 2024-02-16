@@ -92,7 +92,7 @@ def sample_spectra_multiple_times(val_spectra: List[Spectrum],
                                   nr_of_sample_times: int):
     combined_predictions, combined_true_values = \
         select_pairs_one_spectrum_per_inchikey(val_spectra, val_spectra_other_mode, predicted_values, true_values)
-    for _ in tqdm(range(nr_of_sample_times),
+    for _ in tqdm(range(nr_of_sample_times-1),
                   desc="Sampling 1 spectrum per inchikey (multiple times)"):
         predictions_one_spectrum_per_inchikey, true_values_one_spectrum_per_inchikey = \
             select_pairs_one_spectrum_per_inchikey(val_spectra, val_spectra_other_mode, predicted_values, true_values)
