@@ -67,8 +67,8 @@ class MS2DeepScoreEvaluated(BaseSimilarity):
         self.output_vector_dim = self.model.model_settings.embedding_dim
         self.progress_bar = progress_bar
 
-    def get_embedding_array(self, spectrums):
-        return compute_embedding_array(self.model, spectrums)
+    def get_embedding_array(self, spectrums, format="numpy"):
+        return compute_embedding_array(self.model, spectrums, format)
 
     def get_embedding_evaluations(self, embeddings):
         """Compute the RMSE.
@@ -95,14 +95,15 @@ class MS2DeepScoreEvaluated(BaseSimilarity):
         ms2ds_similarity
             MS2DeepScore similarity score.
         """
-        embedding_reference = self.get_embedding_array([reference])
-        embedding_query = self.get_embedding_array([query])
+        embedding_reference = self.get_embedding_array([reference], format="pytorch")
+        embedding_query = self.get_embedding_array([query], format="pytorch")
 
-        embedding_ref_mse = self.get_embedding_evaluations(embedding_reference)
-        embedding_query_mse = self.get_embedding_evaluations(embedding_query)
-        score = cosine_similarity(embedding_reference[0, :], embedding_query[0, :])
-        score_predicted_ae = self.score_evaluator.predict([embedding_ref_mse, embedding_query_mse])
-        return score, score_predicted_ae
+        embedding_ref_mse = self.get_embedding_evaluations(embedding_reference.reshape(-1, 1, self.output_vector_dim)).detach().numpy()
+        embedding_query_mse = self.get_embedding_evaluations(embedding_query.reshape(-1, 1, self.output_vector_dim)).detach().numpy()
+        score = cosine_similarity(embedding_reference[0, :].detach().numpy(), embedding_query[0, :].detach().numpy())
+        score_predicted_ae = self.score_evaluator.predict([[embedding_ref_mse[0][0], embedding_query_mse[0][0]]])
+        return np.asarray((score, score_predicted_ae),
+                          dtype=self.score_datatype)
 
     def matrix(self, references: List[Spectrum], queries: List[Spectrum],
                array_type: str = "numpy",
@@ -128,18 +129,18 @@ class MS2DeepScoreEvaluated(BaseSimilarity):
         ms2ds_similarity
             Array of MS2DeepScore similarity scores.
         """
-        embeddings_reference = self.get_embedding_array(references)
+        embeddings_reference = self.get_embedding_array(references, format="pytorch")
         if is_symmetric:
             assert np.all(references == queries), \
                 "Expected references to be equal to queries for is_symmetric=True"
             embeddings_query = embeddings_reference
         else:
-            embeddings_query = self.get_embedding_array(queries)
+            embeddings_query = self.get_embedding_array(queries, format="pytorch")
 
-        embeddings_ref_mse = self.get_embedding_evaluations(embeddings_reference)
-        embeddings_query_mse = self.get_embedding_evaluations(embeddings_query)   
+        embeddings_ref_mse = self.get_embedding_evaluations(embeddings_reference.reshape(-1, 1, self.output_vector_dim)).detach().numpy()
+        embeddings_query_mse = self.get_embedding_evaluations(embeddings_query.reshape(-1, 1, self.output_vector_dim)).detach().numpy()
 
-        ms2ds_similarity = cosine_similarity_matrix(embeddings_reference, embeddings_query)
+        ms2ds_similarity = cosine_similarity_matrix(embeddings_reference.detach().numpy(), embeddings_query.detach().numpy())
         ms2ds_uncertainty = self.get_score_evaluations(embeddings_ref_mse, embeddings_query_mse)
         similarities=np.empty((ms2ds_similarity.shape[0],
                               ms2ds_similarity.shape[1]), dtype=self.score_datatype)
