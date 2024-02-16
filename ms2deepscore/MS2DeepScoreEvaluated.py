@@ -129,7 +129,7 @@ class MS2DeepScoreEvaluated(BaseSimilarity):
         ms2ds_similarity
             Array of MS2DeepScore similarity scores.
         """
-        embeddings_reference = self.get_embedding_array(references, datatypet="pytorch")
+        embeddings_reference = self.get_embedding_array(references, datatype="pytorch")
         if is_symmetric:
             assert np.all(references == queries), \
                 "Expected references to be equal to queries for is_symmetric=True"
