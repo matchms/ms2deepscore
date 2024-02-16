@@ -242,8 +242,6 @@ class LinearModel:
             "max_degree": self.poly._max_degree,
             "n_output_features_": self.poly.n_output_features_,
             "_n_out_full": self.poly._n_out_full,
-            
-        
         }
 
         # Export to JSON
@@ -294,7 +292,7 @@ def compute_error_predictions(
     predictions = np.zeros((n_samples_1, n_samples_2))
     
     for i in range(n_samples_1):
-        X_pair = np.vstack([np.tile(embedding_evaluations_1[i], n_samples_2), embedding_evaluations_2]).T
+        X_pair = np.hstack([np.tile(embedding_evaluations_1[i], n_samples_2).reshape(-1, 1), embedding_evaluations_2])
         
         # Predict using the linear model
         prediction = linear_model.predict(X_pair)

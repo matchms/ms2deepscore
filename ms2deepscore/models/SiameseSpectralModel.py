@@ -292,14 +292,26 @@ def dense_layer(input_size, output_size, activation="relu"):
 
 
 def compute_embedding_array(model: SiameseSpectralModel,
-                            spectrums):
+                            spectrums,
+                            format="numpy",
+                            device=None):
     """Compute the embeddings of all spectra in spectrums.
     """
-    embeddings = np.zeros((len(spectrums), model.model_settings.embedding_dim))
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    if format.lower() not in ["numpy", "pytorch"]:
+        raise ValueError("Format can only be 'numpy' or 'pytorch'.")
+    if format.lower() == "numpy":
+        embeddings = np.zeros((len(spectrums), model.model_settings.embedding_dim))
+    else:
+        embeddings = torch.zeros((len(spectrums), model.model_settings.embedding_dim))
+
+    if device is None:
+        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model.to(device)
     for i, spec in tqdm(enumerate(spectrums)):
         X = tensorize_spectra([spec], model.model_settings)
         with torch.no_grad():
-            embeddings[i, :] = model.encoder(X[0].to(device), X[1].to(device)).cpu().detach().numpy()
+            if format.lower() == "numpy":
+                embeddings[i, :] = model.encoder(X[0].to(device), X[1].to(device)).cpu().detach().numpy()
+            else:
+                embeddings[i, :] = model.encoder(X[0].to(device), X[1].to(device)).cpu().detach()
     return embeddings
