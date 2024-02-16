@@ -23,7 +23,9 @@ def load_model(filename: Union[str, Path]) -> SiameseSpectralModel:
         Filename. Expecting saved SiameseModel.
 
     """
-    model_settings = torch.load(filename)
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+    model_settings = torch.load(filename, map_location=device)
     if model_settings["version"] != __version__:
         print(f"The model version ({model_settings['version']}) does not match the version of MS2Deepscore "
               f"({__version__}), consider downloading a new model or changing the MS2Deepscore version")
