@@ -86,7 +86,6 @@ def train_evaluator(evaluator_model,
     iteration_losses = []
     batch_count = 0  # often we have MANY spectra, so classical epochs are too big --> count batches instead
     for epoch in range(num_epochs):
-        #for i, x in tqdm(enumerate(data_generator)):
         for i, x in enumerate(data_generator):
             tanimoto_scores, ms2ds_scores, embeddings = x
 
@@ -96,11 +95,11 @@ def train_evaluator(evaluator_model,
 
                 optimizer.zero_grad()
     
-                #rmse_per_embedding = ((remove_diagonal(tanimoto_scores) -  remove_diagonal(ms2ds_scores)) ** 2).mean(axis=1) ** 0.5
                 mse_per_embedding = ((tanimoto_scores[low: high, :] -  ms2ds_scores[low: high, :]) ** 2).mean(axis=1)
                 mse_per_embedding = mse_per_embedding.reshape(-1, 1).clone().detach()
     
                 outputs = evaluator_model(embeddings[low: high].reshape(-1, 1, embeddings.shape[-1]).to(device))
+
                 # Calculate loss
                 loss = criterion(outputs.to(device), mse_per_embedding.to(device, dtype=torch.float32))
                 iteration_losses.append(float(loss))
@@ -247,23 +246,6 @@ class LinearModel:
         # Export to JSON
         with open(filepath, 'w', encoding="utf-8") as f:
             json.dump(model_params, f)
-
-
-def load_linear_model(filepath):
-    """Load a LinearModel from json.
-    """
-    # pylint: disable=protected-access
-    with open(filepath, "r", encoding="utf-8") as f:
-        model_params = json.load(f)
-
-    loaded_model = LinearModel(model_params["degree"])
-    loaded_model.model.coef_ = np.array(model_params['coef'])
-    loaded_model.model.intercept_ = np.array(model_params['intercept'])
-    loaded_model.poly._min_degree = model_params["min_degree"]
-    loaded_model.poly._max_degree = model_params["max_degree"]
-    loaded_model.poly._n_out_full = model_params["_n_out_full"]
-    loaded_model.poly.n_output_features_= model_params["n_output_features_"]
-    return loaded_model
 
 
 def compute_embedding_evaluations(embedding_evaluator: EmbeddingEvaluationModel,

@@ -56,6 +56,7 @@ def test_MS2DeepScore_score_matrix():
         [0.9908498 , 0.99399304, 1.        , 0.97351074]
         ])
     assert np.allclose(expected_scores, scores["score"], atol=1e-6), "Expected different scores."
+    assert scores["predicted_absolute_error"].shape == (3, 4)
 
 
 # def test_MS2DeepScore_score_matrix_symmetric():

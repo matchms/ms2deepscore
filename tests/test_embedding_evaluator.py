@@ -3,7 +3,8 @@ import pytest
 import numpy as np
 from sklearn.datasets import make_regression
 import torch
-from ms2deepscore.models import EmbeddingEvaluationModel, LinearModel, load_linear_model 
+from ms2deepscore.models import EmbeddingEvaluationModel, LinearModel
+from ms2deepscore.models import load_linear_model, load_model, load_embedding_evaluator
 # from ms2deepscor.SettingsMS2Deepscore import SettingsMS2Deepscore
 
 
@@ -21,48 +22,61 @@ def mock_settings():
 
 
 @pytest.fixture
-def model(mock_settings):
+def embedding_model(mock_settings):
     return EmbeddingEvaluationModel(settings=mock_settings)
 
 
-def test_model_initialization(model):
+def test_model_initialization(embedding_model):
     """
     Test if the model initializes with the correct number of filters, depth, and kernel size.
     """
-    assert model.settings.evaluator_num_filters == 32, "Incorrect number of filters"
-    assert model.settings.evaluator_depth == 6, "Incorrect depth"
-    assert model.settings.evaluator_kernel_size == 40, "Incorrect kernel size"
+    assert embedding_model.settings.evaluator_num_filters == 32, "Incorrect number of filters"
+    assert embedding_model.settings.evaluator_depth == 6, "Incorrect depth"
+    assert embedding_model.settings.evaluator_kernel_size == 40, "Incorrect kernel size"
 
 
-def test_forward_pass(model):
+def test_forward_pass(embedding_model):
     """
     Test the forward pass of the model with a mock input.
     """
     mock_input = torch.randn(1, 1, 500)
-    output = model(mock_input)
+    output = embedding_model(mock_input)
     assert output.shape == (1, 1), "Output shape is incorrect"
 
 
-def test_model_with_different_input_sizes(model):
+def test_model_with_different_input_sizes(embedding_model):
     """
     Test the model with different input sizes to ensure it can handle variable sequence lengths.
     """
     sizes = [100, 250, 500, 750]
     for size in sizes:
         mock_input = torch.randn(1, 1, size)
-        output = model(mock_input)
+        output = embedding_model(mock_input)
         assert output.shape == (1, 1), f"Output shape is incorrect for input size {size}"
 
 
-def test_model_with_batch_sizes(model):
+def test_model_with_batch_sizes(embedding_model):
     """
     Test the model with different input sizes to ensure it can handle variable sequence lengths.
     """
     batch_sizes = [1, 2, 10]
     for size in batch_sizes:
         mock_input = torch.randn(size, 1, 100)
-        output = model(mock_input)
+        output = embedding_model(mock_input)
         assert output.shape == (size, 1), f"Output shape is incorrect for batch size {size}"
+
+
+def test_model_save_load(tmp_path, embedding_model):
+    # Save the model
+    filepath = tmp_path / "embedding_model.pth"
+    embedding_model.save(filepath)
+
+    # Load the model
+    loaded_model = load_embedding_evaluator(filepath)
+    
+    # Verify if the saved settings and state dict match the original model
+    assert loaded_model.settings.evaluator_num_filters == embedding_model.settings.evaluator_num_filters
+    assert loaded_model.state_dict().keys() == embedding_model.state_dict().keys()
 
 
 def test_linear_model_fit_predict():
