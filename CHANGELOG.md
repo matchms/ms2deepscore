@@ -11,6 +11,9 @@ Large scale expansion, revision, and restructuring of MS2Deepscore.
 ### Added
 - Models are now build using PyTorch.
 - Models have build-in GPU support (using pytorch).
+- new `EmbeddingEvaluatorModel` (Inception Time CNN)
+- new `LinearModel` for absolute error estimates
+- new `MS2DeepScoreEvaluated` matchms-style score --> gives "score" and "predicted_absolute_error"
 - Additional smart binning layer that can handle input of much higher peak resolution (not used as a default!)
 - New validation concept --> all-vs-all scores for the validation spectra are computed, but loss is then computed per score bin. This gives better and more significant statistics of the model performance
 - New loss functions "Risk Aware MAE" and "Risk Aware MSE" which function similar to MAE or MSE but try to counteract the tendency of a model to predict towards 0.5.
