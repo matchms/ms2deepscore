@@ -136,9 +136,31 @@ def train_evaluator(evaluator_model,
 
 class InceptionTime(Module):
     """
-    Default Inception Time model, typically used for time series or sequence classification.
+    InceptionTime model for time series (or sequence) classification.
+    See also Fawaz et al. (2020, DOI: https://doi.org/10.1007/s10618-020-00710-y).
+
+    Attributes
+    ----------
+    inception_block (InceptionBlock):
+        The inception block module used for extracting features.
+    global_avg_pool (nn.AdaptiveAvgPool1d):
+        Global average pooling layer to reduce feature dimensions.
+    fc (nn.Linear):
+        Fully connected layer for classification.
+
+    Parameters
+    ----------
+    input_channels (int):
+        Number of input channels (features) in the time series data.
+    output_channels (int):
+        Number of output classes for classification.
+    num_filters (int, optional):
+        Number of filters used in convolutional layers. Defaults to 32.
     """
-    def __init__(self, input_channels, output_channels, num_filters=32, **kwargs):
+    def __init__(self,
+                 input_channels: int,
+                 output_channels: int,
+                 num_filters: int = 32, **kwargs):
         super().__init__()
         self.inception_block = InceptionBlock(input_channels, num_filters, **kwargs)
         self.global_avg_pool = nn.AdaptiveAvgPool1d(1)
@@ -152,13 +174,31 @@ class InceptionTime(Module):
 
 
 class InceptionModule(Module):
-    def __init__(self, input_channels, num_filters, kernel_size=40, use_bottleneck=True):
+    """
+    Inception module with bottleneck and convolutional layers.
+
+    Parameters
+    ----------
+    input_channels (int):
+        Number of channels in the input tensor.
+    num_filters (int):
+        Number of filters in the convolutional layers.
+    kernel_size (int, optional):
+        Base kernel size for convolutional layers. Defaults to 40.
+    use_bottleneck (bool, optional):
+        Whether to use a bottleneck layer. Defaults to True.
+    """
+    def __init__(self, input_channels: int,
+                 num_filters: int,
+                 kernel_size: int = 40,
+                 use_bottleneck: bool = True):
         super().__init__()
-        # Adjust kernel sizes to ensure they are odd for symmetric padding
+
+        # Create 3 different kernel sizes. Adjust to ensure they are odd for symmetric padding
         kernel_sizes = [max(kernel_size // (2 ** i), 3) for i in range(3)]
         kernel_sizes = [k - (k % 2 == 0) for k in kernel_sizes]
 
-        # Use bottleneck layer only if input_channels > 1
+        # Bottleneck layer is only used if input_channels > 1
         use_bottleneck = use_bottleneck if input_channels > 1 else False
         self.bottleneck = nn.Conv1d(input_channels, num_filters, 1, bias=False) if use_bottleneck else nn.Identity()
         
@@ -185,7 +225,25 @@ class InceptionModule(Module):
 
 
 class InceptionBlock(Module):
-    def __init__(self, input_channels, num_filters=32, use_residual=True, depth=6, **kwargs):
+    """
+    Inception block consisting of multiple Inception modules.
+
+    Parameters
+    ----------
+    input_channels (int):
+        Number of input channels.
+    num_filters (int, optional):
+        Number of filters for each Inception module. Defaults to 32.
+    use_residual (bool, optional):
+        Whether to use residual connections. Defaults to True.
+    depth (int, optional):
+        Number of Inception modules to stack. Defaults to 6.
+    """
+    def __init__(self,
+                 input_channels: int,
+                 num_filters: int = 32,
+                 use_residual: bool = True,
+                 depth: int = 6, **kwargs):
         super().__init__()
         self.use_residual = use_residual
         self.depth = depth
@@ -266,9 +324,11 @@ def compute_embedding_evaluations(embedding_evaluator: EmbeddingEvaluationModel,
 
 
 def compute_error_predictions(
-        embedding_evaluations_1,
-        embedding_evaluations_2,
-        linear_model):
+        embedding_evaluations_1: np.ndarray,
+        embedding_evaluations_2: np.ndarray,
+        linear_model: LinearModel):
+    """Compute the error predicted by a linear_model for pairs of embeddings.
+    """
     n_samples_1 = embedding_evaluations_1.shape[0]
     n_samples_2 = embedding_evaluations_2.shape[0]
     predictions = np.zeros((n_samples_1, n_samples_2))
