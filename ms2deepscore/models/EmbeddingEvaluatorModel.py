@@ -5,35 +5,172 @@ from sklearn.preprocessing import PolynomialFeatures
 import torch
 import torch.nn.functional as F
 from torch import nn, optim
-from torch.nn.modules.module import Module
 from ms2deepscore.__version__ import __version__
 from ms2deepscore.SettingsMS2Deepscore import SettingsMS2Deepscore
 from ms2deepscore.models.helper_functions import initialize_device
 from ms2deepscore.train_new_model.data_generators import DataGeneratorEmbeddingEvaluation
 
 
-class EmbeddingEvaluationModel(nn.Module):
+
+
+
+### Below is code for a InceptionTime sequence classification model
+        
+
+class InceptionTime(nn.Module):
     """
-    Model to predict the degree of certainty for an MS2DeepScore embedding.
+    InceptionTime model for time series (or sequence) classification.
+    See also Fawaz et al. (2020, DOI: https://doi.org/10.1007/s10618-020-00710-y).
+
+    Attributes
+    ----------
+    inception_block (InceptionBlock):
+        The inception block module used for extracting features.
+    global_avg_pool (nn.AdaptiveAvgPool1d):
+        Global average pooling layer to reduce feature dimensions.
+    fc (nn.Linear):
+        Fully connected layer for classification.
+
+    Parameters
+    ----------
+    input_channels (int):
+        Number of input channels (features) in the time series data.
+    output_channels (int):
+        Number of output classes for classification.
+    num_filters (int, optional):
+        Number of filters used in convolutional layers. Defaults to 32.
     """
     def __init__(self,
-                 settings: SettingsMS2Deepscore,
-                 ):
+                 input_channels: int,
+                 output_channels: int,
+                 num_filters: int = 32, **kwargs):
         super().__init__()
-        self.settings = settings
-        self.inception_block = InceptionBlock(1,
-                                              self.settings.evaluator_num_filters,
-                                              depth=self.settings.evaluator_depth,
-                                              kernel_size=self.settings.evaluator_kernel_size,
-                                              )
+        self.inception_block = InceptionBlock(input_channels, num_filters, **kwargs)
         self.global_avg_pool = nn.AdaptiveAvgPool1d(1)
-        self.fc = nn.Linear(self.settings.evaluator_num_filters * 4, 1)        
+        self.fc = nn.Linear(num_filters * 4, output_channels)
 
     def forward(self, x):
         x = self.inception_block(x)
         x = self.global_avg_pool(x).squeeze(-1)
         x = self.fc(x)
         return x
+
+
+class InceptionModule(nn.Module):
+    """
+    Inception module with bottleneck and convolutional layers.
+
+    Parameters
+    ----------
+    input_channels (int):
+        Number of channels in the input tensor.
+    num_filters (int):
+        Number of filters in the convolutional layers.
+    kernel_size (int, optional):
+        Base kernel size for convolutional layers. Defaults to 40.
+    use_bottleneck (bool, optional):
+        Whether to use a bottleneck layer. Defaults to True.
+    """
+    def __init__(self, input_channels: int,
+                 num_filters: int,
+                 kernel_size: int = 40,
+                 use_bottleneck: bool = True):
+        super().__init__()
+
+        # Create 3 different kernel sizes. Adjust to ensure they are odd for symmetric padding
+        kernel_sizes = [max(kernel_size // (2 ** i), 3) for i in range(3)]
+        kernel_sizes = [k - (k % 2 == 0) for k in kernel_sizes]
+
+        # Bottleneck layer is only used if input_channels > 1
+        use_bottleneck = use_bottleneck if input_channels > 1 else False
+        self.bottleneck = nn.Conv1d(input_channels, num_filters, 1, bias=False) if use_bottleneck else nn.Identity()
+        
+        # Prepare convolutional layers with adjusted kernel sizes
+        conv_input_channels = num_filters if use_bottleneck else input_channels
+        self.convs = nn.ModuleList([nn.Conv1d(conv_input_channels, num_filters, k, 
+                                              padding="same") for k in kernel_sizes])
+        
+        # MaxPooling followed by a convolution
+        self.maxconvpool = nn.Sequential(
+            nn.MaxPool1d(3, stride=1, padding=1),
+            nn.Conv1d(input_channels, num_filters, 1, bias=False)
+        )
+        
+        # Batch normalization and activation function
+        self.bn = nn.BatchNorm1d(num_filters * 4)
+
+    def forward(self, x):
+        bottleneck_output = self.bottleneck(x)
+        conv_outputs = [conv(bottleneck_output) for conv in self.convs]
+        pooled_output = self.maxconvpool(x)
+        concatenated_output = torch.cat(conv_outputs + [pooled_output], dim=1)
+        return F.relu(self.bn(concatenated_output))
+
+
+class InceptionBlock(nn.Module):
+    """
+    Inception block consisting of multiple Inception modules.
+
+    Parameters
+    ----------
+    input_channels (int):
+        Number of input channels.
+    num_filters (int, optional):
+        Number of filters for each Inception module. Defaults to 32.
+    use_residual (bool, optional):
+        Whether to use residual connections. Defaults to True.
+    depth (int, optional):
+        Number of Inception modules to stack. Defaults to 6.
+    """
+    def __init__(self,
+                 input_channels: int,
+                 num_filters: int = 32,
+                 use_residual: bool = True,
+                 depth: int = 6, **kwargs):
+        super().__init__()
+        self.use_residual = use_residual
+        self.depth = depth
+        self.inception_modules = nn.ModuleList()
+        self.shortcuts = nn.ModuleList()
+
+        for d in range(depth):
+            module_input_channels = input_channels if d == 0 else num_filters * 4
+            self.inception_modules.append(InceptionModule(module_input_channels, num_filters, **kwargs))
+            
+            if use_residual and d % 3 == 2:
+                shortcut_input_channels = input_channels if d == 2 else num_filters * 4
+                if shortcut_input_channels == num_filters * 4:
+                    shortcut = nn.BatchNorm1d(shortcut_input_channels) 
+                else:
+                    shortcut = nn.Conv1d(shortcut_input_channels, num_filters * 4, 1, padding="same", bias=False)
+                self.shortcuts.append(shortcut)
+
+    def forward(self, x):
+        residual = x
+        for d in range(self.depth):
+            x = self.inception_modules[d](x)
+            if self.use_residual and d % 3 == 2:
+                shortcut_output = self.shortcuts[d // 3](residual)
+                x = x + shortcut_output
+                x = F.relu(x)
+                residual = x
+        return x
+
+
+class EmbeddingEvaluationModel(InceptionTime):
+    """
+    Model to predict the degree of certainty for an MS2DeepScore embedding.
+    """
+    def __init__(self,
+                 settings: SettingsMS2Deepscore,
+                 ):
+        super().__init__(
+            input_channels = 1,
+            output_channels = 1,
+            num_filters = settings.evaluator_num_filters,
+            depth=settings.evaluator_depth,
+            kernel_size=settings.evaluator_kernel_size)
+        self.settings = settings        
 
     def save(self, filepath):
         """
@@ -52,6 +189,65 @@ class EmbeddingEvaluationModel(nn.Module):
             'version': __version__
         }
         torch.save(settings_dict, filepath)
+
+
+class LinearModel:
+    """Simple linear model used to predict the expected absolute error for MS2DeepScore
+    predictions. The model uses a pair of embedding evaluations as input.
+
+    This class is a wrapper for scikit-learn's LinearRegression and PolynomialFeatures, 
+    facilitating polynomial regression analysis.
+
+    This class simplifies the application of polynomial features to input data 
+    before fitting a linear regression model, and it provides functionality to 
+    save model parameters to a file.
+
+    Attributes
+    ----------
+    degree (int):
+        The degree of the polynomial features. This determines how complex the model's
+        polynomial terms will be.
+    model (LinearRegression):
+        An instance of scikit-learn's LinearRegression. 
+        This is the underlying regression model.
+    poly (PolynomialFeatures):
+        An instance of scikit-learn's PolynomialFeatures. 
+        This is used to generate polynomial and interaction features from the input variables.
+
+    Parameters
+    ----------
+    degree (int, optional):
+        The degreae of polynomial features to create. Defaults to 2.
+    """
+    def __init__(self, degree = 2):
+        self.degree = degree
+        self.model = LinearRegression()
+        self.poly = PolynomialFeatures(degree=self.degree)
+    
+    def fit(self, X, y):
+        X_transformed = self.poly.fit_transform(X)
+        self.model.fit(X_transformed, y)
+
+    def predict(self, X):
+        X_transformed = self.poly.transform(X)
+        return self.model.predict(X_transformed)
+
+    def save(self, filepath):
+        # pylint: disable=protected-access
+        # Extract the model's parameters
+        model_params = {
+            "coef": self.model.coef_.tolist(),  # Convert numpy array to list for JSON serialization
+            "intercept": self.model.intercept_.tolist() if hasattr(self.model.intercept_, "tolist") else self.model.intercept_,
+            "degree": self.degree,
+            "min_degree": self.poly._min_degree,
+            "max_degree": self.poly._max_degree,
+            "n_output_features_": self.poly.n_output_features_,
+            "_n_out_full": self.poly._n_out_full,
+        }
+
+        # Export to JSON
+        with open(filepath, 'w', encoding="utf-8") as f:
+            json.dump(model_params, f)
 
 
 def train_evaluator(
@@ -131,181 +327,6 @@ def train_evaluator(
                         print(f">>> Val_loss: {np.mean(val_losses):.6f}")
 
                     evaluator_model.train()
-
-
-### Below is code for a InceptionTime sequence classification model
-        
-
-class InceptionTime(Module):
-    """
-    InceptionTime model for time series (or sequence) classification.
-    See also Fawaz et al. (2020, DOI: https://doi.org/10.1007/s10618-020-00710-y).
-
-    Attributes
-    ----------
-    inception_block (InceptionBlock):
-        The inception block module used for extracting features.
-    global_avg_pool (nn.AdaptiveAvgPool1d):
-        Global average pooling layer to reduce feature dimensions.
-    fc (nn.Linear):
-        Fully connected layer for classification.
-
-    Parameters
-    ----------
-    input_channels (int):
-        Number of input channels (features) in the time series data.
-    output_channels (int):
-        Number of output classes for classification.
-    num_filters (int, optional):
-        Number of filters used in convolutional layers. Defaults to 32.
-    """
-    def __init__(self,
-                 input_channels: int,
-                 output_channels: int,
-                 num_filters: int = 32, **kwargs):
-        super().__init__()
-        self.inception_block = InceptionBlock(input_channels, num_filters, **kwargs)
-        self.global_avg_pool = nn.AdaptiveAvgPool1d(1)
-        self.fc = nn.Linear(num_filters * 4, output_channels)
-
-    def forward(self, x):
-        x = self.inception_block(x)
-        x = self.global_avg_pool(x).squeeze(-1)
-        x = self.fc(x)
-        return x
-
-
-class InceptionModule(Module):
-    """
-    Inception module with bottleneck and convolutional layers.
-
-    Parameters
-    ----------
-    input_channels (int):
-        Number of channels in the input tensor.
-    num_filters (int):
-        Number of filters in the convolutional layers.
-    kernel_size (int, optional):
-        Base kernel size for convolutional layers. Defaults to 40.
-    use_bottleneck (bool, optional):
-        Whether to use a bottleneck layer. Defaults to True.
-    """
-    def __init__(self, input_channels: int,
-                 num_filters: int,
-                 kernel_size: int = 40,
-                 use_bottleneck: bool = True):
-        super().__init__()
-
-        # Create 3 different kernel sizes. Adjust to ensure they are odd for symmetric padding
-        kernel_sizes = [max(kernel_size // (2 ** i), 3) for i in range(3)]
-        kernel_sizes = [k - (k % 2 == 0) for k in kernel_sizes]
-
-        # Bottleneck layer is only used if input_channels > 1
-        use_bottleneck = use_bottleneck if input_channels > 1 else False
-        self.bottleneck = nn.Conv1d(input_channels, num_filters, 1, bias=False) if use_bottleneck else nn.Identity()
-        
-        # Prepare convolutional layers with adjusted kernel sizes
-        conv_input_channels = num_filters if use_bottleneck else input_channels
-        self.convs = nn.ModuleList([nn.Conv1d(conv_input_channels, num_filters, k, 
-                                              padding="same") for k in kernel_sizes])
-        
-        # MaxPooling followed by a convolution
-        self.maxconvpool = nn.Sequential(
-            nn.MaxPool1d(3, stride=1, padding=1),
-            nn.Conv1d(input_channels, num_filters, 1, bias=False)
-        )
-        
-        # Batch normalization and activation function
-        self.bn = nn.BatchNorm1d(num_filters * 4)
-
-    def forward(self, x):
-        bottleneck_output = self.bottleneck(x)
-        conv_outputs = [conv(bottleneck_output) for conv in self.convs]
-        pooled_output = self.maxconvpool(x)
-        concatenated_output = torch.cat(conv_outputs + [pooled_output], dim=1)
-        return F.relu(self.bn(concatenated_output))
-
-
-class InceptionBlock(Module):
-    """
-    Inception block consisting of multiple Inception modules.
-
-    Parameters
-    ----------
-    input_channels (int):
-        Number of input channels.
-    num_filters (int, optional):
-        Number of filters for each Inception module. Defaults to 32.
-    use_residual (bool, optional):
-        Whether to use residual connections. Defaults to True.
-    depth (int, optional):
-        Number of Inception modules to stack. Defaults to 6.
-    """
-    def __init__(self,
-                 input_channels: int,
-                 num_filters: int = 32,
-                 use_residual: bool = True,
-                 depth: int = 6, **kwargs):
-        super().__init__()
-        self.use_residual = use_residual
-        self.depth = depth
-        self.inception_modules = nn.ModuleList()
-        self.shortcuts = nn.ModuleList()
-
-        for d in range(depth):
-            module_input_channels = input_channels if d == 0 else num_filters * 4
-            self.inception_modules.append(InceptionModule(module_input_channels, num_filters, **kwargs))
-            
-            if use_residual and d % 3 == 2:
-                shortcut_input_channels = input_channels if d == 2 else num_filters * 4
-                if shortcut_input_channels == num_filters * 4:
-                    shortcut = nn.BatchNorm1d(shortcut_input_channels) 
-                else:
-                    shortcut = nn.Conv1d(shortcut_input_channels, num_filters * 4, 1, padding="same", bias=False)
-                self.shortcuts.append(shortcut)
-
-    def forward(self, x):
-        residual = x
-        for d in range(self.depth):
-            x = self.inception_modules[d](x)
-            if self.use_residual and d % 3 == 2:
-                shortcut_output = self.shortcuts[d // 3](residual)
-                x = x + shortcut_output
-                x = F.relu(x)
-                residual = x
-        return x
-
-
-class LinearModel:
-    def __init__(self, degree = 2):
-        self.degree = degree
-        self.model = LinearRegression()
-        self.poly = PolynomialFeatures(degree=self.degree)
-    
-    def fit(self, X, y):
-        X_transformed = self.poly.fit_transform(X)
-        self.model.fit(X_transformed, y)
-
-    def predict(self, X):
-        X_transformed = self.poly.transform(X)
-        return self.model.predict(X_transformed)
-
-    def save(self, filepath):
-        # pylint: disable=protected-access
-        # Extract the model's parameters
-        model_params = {
-            "coef": self.model.coef_.tolist(),  # Convert numpy array to list for JSON serialization
-            "intercept": self.model.intercept_.tolist() if hasattr(self.model.intercept_, "tolist") else self.model.intercept_,
-            "degree": self.degree,
-            "min_degree": self.poly._min_degree,
-            "max_degree": self.poly._max_degree,
-            "n_output_features_": self.poly.n_output_features_,
-            "_n_out_full": self.poly._n_out_full,
-        }
-
-        # Export to JSON
-        with open(filepath, 'w', encoding="utf-8") as f:
-            json.dump(model_params, f)
 
 
 def compute_embedding_evaluations(embedding_evaluator: EmbeddingEvaluationModel,
