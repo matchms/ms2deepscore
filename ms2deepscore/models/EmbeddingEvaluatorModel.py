@@ -9,6 +9,7 @@ from torch.nn.modules.module import Module
 from ms2deepscore.__version__ import __version__
 from ms2deepscore.SettingsMS2Deepscore import SettingsMS2Deepscore
 from ms2deepscore.models.helper_functions import initialize_device
+from ms2deepscore.train_new_model.data_generators import DataGeneratorEmbeddingEvaluation
 
 
 class EmbeddingEvaluationModel(nn.Module):
@@ -53,13 +54,14 @@ class EmbeddingEvaluationModel(nn.Module):
         torch.save(settings_dict, filepath)
 
 
-def train_evaluator(evaluator_model,
-          data_generator,
-          mini_batch_size,
-          batches_per_iteration: int,
-          learning_rate: float,
-          num_epochs,
-          val_generator = None):
+def train_evaluator(
+        evaluator_model: EmbeddingEvaluationModel,
+        data_generator: DataGeneratorEmbeddingEvaluation,
+        mini_batch_size: int,
+        batches_per_iteration: int,
+        learning_rate: float,
+        num_epochs: int,
+        val_generator: DataGeneratorEmbeddingEvaluation = None):
     """Train a evaluator model with given parameters.
 
     Parameters
