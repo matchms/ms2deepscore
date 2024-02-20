@@ -10,7 +10,7 @@ from matchms.similarity.vector_similarity_functions import \
 from ms2deepscore.SettingsMS2Deepscore import SettingsMS2Deepscore
 from ms2deepscore.tensorize_spectra import tensorize_spectra
 from ms2deepscore.train_new_model.spectrum_pair_selection import \
-    compute_fingerprints_for_training, SelectedCompoundPairs
+    compute_fingerprint_dataframe, compute_fingerprints_for_training, SelectedCompoundPairs
 from ms2deepscore.vector_operations import cosine_similarity_matrix
 
 
@@ -267,27 +267,3 @@ class DataGeneratorEmbeddingEvaluation:
         """Generate one batch of data.
         """
         return self._compute_embeddings_and_scores(batch_index)
-
-
-def compute_fingerprint_dataframe(
-        spectrums: List[Spectrum],
-        settings: SettingsMS2Deepscore,
-        ) -> pd.DataFrame:
-    """Returns a SelectedCompoundPairs object containing equally balanced pairs over the different bins
-
-    spectrums:
-        A list of spectra
-    settings:
-        The settings that should be used for selecting the compound pairs wrapper. The settings should be specified as a
-        SettingsMS2Deepscore object.
-    """
-    if settings.random_seed is not None:
-        np.random.seed(settings.random_seed)
-
-    fingerprints, inchikeys14_unique, _ = compute_fingerprints_for_training(
-        spectrums,
-        settings.fingerprint_type,
-        settings.fingerprint_nbits)
-
-    fingerprints_df = pd.DataFrame(fingerprints, index=inchikeys14_unique)
-    return fingerprints_df
