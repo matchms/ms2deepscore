@@ -2,7 +2,6 @@
 """
 from typing import List
 import numpy as np
-import pandas as pd
 import torch
 from matchms import Spectrum
 from matchms.similarity.vector_similarity_functions import \
@@ -10,7 +9,7 @@ from matchms.similarity.vector_similarity_functions import \
 from ms2deepscore.SettingsMS2Deepscore import SettingsMS2Deepscore
 from ms2deepscore.tensorize_spectra import tensorize_spectra
 from ms2deepscore.train_new_model.spectrum_pair_selection import \
-    compute_fingerprint_dataframe, compute_fingerprints_for_training, SelectedCompoundPairs
+    compute_fingerprint_dataframe, SelectedCompoundPairs
 from ms2deepscore.vector_operations import cosine_similarity_matrix
 
 
@@ -196,6 +195,10 @@ class DataGeneratorEmbeddingEvaluation:
     scores.
     The purpose is rather to show a high number of spectra to a model to learn
     embedding evaluations.
+
+    Spectra are sampled in groups of size batch_size. Before every epoch the indexes are
+    shuffled at random. For selected spectra the tanimoto scores, ms2deepscore scores and
+    embeddings are returned.
     """
     def __init__(self, spectrums: List[Spectrum],
                  ms2ds_model,
