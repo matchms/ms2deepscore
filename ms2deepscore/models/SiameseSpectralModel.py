@@ -4,7 +4,8 @@ import torch.nn.functional as F
 from torch import nn, optim
 from tqdm import tqdm
 from ms2deepscore.__version__ import __version__
-from ms2deepscore.models.helper_functions import (l1_regularization,
+from ms2deepscore.models.helper_functions import (initialize_device,
+                                                  l1_regularization,
                                                   l2_regularization)
 from ms2deepscore.models.loss_functions import LOSS_FUNCTIONS, rmse_loss
 from ms2deepscore.SettingsMS2Deepscore import SettingsMS2Deepscore
@@ -290,22 +291,27 @@ def dense_layer(input_size, output_size, activation="relu"):
     )
 
 
-def initialize_device():
-    """Initialize and return the device for training."""
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    print(f"Training will happen on {device}.")
-    return device
-
-
 def compute_embedding_array(model: SiameseSpectralModel,
-                            spectrums):
+                            spectrums,
+                            datatype="numpy",
+                            device=None):
     """Compute the embeddings of all spectra in spectrums.
     """
-    embeddings = np.zeros((len(spectrums), model.model_settings.embedding_dim))
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    if datatype.lower() not in ["numpy", "pytorch"]:
+        raise ValueError("datatype can only be 'numpy' or 'pytorch'.")
+    if datatype.lower() == "numpy":
+        embeddings = np.zeros((len(spectrums), model.model_settings.embedding_dim))
+    else:
+        embeddings = torch.zeros((len(spectrums), model.model_settings.embedding_dim))
+
+    if device is None:
+        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model.to(device)
     for i, spec in tqdm(enumerate(spectrums)):
         X = tensorize_spectra([spec], model.model_settings)
         with torch.no_grad():
-            embeddings[i, :] = model.encoder(X[0].to(device), X[1].to(device)).cpu().detach().numpy()
+            if datatype.lower() == "numpy":
+                embeddings[i, :] = model.encoder(X[0].to(device), X[1].to(device)).cpu().detach().numpy()
+            else:
+                embeddings[i, :] = model.encoder(X[0].to(device), X[1].to(device)).cpu().detach()
     return embeddings

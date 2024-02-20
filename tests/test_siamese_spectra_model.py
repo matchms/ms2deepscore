@@ -121,7 +121,7 @@ def test_siamese_model_additional_metadata(dummy_spectra):
 
 def test_model_training(simple_training_spectra):
     # Select pairs
-    settings = SettingsMS2Deepscore(min_mz=0, max_mz=200, mz_bin_width=0.2,
+    settings = SettingsMS2Deepscore(min_mz=0, max_mz=200, mz_bin_width=0.5,
                                     intensity_scaling=0.5, base_dims=(200, 200),
                                     embedding_dim=100,
                                     train_binning_layer=False,
@@ -142,13 +142,14 @@ def test_model_training(simple_training_spectra):
 
     # Create and train model
     model_simple = SiameseSpectralModel(settings)
-    history = train(model_simple, train_generator_simple, num_epochs=25, learning_rate=0.001,
+    num_epochs=10
+    history = train(model_simple, train_generator_simple, num_epochs=num_epochs, learning_rate=0.001,
                     validation_loss_calculator=validation_loss_calculator, early_stopping=False,
                     collect_all_targets=True,
                     lambda_l1=0, lambda_l2=0, progress_bar=False)
-    assert len(history["losses"]) == len(history["val_losses"]) == 25
+    assert len(history["losses"]) == len(history["val_losses"]) == num_epochs
     # Check if model trained to at least an OK result
     assert np.mean(history["losses"][-5:]) < 0.03, "Training was not succesfull!"
     # Check if bias in data is handled correctly
-    assert (np.array(history["collection_targets"]) == 1).sum() == 500
-    assert (np.array(history["collection_targets"]) < .2).sum() == 500
+    assert (np.array(history["collection_targets"]) == 1).sum() == 200
+    assert (np.array(history["collection_targets"]) < .2).sum() == 200

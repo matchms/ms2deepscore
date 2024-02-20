@@ -142,6 +142,12 @@ class SettingsMS2Deepscore:
         self.augment_noise_max = 10
         self.augment_noise_intensity = 0.02
 
+        # Settings for embedding evaluator model
+        self.evaluator_distribution_size = 1000
+        self.evaluator_num_filters = 48
+        self.evaluator_depth = 3
+        self.evaluator_kernel_size = 20
+
         if settings:
             for key, value in settings.items():
                 if hasattr(self, key):

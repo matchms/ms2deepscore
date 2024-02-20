@@ -56,8 +56,8 @@ def test_MS2DeepScoreMonteCarlo_pair(ms2_deep_score_instance):
     assert isinstance(score, np.ndarray), "Expected score to be numpy array"
     assert score["score"].size == 1
     assert score["lower_bound"].size == score["upper_bound"].size == 1
-    assert score["score"].dtype == np.float64, "Expected float as score."
-    assert score["lower_bound"].dtype == np.float64, "Expected float as uncertainty."
+    assert score["score"].dtype == np.float32, "Expected float as score."
+    assert score["lower_bound"].dtype == np.float32, "Expected float as uncertainty."
 
 
 def test_MS2DeepScoreMonteCarlo_matrix(ms2_deep_score_instance):

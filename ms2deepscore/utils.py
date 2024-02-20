@@ -41,6 +41,23 @@ def load_spectra_as_list(file_name) -> List[Spectrum]:
     return spectra
 
 
+def remove_diagonal(matrix):
+    """Removes the diagonal from a matrix
+
+    meant for removing matches of spectra against itself. """
+    # Get the number of rows and columns
+    nr_of_rows, nr_of_cols = matrix.shape
+    if nr_of_rows != nr_of_cols:
+        raise ValueError("Expected predictions against itself")
+
+    # Create a mask for the diagonal elements
+    diagonal_mask = np.eye(nr_of_rows, dtype=bool)
+
+    # Use the mask to remove the diagonal elements
+    matrix_without_diagonal = matrix[~diagonal_mask].reshape(nr_of_rows, nr_of_cols - 1)
+    return matrix_without_diagonal
+
+
 @numba.jit(nopython=True)
 def scaled_intensity_sum(mz_values, intensities, min_mz=0, max_mz=1000, scaling=2):
     """Compute a scaled intensity sum for all peaks of a spectrum.
