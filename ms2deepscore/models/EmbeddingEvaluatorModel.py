@@ -225,15 +225,30 @@ class LinearModel:
         self.poly = PolynomialFeatures(degree=self.degree)
     
     def fit(self, X, y):
+        """
+        Parameters
+        ----------
+        X:
+            Array containing pairs of embedding evaluations.
+        y:
+            Training targets which should be measures of the prediction uncertainty (e.g. MSE or RMSE).
+        """
         X_transformed = self.poly.fit_transform(X)
         self.model.fit(X_transformed, y)
 
-    def predict(self, X):
+    def predict(self, X: np.ndarray):
+        """
+        Parameters
+        ----------
+        X:
+            Array containing pairs of embedding evaluations.
+        """
         X_transformed = self.poly.transform(X)
         return self.model.predict(X_transformed)
 
     def save(self, filepath):
         # pylint: disable=protected-access
+
         # Extract the model's parameters
         model_params = {
             "coef": self.model.coef_.tolist(),  # Convert numpy array to list for JSON serialization
