@@ -18,9 +18,10 @@ TEST_RESOURCES_PATH = Path(__file__).parent / 'resources'
 def test_train_ms2ds_model(tmp_path):
     spectra = create_test_spectra(8)
     settings = SettingsMS2Deepscore(**{
+        "mz_bin_width": 1.0,
         "epochs": 2,  # to speed up tests --> usually many more
-        "base_dims": [200, 200],  # to speed up tests --> usually larger
-        "embedding_dim": 100,  # to speed up tests --> usually larger
+        "base_dims": [100, 100],  # to speed up tests --> usually larger
+        "embedding_dim": 50,  # to speed up tests --> usually larger
         "same_prob_bins": np.array([(0, 0.5), (0.5, 1.0)]),
         "average_pairs_per_bin": 2,
         "batch_size": 8
@@ -30,10 +31,13 @@ def test_train_ms2ds_model(tmp_path):
     # check if model is saved
     model_file_name = os.path.join(tmp_path, settings.model_file_name)
     assert os.path.isfile(model_file_name), "Expecte ms2ds model to be created and saved"
+
     ms2ds_model = load_ms2deepscore_model(model_file_name)
     assert isinstance(ms2ds_model, SiameseSpectralModel), "Expected a siamese model"
+
     ms2deepscore = MS2DeepScore(ms2ds_model)
     assert ms2deepscore.pair(spectra[0], spectra[0]) == 1
+
     result = ms2deepscore.matrix(spectra, spectra)
     assert result.shape == (len(spectra), len(spectra))
 
