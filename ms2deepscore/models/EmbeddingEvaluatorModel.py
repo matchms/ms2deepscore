@@ -268,8 +268,6 @@ def compute_embedding_evaluations(embedding_evaluator: EmbeddingEvaluationModel,
     """Compute the predicted evaluations of all embeddings.
     """
     embedding_dim = embeddings.shape[1]
-    num_embeddings = embeddings.shape[0]
-    evaluations = np.zeros((num_embeddings, ))
     if device is None:
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
