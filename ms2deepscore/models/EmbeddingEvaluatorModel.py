@@ -275,5 +275,3 @@ def compute_embedding_evaluations(embedding_evaluator: EmbeddingEvaluationModel,
     embedding_evaluator.to(device)
     evaluations = embedding_evaluator(torch.tensor(embeddings).reshape(-1, 1, embedding_dim).to(device, dtype=torch.float32))
     return evaluations.cpu().detach().numpy()
-
-

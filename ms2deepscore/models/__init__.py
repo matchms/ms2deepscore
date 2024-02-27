@@ -10,6 +10,7 @@ __all__ = [
     "bin_dependent_losses",
     "compute_embedding_array",
     "EmbeddingEvaluationModel",
+    "LinearModel",
     "load_embedding_evaluator",
     "load_linear_model",
     "load_model",
