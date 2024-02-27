@@ -154,6 +154,7 @@ class EmbeddingEvaluationModel(InceptionTime):
     """
     def __init__(self,
                  settings: SettingsMS2Deepscore,
+
                  ):
         super().__init__(
             input_channels=1,
@@ -161,7 +162,7 @@ class EmbeddingEvaluationModel(InceptionTime):
             num_filters=settings.evaluator_num_filters,
             depth=settings.evaluator_depth,
             kernel_size=settings.evaluator_kernel_size)
-        self.settings = settings        
+        self.settings = settings
 
     def save(self, filepath):
         """
@@ -181,84 +182,83 @@ class EmbeddingEvaluationModel(InceptionTime):
         }
         torch.save(settings_dict, filepath)
 
+    def train_evaluator(
+            self,
+            data_generator: DataGeneratorEmbeddingEvaluation,
+            mini_batch_size: int,
+            batches_per_iteration: int,
+            learning_rate: float,
+            num_epochs: int,
+            val_generator: DataGeneratorEmbeddingEvaluation = None):
+        """Train a evaluator model with given parameters.
 
-def train_evaluator(
-        evaluator_model: EmbeddingEvaluationModel,
-        data_generator: DataGeneratorEmbeddingEvaluation,
-        mini_batch_size: int,
-        batches_per_iteration: int,
-        learning_rate: float,
-        num_epochs: int,
-        val_generator: DataGeneratorEmbeddingEvaluation = None):
-    """Train a evaluator model with given parameters.
+        Parameters
+        ----------
+        self
+            The deep learning model to train.
+        data_generator
+            An iterator for training data batches.
+        mini_batch_size
+            Defines the actual trainig batch size after which the model weights are optimized.
+        learning_rate
+            Learning rate for the optimizer.
+        val_generator (iterator, optional)
+            An iterator for validation data batches.
+        """
+        # pylint: disable=too-many-arguments, too-many-locals
+        device = initialize_device()
+        self.to(device)
 
-    Parameters
-    ----------
-    evaluator_model
-        The deep learning model to train.
-    data_generator
-        An iterator for training data batches.
-    mini_batch_size
-        Defines the actual trainig batch size after which the model weights are optimized.
-    learning_rate
-        Learning rate for the optimizer.
-    val_generator (iterator, optional)
-        An iterator for validation data batches.
-    """
-    # pylint: disable=too-many-arguments, too-many-locals
-    device = initialize_device()
-    evaluator_model.to(device)
-
-    criterion = nn.MSELoss()
-    optimizer = optim.Adam(evaluator_model.parameters(), lr=learning_rate)
+        criterion = nn.MSELoss()
+        optimizer = optim.Adam(self.parameters(), lr=learning_rate)
 
 
-    iteration_losses = []
-    batch_count = 0  # often we have MANY spectra, so classical epochs are too big --> count batches instead
-    for epoch in range(num_epochs):
-        for i, x in enumerate(data_generator):
-            tanimoto_scores, ms2ds_scores, embeddings = x
+        iteration_losses = []
+        batch_count = 0  # often we have MANY spectra, so classical epochs are too big --> count batches instead
+        for epoch in range(num_epochs):
+            for i, x in enumerate(data_generator):
+                tanimoto_scores, ms2ds_scores, embeddings = x
 
-            for i in range(data_generator.batch_size//mini_batch_size):
-                low = i * mini_batch_size
-                high = low + mini_batch_size
+                for i in range(data_generator.batch_size//mini_batch_size):
+                    low = i * mini_batch_size
+                    high = low + mini_batch_size
 
-                optimizer.zero_grad()
-    
-                mse_per_embedding = ((tanimoto_scores[low: high, :] -  ms2ds_scores[low: high, :]) ** 2).mean(axis=1)
-                mse_per_embedding = mse_per_embedding.reshape(-1, 1).clone().detach()
-    
-                outputs = evaluator_model(embeddings[low: high].reshape(-1, 1, embeddings.shape[-1]).to(device))
+                    optimizer.zero_grad()
 
-                # Calculate loss
-                loss = criterion(outputs.to(device), mse_per_embedding.to(device, dtype=torch.float32))
-                iteration_losses.append(float(loss))
-                
-                # Backward pass and optimize
-                loss.backward()
-                optimizer.step()
-            
-            batch_count += 1
-            if batch_count % batches_per_iteration == 0:
-                print(f">>> Batch: {batch_count} ({batch_count * data_generator.batch_size} spectra, epoch: {epoch + 1})")
-                print(f">>> Training loss: {np.mean(iteration_losses):.6f}")
-                iteration_losses = []
-                if val_generator is not None:
-                    with torch.no_grad():
-                        evaluator_model.eval()
-                        val_losses = []
-                        for sample in val_generator:
-                            tanimoto_scores, ms2ds_scores, embeddings = sample
-                            outputs = evaluator_model(embeddings.reshape(-1, 1, embeddings.shape[-1]).to(device))
+                    mse_per_embedding = ((tanimoto_scores[low: high, :] -  ms2ds_scores[low: high, :]) ** 2).mean(axis=1)
+                    mse_per_embedding = mse_per_embedding.reshape(-1, 1).clone().detach()
 
-                            mse_per_embedding = ((tanimoto_scores - ms2ds_scores) ** 2).mean(axis=1)
-                            mse_per_embedding = mse_per_embedding.reshape(-1, 1).clone().detach()
-                            
-                            loss = criterion(outputs.to(device), mse_per_embedding.to(device, dtype=torch.float32))
-                            val_losses.append(float(loss))
-                        print(f">>> Val_loss: {np.mean(val_losses):.6f}")
+                    outputs = self(embeddings[low: high].reshape(-1, 1, embeddings.shape[-1]).to(device))
 
-                    evaluator_model.train()
+                    # Calculate loss
+                    loss = criterion(outputs.to(device), mse_per_embedding.to(device, dtype=torch.float32))
+                    iteration_losses.append(float(loss))
+
+                    # Backward pass and optimize
+                    loss.backward()
+                    optimizer.step()
+
+                batch_count += 1
+                if batch_count % batches_per_iteration == 0:
+                    print(f">>> Batch: {batch_count} ({batch_count * data_generator.batch_size} spectra, epoch: {epoch + 1})")
+                    print(f">>> Training loss: {np.mean(iteration_losses):.6f}")
+                    iteration_losses = []
+                    if val_generator is not None:
+                        with torch.no_grad():
+                            self.eval()
+                            val_losses = []
+                            for sample in val_generator:
+                                tanimoto_scores, ms2ds_scores, embeddings = sample
+                                outputs = self(embeddings.reshape(-1, 1, embeddings.shape[-1]).to(device))
+
+                                mse_per_embedding = ((tanimoto_scores - ms2ds_scores) ** 2).mean(axis=1)
+                                mse_per_embedding = mse_per_embedding.reshape(-1, 1).clone().detach()
+
+                                loss = criterion(outputs.to(device), mse_per_embedding.to(device, dtype=torch.float32))
+                                val_losses.append(float(loss))
+                            print(f">>> Val_loss: {np.mean(val_losses):.6f}")
+
+                        self.train()
 
 
 def compute_embedding_evaluations(embedding_evaluator: EmbeddingEvaluationModel,
