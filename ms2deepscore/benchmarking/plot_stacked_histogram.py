@@ -4,29 +4,47 @@ from matplotlib import pyplot as plt
 from matplotlib.colors import LinearSegmentedColormap
 
 
+def get_recall_value(predictions: np.array, wanted_recall):
+    flat_predictions = predictions.flatten()
+    threshold_index = int(wanted_recall * len(flat_predictions))
+    sorted_array = np.sort(flat_predictions)[::-1]
+    threshold = sorted_array[threshold_index]
+    return threshold
+
+
 def plot_reversed_stacked_histogram_plot(tanimoto_scores: np.array,
                                          ms2deepscore_predictions: np.array,
                                          title="",
-                                         ms2deepscore_nr_of_bin_correction=1.0):
+                                         ms2deepscore_nr_of_bin_correction=1.0,
+                                         max_height=2.0):
     if tanimoto_scores.max() > 1 or tanimoto_scores.min() < 0:
         raise ValueError("The tanimoto score predictions are not between 0 and 1. "
                          "Ms2deepscore predictions and tanimoto score predictions might be accidentally reversed")
-    ms2deepscore_bins = np.array([0, 0.7, 0.85, 1])
+
+    ms2deepscore_bins = np.array(
+        [0,
+         get_recall_value(ms2deepscore_predictions, 0.01),
+         get_recall_value(ms2deepscore_predictions, 0.0015),
+         get_recall_value(ms2deepscore_predictions, 0.0012),
+         get_recall_value(ms2deepscore_predictions, 0.0009),
+         get_recall_value(ms2deepscore_predictions, 0.0006),
+         get_recall_value(ms2deepscore_predictions, 0.0003),
+         1])
 
     normalized_counts_per_bin, used_ms2deepscore_bins_per_bin, percentage_of_total_pairs_per_bin = \
         calculate_all_histograms(ms2deepscore_predictions, tanimoto_scores, ms2deepscore_bins,
-                                 ms2deepscore_nr_of_bin_correction)
+                                 ms2deepscore_nr_of_bin_correction, max_height=max_height)
 
-    plot_stacked_histogram(normalized_counts_per_bin, used_ms2deepscore_bins_per_bin,
-                           percentage_of_total_pairs_per_bin, ms2deepscore_bins,
-                           x_label="Tanimoto similarity", y_label="MS2Deepscore", title=title)
+    plot_stacked_histogram(normalized_counts_per_bin, used_ms2deepscore_bins_per_bin, percentage_of_total_pairs_per_bin,
+                           ms2deepscore_bins, x_label="Tanimoto similarity", y_label="MS2Deepscore", title=title)
 
 
 def plot_stacked_histogram_plot_wrapper(tanimoto_scores: np.array,
                                         ms2deepscore_predictions: np.array,
                                         n_bins,
                                         title="",
-                                        ms2deepscore_nr_of_bin_correction=1.0):
+                                        ms2deepscore_nr_of_bin_correction=1.0,
+                                        max_height=2.0):
     """Create histogram based score comparison.
 
         Parameters
@@ -42,24 +60,24 @@ def plot_stacked_histogram_plot_wrapper(tanimoto_scores: np.array,
         to make it always fit in the figure. By changing ms2deepscore_nr_of_bin_correction, the starting nr of bins for
         the ms2deepscore histograms is changed.
     """
-
+    # pylint: disable=too-many-arguments
     if tanimoto_scores.max() > 1 or tanimoto_scores.min() < 0:
         raise ValueError("The tanimoto score predictions are not between 0 and 1. "
                          "Ms2deepscore predictions and tanimoto score predictions might be accidentally reversed")
     tanimoto_bins = np.linspace(0, 1, n_bins + 1)
     tanimoto_bins[-1] = 1.0000000001
 
-    normalized_counts_per_bin, used_ms2deepscore_bins_per_bin, percentage_of_total_pairs_per_bin = \
+    normalized_counts_per_bin, used_ms2deepscore_bins_per_bin, total_pairs_per_bin = \
         calculate_all_histograms(tanimoto_scores, ms2deepscore_predictions, tanimoto_bins,
-                                 ms2deepscore_nr_of_bin_correction)
+                                 ms2deepscore_nr_of_bin_correction, max_height)
 
-    plot_stacked_histogram(normalized_counts_per_bin, used_ms2deepscore_bins_per_bin, percentage_of_total_pairs_per_bin,
+    plot_stacked_histogram(normalized_counts_per_bin, used_ms2deepscore_bins_per_bin, total_pairs_per_bin,
                            tanimoto_bins, "MS2Deepscore", "Tanimoto similarity", title)
 
 
 def plot_stacked_histogram(normalized_counts_per_bin,
                            used_x_axis_bins_per_bin,
-                           percentage_of_total_pairs_per_bin,
+                           total_pairs_per_bin,
                            bins_y_axis,
                            x_label,
                            y_label,
@@ -67,7 +85,7 @@ def plot_stacked_histogram(normalized_counts_per_bin,
     """Creates a stacked histogram"""
     # pylint: disable=too-many-arguments
     nr_of_bins = len(normalized_counts_per_bin)
-    if len(used_x_axis_bins_per_bin) != nr_of_bins or len(percentage_of_total_pairs_per_bin) != nr_of_bins:
+    if len(used_x_axis_bins_per_bin) != nr_of_bins or len(total_pairs_per_bin) != nr_of_bins:
         raise ValueError("The nr of tanimoto bins for each of the input values should be equal")
 
     # Setup plotting stuff
@@ -78,15 +96,18 @@ def plot_stacked_histogram(normalized_counts_per_bin,
                            gridspec_kw={'width_ratios': [4, 1]})
 
     # Create a bargraph that shows the percentages per bin
-    axes[1].barh(np.arange(nr_of_bins), percentage_of_total_pairs_per_bin,
-                 tick_label="", height=0.9, )
-    axes[1].set_xlabel("% of pairs", fontsize=14)
+    axes[1].barh(np.arange(nr_of_bins), total_pairs_per_bin,
+                 tick_label="", height=0.9, log=True)
+    axes[1].set_xlabel("Number of pairs", fontsize=14)
+
+    # This will add an invisible line on top, making sure the alignment of the stacked histograms is correct.
+    axes[0].fill_between([0, 1], nr_of_bins, nr_of_bins, color="white")
 
     # Plot the stacked histograms
-    for bin_idx in range(0, nr_of_bins):
+    for bin_idx in reversed(range(0, nr_of_bins)):
         normalized_counts = normalized_counts_per_bin[bin_idx]
         used_bin_borders = used_x_axis_bins_per_bin[bin_idx]
-        percentage_of_pairs_in_this_bin = percentage_of_total_pairs_per_bin[bin_idx]
+        percentage_of_pairs_in_this_bin = total_pairs_per_bin[bin_idx]/sum(total_pairs_per_bin)*100
 
         # Fill_between fills the area between two lines.
         # We use this to create a histogram, this approach made it possible to stack multiple histograms.
@@ -107,10 +128,10 @@ def plot_stacked_histogram(normalized_counts_per_bin,
                      y=bin_idx + 0.2,  # The height of the text. We add 0.2 to the bin_idx (determined height of hist).
                      s=f"{percentage_of_pairs_in_this_bin:.2f} %")
 
-    # This will add an invisible line on top, making sure the alignment of the stacked histograms is correct.
-    axes[0].fill_between([0, 1], nr_of_bins, nr_of_bins, color="white")
     # Add bin sizes as labels
-    axes[0].set_yticks(np.arange(nr_of_bins), [f"{bins_y_axis[i]:.2f} to < {bins_y_axis[i+1]:.2f}" for i in range(len(bins_y_axis)-1)], fontsize=14)
+    axes[0].set_yticks(np.arange(nr_of_bins),
+                       [f"{bins_y_axis[i]:.2f} to < {bins_y_axis[i + 1]:.2f}" for i in range(len(bins_y_axis) - 1)],
+                       fontsize=14)
     axes[0].tick_params(axis="x", labelsize=14)
     axes[0].set_xlabel(x_label, fontsize=14)
     axes[0].set_ylabel(y_label, fontsize=14)
@@ -121,7 +142,8 @@ def plot_stacked_histogram(normalized_counts_per_bin,
 def calculate_all_histograms(scores_y_axis: np.array,
                              scores_x_axis: np.array,
                              bins_splitting_y_axis,
-                             x_axis_nr_of_bin_correction=1.0
+                             x_axis_nr_of_bin_correction=1.0,
+                             max_height=2.0
                              ) -> Tuple[List[np.array], List[np.array], List[float]]:
     """Calcualte a series of histograms, one for every bin.
 
@@ -138,11 +160,10 @@ def calculate_all_histograms(scores_y_axis: np.array,
     """
     if scores_y_axis.shape != scores_x_axis.shape:
         raise ValueError("Expected the predictions and the true values to have the same shape")
-    total_nr_of_pairs = (scores_y_axis.shape[0] * scores_y_axis.shape[1])
 
     normalized_counts_per_bin = []
     used_ms2deepscore_bins_per_bin = []
-    percentage_of_total_pairs_per_bin = []
+    total_pairs_per_bin = []
     for i in range(len(bins_splitting_y_axis) - 1):
         if i == 0:
             indexes_within_bin = np.where(
@@ -153,25 +174,25 @@ def calculate_all_histograms(scores_y_axis: np.array,
 
         # Adjust the hist_resolution based on the nr_of_pairs in the bin
         nr_of_pairs = indexes_within_bin[0].shape[0]
-        nr_of_ms2deepscore_bins = int((nr_of_pairs / x_axis_nr_of_bin_correction) ** 0.5)
+        nr_of_ms2deepscore_bins = int((nr_of_pairs / x_axis_nr_of_bin_correction) ** 0.35 * 2)
 
         normalized_counts, used_ms2deepscore_bins, total_count = \
             calculate_histogram_with_max_height(scores_x_axis[indexes_within_bin], nr_of_ms2deepscore_bins,
                                                 minimum_bin_value=scores_x_axis.min(),
-                                                maximum_bin_value=scores_x_axis.max())
+                                                maximum_bin_value=scores_x_axis.max(),
+                                                maximum_height=max_height)
         normalized_counts_per_bin.append(normalized_counts)
         used_ms2deepscore_bins_per_bin.append(used_ms2deepscore_bins)
-        percentage_of_total_pairs_per_bin.append(total_count / total_nr_of_pairs * 100)
-    return normalized_counts_per_bin, used_ms2deepscore_bins_per_bin, percentage_of_total_pairs_per_bin
+        total_pairs_per_bin.append(total_count)
+    return normalized_counts_per_bin, used_ms2deepscore_bins_per_bin, total_pairs_per_bin
 
 
 def calculate_histogram_with_max_height(input_values: np.array,
                                         starting_nr_of_bins: int,
                                         minimum_bin_value,
                                         maximum_bin_value,
-                                        maximum_height=0.95,
-                                        average_peak_height_after_normalization=0.08
-                                        ):  # pylint: disable=too-many-arguments
+                                        maximum_height=2.0,
+                                        ):
     """Creates a histogram, that has a maximum hight of all bins of 0.95
 
     The reason for the maximum is that this plots nicely as a stacked histogram.
@@ -191,6 +212,7 @@ def calculate_histogram_with_max_height(input_values: np.array,
     average_peak_height_after_normalization:
         The average peak height of all the peaks.
     """
+    average_peak_height_after_normalization = maximum_height / 8
     counts, used_bins = np.histogram(input_values,
                                      bins=np.linspace(minimum_bin_value,
                                                       maximum_bin_value,
@@ -208,7 +230,6 @@ def calculate_histogram_with_max_height(input_values: np.array,
                 calculate_histogram_with_max_height(
                     input_values, starting_nr_of_bins, minimum_bin_value=minimum_bin_value,
                     maximum_bin_value=maximum_bin_value,
-                    maximum_height=maximum_height,
-                    average_peak_height_after_normalization=average_peak_height_after_normalization)
+                    maximum_height=maximum_height)
     total_count = sum(counts)
     return normalized_counts, used_bins, total_count
