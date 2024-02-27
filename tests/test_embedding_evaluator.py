@@ -4,9 +4,9 @@ import numpy as np
 from sklearn.datasets import make_regression
 import torch
 from ms2deepscore.models import EmbeddingEvaluationModel, LinearModel
+from ms2deepscore.models.EmbeddingEvaluatorModel import compute_embedding_evaluations
 from ms2deepscore.models import load_linear_model, load_model, load_embedding_evaluator
-# from ms2deepscor.SettingsMS2Deepscore import SettingsMS2Deepscore
-
+from tests.test_data_generators import data_generator
 
 # Mock SettingsMS2Deepscore to avoid dependencies on the actual implementation
 class MockSettingsMS2Deepscore:
@@ -77,6 +77,18 @@ def test_model_save_load(tmp_path, embedding_model):
     # Verify if the saved settings and state dict match the original model
     assert loaded_model.settings.evaluator_num_filters == embedding_model.settings.evaluator_num_filters
     assert loaded_model.state_dict().keys() == embedding_model.state_dict().keys()
+
+
+def test_train_embedding_evaluator(embedding_model, data_generator):
+    embedding_model.train_evaluator(data_generator,
+                                    mini_batch_size=10,
+                                    batches_per_iteration=5,
+                                    learning_rate=0.001,
+                                    num_epochs=1,
+                                    )
+    embedding = data_generator.__next__()[2]
+    result = compute_embedding_evaluations(embedding_model, embedding)
+    assert result.shape == (10, 1)
 
 
 def test_linear_model_fit_predict():
