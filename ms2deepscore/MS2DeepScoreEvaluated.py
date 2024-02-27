@@ -4,8 +4,8 @@ from matchms import Spectrum
 from matchms.similarity.BaseSimilarity import BaseSimilarity
 from ms2deepscore.models.SiameseSpectralModel import (SiameseSpectralModel,
                                                       compute_embedding_array)
-from ms2deepscore.models.EmbeddingEvaluatorModel import compute_error_predictions
-from .vector_operations import cosine_similarity, cosine_similarity_matrix
+from ms2deepscore.models.LinearEmbeddingEvaluation import compute_error_predictions
+from ms2deepscore.vector_operations import cosine_similarity, cosine_similarity_matrix
 
 
 class MS2DeepScoreEvaluated(BaseSimilarity):
