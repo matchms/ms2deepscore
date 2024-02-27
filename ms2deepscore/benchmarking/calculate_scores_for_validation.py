@@ -2,10 +2,11 @@ import os
 from typing import List
 import numpy as np
 import pandas as pd
+from matchms.filtering.metadata_processing.add_fingerprint import \
+    _derive_fingerprint_from_smiles
 from matchms.similarity.vector_similarity_functions import \
     jaccard_similarity_matrix
 from matchms.Spectrum import Spectrum
-from matchms.filtering.metadata_processing.add_fingerprint import _derive_fingerprint_from_smiles
 from tqdm import tqdm
 from ms2deepscore import MS2DeepScore
 from ms2deepscore.models import load_model

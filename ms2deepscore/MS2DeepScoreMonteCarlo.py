@@ -1,15 +1,15 @@
 from typing import List, Tuple
 import numpy as np
+import torch
 from matchms import Spectrum
 from matchms.similarity.BaseSimilarity import BaseSimilarity
-import torch
 from tqdm import tqdm
 from ms2deepscore.models.SiameseSpectralModel import (SiameseSpectralModel,
                                                       compute_embedding_array)
+from ms2deepscore.tensorize_spectra import tensorize_spectra
 from ms2deepscore.vector_operations import (cosine_similarity_matrix,
                                             mean_pooling, median_pooling,
                                             percentile_pooling)
-from ms2deepscore.tensorize_spectra import tensorize_spectra
 
 
 class MS2DeepScoreMonteCarlo(BaseSimilarity):
