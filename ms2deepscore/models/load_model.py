@@ -5,7 +5,7 @@ import numpy as np
 import torch
 from ms2deepscore.__version__ import __version__
 from ms2deepscore.models.EmbeddingEvaluatorModel import EmbeddingEvaluationModel
-from ms2deepscore.models import LinearModel
+from ms2deepscore.models.LinearEmbeddingEvaluation import LinearModel
 from ms2deepscore.models.SiameseSpectralModel import SiameseSpectralModel
 from ms2deepscore.SettingsMS2Deepscore import SettingsMS2Deepscore
 

@@ -1,7 +1,6 @@
 from .load_model import load_model, load_embedding_evaluator, load_linear_model
 from .loss_functions import bin_dependent_losses
-from .EmbeddingEvaluatorModel import (EmbeddingEvaluationModel,
-                                      train_evaluator)
+from .EmbeddingEvaluatorModel import EmbeddingEvaluationModel
 from .LinearEmbeddingEvaluation import LinearModel
 from .SiameseSpectralModel import (SiameseSpectralModel,
                                    compute_embedding_array, train)
@@ -15,6 +14,5 @@ __all__ = [
     "load_linear_model",
     "load_model",
     "train",
-    "train_evaluator",
     "SiameseSpectralModel",
 ]
