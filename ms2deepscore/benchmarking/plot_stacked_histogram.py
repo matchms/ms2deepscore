@@ -60,7 +60,7 @@ def plot_stacked_histogram_plot_wrapper(tanimoto_scores: np.array,
         to make it always fit in the figure. By changing ms2deepscore_nr_of_bin_correction, the starting nr of bins for
         the ms2deepscore histograms is changed.
     """
-
+    # pylint: disable=too-many-arguments
     if tanimoto_scores.max() > 1 or tanimoto_scores.min() < 0:
         raise ValueError("The tanimoto score predictions are not between 0 and 1. "
                          "Ms2deepscore predictions and tanimoto score predictions might be accidentally reversed")
@@ -192,7 +192,7 @@ def calculate_histogram_with_max_height(input_values: np.array,
                                         minimum_bin_value,
                                         maximum_bin_value,
                                         maximum_height=2.0,
-                                        ):  # pylint: disable=too-many-arguments
+                                        ):
     """Creates a histogram, that has a maximum hight of all bins of 0.95
 
     The reason for the maximum is that this plots nicely as a stacked histogram.
@@ -233,14 +233,3 @@ def calculate_histogram_with_max_height(input_values: np.array,
                     maximum_height=maximum_height)
     total_count = sum(counts)
     return normalized_counts, used_bins, total_count
-
-
-if __name__ == "__main__":
-    from ms2deepscore.utils import load_pickled_file
-
-    predictions = load_pickled_file(
-        "../../../data/pytorch/gnps_21_08_23_min_5_at_5_percent/trained_models/both_mode_precursor_mz_ionmode_4000_4000_4000_layers_1000_embedding_2024_01_31_10_50_00/benchmarking_results/predictions_sampled_once.pickle")
-    true_values = load_pickled_file(
-        "../../../data/pytorch/gnps_21_08_23_min_5_at_5_percent/trained_models/both_mode_precursor_mz_ionmode_4000_4000_4000_layers_1000_embedding_2024_01_31_10_50_00/benchmarking_results/true_values_sampled_once.pickle")
-    plot_reversed_stacked_histogram_plot(true_values, predictions)
-    plt.show()
