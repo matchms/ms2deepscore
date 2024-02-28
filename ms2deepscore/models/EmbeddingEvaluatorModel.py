@@ -71,10 +71,6 @@ class EmbeddingEvaluationModel(nn.Module):
     def train_evaluator(
             self,
             data_generator: DataGeneratorEmbeddingEvaluation,
-            mini_batch_size: int,
-            batches_per_iteration: int,
-            learning_rate: float,
-            num_epochs: int,
             val_generator: DataGeneratorEmbeddingEvaluation = None):
         """Train a evaluator model with given parameters.
 
@@ -96,18 +92,18 @@ class EmbeddingEvaluationModel(nn.Module):
         self.to(device)
 
         criterion = nn.MSELoss()
-        optimizer = optim.Adam(self.parameters(), lr=learning_rate)
+        optimizer = optim.Adam(self.parameters(), lr=self.settings.learning_rate)
 
 
         iteration_losses = []
         batch_count = 0  # often we have MANY spectra, so classical epochs are too big --> count batches instead
-        for epoch in range(num_epochs):
+        for epoch in range(self.settings.num_epochs):
             for i, x in enumerate(data_generator):
                 tanimoto_scores, ms2ds_scores, embeddings = x
 
-                for i in range(data_generator.batch_size//mini_batch_size):
-                    low = i * mini_batch_size
-                    high = low + mini_batch_size
+                for i in range(data_generator.batch_size//self.settings.mini_batch_size):
+                    low = i * self.settings.mini_batch_size
+                    high = low + self.settings.mini_batch_size
 
                     optimizer.zero_grad()
 
@@ -125,7 +121,7 @@ class EmbeddingEvaluationModel(nn.Module):
                     optimizer.step()
 
                 batch_count += 1
-                if batch_count % batches_per_iteration == 0:
+                if batch_count % self.settings.batches_per_iteration == 0:
                     print(f">>> Batch: {batch_count} ({batch_count * data_generator.batch_size} spectra, epoch: {epoch + 1})")
                     print(f">>> Training loss: {np.mean(iteration_losses):.6f}")
                     iteration_losses = []

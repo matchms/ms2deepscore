@@ -7,12 +7,17 @@ from ms2deepscore.models import EmbeddingEvaluationModel, LinearModel
 from ms2deepscore.models import load_linear_model, load_model, load_embedding_evaluator
 from tests.test_data_generators import data_generator_embedding_evaluation
 
+
 # Mock SettingsMS2Deepscore to avoid dependencies on the actual implementation
 class MockSettingsEmbeddingEvaluator:
     def __init__(self):
         self.evaluator_num_filters = 32
         self.evaluator_depth = 6
         self.evaluator_kernel_size = 40
+        self.mini_batch_size = 10
+        self.batches_per_iteration = 5
+        self.learning_rate = 0.001
+        self.num_epochs = 1
 
 
 @pytest.fixture
@@ -79,12 +84,7 @@ def test_model_save_load(tmp_path, embedding_model):
 
 
 def test_train_embedding_evaluator(embedding_model, data_generator_embedding_evaluation):
-    embedding_model.train_evaluator(data_generator_embedding_evaluation,
-                                    mini_batch_size=10,
-                                    batches_per_iteration=5,
-                                    learning_rate=0.001,
-                                    num_epochs=1,
-                                    )
+    embedding_model.train_evaluator(data_generator_embedding_evaluation)
     embedding = data_generator_embedding_evaluation.__next__()[2]
     result = embedding_model.compute_embedding_evaluations(embedding)
     assert result.shape == (10, 1)

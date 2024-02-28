@@ -190,6 +190,13 @@ class SettingsEmbeddingEvaluator:
         self.evaluator_kernel_size = 20
         self.random_seed: Optional[int] = None
 
+        # Training settings
+        # todo set actually good settings
+        self.mini_batch_size = 32
+        self.batches_per_iteration = 100
+        self.learning_rate = 0.001
+        self.num_epochs = 200
+
         if settings:
             for key, value in settings.items():
                 if hasattr(self, key):
