@@ -1,9 +1,9 @@
-import numpy as np
 from typing import List
+import numpy as np
 import torch
 import torch.nn.functional as F
-from torch import nn, optim
 from matchms.Spectrum import Spectrum
+from torch import nn, optim
 from ms2deepscore.__version__ import __version__
 from ms2deepscore.models.helper_functions import initialize_device
 from ms2deepscore.SettingsMS2Deepscore import SettingsEmbeddingEvaluator
