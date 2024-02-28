@@ -86,7 +86,7 @@ def test_train_embedding_evaluator(embedding_model, data_generator):
                                     num_epochs=1,
                                     )
     embedding = data_generator.__next__()[2]
-    result = embedding_model.compute_embedding_evaluations(embedding_model, embedding)
+    result = embedding_model.compute_embedding_evaluations(embedding)
     assert result.shape == (10, 1)
 
 
