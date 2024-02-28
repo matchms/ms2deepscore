@@ -48,107 +48,6 @@ class InceptionTime(nn.Module):
         return x
 
 
-class InceptionModule(nn.Module):
-    """
-    Inception module with bottleneck and convolutional layers.
-
-    Parameters
-    ----------
-    input_channels (int):
-        Number of channels in the input tensor.
-    num_filters (int):
-        Number of filters in the convolutional layers.
-    kernel_size (int, optional):
-        Base kernel size for convolutional layers. Defaults to 40.
-    use_bottleneck (bool, optional):
-        Whether to use a bottleneck layer. Defaults to True.
-    """
-    def __init__(self, input_channels: int,
-                 num_filters: int,
-                 kernel_size: int = 40,
-                 use_bottleneck: bool = True):
-        super().__init__()
-
-        # Create 3 different kernel sizes. Adjust to ensure they are odd for symmetric padding
-        kernel_sizes = [max(kernel_size // (2 ** i), 3) for i in range(3)]
-        kernel_sizes = [k - (k % 2 == 0) for k in kernel_sizes]
-
-        # Bottleneck layer is only used if input_channels > 1
-        use_bottleneck = use_bottleneck if input_channels > 1 else False
-        self.bottleneck = nn.Conv1d(input_channels, num_filters, 1, bias=False) if use_bottleneck else nn.Identity()
-        
-        # Prepare convolutional layers with adjusted kernel sizes
-        conv_input_channels = num_filters if use_bottleneck else input_channels
-        self.convs = nn.ModuleList([nn.Conv1d(conv_input_channels, num_filters, k, 
-                                              padding="same") for k in kernel_sizes])
-        
-        # MaxPooling followed by a convolution
-        self.maxconvpool = nn.Sequential(
-            nn.MaxPool1d(3, stride=1, padding=1),
-            nn.Conv1d(input_channels, num_filters, 1, bias=False)
-        )
-        
-        # Batch normalization and activation function
-        self.bn = nn.BatchNorm1d(num_filters * 4)
-
-    def forward(self, x):
-        bottleneck_output = self.bottleneck(x)
-        conv_outputs = [conv(bottleneck_output) for conv in self.convs]
-        pooled_output = self.maxconvpool(x)
-        concatenated_output = torch.cat(conv_outputs + [pooled_output], dim=1)
-        return F.relu(self.bn(concatenated_output))
-
-
-class InceptionBlock(nn.Module):
-    """
-    Inception block consisting of multiple Inception modules.
-
-    Parameters
-    ----------
-    input_channels (int):
-        Number of input channels.
-    num_filters (int, optional):
-        Number of filters for each Inception module. Defaults to 32.
-    use_residual (bool, optional):
-        Whether to use residual connections. Defaults to True.
-    depth (int, optional):
-        Number of Inception modules to stack. Defaults to 6.
-    """
-    def __init__(self,
-                 input_channels: int,
-                 num_filters: int = 32,
-                 use_residual: bool = True,
-                 depth: int = 6, **kwargs):
-        super().__init__()
-        self.use_residual = use_residual
-        self.depth = depth
-        self.inception_modules = nn.ModuleList()
-        self.shortcuts = nn.ModuleList()
-
-        for d in range(depth):
-            module_input_channels = input_channels if d == 0 else num_filters * 4
-            self.inception_modules.append(InceptionModule(module_input_channels, num_filters, **kwargs))
-            
-            if use_residual and d % 3 == 2:
-                shortcut_input_channels = input_channels if d == 2 else num_filters * 4
-                if shortcut_input_channels == num_filters * 4:
-                    shortcut = nn.BatchNorm1d(shortcut_input_channels) 
-                else:
-                    shortcut = nn.Conv1d(shortcut_input_channels, num_filters * 4, 1, padding="same", bias=False)
-                self.shortcuts.append(shortcut)
-
-    def forward(self, x):
-        residual = x
-        for d in range(self.depth):
-            x = self.inception_modules[d](x)
-            if self.use_residual and d % 3 == 2:
-                shortcut_output = self.shortcuts[d // 3](residual)
-                x = x + shortcut_output
-                x = F.relu(x)
-                residual = x
-        return x
-
-
 class EmbeddingEvaluationModel(InceptionTime):
     """
     Model to predict the degree of certainty for an MS2DeepScore embedding.
@@ -275,3 +174,106 @@ def compute_embedding_evaluations(embedding_evaluator: EmbeddingEvaluationModel,
     embedding_evaluator.to(device)
     evaluations = embedding_evaluator(torch.tensor(embeddings).reshape(-1, 1, embedding_dim).to(device, dtype=torch.float32))
     return evaluations.cpu().detach().numpy()
+
+
+class InceptionModule(nn.Module):
+    """
+    Inception module with bottleneck and convolutional layers.
+
+    Parameters
+    ----------
+    input_channels (int):
+        Number of channels in the input tensor.
+    num_filters (int):
+        Number of filters in the convolutional layers.
+    kernel_size (int, optional):
+        Base kernel size for convolutional layers. Defaults to 40.
+    use_bottleneck (bool, optional):
+        Whether to use a bottleneck layer. Defaults to True.
+    """
+
+    def __init__(self, input_channels: int,
+                 num_filters: int,
+                 kernel_size: int = 40,
+                 use_bottleneck: bool = True):
+        super().__init__()
+
+        # Create 3 different kernel sizes. Adjust to ensure they are odd for symmetric padding
+        kernel_sizes = [max(kernel_size // (2 ** i), 3) for i in range(3)]
+        kernel_sizes = [k - (k % 2 == 0) for k in kernel_sizes]
+
+        # Bottleneck layer is only used if input_channels > 1
+        use_bottleneck = use_bottleneck if input_channels > 1 else False
+        self.bottleneck = nn.Conv1d(input_channels, num_filters, 1, bias=False) if use_bottleneck else nn.Identity()
+
+        # Prepare convolutional layers with adjusted kernel sizes
+        conv_input_channels = num_filters if use_bottleneck else input_channels
+        self.convs = nn.ModuleList([nn.Conv1d(conv_input_channels, num_filters, k,
+                                              padding="same") for k in kernel_sizes])
+
+        # MaxPooling followed by a convolution
+        self.maxconvpool = nn.Sequential(
+            nn.MaxPool1d(3, stride=1, padding=1),
+            nn.Conv1d(input_channels, num_filters, 1, bias=False)
+        )
+
+        # Batch normalization and activation function
+        self.bn = nn.BatchNorm1d(num_filters * 4)
+
+    def forward(self, x):
+        bottleneck_output = self.bottleneck(x)
+        conv_outputs = [conv(bottleneck_output) for conv in self.convs]
+        pooled_output = self.maxconvpool(x)
+        concatenated_output = torch.cat(conv_outputs + [pooled_output], dim=1)
+        return F.relu(self.bn(concatenated_output))
+
+
+class InceptionBlock(nn.Module):
+    """
+    Inception block consisting of multiple Inception modules.
+
+    Parameters
+    ----------
+    input_channels (int):
+        Number of input channels.
+    num_filters (int, optional):
+        Number of filters for each Inception module. Defaults to 32.
+    use_residual (bool, optional):
+        Whether to use residual connections. Defaults to True.
+    depth (int, optional):
+        Number of Inception modules to stack. Defaults to 6.
+    """
+
+    def __init__(self,
+                 input_channels: int,
+                 num_filters: int = 32,
+                 use_residual: bool = True,
+                 depth: int = 6, **kwargs):
+        super().__init__()
+        self.use_residual = use_residual
+        self.depth = depth
+        self.inception_modules = nn.ModuleList()
+        self.shortcuts = nn.ModuleList()
+
+        for d in range(depth):
+            module_input_channels = input_channels if d == 0 else num_filters * 4
+            self.inception_modules.append(InceptionModule(module_input_channels, num_filters, **kwargs))
+
+            if use_residual and d % 3 == 2:
+                shortcut_input_channels = input_channels if d == 2 else num_filters * 4
+                if shortcut_input_channels == num_filters * 4:
+                    shortcut = nn.BatchNorm1d(shortcut_input_channels)
+                else:
+                    shortcut = nn.Conv1d(shortcut_input_channels, num_filters * 4, 1, padding="same", bias=False)
+                self.shortcuts.append(shortcut)
+
+    def forward(self, x):
+        residual = x
+        for d in range(self.depth):
+            x = self.inception_modules[d](x)
+            if self.use_residual and d % 3 == 2:
+                shortcut_output = self.shortcuts[d // 3](residual)
+                x = x + shortcut_output
+                x = F.relu(x)
+                residual = x
+        return x
