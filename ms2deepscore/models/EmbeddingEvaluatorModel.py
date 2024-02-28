@@ -77,7 +77,7 @@ class EmbeddingEvaluationModel(nn.Module):
         """Train a evaluator model with given parameters.
 
         """
-        # pylint: too-many-locals
+        # pylint: disable=too-many-locals
         data_generator = DataGeneratorEmbeddingEvaluation(spectrums=training_spectra,
                                                           ms2ds_model=ms2ds_model,
                                                           settings=self.settings,
