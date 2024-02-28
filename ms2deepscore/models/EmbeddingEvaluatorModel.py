@@ -9,10 +9,9 @@ from ms2deepscore.train_new_model.data_generators import \
     DataGeneratorEmbeddingEvaluation
 
 
-class InceptionTime(nn.Module):
+class EmbeddingEvaluationModel(nn.Module):
     """
-    InceptionTime model for time series (or sequence) classification.
-    See also Fawaz et al. (2020, DOI: https://doi.org/10.1007/s10618-020-00710-y).
+    Model to predict the degree of certainty for an MS2DeepScore embedding.
 
     Attributes
     ----------
@@ -33,36 +32,23 @@ class InceptionTime(nn.Module):
         Number of filters used in convolutional layers. Defaults to 32.
     """
     def __init__(self,
-                 input_channels: int,
-                 output_channels: int,
-                 num_filters: int = 32, **kwargs):
+                 settings: SettingsMS2Deepscore,
+                 ):
+        self.settings = settings
         super().__init__()
-        self.inception_block = InceptionBlock(input_channels, num_filters, **kwargs)
+        self.inception_block = InceptionBlock(input_channels=1,
+                                              num_filters=settings.evaluator_num_filters,
+                                              depth=settings.evaluator_depth,
+                                              kernel_size=settings.evaluator_kernel_size)
         self.global_avg_pool = nn.AdaptiveAvgPool1d(1)
-        self.fc = nn.Linear(num_filters * 4, output_channels)
+        output_channels = 1
+        self.fc = nn.Linear(settings.evaluator_num_filters * 4, output_channels)
 
     def forward(self, x):
         x = self.inception_block(x)
         x = self.global_avg_pool(x).squeeze(-1)
         x = self.fc(x)
         return x
-
-
-class EmbeddingEvaluationModel(InceptionTime):
-    """
-    Model to predict the degree of certainty for an MS2DeepScore embedding.
-    """
-    def __init__(self,
-                 settings: SettingsMS2Deepscore,
-
-                 ):
-        super().__init__(
-            input_channels=1,
-            output_channels=1,
-            num_filters=settings.evaluator_num_filters,
-            depth=settings.evaluator_depth,
-            kernel_size=settings.evaluator_kernel_size)
-        self.settings = settings
 
     def save(self, filepath):
         """
