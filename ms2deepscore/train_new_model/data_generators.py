@@ -6,7 +6,8 @@ import torch
 from matchms import Spectrum
 from matchms.similarity.vector_similarity_functions import \
     jaccard_similarity_matrix
-from ms2deepscore.SettingsMS2Deepscore import SettingsMS2Deepscore, SettingsEmbeddingEvaluator
+from ms2deepscore.SettingsMS2Deepscore import (SettingsEmbeddingEvaluator,
+                                               SettingsMS2Deepscore)
 from ms2deepscore.tensorize_spectra import tensorize_spectra
 from ms2deepscore.train_new_model.spectrum_pair_selection import (
     SelectedCompoundPairs, compute_fingerprint_dataframe)
