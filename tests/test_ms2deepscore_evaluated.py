@@ -2,7 +2,7 @@ from pathlib import Path
 import numpy as np
 import pytest
 from ms2deepscore import MS2DeepScoreEvaluated
-from ms2deepscore.SettingsMS2Deepscore import SettingsMS2Deepscore
+from ms2deepscore.SettingsMS2Deepscore import SettingsMS2Deepscore, SettingsEmbeddingEvaluator
 from ms2deepscore.models import load_model, LinearModel, EmbeddingEvaluationModel
 from tests.test_user_worfklow import load_processed_spectrums
 
@@ -18,7 +18,7 @@ def get_test_ms2deepscore_evaluated_instance():
     model_file = TEST_RESOURCES_PATH / "testmodel.pt"
     model = load_model(model_file)
 
-    embedding_evaluator = EmbeddingEvaluationModel(SettingsMS2Deepscore())
+    embedding_evaluator = EmbeddingEvaluationModel(SettingsEmbeddingEvaluator())
     score_evaluator = LinearModel(2)
     score_evaluator.fit(np.random.uniform(0, 0.5, (100, 2)), np.random.random((100)))
 

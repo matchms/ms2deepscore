@@ -8,7 +8,7 @@ from ms2deepscore.models.EmbeddingEvaluatorModel import \
     EmbeddingEvaluationModel
 from ms2deepscore.models.LinearEmbeddingEvaluation import LinearModel
 from ms2deepscore.models.SiameseSpectralModel import SiameseSpectralModel
-from ms2deepscore.SettingsMS2Deepscore import SettingsMS2Deepscore
+from ms2deepscore.SettingsMS2Deepscore import SettingsMS2Deepscore, SettingsEmbeddingEvaluator
 
 
 def load_model(filename: Union[str, Path]) -> SiameseSpectralModel:
@@ -69,7 +69,7 @@ def load_embedding_evaluator(filename: Union[str, Path]) -> EmbeddingEvaluationM
     model_params = model_settings["model_params"]
 
     # Instantiate the EmbeddingEvaluationModel with the loaded parameters
-    model = EmbeddingEvaluationModel(settings=SettingsMS2Deepscore(**model_params))
+    model = EmbeddingEvaluationModel(settings=SettingsEmbeddingEvaluator(**model_params))
     model.load_state_dict(model_settings["model_state_dict"])
     model.eval()
     return model
@@ -88,5 +88,5 @@ def load_linear_model(filepath):
     loaded_model.poly._min_degree = model_params["min_degree"]
     loaded_model.poly._max_degree = model_params["max_degree"]
     loaded_model.poly._n_out_full = model_params["_n_out_full"]
-    loaded_model.poly.n_output_features_= model_params["n_output_features_"]
+    loaded_model.poly.n_output_features_ = model_params["n_output_features_"]
     return loaded_model

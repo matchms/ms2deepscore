@@ -6,7 +6,7 @@ import torch
 from matchms import Spectrum
 from matchms.similarity.vector_similarity_functions import \
     jaccard_similarity_matrix
-from ms2deepscore.SettingsMS2Deepscore import SettingsMS2Deepscore
+from ms2deepscore.SettingsMS2Deepscore import SettingsMS2Deepscore, SettingsEmbeddingEvaluator
 from ms2deepscore.tensorize_spectra import tensorize_spectra
 from ms2deepscore.train_new_model.spectrum_pair_selection import (
     SelectedCompoundPairs, compute_fingerprint_dataframe)
@@ -202,9 +202,9 @@ class DataGeneratorEmbeddingEvaluation:
     """
     def __init__(self, spectrums: List[Spectrum],
                  ms2ds_model,
-                 settings: SettingsMS2Deepscore,
-                 device = "cpu",
-                ):
+                 settings: SettingsEmbeddingEvaluator,
+                 device="cpu",
+                 ):
         """
 
         Parameters
@@ -218,12 +218,15 @@ class DataGeneratorEmbeddingEvaluation:
         self.settings = settings
         self.spectrums = spectrums
         self.inchikey14s = [s.get("inchikey")[:14] for s in spectrums]
-        self.model = ms2ds_model
+        self.ms2ds_model = ms2ds_model
         self.device = device
-        self.model.to(self.device)
+        self.ms2ds_model.to(self.device)
         self.indexes = np.arange(len(self.spectrums))
         self.batch_size = self.settings.evaluator_distribution_size
-        self.fingerprint_df = compute_fingerprint_dataframe(self.spectrums, self.settings)
+        self.fingerprint_df = compute_fingerprint_dataframe(self.spectrums,
+                                                            fingerprint_type=settings.fingerprint_type,
+                                                            fingerprint_nbits=settings.fingerprint_nbits,
+                                                            random_seed=settings.random_seed)
 
         # Initialize random number generator
         self.rng = np.random.default_rng(self.settings.random_seed)
@@ -249,8 +252,9 @@ class DataGeneratorEmbeddingEvaluation:
         batch_size = self.batch_size
         indexes = self.indexes[batch_index * batch_size:((batch_index + 1) * batch_size)]
 
-        spec_tensors, meta_tensors = tensorize_spectra([self.spectrums[i] for i in indexes], self.settings)
-        embeddings = self.model.encoder(spec_tensors.to(self.device), meta_tensors.to(self.device))
+        spec_tensors, meta_tensors = tensorize_spectra([self.spectrums[i] for i in indexes],
+                                                       self.ms2ds_model.settings)
+        embeddings = self.ms2ds_model.encoder(spec_tensors.to(self.device), meta_tensors.to(self.device))
 
         ms2ds_scores = cosine_similarity_matrix(embeddings.cpu().detach().numpy(), embeddings.cpu().detach().numpy())
 

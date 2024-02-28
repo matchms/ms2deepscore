@@ -4,7 +4,7 @@ import torch.nn.functional as F
 from torch import nn, optim
 from ms2deepscore.__version__ import __version__
 from ms2deepscore.models.helper_functions import initialize_device
-from ms2deepscore.SettingsMS2Deepscore import SettingsMS2Deepscore
+from ms2deepscore.SettingsMS2Deepscore import SettingsEmbeddingEvaluator
 from ms2deepscore.train_new_model.data_generators import \
     DataGeneratorEmbeddingEvaluation
 
@@ -32,7 +32,7 @@ class EmbeddingEvaluationModel(nn.Module):
         Number of filters used in convolutional layers. Defaults to 32.
     """
     def __init__(self,
-                 settings: SettingsMS2Deepscore,
+                 settings: SettingsEmbeddingEvaluator,
                  ):
         self.settings = settings
         super().__init__()

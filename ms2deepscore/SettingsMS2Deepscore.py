@@ -142,12 +142,6 @@ class SettingsMS2Deepscore:
         self.augment_noise_max = 10
         self.augment_noise_intensity = 0.02
 
-        # Settings for embedding evaluator model
-        self.evaluator_distribution_size = 1000
-        self.evaluator_num_filters = 48
-        self.evaluator_depth = 3
-        self.evaluator_kernel_size = 20
-
         if settings:
             for key, value in settings.items():
                 if hasattr(self, key):
@@ -183,3 +177,32 @@ class SettingsMS2Deepscore:
                 return JSONEncoder.default(self, o)
         with open(file_path, 'w', encoding="utf-8") as file:
             json.dump(self.__dict__, file, indent=4, cls=NumpyArrayEncoder)
+
+
+class SettingsEmbeddingEvaluator:
+    """Contains all the settings used for training a EmbeddingEvaluator model.
+
+    """
+    def __init__(self, **settings):
+        self.evaluator_distribution_size = 1000
+        self.evaluator_num_filters = 48
+        self.evaluator_depth = 3
+        self.evaluator_kernel_size = 20
+
+        # Fingerprint calculation
+        self.fingerprint_type: str = "daylight"
+        self.fingerprint_nbits: int = 2048
+        self.random_seed: Optional[int] = None
+
+        if settings:
+            for key, value in settings.items():
+                if hasattr(self, key):
+                    setattr(self, key, value)
+                else:
+                    raise ValueError(f"Unknown setting: {key}")
+        if self.random_seed is not None:
+            np.random.seed(self.random_seed)
+
+    def get_dict(self):
+        """returns a dictionary representation of the settings"""
+        return self.__dict__
