@@ -23,6 +23,7 @@ class DataGeneratorPytorch:
     particularly in scenarios where certain compound pairs are of specific interest or
     have higher significance in the training dataset.
     """
+
     def __init__(self, spectrums: List[Spectrum],
                  selected_compound_pairs: SelectedCompoundPairs,
                  settings: SettingsMS2Deepscore):
@@ -50,7 +51,8 @@ class DataGeneratorPytorch:
         # Initialize random number generator
         if self.model_settings.use_fixed_set:
             if selected_compound_pairs.shuffling:
-                raise ValueError("The generator cannot run reproducibly when shuffling is on for `SelectedCompoundPairs`.")
+                raise ValueError(
+                    "The generator cannot run reproducibly when shuffling is on for `SelectedCompoundPairs`.")
             if self.model_settings.random_seed is None:
                 self.model_settings.random_seed = 0
         self.rng = np.random.default_rng(self.model_settings.random_seed)
@@ -64,8 +66,8 @@ class DataGeneratorPytorch:
         self.on_epoch_end()
 
     def __len__(self):
-        return int(self.model_settings.num_turns)\
-            * int(np.ceil(len(self.selected_compound_pairs.scores) / self.model_settings.batch_size))
+        return int(self.model_settings.num_turns) \
+               * int(np.ceil(len(self.selected_compound_pairs.scores) / self.model_settings.batch_size))
 
     def __iter__(self):
         return self
@@ -129,7 +131,7 @@ class DataGeneratorPytorch:
         binned_spectra_1, metadata_1 = tensorize_spectra(spectra_1, self.model_settings)
         binned_spectra_2, metadata_2 = tensorize_spectra(spectra_2, self.model_settings)
         return binned_spectra_1, binned_spectra_2, metadata_1, metadata_2, torch.tensor(targets, dtype=torch.float32)
-    
+
     def _get_spectrum_with_inchikey(self, inchikey: str) -> Spectrum:
         """
         Get a random spectrum matching the `inchikey` argument.
@@ -146,7 +148,7 @@ class DataGeneratorPytorch:
         for i in range(spectra_tensors.shape[0]):
             spectra_tensors[i, :] = self._data_augmentation_spectrum(spectra_tensors[i, :])
         return spectra_tensors
-    
+
     def _data_augmentation_spectrum(self, spectrum_tensor):
         """Data augmentation.
 
@@ -158,18 +160,19 @@ class DataGeneratorPytorch:
         # Augmentation 1: peak removal (peaks < augment_removal_max)
         if self.model_settings.augment_removal_max or self.model_settings.augment_removal_intensity:
             # TODO: Factor out function with documentation + example?
-            
+
             indices_select = torch.where((spectrum_tensor > 0)
                                          & (spectrum_tensor < self.model_settings.augment_removal_intensity))[0]
             removal_part = self.rng.random(1) * self.model_settings.augment_removal_max
-            indices = self.rng.choice(indices_select, int(np.ceil((1 - removal_part)*len(indices_select))))
+            indices = self.rng.choice(indices_select, int(np.ceil((1 - removal_part) * len(indices_select))))
             if len(indices) > 0:
                 spectrum_tensor[indices] = 0
 
         # Augmentation 2: Change peak intensities
         if self.model_settings.augment_intensity:
             # TODO: Factor out function with documentation + example?
-            spectrum_tensor = spectrum_tensor * (1 - self.model_settings.augment_intensity * 2 * (torch.rand(spectrum_tensor.shape) - 0.5))
+            spectrum_tensor = spectrum_tensor * (
+                        1 - self.model_settings.augment_intensity * 2 * (torch.rand(spectrum_tensor.shape) - 0.5))
 
         # Augmentation 3: Peak addition
         if self.model_settings.augment_noise_max and self.model_settings.augment_noise_max > 0:
@@ -179,7 +182,8 @@ class DataGeneratorPytorch:
                                                 self.rng.integers(0, self.model_settings.augment_noise_max),
                                                 replace=False,
                                                 )
-            spectrum_tensor[indices_noise] = self.model_settings.augment_noise_intensity * torch.rand(len(indices_noise))
+            spectrum_tensor[indices_noise] = self.model_settings.augment_noise_intensity * torch.rand(
+                len(indices_noise))
         return spectrum_tensor
 
 
@@ -201,6 +205,7 @@ class DataGeneratorEmbeddingEvaluation:
     shuffled at random. For selected spectra the tanimoto scores, ms2deepscore scores and
     embeddings are returned.
     """
+
     def __init__(self, spectrums: List[Spectrum],
                  ms2ds_model,
                  settings: SettingsEmbeddingEvaluator,
@@ -224,10 +229,11 @@ class DataGeneratorEmbeddingEvaluation:
         self.ms2ds_model.to(self.device)
         self.indexes = np.arange(len(self.spectrums))
         self.batch_size = self.settings.evaluator_distribution_size
-        self.fingerprint_df = compute_fingerprint_dataframe(self.spectrums,
-                                                            fingerprint_type=settings.fingerprint_type,
-                                                            fingerprint_nbits=settings.fingerprint_nbits,
-                                                            random_seed=settings.random_seed)
+        self.fingerprint_df = compute_fingerprint_dataframe(
+            self.spectrums,
+            fingerprint_type=self.ms2ds_model.settings.fingerprint_type,
+            fingerprint_nbits=self.ms2ds_model.settings.fingerprint_nbits,
+            random_seed=self.ms2ds_model.settings.random_seed)
 
         # Initialize random number generator
         self.rng = np.random.default_rng(self.settings.random_seed)
@@ -264,7 +270,7 @@ class DataGeneratorEmbeddingEvaluation:
         fingerprints = self.fingerprint_df.loc[inchikeys].to_numpy()
 
         tanimoto_scores = jaccard_similarity_matrix(fingerprints, fingerprints)
-        
+
         return torch.tensor(tanimoto_scores), torch.tensor(ms2ds_scores), embeddings.cpu().detach()
 
     def on_epoch_end(self):

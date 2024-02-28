@@ -188,10 +188,6 @@ class SettingsEmbeddingEvaluator:
         self.evaluator_num_filters = 48
         self.evaluator_depth = 3
         self.evaluator_kernel_size = 20
-
-        # Fingerprint calculation
-        self.fingerprint_type: str = "daylight"
-        self.fingerprint_nbits: int = 2048
         self.random_seed: Optional[int] = None
 
         if settings:
@@ -200,8 +196,6 @@ class SettingsEmbeddingEvaluator:
                     setattr(self, key, value)
                 else:
                     raise ValueError(f"Unknown setting: {key}")
-        if self.random_seed is not None:
-            np.random.seed(self.random_seed)
 
     def get_dict(self):
         """returns a dictionary representation of the settings"""
