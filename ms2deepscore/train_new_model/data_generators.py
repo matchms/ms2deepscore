@@ -187,9 +187,6 @@ class DataGeneratorPytorch:
         return spectrum_tensor
 
 
-### Data Generator for training an embedding evaluation model
-
-
 class DataGeneratorEmbeddingEvaluation:
     """Generates data for training an embedding evaluation model.
 
