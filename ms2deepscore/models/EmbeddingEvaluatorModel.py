@@ -1,7 +1,9 @@
 import numpy as np
+from typing import List
 import torch
 import torch.nn.functional as F
 from torch import nn, optim
+from matchms.Spectrum import Spectrum
 from ms2deepscore.__version__ import __version__
 from ms2deepscore.models.helper_functions import initialize_device
 from ms2deepscore.SettingsMS2Deepscore import SettingsEmbeddingEvaluator
@@ -68,26 +70,26 @@ class EmbeddingEvaluationModel(nn.Module):
         }
         torch.save(settings_dict, filepath)
 
-    def train_evaluator(
-            self,
-            data_generator: DataGeneratorEmbeddingEvaluation,
-            val_generator: DataGeneratorEmbeddingEvaluation = None):
+    def train_evaluator(self,
+                        training_spectra: List[Spectrum],
+                        ms2ds_model,
+                        validation_spectra: List[Spectrum] = None):
         """Train a evaluator model with given parameters.
 
-        Parameters
-        ----------
-        self
-            The deep learning model to train.
-        data_generator
-            An iterator for training data batches.
-        mini_batch_size
-            Defines the actual trainig batch size after which the model weights are optimized.
-        learning_rate
-            Learning rate for the optimizer.
-        val_generator (iterator, optional)
-            An iterator for validation data batches.
         """
-        # pylint: disable=too-many-arguments, too-many-locals
+        # pylint: too-many-locals
+        data_generator = DataGeneratorEmbeddingEvaluation(spectrums=training_spectra,
+                                                          ms2ds_model=ms2ds_model,
+                                                          settings=self.settings,
+                                                          device="cpu",)
+        if validation_spectra is not None:
+            val_generator = DataGeneratorEmbeddingEvaluation(spectrums=validation_spectra,
+                                                             ms2ds_model=ms2ds_model,
+                                                             settings=self.settings,
+                                                             device="cpu",)
+        else:
+            val_generator = None
+
         device = initialize_device()
         self.to(device)
 

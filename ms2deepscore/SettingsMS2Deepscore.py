@@ -182,6 +182,8 @@ class SettingsMS2Deepscore:
 class SettingsEmbeddingEvaluator:
     """Contains all the settings used for training a EmbeddingEvaluator model.
 
+    mini_batch_size
+        Defines the actual trainig batch size after which the model weights are optimized.
     """
     def __init__(self, **settings):
         self.evaluator_distribution_size = 1000

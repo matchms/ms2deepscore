@@ -5,24 +5,20 @@ from sklearn.datasets import make_regression
 import torch
 from ms2deepscore.models import EmbeddingEvaluationModel, LinearModel
 from ms2deepscore.models import load_linear_model, load_model, load_embedding_evaluator
-from tests.test_data_generators import data_generator_embedding_evaluation
-
-
-# Mock SettingsMS2Deepscore to avoid dependencies on the actual implementation
-class MockSettingsEmbeddingEvaluator:
-    def __init__(self):
-        self.evaluator_num_filters = 32
-        self.evaluator_depth = 6
-        self.evaluator_kernel_size = 40
-        self.mini_batch_size = 10
-        self.batches_per_iteration = 5
-        self.learning_rate = 0.001
-        self.num_epochs = 1
+from tests.test_data_generators import create_test_spectra, data_generator_embedding_evaluation, MockMS2DSModel
+from ms2deepscore.SettingsMS2Deepscore import SettingsEmbeddingEvaluator
 
 
 @pytest.fixture
 def mock_settings():
-    return MockSettingsEmbeddingEvaluator()
+    return SettingsEmbeddingEvaluator(evaluator_num_filters=32,
+                                      evaluator_depth=6,
+                                      evaluator_kernel_size=40,
+                                      mini_batch_size=10,
+                                      batches_per_iteration=5,
+                                      learning_rate=0.001,
+                                      num_epochs=1,
+                                      evaluator_distribution_size=10)
 
 
 @pytest.fixture
@@ -77,14 +73,14 @@ def test_model_save_load(tmp_path, embedding_model):
 
     # Load the model
     loaded_model = load_embedding_evaluator(filepath)
-    
+
     # Verify if the saved settings and state dict match the original model
     assert loaded_model.settings.evaluator_num_filters == embedding_model.settings.evaluator_num_filters
     assert loaded_model.state_dict().keys() == embedding_model.state_dict().keys()
 
 
 def test_train_embedding_evaluator(embedding_model, data_generator_embedding_evaluation):
-    embedding_model.train_evaluator(data_generator_embedding_evaluation)
+    embedding_model.train_evaluator(create_test_spectra(25), MockMS2DSModel())
     embedding = data_generator_embedding_evaluation.__next__()[2]
     result = embedding_model.compute_embedding_evaluations(embedding)
     assert result.shape == (10, 1)
@@ -93,37 +89,37 @@ def test_train_embedding_evaluator(embedding_model, data_generator_embedding_eva
 def test_linear_model_fit_predict():
     # Generate a simple regression problem
     X, y = make_regression(n_samples=100, n_features=2, noise=0.1)
-    
+
     # Initialize and fit the model
     model = LinearModel(degree=2)
     model.fit(X, y)
-    
+
     # Make predictions
     predictions = model.predict(X)
-    
+
     # Check predictions shape
     assert predictions.shape == y.shape, "Prediction shape mismatch."
 
 
 def test_linear_model_save_load(tmp_path):
     temp_filepath = os.path.join(tmp_path, "temp_model.json")
-    
+
     # Generate a simple regression problem
     X, y = make_regression(n_samples=100, n_features=2, noise=0.1)
-    
+
     # Initialize and fit the model
     model = LinearModel(degree=3)
     model.fit(X, y)
-    
+
     # Save the model
     model.save(temp_filepath)
-    
+
     # Ensure the file was created
     assert os.path.exists(temp_filepath), "Model file was not created."
-    
+
     # Load the model
     loaded_model = load_linear_model(temp_filepath)
-    
+
     # Verify the loaded model's parameters match the original model's parameters
     assert np.array_equal(model.model.coef_, loaded_model.model.coef_), "Coefficients do not match."
     assert model.model.intercept_ == loaded_model.model.intercept_, "Intercepts do not match."
