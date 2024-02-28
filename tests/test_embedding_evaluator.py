@@ -4,7 +4,6 @@ import numpy as np
 from sklearn.datasets import make_regression
 import torch
 from ms2deepscore.models import EmbeddingEvaluationModel, LinearModel
-from ms2deepscore.models.EmbeddingEvaluatorModel import compute_embedding_evaluations
 from ms2deepscore.models import load_linear_model, load_model, load_embedding_evaluator
 from tests.test_data_generators import data_generator
 
@@ -87,7 +86,7 @@ def test_train_embedding_evaluator(embedding_model, data_generator):
                                     num_epochs=1,
                                     )
     embedding = data_generator.__next__()[2]
-    result = compute_embedding_evaluations(embedding_model, embedding)
+    result = embedding_model.compute_embedding_evaluations(embedding_model, embedding)
     assert result.shape == (10, 1)
 
 

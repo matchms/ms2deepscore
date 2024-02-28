@@ -160,20 +160,19 @@ class EmbeddingEvaluationModel(InceptionTime):
 
                         self.train()
 
+    def compute_embedding_evaluations(self,
+                                      embeddings: np.ndarray,
+                                      device: str = None,
+                                     ):
+        """Compute the predicted evaluations of all embeddings.
+        """
+        embedding_dim = embeddings.shape[1]
+        if device is None:
+            device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-def compute_embedding_evaluations(embedding_evaluator: EmbeddingEvaluationModel,
-                                  embeddings: np.ndarray,
-                                  device: str = None,
-                                 ):
-    """Compute the predicted evaluations of all embeddings.
-    """
-    embedding_dim = embeddings.shape[1]
-    if device is None:
-        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
-    embedding_evaluator.to(device)
-    evaluations = embedding_evaluator(torch.tensor(embeddings).reshape(-1, 1, embedding_dim).to(device, dtype=torch.float32))
-    return evaluations.cpu().detach().numpy()
+        self.to(device)
+        evaluations = self(torch.tensor(embeddings).reshape(-1, 1, embedding_dim).to(device, dtype=torch.float32))
+        return evaluations.cpu().detach().numpy()
 
 
 class InceptionModule(nn.Module):
