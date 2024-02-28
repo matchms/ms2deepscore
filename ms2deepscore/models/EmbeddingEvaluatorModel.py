@@ -96,7 +96,6 @@ class EmbeddingEvaluationModel(nn.Module):
         criterion = nn.MSELoss()
         optimizer = optim.Adam(self.parameters(), lr=self.settings.learning_rate)
 
-
         iteration_losses = []
         batch_count = 0  # often we have MANY spectra, so classical epochs are too big --> count batches instead
         for epoch in range(self.settings.num_epochs):

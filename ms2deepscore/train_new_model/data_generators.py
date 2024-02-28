@@ -228,9 +228,9 @@ class DataGeneratorEmbeddingEvaluation:
         self.batch_size = self.settings.evaluator_distribution_size
         self.fingerprint_df = compute_fingerprint_dataframe(
             self.spectrums,
-            fingerprint_type=self.ms2ds_model.settings.fingerprint_type,
-            fingerprint_nbits=self.ms2ds_model.settings.fingerprint_nbits,
-            random_seed=self.ms2ds_model.settings.random_seed)
+            fingerprint_type=self.ms2ds_model.model_settings.fingerprint_type,
+            fingerprint_nbits=self.ms2ds_model.model_settings.fingerprint_nbits,
+            random_seed=self.ms2ds_model.model_settings.random_seed)
 
         # Initialize random number generator
         self.rng = np.random.default_rng(self.settings.random_seed)
@@ -257,7 +257,7 @@ class DataGeneratorEmbeddingEvaluation:
         indexes = self.indexes[batch_index * batch_size:((batch_index + 1) * batch_size)]
 
         spec_tensors, meta_tensors = tensorize_spectra([self.spectrums[i] for i in indexes],
-                                                       self.ms2ds_model.settings)
+                                                       self.ms2ds_model.model_settings)
         embeddings = self.ms2ds_model.encoder(spec_tensors.to(self.device), meta_tensors.to(self.device))
 
         ms2ds_scores = cosine_similarity_matrix(embeddings.cpu().detach().numpy(), embeddings.cpu().detach().numpy())

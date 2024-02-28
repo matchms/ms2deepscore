@@ -13,7 +13,7 @@ from ms2deepscore.train_new_model.spectrum_pair_selection import \
 
 class MockMS2DSModel:
     def __init__(self):
-        self.settings = SettingsMS2Deepscore()
+        self.model_settings = SettingsMS2Deepscore()
     def encoder(self, spec_tensors, meta_tensors):
         # Return mock embeddings as random tensors
         return torch.rand(spec_tensors.size(0), 128)  # Assuming embedding size of 128
