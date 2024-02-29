@@ -194,10 +194,10 @@ class SettingsEmbeddingEvaluator:
 
         # Training settings
         # todo set actually good settings
-        self.mini_batch_size = 32
-        self.batches_per_iteration = 100
-        self.learning_rate = 0.001
-        self.num_epochs = 200
+        self.mini_batch_size = 100
+        self.batches_per_iteration = 1000
+        self.learning_rate = 0.0001
+        self.num_epochs = 5
 
         if settings:
             for key, value in settings.items():
