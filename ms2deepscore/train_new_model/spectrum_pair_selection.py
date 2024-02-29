@@ -1,11 +1,11 @@
 from collections import Counter
 from typing import List, Tuple
 import numpy as np
+import pandas as pd
 from matchms import Spectrum
 from matchms.filtering import add_fingerprint
 from matchms.similarity.vector_similarity_functions import jaccard_index
 from numba import jit, prange
-import pandas as pd
 from scipy.sparse import coo_array
 from tqdm import tqdm
 from ms2deepscore.SettingsMS2Deepscore import SettingsMS2Deepscore
