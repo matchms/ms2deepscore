@@ -193,7 +193,6 @@ class SettingsEmbeddingEvaluator:
         self.random_seed: Optional[int] = None
 
         # Training settings
-        # todo set actually good settings
         self.mini_batch_size = 100
         self.batches_per_iteration = 1000
         self.learning_rate = 0.0001
