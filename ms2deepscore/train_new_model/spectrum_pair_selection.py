@@ -142,7 +142,6 @@ def compute_fingerprint_dataframe(
         spectrums: List[Spectrum],
         fingerprint_type,
         fingerprint_nbits,
-        random_seed=None,
         ) -> pd.DataFrame:
     """Returns a SelectedCompoundPairs object containing equally balanced pairs over the different bins
 
@@ -152,10 +151,6 @@ def compute_fingerprint_dataframe(
         The settings that should be used for selecting the compound pairs wrapper. The settings should be specified as a
         SettingsMS2Deepscore object.
     """
-    # todo why do we need to set a random seed here??
-    if random_seed is not None:
-        np.random.seed(random_seed)
-
     fingerprints, inchikeys14_unique, _ = compute_fingerprints_for_training(
         spectrums,
         fingerprint_type,

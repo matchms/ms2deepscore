@@ -226,11 +226,9 @@ class DataGeneratorEmbeddingEvaluation:
         self.ms2ds_model.to(self.device)
         self.indexes = np.arange(len(self.spectrums))
         self.batch_size = self.settings.evaluator_distribution_size
-        self.fingerprint_df = compute_fingerprint_dataframe(
-            self.spectrums,
-            fingerprint_type=self.ms2ds_model.model_settings.fingerprint_type,
-            fingerprint_nbits=self.ms2ds_model.model_settings.fingerprint_nbits,
-            random_seed=self.ms2ds_model.model_settings.random_seed)
+        self.fingerprint_df = compute_fingerprint_dataframe(self.spectrums,
+                                                            fingerprint_type=self.ms2ds_model.model_settings.fingerprint_type,
+                                                            fingerprint_nbits=self.ms2ds_model.model_settings.fingerprint_nbits)
 
         # Initialize random number generator
         self.rng = np.random.default_rng(self.settings.random_seed)
