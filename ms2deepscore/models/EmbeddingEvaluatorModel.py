@@ -1,10 +1,12 @@
+from typing import List
 import numpy as np
 import torch
 import torch.nn.functional as F
+from matchms.Spectrum import Spectrum
 from torch import nn, optim
 from ms2deepscore.__version__ import __version__
 from ms2deepscore.models.helper_functions import initialize_device
-from ms2deepscore.SettingsMS2Deepscore import SettingsMS2Deepscore
+from ms2deepscore.SettingsMS2Deepscore import SettingsEmbeddingEvaluator
 from ms2deepscore.train_new_model.data_generators import \
     DataGeneratorEmbeddingEvaluation
 
@@ -32,7 +34,7 @@ class EmbeddingEvaluationModel(nn.Module):
         Number of filters used in convolutional layers. Defaults to 32.
     """
     def __init__(self,
-                 settings: SettingsMS2Deepscore,
+                 settings: SettingsEmbeddingEvaluator,
                  ):
         self.settings = settings
         super().__init__()
@@ -68,46 +70,41 @@ class EmbeddingEvaluationModel(nn.Module):
         }
         torch.save(settings_dict, filepath)
 
-    def train_evaluator(
-            self,
-            data_generator: DataGeneratorEmbeddingEvaluation,
-            mini_batch_size: int,
-            batches_per_iteration: int,
-            learning_rate: float,
-            num_epochs: int,
-            val_generator: DataGeneratorEmbeddingEvaluation = None):
+    def train_evaluator(self,
+                        training_spectra: List[Spectrum],
+                        ms2ds_model,
+                        validation_spectra: List[Spectrum] = None):
         """Train a evaluator model with given parameters.
 
-        Parameters
-        ----------
-        self
-            The deep learning model to train.
-        data_generator
-            An iterator for training data batches.
-        mini_batch_size
-            Defines the actual trainig batch size after which the model weights are optimized.
-        learning_rate
-            Learning rate for the optimizer.
-        val_generator (iterator, optional)
-            An iterator for validation data batches.
         """
-        # pylint: disable=too-many-arguments, too-many-locals
+        # pylint: disable=too-many-locals
+        data_generator = DataGeneratorEmbeddingEvaluation(spectrums=training_spectra,
+                                                          ms2ds_model=ms2ds_model,
+                                                          settings=self.settings,
+                                                          device="cpu",)
+        if validation_spectra is not None:
+            val_generator = DataGeneratorEmbeddingEvaluation(spectrums=validation_spectra,
+                                                             ms2ds_model=ms2ds_model,
+                                                             settings=self.settings,
+                                                             device="cpu",)
+        else:
+            val_generator = None
+
         device = initialize_device()
         self.to(device)
 
         criterion = nn.MSELoss()
-        optimizer = optim.Adam(self.parameters(), lr=learning_rate)
-
+        optimizer = optim.Adam(self.parameters(), lr=self.settings.learning_rate)
 
         iteration_losses = []
         batch_count = 0  # often we have MANY spectra, so classical epochs are too big --> count batches instead
-        for epoch in range(num_epochs):
+        for epoch in range(self.settings.num_epochs):
             for i, x in enumerate(data_generator):
                 tanimoto_scores, ms2ds_scores, embeddings = x
 
-                for i in range(data_generator.batch_size//mini_batch_size):
-                    low = i * mini_batch_size
-                    high = low + mini_batch_size
+                for i in range(data_generator.batch_size//self.settings.mini_batch_size):
+                    low = i * self.settings.mini_batch_size
+                    high = low + self.settings.mini_batch_size
 
                     optimizer.zero_grad()
 
@@ -125,7 +122,7 @@ class EmbeddingEvaluationModel(nn.Module):
                     optimizer.step()
 
                 batch_count += 1
-                if batch_count % batches_per_iteration == 0:
+                if batch_count % self.settings.batches_per_iteration == 0:
                     print(f">>> Batch: {batch_count} ({batch_count * data_generator.batch_size} spectra, epoch: {epoch + 1})")
                     print(f">>> Training loss: {np.mean(iteration_losses):.6f}")
                     iteration_losses = []

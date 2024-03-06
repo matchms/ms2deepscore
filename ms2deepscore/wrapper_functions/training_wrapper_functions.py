@@ -60,6 +60,7 @@ def train_ms2deepscore_wrapper(spectra_file_path,
     create_plots_between_all_ionmodes(model_directory=os.path.join(stored_training_data.trained_models_folder,
                                                                    model_directory_name),
                                       ref_score_bins=settings.same_prob_bins)
+
     return model_directory_name
 
 

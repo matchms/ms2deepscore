@@ -3,7 +3,7 @@ import pytest
 import numpy as np
 import torch
 from matchms import Spectrum
-from ms2deepscore.SettingsMS2Deepscore import SettingsMS2Deepscore
+from ms2deepscore.SettingsMS2Deepscore import SettingsMS2Deepscore, SettingsEmbeddingEvaluator
 from ms2deepscore.tensorize_spectra import tensorize_spectra
 from ms2deepscore.train_new_model.data_generators import DataGeneratorPytorch,\
     DataGeneratorEmbeddingEvaluation
@@ -12,6 +12,8 @@ from ms2deepscore.train_new_model.spectrum_pair_selection import \
 
 
 class MockMS2DSModel:
+    def __init__(self):
+        self.model_settings = SettingsMS2Deepscore()
     def encoder(self, spec_tensors, meta_tensors):
         # Return mock embeddings as random tensors
         return torch.rand(spec_tensors.size(0), 128)  # Assuming embedding size of 128
@@ -20,12 +22,12 @@ class MockMS2DSModel:
 
 
 @pytest.fixture
-def data_generator():
+def data_generator_embedding_evaluation():
     spectrums = create_test_spectra(num_of_unique_inchikeys=25)
     params = {"evaluator_distribution_size": 10}
     return DataGeneratorEmbeddingEvaluation(spectrums=spectrums,
                                             ms2ds_model=MockMS2DSModel(),
-                                            settings=SettingsMS2Deepscore(**params),
+                                            settings=SettingsEmbeddingEvaluator(**params),
                                             device="cpu")
 
 
@@ -139,35 +141,35 @@ def test_DataGeneratorPytorch():
 ### Tests for EmbeddingEvaluator data generator
 
 
-def test_generator_initialization(data_generator):
+def test_generator_initialization(data_generator_embedding_evaluation):
     """
     Test if the data generator initializes correctly.
     """
-    assert len(data_generator.spectrums) == 2 * 25, "Incorrect number of spectrums"
-    assert data_generator.batch_size == data_generator.settings.evaluator_distribution_size, "Incorrect batch size"
+    assert len(data_generator_embedding_evaluation.spectrums) == 2 * 25, "Incorrect number of spectrums"
+    assert data_generator_embedding_evaluation.batch_size == data_generator_embedding_evaluation.settings.evaluator_distribution_size, "Incorrect batch size"
 
 
-def test_batch_generation(data_generator):
+def test_batch_generation(data_generator_embedding_evaluation):
     """
     Test if batches generated are correct in structure and size.
     """
-    tanimoto_scores, ms2ds_scores, embeddings = next(data_generator)
-    assert tanimoto_scores.shape == (data_generator.batch_size, data_generator.batch_size), "Incorrect shape for tanimoto_scores"
-    assert ms2ds_scores.shape == (data_generator.batch_size, data_generator.batch_size), "Incorrect shape for ms2ds_scores"
-    assert embeddings.shape[0] == data_generator.batch_size, "Incorrect batch size in embeddings"
+    tanimoto_scores, ms2ds_scores, embeddings = next(data_generator_embedding_evaluation)
+    assert tanimoto_scores.shape == (data_generator_embedding_evaluation.batch_size, data_generator_embedding_evaluation.batch_size), "Incorrect shape for tanimoto_scores"
+    assert ms2ds_scores.shape == (data_generator_embedding_evaluation.batch_size, data_generator_embedding_evaluation.batch_size), "Incorrect shape for ms2ds_scores"
+    assert embeddings.shape[0] == data_generator_embedding_evaluation.batch_size, "Incorrect batch size in embeddings"
 
 
-def test_epoch_end_functionality(data_generator):
+def test_epoch_end_functionality(data_generator_embedding_evaluation):
     """
     Test if the generator correctly resets and shuffles after an epoch.
     """
-    initial_indexes = data_generator.indexes.copy()
+    initial_indexes = data_generator_embedding_evaluation.indexes.copy()
     counter = 0
-    for _ in data_generator:
+    for _ in data_generator_embedding_evaluation:
         counter += 1
     assert counter == 5
     # 2nd run
-    for _ in data_generator:
+    for _ in data_generator_embedding_evaluation:
         counter += 1
     assert counter == 10
-    assert not np.array_equal(data_generator.indexes, initial_indexes), "Indexes not shuffled after epoch end"
+    assert not np.array_equal(data_generator_embedding_evaluation.indexes, initial_indexes), "Indexes not shuffled after epoch end"
