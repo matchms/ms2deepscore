@@ -1,7 +1,9 @@
+import os
 import numpy as np
 import torch
 import torch.nn.functional as F
 from torch import nn, optim
+from torch.utils.tensorboard import SummaryWriter
 from tqdm import tqdm
 from ms2deepscore.__version__ import __version__
 from ms2deepscore.models.helper_functions import (initialize_device,
@@ -147,6 +149,23 @@ class SpectralEncoder(nn.Module):
         return x
 
 
+def initialize_training(model, learning_rate, use_tensorboard):
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    model.to(device)
+    optimizer = optim.Adam(model.parameters(), lr=learning_rate)
+
+    if use_tensorboard:
+        # TensorBoard writer
+        log_dir ="runs"
+        if not os.path.exists(log_dir):
+            os.makedirs(log_dir)
+
+        writer = SummaryWriter(log_dir)
+    else:
+        writer = None
+    return device, optimizer, writer
+
+
 def train(model: SiameseSpectralModel,
           data_generator,
           num_epochs: int,
@@ -157,11 +176,12 @@ def train(model: SiameseSpectralModel,
           checkpoint_filename: str = None,
           loss_function="MSE",
           weighting_factor=0,
-          monitor_rmse: bool = True,
           collect_all_targets: bool = False,
           lambda_l1: float = 0,
           lambda_l2: float = 0,
-          progress_bar: bool = True):
+          progress_bar: bool = True,
+          use_tensorboard: bool = True,
+          ):
     """Train a model with given parameters.
 
     Parameters
@@ -186,8 +206,6 @@ def train(model: SiameseSpectralModel,
         Pass a loss function (e.g. a pytorch default or a custom function).
     weighting_factor
         Default is set to 0, set to value between 0 and 1 to shift attention to higher target scores.
-    monitor_rmse
-        If True rmse will be monitored turing training.
     collect_all_targets
         If True, all training targets will be collected (e.g. for later statistics).
     lambda_l1
@@ -196,14 +214,11 @@ def train(model: SiameseSpectralModel,
         L2 regularization strength.
     """
     # pylint: disable=too-many-arguments, too-many-locals
-    device = initialize_device()
-    model.to(device)
+    device, optimizer, writer = initialize_training(model, learning_rate, use_tensorboard)
 
     if loss_function.lower() not in LOSS_FUNCTIONS:
         raise ValueError(f"Unknown loss function. Must be one of: {LOSS_FUNCTIONS.keys()}")
     criterion = LOSS_FUNCTIONS[loss_function.lower()]
-
-    optimizer = optim.Adam(model.parameters(), lr=learning_rate)
 
     history = {
         "losses": [],
@@ -237,8 +252,8 @@ def train(model: SiameseSpectralModel,
                     loss += l1_regularization(model, lambda_l1) + l2_regularization(model, lambda_l2)
                 batch_losses.append(float(loss))
 
-                if monitor_rmse:
-                    batch_rmse.append(rmse_loss(outputs, targets.to(device)).cpu().detach().numpy())
+                #batch_rmse.append(rmse_loss(outputs, targets.to(device)).cpu().detach().numpy())
+                batch_rmse.append(rmse_loss(outputs, targets).cpu().detach().numpy())
 
                 # Backward pass and optimize
                 loss.backward()
@@ -249,6 +264,13 @@ def train(model: SiameseSpectralModel,
                     loss=float(loss),
                     rmse=np.mean(batch_rmse),
                 )
+            # Monitor
+            avg_loss = np.mean(batch_losses)
+            avg_rmse = np.mean(batch_rmse)
+            if use_tensorboard:
+                writer.add_scalar('LOSS/train', avg_loss, epoch)
+                writer.add_scalar('RMSE/train', avg_rmse, epoch)
+
         history["losses"].append(np.mean(batch_losses))
         history["rmse"].append(np.mean(batch_rmse))
 
@@ -256,8 +278,13 @@ def train(model: SiameseSpectralModel,
             val_losses = validation_loss_calculator.compute_binned_validation_loss(model,
                                                                                    loss_types=(loss_function, "rmse"))
             val_loss = val_losses[loss_function]
+
+            # Monitor
             history["val_losses"].append(val_loss)
             history["val_rmse"].append(val_losses["rmse"])
+            if use_tensorboard:
+                writer.add_scalar('LOSS/val', avg_loss, epoch)
+                writer.add_scalar('RMSE/val', avg_rmse, epoch)
             if val_loss < min_val_loss:
                 if checkpoint_filename:
                     print("Saving checkpoint model.")
@@ -271,9 +298,12 @@ def train(model: SiameseSpectralModel,
                 break
 
         # Print statistics
-        print(f"Epoch [{epoch+1}/{num_epochs}], Loss: {np.mean(batch_losses):.4f}")
+        print(f"Epoch [{epoch+1}/{num_epochs}], Loss: {avg_loss:.4f}")
         if validation_loss_calculator is not None:
             print(f"Validation Loss: {val_loss:.4f} (RMSE: {val_losses['rmse']:.4f}).")
+
+    if use_tensorboard:
+        writer.close()
     return history
 
 
