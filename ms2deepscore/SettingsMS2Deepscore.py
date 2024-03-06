@@ -104,6 +104,7 @@ class SettingsMS2Deepscore:
         self.patience = 30
         self.loss_function = "mse"
         self.weighting_factor = 0
+        self.use_tensorboard = True
 
         # Folder names for storing
         self.model_file_name = "ms2deepscore_model.pt"
