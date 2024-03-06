@@ -150,7 +150,7 @@ class SpectralEncoder(nn.Module):
 
 
 def initialize_training(model, learning_rate, use_tensorboard):
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    device = initialize_device()
     model.to(device)
     optimizer = optim.Adam(model.parameters(), lr=learning_rate)
 
