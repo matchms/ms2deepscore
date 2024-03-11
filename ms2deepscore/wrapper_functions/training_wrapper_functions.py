@@ -6,7 +6,7 @@ from matchms.exporting import save_spectra
 from matchms.importing import load_spectra
 from ms2deepscore.benchmarking.calculate_scores_for_validation import \
     calculate_true_values_and_predictions_for_validation_spectra
-from ms2deepscore.SettingsMS2Deepscore import SettingsMS2Deepscore
+from ms2deepscore.SettingsMS2Deepscore import SettingsMS2Deepscore, SettingsEmbeddingEvaluator
 from ms2deepscore.train_new_model.split_positive_and_negative_mode import \
     split_by_ionmode
 from ms2deepscore.train_new_model.train_ms2deepscore import train_ms2ds_model
@@ -15,10 +15,13 @@ from ms2deepscore.train_new_model.validation_and_test_split import \
 from ms2deepscore.utils import load_spectra_as_list
 from ms2deepscore.wrapper_functions.plotting_wrapper_functions import \
     create_plots_between_all_ionmodes
+from ms2deepscore.models.EmbeddingEvaluatorModel import EmbeddingEvaluationModel
+from ms2deepscore.models.load_model import load_model
 
 
 def train_ms2deepscore_wrapper(spectra_file_path,
-                               settings: SettingsMS2Deepscore,
+                               settings_ms2deepscore: SettingsMS2Deepscore,
+                               settings_embedding_evaluation: SettingsEmbeddingEvaluator = None,
                                validation_split_fraction=20
                                ):
     """Splits data, trains a ms2deepscore model, and does benchmarking.
@@ -35,21 +38,29 @@ def train_ms2deepscore_wrapper(spectra_file_path,
 
     stored_training_data = StoreTrainingData(spectra_file_path,
                                              split_fraction=validation_split_fraction,
-                                             random_seed=settings.random_seed)
+                                             random_seed=settings_ms2deepscore.random_seed)
 
     # Split training in pos and neg and create val and training split and select for the right ionisation mode.
-    training_spectra = stored_training_data.load_training_data(settings.ionisation_mode, "training")
-    validation_spectra = stored_training_data.load_training_data(settings.ionisation_mode, "validation")
+    training_spectra = stored_training_data.load_training_data(settings_ms2deepscore.ionisation_mode, "training")
+    validation_spectra = stored_training_data.load_training_data(settings_ms2deepscore.ionisation_mode, "validation")
 
-    model_directory_name = create_model_directory_name(settings)
+    model_directory_name = create_model_directory_name(settings_ms2deepscore)
 
     # Train model
     train_ms2ds_model(training_spectra, validation_spectra,
-                      os.path.join(stored_training_data.trained_models_folder, model_directory_name), settings)
+                      os.path.join(stored_training_data.trained_models_folder, model_directory_name), settings_ms2deepscore)
     # Create performance plots for validation spectra
     ms2deepsore_model_file_name = os.path.join(stored_training_data.trained_models_folder,
                                                model_directory_name,
-                                               settings.model_file_name)
+                                               settings_ms2deepscore.model_file_name)
+    if settings_embedding_evaluation:
+        model = EmbeddingEvaluationModel(settings_embedding_evaluation)
+        model.train_evaluator(ms2ds_model=load_model(ms2deepsore_model_file_name),
+                              training_spectra=training_spectra,
+                              validation_spectra=validation_spectra)
+        model.save(os.path.join(stored_training_data.trained_models_folder, model_directory_name,
+                                "embedding_evaluator.pt"))
+
     calculate_true_values_and_predictions_for_validation_spectra(
         positive_validation_spectra=stored_training_data.load_positive_train_split("validation"),
         negative_validation_spectra=stored_training_data.load_negative_train_split("validation"),
@@ -59,7 +70,7 @@ def train_ms2deepscore_wrapper(spectra_file_path,
 
     create_plots_between_all_ionmodes(model_directory=os.path.join(stored_training_data.trained_models_folder,
                                                                    model_directory_name),
-                                      ref_score_bins=settings.same_prob_bins)
+                                      ref_score_bins=settings_ms2deepscore.same_prob_bins)
 
     return model_directory_name
 
