@@ -16,6 +16,11 @@ def test_set_unknown_settings():
         SettingsMS2Deepscore(**{"test_case": 123})
 
 
+def test_set_wrong_type_settings():
+    with pytest.raises(TypeError):
+        SettingsMS2Deepscore(**{"base_dims": 123})
+
+
 def test_save_settings(tmp_path):
     settings = SettingsMS2Deepscore(epochs=200,
                                     base_dims=(200,200))
