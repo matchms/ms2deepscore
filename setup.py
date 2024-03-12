@@ -32,7 +32,7 @@ setup(
         "numba",
         "numpy>= 1.20.3",
         "pandas",
-        "tensorflow",
+        "tensorflow<2.14",
         "tqdm",
     ],
     extras_require={"train": ["rdkit"],
