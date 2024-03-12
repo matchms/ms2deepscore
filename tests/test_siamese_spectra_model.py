@@ -57,7 +57,7 @@ def simple_training_spectra():
 
 
 def test_siamese_model_forward_pass(dummy_spectra):
-    model_settings = SettingsMS2Deepscore(mz_bin_width=1,)
+    model_settings = SettingsMS2Deepscore(mz_bin_width=1.0,)
     model = SiameseSpectralModel(model_settings)
     spec_tensors, meta_tensors = tensorize_spectra(dummy_spectra, model_settings)
     similarity_score = model(spec_tensors, spec_tensors, meta_tensors, meta_tensors)
@@ -65,7 +65,7 @@ def test_siamese_model_forward_pass(dummy_spectra):
 
 
 def test_siamese_model_no_binning_layer(dummy_spectra):
-    model_settings = SettingsMS2Deepscore(mz_bin_width=1,)
+    model_settings = SettingsMS2Deepscore(mz_bin_width=1.0,)
     model = SiameseSpectralModel(model_settings)
     assert not model.model_settings.train_binning_layer
 

@@ -78,7 +78,7 @@ def test_tensorize_spectra():
     spectrum = Spectrum(mz=np.array([10, 500, 999.9]), intensities=np.array([0.5, 0.5, 1]))
     settings = SettingsMS2Deepscore(min_mz=10,
                                     max_mz=1000,
-                                    mz_bin_width=1,
+                                    mz_bin_width=1.0,
                                     intensity_scaling=0.5,
                                     additional_metadata=())
     spec_tensors, meta_tensors = tensorize_spectra([spectrum, spectrum], settings)

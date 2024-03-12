@@ -115,7 +115,7 @@ class SettingsMS2Deepscore:
         self.max_mz = 1000
         self.mz_bin_width = 0.1
         self.intensity_scaling = 0.5
-        self.additional_metadata = []
+        self.additional_metadata = ()
 
         # Data generator settings
         self.batch_size = 32
@@ -145,7 +145,7 @@ class SettingsMS2Deepscore:
         if settings:
             for key, value in settings.items():
                 if hasattr(self, key):
-                    if not isinstance(value, type(getattr(self, key))):
+                    if not isinstance(value, type(getattr(self, key))) and not getattr(self, key) is None:
                         raise TypeError(f"An unexpected type is given for the setting: {key}. "
                                         f"The expected type is {type(getattr(self, key))}, "
                                         f"the type given is {type(value)}, the value given is {value}")
