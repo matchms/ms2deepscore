@@ -115,7 +115,7 @@ class SettingsMS2Deepscore:
         self.max_mz = 1000
         self.mz_bin_width = 0.1
         self.intensity_scaling = 0.5
-        self.additional_metadata = ()
+        self.additional_metadata = []
 
         # Data generator settings
         self.batch_size = 32
