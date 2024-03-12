@@ -27,7 +27,7 @@ Florian Huber, Sven van der Burg, Justin J.J. van der Hooft, Lars Ridder, 13, Ar
 ### Requirements
 
 Python 3.8, 3.9, 3.10 (higher will likely work but is not tested systematically).  
-Tested with Tensorflow 2.4, 2.6, 2.8, and latest version.
+Tested with Tensorflow 2.4, 2.6, 2.8, and versions up to Tensorflow < 2.14.
 
 ### Installation
 Simply install using pip: `pip install ms2deepscore`
