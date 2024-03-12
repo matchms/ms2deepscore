@@ -11,10 +11,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added split_positive_and_negative_mode.py [#148](https://github.com/matchms/ms2deepscore/pull/148)
 - Added SettingMS2Deepscore [#151](https://github.com/matchms/ms2deepscore/pull/151)
 - Clearer Warnings when too little input spectra are used in data generator. [#155](https://github.com/matchms/ms2deepscore/issues/155)
+
 ### Changed
 - Change the max oversampling rate to max_pairs_per_bin [#148](https://github.com/matchms/ms2deepscore/pull/148)
 - Made spectrum pair selection a lot simpler and fixed mistake [#148](https://github.com/matchms/ms2deepscore/pull/148)
 - Use DataGeneratorCherrypicked instead of DataGeneratorAllInchikeys in pipelines [#148](https://github.com/matchms/ms2deepscore/pull/148)
+- Removed M1 Chip compatibility which lead to faulty results depending on Tensorflow version [#200](https://github.com/matchms/ms2deepscore/pull/200)
+
+   
 ## [0.5.0] - 2023-08-18
 
 ### Added
