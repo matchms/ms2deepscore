@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.0] - 2024-03-12
+
+Last version using Tensorflow. Next versions will be using PyTorch.
+
 ### Added
 - Added split_positive_and_negative_mode.py [#148](https://github.com/matchms/ms2deepscore/pull/148)
 - Added SettingMS2Deepscore [#151](https://github.com/matchms/ms2deepscore/pull/151)
@@ -141,7 +145,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - This is the initial version of MS2DeepScore
 
-[Unreleased]: https://github.com/matchms/ms2deepscore/compare/0.5.0...HEAD
+[Unreleased]: https://github.com/matchms/ms2deepscore/compare/1.0.0...HEAD
+[1.0.0]: https://github.com/matchms/ms2deepscore/compare/0.5.0...1.0.0
 [0.5.0]: https://github.com/matchms/ms2deepscore/compare/0.4.0...0.5.0
 [0.4.0]: https://github.com/matchms/ms2deepscore/compare/0.3.1...0.4.0
 [0.3.1]: https://github.com/matchms/ms2deepscore/compare/0.3.1...0.3.1
