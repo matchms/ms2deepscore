@@ -23,7 +23,8 @@ def test_train_wrapper_ms2ds_model(tmp_path):
         "same_prob_bins": np.array([(0, 0.2), (0.2, 1.0)]),
         "average_pairs_per_bin": 2,
         "batch_size": 2,  # to speed up tests --> usually larger
-        "random_seed": 42
+        "random_seed": 42,
+        "use_tensorboard": False
         })
 
     model_directory_name = train_ms2deepscore_wrapper(spectra_file_name, settings, validation_split_fraction=5)

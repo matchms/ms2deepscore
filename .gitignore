@@ -7,6 +7,7 @@ build
 dist
 .cache
 __pycache__
+runs
 
 htmlcov
 .coverage
