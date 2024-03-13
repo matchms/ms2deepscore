@@ -4,6 +4,7 @@ from datetime import datetime
 from json import JSONEncoder
 from typing import Optional
 import numpy as np
+from ms2deepscore.models.loss_functions import LOSS_FUNCTIONS
 
 
 class SettingsMS2Deepscore:
@@ -165,6 +166,8 @@ class SettingsMS2Deepscore:
             warnings.warn('When using a fixed set, data will not be shuffled')
         if self.random_seed is not None:
             assert isinstance(self.random_seed, int), "Random seed must be integer number."
+        if self.loss_function.lower() not in LOSS_FUNCTIONS:
+            raise ValueError(f"Unknown loss function. Must be one of: {LOSS_FUNCTIONS.keys()}")
 
     def number_of_bins(self):
         return int((self.max_mz - self.min_mz) / self.mz_bin_width)
