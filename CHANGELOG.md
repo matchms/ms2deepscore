@@ -27,14 +27,22 @@ Large scale expansion, revision, and restructuring of MS2Deepscore.
 
 ## [Unreleased]
 
+## [1.0.0] - 2024-03-12
+
+Last version using Tensorflow. Next versions will be using PyTorch.
+
 ### Added
 - Added split_positive_and_negative_mode.py [#148](https://github.com/matchms/ms2deepscore/pull/148)
 - Added SettingMS2Deepscore [#151](https://github.com/matchms/ms2deepscore/pull/151)
 - Clearer Warnings when too little input spectra are used in data generator. [#155](https://github.com/matchms/ms2deepscore/issues/155)
+
 ### Changed
 - Change the max oversampling rate to max_pairs_per_bin [#148](https://github.com/matchms/ms2deepscore/pull/148)
 - Made spectrum pair selection a lot simpler and fixed mistake [#148](https://github.com/matchms/ms2deepscore/pull/148)
 - Use DataGeneratorCherrypicked instead of DataGeneratorAllInchikeys in pipelines [#148](https://github.com/matchms/ms2deepscore/pull/148)
+- Removed M1 Chip compatibility which lead to faulty results depending on Tensorflow version [#200](https://github.com/matchms/ms2deepscore/pull/200)
+
+   
 ## [0.5.0] - 2023-08-18
 
 ### Added
@@ -157,7 +165,8 @@ Large scale expansion, revision, and restructuring of MS2Deepscore.
 
 - This is the initial version of MS2DeepScore
 
-[Unreleased]: https://github.com/matchms/ms2deepscore/compare/0.5.0...HEAD
+[Unreleased]: https://github.com/matchms/ms2deepscore/compare/1.0.0...HEAD
+[1.0.0]: https://github.com/matchms/ms2deepscore/compare/0.5.0...1.0.0
 [0.5.0]: https://github.com/matchms/ms2deepscore/compare/0.4.0...0.5.0
 [0.4.0]: https://github.com/matchms/ms2deepscore/compare/0.3.1...0.4.0
 [0.3.1]: https://github.com/matchms/ms2deepscore/compare/0.3.1...0.3.1
