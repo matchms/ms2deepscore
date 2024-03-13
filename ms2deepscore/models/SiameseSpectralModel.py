@@ -216,7 +216,7 @@ def train(model: SiameseSpectralModel,
         L2 regularization strength.
     """
     # pylint: disable=too-many-arguments, too-many-locals
-    device, optimizer, writer = initialize_training(model, learning_rate, use_tensorboard)
+    device, optimizer, writer = initialize_training(model, learning_rate, use_tensorboard, log_dir=log_dir)
 
     if loss_function.lower() not in LOSS_FUNCTIONS:
         raise ValueError(f"Unknown loss function. Must be one of: {LOSS_FUNCTIONS.keys()}")
