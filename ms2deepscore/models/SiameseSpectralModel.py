@@ -149,14 +149,15 @@ class SpectralEncoder(nn.Module):
         return x
 
 
-def initialize_training(model, learning_rate, use_tensorboard):
+def initialize_training(model, learning_rate, use_tensorboard, log_dir="runs"):
+    """Initializes device (cpu or gpu) as well as the optimizer and Tensorboard writer.
+    """
     device = initialize_device()
     model.to(device)
     optimizer = optim.Adam(model.parameters(), lr=learning_rate)
 
     if use_tensorboard:
         # TensorBoard writer
-        log_dir ="runs"
         if not os.path.exists(log_dir):
             os.makedirs(log_dir)
 
@@ -181,6 +182,7 @@ def train(model: SiameseSpectralModel,
           lambda_l2: float = 0,
           progress_bar: bool = True,
           use_tensorboard: bool = True,
+          log_dir: str = "runs",
           ):
     """Train a model with given parameters.
 
@@ -252,7 +254,6 @@ def train(model: SiameseSpectralModel,
                     loss += l1_regularization(model, lambda_l1) + l2_regularization(model, lambda_l2)
                 batch_losses.append(float(loss))
 
-                #batch_rmse.append(rmse_loss(outputs, targets.to(device)).cpu().detach().numpy())
                 batch_rmse.append(rmse_loss(outputs, targets).cpu().detach().numpy())
 
                 # Backward pass and optimize
@@ -270,6 +271,7 @@ def train(model: SiameseSpectralModel,
             if use_tensorboard:
                 writer.add_scalar('LOSS/train', avg_loss, epoch)
                 writer.add_scalar('RMSE/train', avg_rmse, epoch)
+                writer.flush()
 
         history["losses"].append(np.mean(batch_losses))
         history["rmse"].append(np.mean(batch_rmse))
@@ -285,6 +287,7 @@ def train(model: SiameseSpectralModel,
             if use_tensorboard:
                 writer.add_scalar('LOSS/val', avg_loss, epoch)
                 writer.add_scalar('RMSE/val', avg_rmse, epoch)
+                writer.flush()
             if val_loss < min_val_loss:
                 if checkpoint_filename:
                     print("Saving checkpoint model.")
