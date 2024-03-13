@@ -98,10 +98,10 @@ class SettingsMS2Deepscore:
         self.train_binning_layer_output_per_group: int = 2
 
         # training settings
-        self.dropout_rate = 0.2
+        self.dropout_rate = 0.0
         self.learning_rate = 0.00025
         self.epochs = 250
-        self.patience = 30
+        self.patience = 20
         self.loss_function = "mse"
         self.weighting_factor = 0
 
@@ -145,6 +145,10 @@ class SettingsMS2Deepscore:
         if settings:
             for key, value in settings.items():
                 if hasattr(self, key):
+                    if not isinstance(value, type(getattr(self, key))) and not getattr(self, key) is None:
+                        raise TypeError(f"An unexpected type is given for the setting: {key}. "
+                                        f"The expected type is {type(getattr(self, key))}, "
+                                        f"the type given is {type(value)}, the value given is {value}")
                     setattr(self, key, value)
                 else:
                     raise ValueError(f"Unknown setting: {key}")

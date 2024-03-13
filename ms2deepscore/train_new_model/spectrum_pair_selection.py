@@ -199,6 +199,7 @@ def compute_jaccard_similarity_per_bin(
         max_pairs_per_bin,
         selection_bins = np.array([(x / 10, x / 10 + 0.1) for x in range(10)]),
         include_diagonal = True):
+    """Randomly selects compound pairs per tanimoto bin, up to max_pairs_per_bin"""
     
     size = fingerprints.shape[0]
     num_bins = len(selection_bins)
@@ -239,9 +240,10 @@ def tanimoto_scores_row(fingerprints, idx):
     return tanimoto_scores
 
 
-def balanced_selection(selected_pairs_per_bin, selected_scores_per_bin,
-             desired_pairs_per_bin,
-             max_oversampling_rate: float = 1):
+def balanced_selection(selected_pairs_per_bin,
+                       selected_scores_per_bin,
+                       desired_pairs_per_bin,
+                       max_oversampling_rate: float = 1):
     """
     Adjusts the selected pairs for each bin to align with the expected average pairs per bin.
     
@@ -255,10 +257,12 @@ def balanced_selection(selected_pairs_per_bin, selected_scores_per_bin,
     desired_pairs_per_bin: int
         The desired number of pairs per bin. Will be used if sufficient scores in each bin are found.
     max_oversampling_rate: float
-        Maximum factor for oversampling. Default is 2.
+        Maximum factor for oversampling. This will allow for sampling the same pairs multiple times in the same bin
+        to reach the desired_pairs_per_bin.
     """
     if max_oversampling_rate != 1:
         raise NotImplementedError("oversampling is not yet supported")
+    # The selected pairs per bin is set to -1 if something is not a pair
     available_pairs = (selected_pairs_per_bin[:, :, :] != -1).sum(axis=2).sum(axis=1)
     minimum_bin_occupation = available_pairs.min()
     print(f"Found minimum bin occupation of {minimum_bin_occupation} pairs.")
@@ -274,6 +278,10 @@ def balanced_selection(selected_pairs_per_bin, selected_scores_per_bin,
     for bin_id in range(selected_pairs_per_bin.shape[0]):
         goal = pairs_per_bin
         for _ in range(int(np.ceil(max_oversampling_rate))):
+            # We loop over the columns. The 100 columns contain the matches from left to right. So if only 10 matches
+            # are found in this bin. The first 10 columns are filled and the rest is -1. By starting from the first
+            # column, we are first using all compounds that have the lowest number in this bin and only use some
+            # compounds extra if necessary.
             for col in range(selected_pairs_per_bin.shape[2]):
                 idx = np.where(selected_pairs_per_bin[bin_id, :, col] != -1)[0]
                 if len(idx) > goal:
