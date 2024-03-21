@@ -4,10 +4,9 @@ reducing the amount of rerunning that is necessary"""
 import os
 from matchms.exporting import save_spectra
 from matchms.importing import load_spectra
-from ms2deepscore.benchmarking_models.calculate_scores_for_validation import \
+from ms2deepscore.benchmarking.calculate_scores_for_validation import \
     calculate_true_values_and_predictions_for_validation_spectra
-from ms2deepscore.train_new_model.SettingMS2Deepscore import \
-    SettingsMS2Deepscore
+from ms2deepscore.SettingsMS2Deepscore import SettingsMS2Deepscore
 from ms2deepscore.train_new_model.split_positive_and_negative_mode import \
     split_by_ionmode
 from ms2deepscore.train_new_model.train_ms2deepscore import train_ms2ds_model
@@ -28,38 +27,61 @@ def train_ms2deepscore_wrapper(spectra_file_path,
 
     spectra_file_path:
         The path to the spectra that should be used for training. (it will be split in train, val and test)
-    settings:
-        An object with the MS2Deepscore settings.
+    model_settings:
+        An object with the MS2Deepscore model settings.
     validation_split_fraction:
         The fraction of the inchikeys that will be used for validation and test.
     """
 
     stored_training_data = StoreTrainingData(spectra_file_path,
-                                             split_fraction=validation_split_fraction)
+                                             split_fraction=validation_split_fraction,
+                                             random_seed=settings.random_seed)
 
     # Split training in pos and neg and create val and training split and select for the right ionisation mode.
     training_spectra = stored_training_data.load_training_data(settings.ionisation_mode, "training")
     validation_spectra = stored_training_data.load_training_data(settings.ionisation_mode, "validation")
 
+    model_directory_name = create_model_directory_name(settings)
+
     # Train model
     train_ms2ds_model(training_spectra, validation_spectra,
-                      stored_training_data.trained_models_folder,
-                      settings)
-
+                      os.path.join(stored_training_data.trained_models_folder, model_directory_name), settings)
     # Create performance plots for validation spectra
     ms2deepsore_model_file_name = os.path.join(stored_training_data.trained_models_folder,
-                                               settings.model_directory_name,
+                                               model_directory_name,
                                                settings.model_file_name)
     calculate_true_values_and_predictions_for_validation_spectra(
         positive_validation_spectra=stored_training_data.load_positive_train_split("validation"),
         negative_validation_spectra=stored_training_data.load_negative_train_split("validation"),
         ms2deepsore_model_file_name=ms2deepsore_model_file_name,
         results_directory=os.path.join(stored_training_data.trained_models_folder,
-                                       settings.model_directory_name, "benchmarking_results"))
+                                       model_directory_name, "benchmarking_results"))
 
     create_plots_between_all_ionmodes(model_directory=os.path.join(stored_training_data.trained_models_folder,
-                                                                   settings.model_directory_name))
-    return settings.model_directory_name
+                                                                   model_directory_name),
+                                      ref_score_bins=settings.same_prob_bins)
+
+    return model_directory_name
+
+
+def create_model_directory_name(settings: SettingsMS2Deepscore):
+    """Creates a directory name using metadata, it will contain the metadata, the binned spectra and final model"""
+    binning_file_label = ""
+    for metadata_generator in settings.additional_metadata:
+        binning_file_label += metadata_generator[1]["metadata_field"] + "_"
+
+    # Define a neural net structure label
+    neural_net_structure_label = ""
+    for layer in settings.base_dims:
+        neural_net_structure_label += str(layer) + "_"
+    neural_net_structure_label += "layers"
+
+    if settings.embedding_dim:
+        neural_net_structure_label += f"_{str(settings.embedding_dim)}_embedding"
+    model_folder_file_name = f"{settings.ionisation_mode}_mode_{binning_file_label}" \
+                             f"{neural_net_structure_label}_{settings.time_stamp}"
+    print(f"The model will be stored in the folder: {model_folder_file_name}")
+    return model_folder_file_name
 
 
 class StoreTrainingData:
@@ -70,12 +92,14 @@ class StoreTrainingData:
     To do this, just specify the same spectrum file name and directory."""
 
     def __init__(self, spectra_file_name,
-                 split_fraction=20):
+                 split_fraction=20,
+                 random_seed=None):
         self.root_directory = os.path.dirname(spectra_file_name)
         assert os.path.isdir(self.root_directory)
         self.spectra_file_name = spectra_file_name
         assert os.path.isfile(self.spectra_file_name)
         self.split_fraction = split_fraction
+        self.random_seed = random_seed
         self.trained_models_folder = os.path.join(self.root_directory, "trained_models")
         os.makedirs(self.trained_models_folder, exist_ok=True)
 
@@ -113,7 +137,7 @@ class StoreTrainingData:
         assert not os.path.isfile(self.positive_mode_spectra_file), "the positive mode spectra file already exists"
         assert not os.path.isfile(self.negative_mode_spectra_file), "the negative mode spectra file already exists"
         positive_mode_spectra, negative_mode_spectra = split_by_ionmode(
-            load_spectra(self.spectra_file_name, metadata_harmonization=False))
+            load_spectra(self.spectra_file_name, metadata_harmonization=True))
         save_spectra(positive_mode_spectra, self.positive_mode_spectra_file)
         save_spectra(negative_mode_spectra, self.negative_mode_spectra_file)
         return positive_mode_spectra, negative_mode_spectra
@@ -131,7 +155,8 @@ class StoreTrainingData:
         # If it could not be loaded do the data split and save the files.
         if not os.path.isfile(spectra_file_name):
             positive_validation_spectra, positive_testing_spectra, positive_training_spectra = \
-                split_spectra_in_random_inchikey_sets(self.load_positive_mode_spectra(), self.split_fraction)
+                split_spectra_in_random_inchikey_sets(self.load_positive_mode_spectra(),
+                                                      self.split_fraction, self.random_seed)
             save_spectra(positive_training_spectra, self.positive_training_spectra_file)
             save_spectra(positive_validation_spectra, self.positive_validation_spectra_file)
             save_spectra(positive_testing_spectra, self.positive_testing_spectra_file)
@@ -153,7 +178,8 @@ class StoreTrainingData:
         # If it could not be loaded do the data split and save the files.
         if not os.path.isfile(spectra_file_name):
             negative_validation_spectra, negative_testing_spectra, negative_training_spectra = \
-                split_spectra_in_random_inchikey_sets(self.load_negative_mode_spectra(), self.split_fraction)
+                split_spectra_in_random_inchikey_sets(self.load_negative_mode_spectra(),
+                                                      self.split_fraction, self.random_seed)
             save_spectra(negative_training_spectra, self.negative_training_spectra_file)
             save_spectra(negative_validation_spectra, self.negative_validation_spectra_file)
             save_spectra(negative_testing_spectra, self.negative_testing_spectra_file)

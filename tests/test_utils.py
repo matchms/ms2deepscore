@@ -2,13 +2,6 @@ import pytest
 import ms2deepscore.utils as utils
 
 
-def test_create_peak_dict():
-    peak_list = [(1, 5), (2, 6), (1, 7)]
-    expected = {1: 7, 2: 6}
-    result = utils.create_peak_dict(peak_list)
-    assert result == expected
-
-
 def test_save_and_load_pickled_file(tmpdir):
     temp_file = tmpdir.join("temp.pkl")
     data = {"test_key": "test_value"}

@@ -1,9 +1,13 @@
+import numpy as np
 import pytest
-from matchms import Metadata
+import torch
+from matchms import Metadata, Spectrum
 from ms2deepscore.MetadataFeatureGenerator import (CategoricalToBinary,
                                                    MetadataFeatureGenerator,
+                                                   MetadataVectorizer,
                                                    OneHotEncoder,
-                                                   StandardScaler)
+                                                   StandardScaler,
+                                                   load_from_json)
 
 
 @pytest.fixture
@@ -19,6 +23,17 @@ def test_metadatafeaturegenerator_not_implemented(metadata):
     
     with pytest.raises(NotImplementedError):
         MetadataFeatureGenerator.load_from_dict({})
+
+
+def test_metadata_vectorizer(metadata):
+    scaler = StandardScaler("mass", 200.0, 250.0)
+    metadata = {"mass": 220.0}
+    s1 = Spectrum(mz=np.array([100.]), intensities=np.array([1.0]), metadata=metadata)
+    vectorizer = MetadataVectorizer([scaler])
+    expected_value = (220 - 200) / 250
+    assert vectorizer.transform([s1]) == torch.tensor([expected_value])
+    assert (vectorizer.transform([s1, s1]) == torch.tensor([expected_value, expected_value])).all()
+    assert vectorizer.size == 1
 
 
 def test_standard_scaler_generate_features_with_std():
@@ -39,7 +54,7 @@ def test_standard_scaler_generate_features_assert():
     scaler = StandardScaler("mass", 5.0)
     metadata = Metadata()
 
-    with pytest.raises(AssertionError):
+    with pytest.raises(TypeError):
         scaler.generate_features(metadata)
 
 
@@ -60,7 +75,7 @@ def test_categorical_to_binary():
     assert converter.generate_features(metadata_a) == 1
     assert converter.generate_features(metadata_b) == 0
 
-    with pytest.raises(AssertionError):
+    with pytest.raises(ValueError):
         converter.generate_features(Metadata({"category": "C"}))
 
 
@@ -83,3 +98,16 @@ def test_equality():
     scaler3 = StandardScaler("mass", 4.0, 1.0)
     assert scaler1 == scaler2
     assert scaler1 != scaler3
+
+
+def test_load_from_json():
+    feature_generators = load_from_json([("StandardScaler", {"metadata_field": "precursor_mz",
+                                        "mean": 200.0,
+                                        "standard_deviation": 250.0}),
+                    ("CategoricalToBinary", {"metadata_field": "ionmode",
+                                             "entries_becoming_one": "positive",
+                                             "entries_becoming_zero": "negative"}),
+                    ])
+    assert len(feature_generators) == 2
+    assert isinstance(feature_generators[0], StandardScaler)
+    assert isinstance(feature_generators[1], CategoricalToBinary)
