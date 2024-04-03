@@ -92,7 +92,7 @@ def plot_stacked_histogram(normalized_counts_per_bin,
     color_map = LinearSegmentedColormap.from_list("mycmap", ["teal", "lightblue", "crimson"])
 
     # Create plot
-    _, axes = plt.subplots(nrows=1, ncols=2, figsize=(10, nr_of_bins),
+    _, axes = plt.subplots(nrows=1, ncols=2, figsize=(10, nr_of_bins/2),
                            gridspec_kw={'width_ratios': [4, 1]})
 
     # Create a bargraph that shows the percentages per bin
