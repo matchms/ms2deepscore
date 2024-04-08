@@ -66,7 +66,7 @@ There are two different ways to use MS2DeepScore to compute spectral similaritie
 The second way is much simpler: Use a model that was pretrained on a large dataset. 
 
 ## 1) Use a pretrained model to compute spectral similarities
-We provide a model which was trained on > 100,000 MS/MS spectra from [GNPS](https://gnps.ucsd.edu/), which can simply be downloaded [from zenodo here](https://zenodo.org/record/4699356).
+We provide a model which was trained on > 200,000 MS/MS spectra from [GNPS](https://gnps.ucsd.edu/), which can simply be downloaded [from zenodo here](https://zenodo.org/records/10814307). Only the ms2deepscore_model.pt is needed. 
 To then compute the similarities between spectra of your choice you can run something like:
 ```python
 from matchms import calculate_scores
