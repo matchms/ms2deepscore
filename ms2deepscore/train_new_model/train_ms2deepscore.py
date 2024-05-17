@@ -50,7 +50,10 @@ def train_ms2ds_model(
                     validation_loss_calculator=validation_loss_calculator,
                     patience=settings.patience,
                     loss_function=settings.loss_function,
-                    checkpoint_filename=output_model_file_name, lambda_l1=0, lambda_l2=0)
+                    checkpoint_filename=output_model_file_name, lambda_l1=0, lambda_l2=0,
+                    use_tensorboard=settings.use_tensorboard,
+                    log_dir=settings.log_dir,
+                    )
     # Save plot of history
     plot_history(history["losses"], history["val_losses"], ms2ds_history_plot_file_name)
 
