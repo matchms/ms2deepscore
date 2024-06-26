@@ -1,13 +1,9 @@
-from pathlib import Path
 import numpy as np
-import pytest
 from ms2deepscore import MS2DeepScoreEvaluated
-from ms2deepscore.SettingsMS2Deepscore import SettingsMS2Deepscore, SettingsEmbeddingEvaluator
-from ms2deepscore.models import load_model, LinearModel, EmbeddingEvaluationModel
+from ms2deepscore.SettingsMS2Deepscore import SettingsEmbeddingEvaluator
+from ms2deepscore.models import LinearModel, EmbeddingEvaluationModel
 from tests.test_user_worfklow import load_processed_spectrums
-
-
-TEST_RESOURCES_PATH = Path(__file__).parent / 'resources'
+from tests.create_test_spectra import siamese_spectral_model
 
 
 def get_test_ms2deepscore_evaluated_instance():
@@ -15,8 +11,7 @@ def get_test_ms2deepscore_evaluated_instance():
     spectrums = load_processed_spectrums()
 
     # Load pretrained model
-    model_file = TEST_RESOURCES_PATH / "testmodel.pt"
-    model = load_model(model_file)
+    model = siamese_spectral_model()
 
     embedding_evaluator = EmbeddingEvaluationModel(SettingsEmbeddingEvaluator())
     score_evaluator = LinearModel(2)
