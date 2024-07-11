@@ -83,7 +83,8 @@ class SettingsMS2Deepscore:
         random_seed
             Specify random seed for reproducible random number generation.
         additional_metadata
-            Array of additional values to be used in training for e.g. ["precursor_mz", "parent_mass"].
+            Array of metadata entries (and their transformation) to be used in training.
+            See `MetadatFeatureGenerator` for more information.
             Default is set to empty list.
         """
     def __init__(self, **settings):
