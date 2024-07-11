@@ -93,6 +93,10 @@ class PeakBinner(nn.Module):
 
 
 class SpectralEncoder(nn.Module):
+    """Encoder part of the Siamese network.
+
+    This model will convert input spectra (spectra_tensors and metadata_tensors) to reduced embeddings.
+    """
     def __init__(self,
                  settings: SettingsMS2Deepscore,
                  peak_inputs: int,
