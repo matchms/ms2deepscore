@@ -10,7 +10,7 @@ from tqdm import tqdm
 class MetadataVectorizer:
     """Create a numerical vector of selected metadata fields including transformations.
 
-    This class is used to transform a list of spectra into numerical vectors
+    This class transforms a list of spectra into numerical vectors
     based on the specified metadata fields. These vectors can be used for 
     further analysis or machine learning models.
 
@@ -173,7 +173,16 @@ class OneHotEncoder(MetadataFeatureGenerator):
 
 
 class CategoricalToBinary(MetadataFeatureGenerator):
-    """Converts categorical features (e.g. strings) into binary 1 or 0 feature values.
+    """Converts categorical features (e.g., strings) into binary 1 or 0 feature values.
+
+    Attributes
+    ----------
+    metadata_field : str
+        The metadata field to be converted.
+    entries_becoming_one : list or str or int
+        The entries in the metadata field that should be encoded as 1.
+    entries_becoming_zero : list or str or int
+        The entries in the metadata field that should be encoded as 0.
     """
     def __init__(self, metadata_field: str,
                  entries_becoming_one: Union[list, str, int],
@@ -208,12 +217,38 @@ class CategoricalToBinary(MetadataFeatureGenerator):
 
 
 def load_from_json(list_of_json_metadata_feature_generators: List[Tuple[str, dict]]):
-    """Creates an object from json for any of the subclasses of MetadataFeatureGenerator
+    """Creates an object from json for any of the subclasses of MetadataFeatureGenerator.
 
-    This is used for loading in the MetadataFeatureGenerator in SpectrumBinner.
+    This function is used for loading instances of MetadataFeatureGenerator subclasses 
+    from their JSON representations. Each JSON representation should include the class 
+    name and the settings needed to initialize an instance of that class.
 
-    list_of_json_metadata_feature_generators:
-        A list containing all the json representations of the subclasses of MetadataFeatureGenerator.
+    Parameters
+    ----------
+    list_of_json_metadata_feature_generators : list of tuples
+        A list containing tuples where each tuple consists of a class name (str) and a 
+        dictionary of settings (dict) representing the JSON configuration of a 
+        MetadataFeatureGenerator subclass.
+
+    Returns
+    -------
+    tuple
+        A tuple containing instances of the MetadataFeatureGenerator subclasses created 
+        from the JSON configurations.
+
+    Raises
+    ------
+    TypeError
+        If any of the class names do not correspond to a subclass of MetadataFeatureGenerator.
+
+    Example code:
+
+    .. code-block:: python
+        json_config = [
+            ("StandardScaler", {"metadata_field": "intensity", "mean": 100.0, "standard_deviation": 15.0}),
+            ("OneHotEncoder", {"metadata_field": "instrument_type", "entries_becoming_one": "FTICR"})
+        ]
+        feature_generators = load_from_json(json_config)
     """
     possible_metadata_classes = import_module(__name__)
     metadata_feature_generator_list = []
