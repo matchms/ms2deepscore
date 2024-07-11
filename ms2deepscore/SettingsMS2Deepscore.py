@@ -12,9 +12,9 @@ class SettingsMS2Deepscore:
 
     Attributes:
         base_dims:
-            The in between layers to be used. Default = (500, 500)
+            The in between layers to be used. Default = (2000, 2000, 2000)
         embedding_dim:
-            The dimension of the final embedding. Default = 200
+            The dimension of the final embedding. Default = 400
         additional_metadata:
             Additional metadata that should be used in training the model. e.g. precursor_mz
         dropout_rate:
@@ -43,9 +43,7 @@ class SettingsMS2Deepscore:
             Set to True to shuffle IDs every epoch. Default=True
         same_prob_bins
             List of tuples that define ranges of the true label to be trained with
-            equal frequencies. Default is set to [(0, 0.5), (0.5, 1)], which means
-            that pairs with scores <=0.5 will be picked as often as pairs with scores
-            > 0.5.
+            equal frequencies. Default is set to 10 bins of equal width between 0 and 1.
         average_pairs_per_bin:
             The aimed average number of pairs of spectra per spectrum in each bin.
         max_pairs_per_bin:
@@ -60,7 +58,7 @@ class SettingsMS2Deepscore:
         random_seed:
             The random seed to use for selecting compound pairs. Default is None.
         fingerprint_type:
-            The fingerprint type that should be used for tanimoto score calculations.
+            The fingerprint type that should be used for Tanimoto score calculations.
         fingerprint_nbits:
             The number of bits to use for the fingerprint.
         augment_removal_max
@@ -84,8 +82,9 @@ class SettingsMS2Deepscore:
             epoch. Default is False.
         random_seed
             Specify random seed for reproducible random number generation.
-        additional_inputs
-            Array of additional values to be used in training for e.g. ["precursor_mz", "parent_mass"]
+        additional_metadata
+            Array of additional values to be used in training for e.g. ["precursor_mz", "parent_mass"].
+            Default is set to empty list.
         """
     def __init__(self, **settings):
         # model structure
