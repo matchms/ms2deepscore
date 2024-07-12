@@ -123,13 +123,13 @@ class SpectralEncoder(nn.Module):
         else:
             input_size = peak_inputs + additional_inputs
         self.dense_layers.append(
-            dense_layer(input_size, settings.base_dims[0], "relu")
+            dense_layer(input_size, settings.base_dims[0], "lrelu")
         )
         input_dim = settings.base_dims[0]
 
         # Create additional dense layers
         for output_dim in settings.base_dims[1:]:
-            self.dense_layers.append(dense_layer(input_dim, output_dim, "relu"))
+            self.dense_layers.append(dense_layer(input_dim, output_dim, "lrelu"))
             input_dim = output_dim
 
         self.embedding_layer = dense_layer(settings.base_dims[-1], settings.embedding_dim, "tanh")
@@ -281,7 +281,7 @@ def train(model: SiameseSpectralModel,
     return history
 
 
-def dense_layer(input_size, output_size, activation="relu"):
+def dense_layer(input_size, output_size, activation="lrelu"):
     """Combines a densely connected layer and an activation function."""
     activations = nn.ModuleDict([
         ["lrelu", nn.LeakyReLU()],
