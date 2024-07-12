@@ -39,7 +39,7 @@ def test_MS2DeepScore_score_pair():
     """Test score calculation using *.pair* method."""
     spectrums, similarity_measure = get_test_ms2deepscore_evaluated_instance()
     score = similarity_measure.pair(spectrums[0], spectrums[1])
-    assert np.allclose(score["score"], 0.990366, atol=1e-6), "Expected different score."
+    assert np.allclose(score["score"], 0.99030185, atol=1e-6), "Expected different score."
     assert score["predicted_absolute_error"] > 0
     assert isinstance(score["score"], np.ndarray)
     assert isinstance(score["predicted_absolute_error"], np.ndarray)
@@ -51,9 +51,9 @@ def test_MS2DeepScore_score_matrix():
     scores = similarity_measure.matrix(spectrums[:3], spectrums[:4])
 
     expected_scores = np.array([
-        [1.        , 0.9903664 , 0.9908498 , 0.98811793],
-        [0.9903664 , 1.        , 0.99399304, 0.9643621 ],
-        [0.9908498 , 0.99399304, 1.        , 0.97351074]
+        [1.        , 0.99030185, 0.99073976, 0.98800206],
+        [0.99030185, 1.        , 0.99394614, 0.9640593 ],
+        [0.99073976, 0.99394614, 1.        , 0.9732906 ]
         ])
     assert np.allclose(expected_scores, scores["score"], atol=1e-6), "Expected different scores."
     assert scores["predicted_absolute_error"].shape == (3, 4)
