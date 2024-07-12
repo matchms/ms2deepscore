@@ -49,6 +49,9 @@ jobs:
           # already tested in first_check job
           - python-version: 3.9
             os: ubuntu-latest
+          # not working?
+          - python-version: 3.11
+            os: macos-latest
     steps:
       - uses: actions/checkout@v4
       - name: Set up Python ${{ matrix.python-version }}
