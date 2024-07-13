@@ -50,11 +50,15 @@ class SettingsMS2Deepscore:
             The max_pairs_per_bin is used to reduce memory load.
             Since some spectra will have less than the average_pairs_per_bin, we can compensate by selecting more pairs for
             other spectra in this bin. For each spectrum initially max_pairs_per_bin is selected.
-            If the max_oversampling_rate is too low, no good division can be created for the spectra.
-            If the max_oversampling_rate is high the memory load on your system will be higher.
+            If the max_pairs_per_bin is too low, no good division can be created for the spectra.
+            If the max_pairs_per_bin is high the memory load on your system will be higher.
             If None, all pairs will be initially stored.
         include_diagonal:
             determines if a spectrum can be matched against itself when selection pairs.
+        val_spectra_per_inchikey:
+            Set number of spectra to pick per inchikey in the validation set. 
+            The larger this number, the slower the validation loss computation.
+            Default is set to 1.
         random_seed:
             The random seed to use for selecting compound pairs. Default is None.
         fingerprint_type:
@@ -129,7 +133,8 @@ class SettingsMS2Deepscore:
         self.average_pairs_per_bin = 20
         self.max_pairs_per_bin = 100
         self.same_prob_bins = np.array([(x / 10, x / 10 + 0.1) for x in range(0, 10)])
-        self.include_diagonal: bool = True
+        self.include_diagonal = True
+        self.val_spectra_per_inchikey = 1
         self.random_seed: Optional[int] = None
 
         # Tanimioto score setings
