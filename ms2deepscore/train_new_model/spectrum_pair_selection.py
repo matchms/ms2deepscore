@@ -200,13 +200,14 @@ def compute_jaccard_similarity_per_bin(
         selection_bins = np.array([(x / 10, x / 10 + 0.1) for x in range(10)]),
         include_diagonal = True):
     """Randomly selects compound pairs per tanimoto bin, up to max_pairs_per_bin"""
-    
+
     size = fingerprints.shape[0]
     num_bins = len(selection_bins)
 
     selected_pairs_per_bin = -1 * np.ones((num_bins, size, max_pairs_per_bin), dtype=np.int32)
     selected_scores_per_bin = np.zeros((num_bins, size, max_pairs_per_bin), dtype=np.float32)
-    
+
+    # pylint: disable=not-an-iterable
     for idx_fingerprint_i in prange(size):
         tanimoto_scores = tanimoto_scores_row(fingerprints, idx_fingerprint_i)
 
@@ -216,14 +217,14 @@ def compute_jaccard_similarity_per_bin(
                 indices = np.nonzero((tanimoto_scores >= selection_bin[0]) & (tanimoto_scores <= selection_bin[1]))[0]
             else:
                 indices = np.nonzero((tanimoto_scores > selection_bin[0]) & (tanimoto_scores <= selection_bin[1]))[0]
-            
+
             if not include_diagonal and idx_fingerprint_i in indices:
                 indices = indices[indices != idx_fingerprint_i]
-            
+
             np.random.shuffle(indices)
             indices = indices[:max_pairs_per_bin]
             num_indices = len(indices)
-            
+ 
             selected_pairs_per_bin[bin_number, idx_fingerprint_i, :num_indices] = indices
             selected_scores_per_bin[bin_number, idx_fingerprint_i, :num_indices] = tanimoto_scores[indices]
 
@@ -252,7 +253,7 @@ def balanced_selection(selected_pairs_per_bin,
     
     This function modifies the number of pairs in each bin to be closer to the 
     expected average pairs per bin by truncating or extending the pairs.
-    
+
     Parameters
     ----------
     selected_pairs_per_bin: list of list
@@ -270,14 +271,14 @@ def balanced_selection(selected_pairs_per_bin,
     minimum_bin_occupation = available_pairs.min()
     print(f"Found minimum bin occupation of {minimum_bin_occupation} pairs.")
     print(f"Bin occupations are: {available_pairs}.")
-    
+
     pairs_per_bin = min(minimum_bin_occupation * max_oversampling_rate, desired_pairs_per_bin)
     if desired_pairs_per_bin > minimum_bin_occupation * max_oversampling_rate:
         print(f"The desired number of {desired_pairs_per_bin} pairs per bin cannot be reached with the current setting.")
         print(f"The number of pairs per bin will be set to {minimum_bin_occupation * max_oversampling_rate}.")
-    
+
     new_selected_pairs_per_bin = []
-    
+
     for bin_id in range(selected_pairs_per_bin.shape[0]):
         goal = pairs_per_bin
         for _ in range(int(np.ceil(max_oversampling_rate))):
@@ -315,9 +316,9 @@ def compute_fingerprints_for_training(spectrums,
                                       fingerprint_type: str = "daylight",
                                       nbits: int = 2048):
     """Calculates fingerprints for each unique inchikey.
-    
+
     Function also removes spectra for which no fingerprint could be created.
-    
+
     Parameters
     ----------
     fingerprint_type:
