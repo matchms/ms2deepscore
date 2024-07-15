@@ -206,7 +206,7 @@ def compute_jaccard_similarity_per_bin(
 
     selected_pairs_per_bin = -1 * np.ones((num_bins, size, max_pairs_per_bin), dtype=np.int32)
     selected_scores_per_bin = np.zeros((num_bins, size, max_pairs_per_bin), dtype=np.float32)
-    # pylint: disable=not-an-iterable
+    
     for idx_fingerprint_i in prange(size):
         tanimoto_scores = tanimoto_scores_row(fingerprints, idx_fingerprint_i)
 
@@ -216,13 +216,16 @@ def compute_jaccard_similarity_per_bin(
                 indices = np.nonzero((tanimoto_scores >= selection_bin[0]) & (tanimoto_scores <= selection_bin[1]))[0]
             else:
                 indices = np.nonzero((tanimoto_scores > selection_bin[0]) & (tanimoto_scores <= selection_bin[1]))[0]
+            
             if not include_diagonal and idx_fingerprint_i in indices:
-                indices = np.delete(indices, idx_fingerprint_i)
+                indices = indices[indices != idx_fingerprint_i]
+            
             np.random.shuffle(indices)
             indices = indices[:max_pairs_per_bin]
-
-            selected_pairs_per_bin[bin_number, idx_fingerprint_i, :len(indices)] = indices
-            selected_scores_per_bin[bin_number, idx_fingerprint_i, :len(indices)] = tanimoto_scores[indices]
+            num_indices = len(indices)
+            
+            selected_pairs_per_bin[bin_number, idx_fingerprint_i, :num_indices] = indices
+            selected_scores_per_bin[bin_number, idx_fingerprint_i, :num_indices] = tanimoto_scores[indices]
 
     return selected_pairs_per_bin, selected_scores_per_bin
 
