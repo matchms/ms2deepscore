@@ -259,15 +259,25 @@ def train(model: SiameseSpectralModel,
                     loss=float(loss),
                     rmse=np.mean(batch_rmse),
                 )
-        history["losses"].append(np.mean(batch_losses))
-        history["rmse"].append(np.mean(batch_rmse))
+        epoch_loss = np.mean(batch_losses)
+        epoch_rmse = np.mean(batch_rmse) if monitor_rmse else None
+
+        history["losses"].append(epoch_loss)
+        history["rmse"].append(epoch_rmse)
+
+        writer.add_scalar('Loss/train', epoch_loss, epoch)
 
         if validation_loss_calculator is not None:
             val_losses = validation_loss_calculator.compute_binned_validation_loss(model,
                                                                                    loss_types=(loss_function, "rmse"))
             val_loss = val_losses[loss_function]
+            val_rmse = val_losses["rmse"]
             history["val_losses"].append(val_loss)
-            history["val_rmse"].append(val_losses["rmse"])
+            history["val_rmse"].append(val_rmse)
+
+            writer.add_scalar('Loss/validation', val_loss, epoch)
+            writer.add_scalar('RMSE/validation', val_rmse, epoch)
+
             if val_loss < min_val_loss:
                 if checkpoint_filename:
                     print("Saving checkpoint model.")
@@ -284,6 +294,8 @@ def train(model: SiameseSpectralModel,
         print(f"Epoch [{epoch+1}/{num_epochs}], Loss: {np.mean(batch_losses):.4f}")
         if validation_loss_calculator is not None:
             print(f"Validation Loss: {val_loss:.4f} (RMSE: {val_losses['rmse']:.4f}).")
+
+    writer.close()
     return history
 
 
