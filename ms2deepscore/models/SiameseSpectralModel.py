@@ -1,7 +1,9 @@
+import os
 import numpy as np
 import torch
 import torch.nn.functional as F
 from torch import nn, optim
+from torch.utils.tensorboard import SummaryWriter
 from tqdm import tqdm
 from ms2deepscore.__version__ import __version__
 from ms2deepscore.models.helper_functions import (initialize_device,
@@ -165,7 +167,8 @@ def train(model: SiameseSpectralModel,
           collect_all_targets: bool = False,
           lambda_l1: float = 0,
           lambda_l2: float = 0,
-          progress_bar: bool = True):
+          progress_bar: bool = True,
+          log_dir: str = "./runs"):
     """Train a model with given parameters.
 
     Parameters
@@ -208,6 +211,9 @@ def train(model: SiameseSpectralModel,
     criterion = LOSS_FUNCTIONS[loss_function.lower()]
 
     optimizer = optim.Adam(model.parameters(), lr=learning_rate)
+
+    # Initialize TensorBoard writer
+    writer = SummaryWriter(log_dir=os.path.join(log_dir, "train_logs"))
 
     history = {
         "losses": [],

@@ -28,7 +28,6 @@ def train_ms2ds_model(
     settings.save_to_file(os.path.join(results_folder, "settings.json"))
 
     output_model_file_name = os.path.join(results_folder, settings.model_file_name)
-    ms2ds_history_plot_file_name = os.path.join(results_folder, settings.history_plot_file_name)
 
     selected_compound_pairs_training, selected_training_spectra = select_compound_pairs_wrapper(
         training_spectra, settings=settings)
@@ -51,8 +50,7 @@ def train_ms2ds_model(
                     patience=settings.patience,
                     loss_function=settings.loss_function,
                     checkpoint_filename=output_model_file_name, lambda_l1=0, lambda_l2=0)
-    # Save plot of history
-    plot_history(history["losses"], history["val_losses"], ms2ds_history_plot_file_name)
+    return model, history
 
 
 def plot_history(losses, val_losses, file_name: Optional[str] = None):

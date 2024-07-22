@@ -9,7 +9,7 @@ from ms2deepscore.benchmarking.calculate_scores_for_validation import \
 from ms2deepscore.SettingsMS2Deepscore import SettingsMS2Deepscore
 from ms2deepscore.train_new_model.split_positive_and_negative_mode import \
     split_by_ionmode
-from ms2deepscore.train_new_model.train_ms2deepscore import train_ms2ds_model
+from ms2deepscore.train_new_model.train_ms2deepscore import train_ms2ds_model, plot_history
 from ms2deepscore.train_new_model.validation_and_test_split import \
     split_spectra_in_random_inchikey_sets
 from ms2deepscore.utils import load_spectra_as_list
@@ -42,10 +42,18 @@ def train_ms2deepscore_wrapper(spectra_file_path,
     validation_spectra = stored_training_data.load_training_data(settings.ionisation_mode, "validation")
 
     model_directory_name = create_model_directory_name(settings)
+    results_folder = os.path.join(stored_training_data.trained_models_folder, model_directory_name)
 
     # Train model
-    train_ms2ds_model(training_spectra, validation_spectra,
-                      os.path.join(stored_training_data.trained_models_folder, model_directory_name), settings)
+    _, history = train_ms2ds_model(
+        training_spectra, validation_spectra,
+        results_folder,
+        settings
+        )
+    
+    ms2ds_history_plot_file_name = os.path.join(results_folder, settings.history_plot_file_name)
+    plot_history(history["losses"], history["val_losses"], ms2ds_history_plot_file_name)
+
     # Create performance plots for validation spectra
     ms2deepsore_model_file_name = os.path.join(stored_training_data.trained_models_folder,
                                                model_directory_name,
