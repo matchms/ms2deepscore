@@ -35,7 +35,7 @@ setup(
         "scikit-learn",
         "tensorboard",
         "torch",
-        "torchvision"
+        "torchvision",
         "tqdm",
         "matplotlib==3.7.2"
     ],
