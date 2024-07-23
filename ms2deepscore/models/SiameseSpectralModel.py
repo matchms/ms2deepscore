@@ -268,8 +268,10 @@ def train(model: SiameseSpectralModel,
         writer.add_scalar('Loss/train', epoch_loss, epoch)
 
         if validation_loss_calculator is not None:
-            val_losses = validation_loss_calculator.compute_binned_validation_loss(model,
-                                                                                   loss_types=(loss_function, "rmse"))
+            val_losses, _  = validation_loss_calculator.compute_binned_validation_loss(
+                model,
+                loss_types=(loss_function, "rmse")
+                )
             val_loss = val_losses[loss_function]
             val_rmse = val_losses["rmse"]
             history["val_losses"].append(val_loss)

@@ -43,9 +43,11 @@ class ValidationLossCalculator:
                                             weighting_factor=self.settings.weighting_factor,
                                             )
         average_losses = {}
+        binned_losses = {}
         for loss_type in loss_types:
             average_losses[loss_type] = np.mean(losses[loss_type])
-        return average_losses
+            binned_losses[loss_type] = losses[loss_type]
+        return average_losses, binned_losses
 
 
 def select_spectra_per_inchikey(spectra,

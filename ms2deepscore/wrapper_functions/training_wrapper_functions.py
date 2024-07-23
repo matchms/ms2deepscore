@@ -1,9 +1,13 @@
 """Contains wrapper functions that automatically store and load intermediate processed spectra
 reducing the amount of rerunning that is necessary"""
 
+import itertools
 import os
+import pickle
 from matchms.exporting import save_spectra
 from matchms.importing import load_spectra
+from ms2deepscore import MS2DeepScore
+from ms2deepscore.models.loss_functions import bin_dependent_losses
 from ms2deepscore.benchmarking.calculate_scores_for_validation import \
     calculate_true_values_and_predictions_for_validation_spectra
 from ms2deepscore.SettingsMS2Deepscore import SettingsMS2Deepscore
@@ -27,7 +31,7 @@ def train_ms2deepscore_wrapper(spectra_file_path,
 
     spectra_file_path:
         The path to the spectra that should be used for training. (it will be split in train, val and test)
-    model_settings:
+    settings:
         An object with the MS2Deepscore model settings.
     validation_split_fraction:
         The fraction of the inchikeys that will be used for validation and test.
@@ -62,14 +66,112 @@ def train_ms2deepscore_wrapper(spectra_file_path,
         positive_validation_spectra=stored_training_data.load_positive_train_split("validation"),
         negative_validation_spectra=stored_training_data.load_negative_train_split("validation"),
         ms2deepsore_model_file_name=ms2deepsore_model_file_name,
-        results_directory=os.path.join(stored_training_data.trained_models_folder,
-                                       model_directory_name, "benchmarking_results"))
+        computed_scores_directory=os.path.join(
+            stored_training_data.trained_models_folder,
+            model_directory_name, "benchmarking_results"))
 
     create_plots_between_all_ionmodes(model_directory=os.path.join(stored_training_data.trained_models_folder,
                                                                    model_directory_name),
                                       ref_score_bins=settings.same_prob_bins)
 
     return model_directory_name
+
+
+def parameter_search(
+        spectra_file_path,
+        base_settings: SettingsMS2Deepscore,
+        setting_variations,
+        validation_split_fraction=20,
+        loss_types=("mse",),
+        path_checkpoint="results_checkpoint.pkl"
+        ):
+    """Runs a grid search.
+
+    If the data split was already done, the data split will be reused.
+
+    spectra_file_path:
+        The path to the spectra that should be used for training. (it will be split in train, val and test)
+    base_settings:
+        An object with the MS2Deepscore model settings.
+    validation_split_fraction:
+        The fraction of the inchikeys that will be used for validation and test.
+    """
+
+    print("Initialize Stored Data")
+    stored_training_data = StoreTrainingData(spectra_file_path,
+                                             split_fraction=validation_split_fraction,
+                                             random_seed=base_settings.random_seed)
+
+    print("Load training data")
+    # Split training in pos and neg and create val and training split and select for the right ionisation mode.
+    training_spectra = stored_training_data.load_training_data(base_settings.ionisation_mode, "training")
+
+    print("Load validation data")
+    validation_spectra = stored_training_data.load_training_data(base_settings.ionisation_mode, "validation")
+
+    # For ionmode sensitive evaluations
+    positive_validation_spectra = stored_training_data.load_positive_train_split("validation")
+    negative_validation_spectra = stored_training_data.load_negative_train_split("validation")
+
+    model_directory_name = create_model_directory_name(base_settings)
+    results_folder = os.path.join(stored_training_data.trained_models_folder, model_directory_name)
+
+    results = {}
+
+    # Generate all combinations of setting variations
+    keys, values = zip(*setting_variations.items())
+    for combination in itertools.product(*values):
+        params = dict(zip(keys, combination))
+        settings_dict = base_settings.get_dict()
+        settings_dict.update(params)
+        settings = SettingsMS2Deepscore(**settings_dict)
+        
+        print(f"Testing combination: {params}")
+        
+        # Train model
+        _, history = train_ms2ds_model(
+            training_spectra, validation_spectra,
+            results_folder,
+            settings
+        )
+
+        ms2deepsore_model_file_name = os.path.join(stored_training_data.trained_models_folder,
+                                                   model_directory_name,
+                                                   settings.model_file_name)
+        # Evaluate model
+        true_values_collection, predictions_collection = calculate_true_values_and_predictions_for_validation_spectra(
+            positive_validation_spectra,
+            negative_validation_spectra,
+            ms2deepsore_model_file_name,
+            computed_scores_directory=None,
+        )
+        
+        combination_results = {
+            "params": params,
+            "history": history,
+            "losses": {}
+        }
+        
+        for condition, true_values in true_values_collection.items():
+            predictions = predictions_collection[condition]
+            _, _, losses = bin_dependent_losses(
+                predictions,
+                true_values,
+                settings.same_prob_bins,
+                loss_types=loss_types
+            )
+            combination_results["losses"][condition] = losses
+        
+        # Store results
+        combination_key = tuple(params.items())
+        results[combination_key] = combination_results
+
+        # Store checkpoint
+        with open(path_checkpoint, 'wb') as f:
+            pickle.dump(results, f, pickle.HIGHEST_PROTOCOL)
+    
+    return results
+
 
 
 def create_model_directory_name(settings: SettingsMS2Deepscore):
