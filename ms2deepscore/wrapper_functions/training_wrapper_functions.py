@@ -113,14 +113,15 @@ def parameter_search(
     positive_validation_spectra = stored_training_data.load_positive_train_split("validation")
     negative_validation_spectra = stored_training_data.load_negative_train_split("validation")
 
-    model_directory_name = create_model_directory_name(base_settings)
-    results_folder = os.path.join(stored_training_data.trained_models_folder, model_directory_name)
-
     results = {}
 
     # Generate all combinations of setting variations
     keys, values = zip(*setting_variations.items())
     for combination in itertools.product(*values):
+        # Set folder name for storing model and training progress
+        model_directory_name = create_model_directory_name(base_settings)
+        results_folder = os.path.join(stored_training_data.trained_models_folder, model_directory_name)
+
         params = dict(zip(keys, combination))
         settings_dict = base_settings.get_dict()
         settings_dict.update(params)
@@ -145,13 +146,13 @@ def parameter_search(
             ms2deepsore_model_file_name,
             computed_scores_directory=None,
         )
-        
+
         combination_results = {
             "params": params,
             "history": history,
             "losses": {}
         }
-        
+
         for condition, true_values in true_values_collection.items():
             predictions = predictions_collection[condition]
             _, _, losses = bin_dependent_losses(
@@ -161,7 +162,7 @@ def parameter_search(
                 loss_types=loss_types
             )
             combination_results["losses"][condition] = losses
-        
+
         # Store results
         combination_key = tuple(params.items())
         results[combination_key] = combination_results
@@ -171,7 +172,6 @@ def parameter_search(
             pickle.dump(results, f, pickle.HIGHEST_PROTOCOL)
     
     return results
-
 
 
 def create_model_directory_name(settings: SettingsMS2Deepscore):
