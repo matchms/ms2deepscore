@@ -118,15 +118,15 @@ def parameter_search(
     # Generate all combinations of setting variations
     keys, values = zip(*setting_variations.items())
     for combination in itertools.product(*values):
-        # Set folder name for storing model and training progress
-        model_directory_name = create_model_directory_name(base_settings)
-        results_folder = os.path.join(stored_training_data.trained_models_folder, model_directory_name)
-
         params = dict(zip(keys, combination))
         settings_dict = base_settings.get_dict()
         settings_dict.update(params)
         settings = SettingsMS2Deepscore(**settings_dict)
-        
+
+        # Set folder name for storing model and training progress
+        model_directory_name = create_model_directory_name(settings)
+        results_folder = os.path.join(stored_training_data.trained_models_folder, model_directory_name)
+
         print(f"Testing combination: {params}")
         
         # Train model
