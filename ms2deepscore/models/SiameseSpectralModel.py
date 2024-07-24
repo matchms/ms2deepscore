@@ -213,7 +213,10 @@ def train(model: SiameseSpectralModel,
     optimizer = optim.Adam(model.parameters(), lr=learning_rate)
 
     # Initialize TensorBoard writer
-    writer = SummaryWriter(log_dir=os.path.join(log_dir, "train_logs"))
+    if checkpoint_filename:
+        writer = SummaryWriter(log_dir=os.path.join(log_dir, checkpoint_filename.split(".")[0]))
+    else:
+        writer = SummaryWriter(log_dir=log_dir)
 
     history = {
         "losses": [],
