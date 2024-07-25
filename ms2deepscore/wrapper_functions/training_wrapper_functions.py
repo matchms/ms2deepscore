@@ -1,10 +1,10 @@
 """Contains wrapper functions that automatically store and load intermediate processed spectra
 reducing the amount of rerunning that is necessary"""
 
-import datetime
 import itertools
 import os
 import pickle
+from datetime import datetime
 from matchms.exporting import save_spectra
 from matchms.importing import load_spectra
 from ms2deepscore import MS2DeepScore
