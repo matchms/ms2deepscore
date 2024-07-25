@@ -1,6 +1,7 @@
 """Contains wrapper functions that automatically store and load intermediate processed spectra
 reducing the amount of rerunning that is necessary"""
 
+import datetime
 import itertools
 import os
 import pickle
@@ -122,6 +123,7 @@ def parameter_search(
         settings_dict = base_settings.get_dict()
         settings_dict.update(params)
         settings = SettingsMS2Deepscore(**settings_dict)
+        settings.time_stamp = datetime.now().strftime("%Y_%m_%d_%H_%M_%S")
 
         # Set folder name for storing model and training progress
         model_directory_name = create_model_directory_name(settings)
