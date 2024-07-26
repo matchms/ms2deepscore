@@ -147,7 +147,7 @@ def parameter_search(
             if field in keys:
                 search_includes_generator_parameters = True
 
-        if search_includes_generator_parameters and (train_generator is None):
+        if search_includes_generator_parameters or (train_generator is None):
             train_generator, validation_loss_calculator = prepare_folders_and_generators(
                 training_spectra,
                 validation_spectra,
@@ -171,7 +171,8 @@ def parameter_search(
                 checkpoint_filename=output_model_file_name,
                 lambda_l1=0, lambda_l2=0
                 )
-        except:
+        except Exception as error:
+            print("An exception occurred:", error)
             print("---- Model training failed! ----")
             print("---- Settings ----")
             print(settings.get_dict())
