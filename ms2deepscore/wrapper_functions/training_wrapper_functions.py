@@ -133,14 +133,14 @@ def parameter_search(
         results_folder = os.path.join(stored_training_data.trained_models_folder, model_directory_name)
 
         print(f"Testing combination: {params}")
-
+        """TODO (mabye): implement smarter way to now always re-initialize the generators
         fields_affecting_generators = [
             "fingerprint_type",
             "fingerprint_nbits",
             "max_pairs_per_bin",
             "same_prob_bins",
             "include_diagonal",
-
+            "mz_bin_width",
         ]
         search_includes_generator_parameters = False
         for field in fields_affecting_generators:
@@ -148,11 +148,12 @@ def parameter_search(
                 search_includes_generator_parameters = True
 
         if search_includes_generator_parameters or (train_generator is None):
-            train_generator, validation_loss_calculator = prepare_folders_and_generators(
-                training_spectra,
-                validation_spectra,
-                results_folder,
-                settings)
+        """
+        train_generator, validation_loss_calculator = prepare_folders_and_generators(
+            training_spectra,
+            validation_spectra,
+            results_folder,
+            settings)
 
         model = SiameseSpectralModel(settings=settings)
 
