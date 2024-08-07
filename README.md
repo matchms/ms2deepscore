@@ -84,7 +84,7 @@ references = load_from_msp("my_reference_spectra.msp")
 queries = load_from_msp("my_query_spectra.msp")
 
 # Load pretrained model
-model = load_model("MS2DeepScore_allGNPSpositive_10k_500_500_200.hdf5")
+model = load_model("ms2deepscore_model.pt")
 
 similarity_measure = MS2DeepScore(model)
 # Calculate scores and get matchms.Scores object
