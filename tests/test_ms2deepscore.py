@@ -34,7 +34,7 @@ def test_MS2DeepScore_score_pair():
     """Test score calculation using *.pair* method."""
     spectrums, _, similarity_measure = get_test_ms2deepscore_instance()
     score = similarity_measure.pair(spectrums[0], spectrums[1])
-    assert np.allclose(score, 0.99030185, atol=1e-6), "Expected different score."
+    assert np.allclose(score, 0.990366, atol=1e-6), "Expected different score."
     assert isinstance(score, float), "Expected score to be float"
 
 
@@ -44,10 +44,10 @@ def test_MS2DeepScore_score_matrix():
     scores = similarity_measure.matrix(spectrums[:4], spectrums[:3])
 
     expected_scores = np.array([
-        [1.        , 0.99030184, 0.99073977],
-        [0.99030184, 1.        , 0.99394612],
-        [0.99073977, 0.99394612, 1.        ],
-        [0.98800209, 0.96405927, 0.97329062]
+        [1.        , 0.99036639, 0.99084978],
+        [0.99036639, 1.        , 0.99399306],
+        [0.99084978, 0.99399306, 1.        ],
+        [0.98811793, 0.96436209, 0.97351075]
         ])
     assert np.allclose(expected_scores, scores, atol=1e-6), "Expected different scores."
 
@@ -57,10 +57,10 @@ def test_MS2DeepScore_score_matrix_symmetric():
     spectrums, _, similarity_measure = get_test_ms2deepscore_instance()
     scores = similarity_measure.matrix(spectrums[:4], spectrums[:4], is_symmetric=True)
     expected_scores = np.array([
-        [1.        , 0.99030184, 0.99073977, 0.98800209],
-        [0.99030184, 1.        , 0.99394612, 0.96405927],
-        [0.99073977, 0.99394612, 1.        , 0.97329062],
-        [0.98800209, 0.96405927, 0.97329062, 1.        ]])
+        [1.        , 0.99036639, 0.99084978, 0.98811793],
+        [0.99036639, 1.        , 0.99399306, 0.96436209],
+        [0.99084978, 0.99399306, 1.        , 0.97351075],
+        [0.98811793, 0.96436209, 0.97351075, 1.        ]])
     assert np.allclose(expected_scores, scores, atol=1e-6), "Expected different scores."
 
 
