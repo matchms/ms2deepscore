@@ -18,8 +18,8 @@ from ms2deepscore.utils import save_pickled_file
 def calculate_true_values_and_predictions_for_validation_spectra(positive_validation_spectra: List[Spectrum],
                                                                  negative_validation_spectra: List[Spectrum],
                                                                  ms2deepsore_model_file_name,
-                                                                 results_directory):
-    os.makedirs(results_directory, exist_ok=True)
+                                                                 computed_scores_directory = None,
+                                                                 ):
     validation_spectra = {"positive": positive_validation_spectra,
                           "negative": negative_validation_spectra,
                           "both": positive_validation_spectra + negative_validation_spectra}
@@ -31,21 +31,30 @@ def calculate_true_values_and_predictions_for_validation_spectra(positive_valida
                             ("negative", "negative"),
                             ("both", "both"))
 
+    true_values_collection = {}
+    predictions_collection = {}
     for ionmode_1, ionmode_2 in possible_comparisons:
-        file_name_true_values = os.path.join(results_directory, f"{ionmode_1}_{ionmode_2}_true_values.pickle")
-        file_name_predictions = os.path.join(results_directory, f"{ionmode_1}_{ionmode_2}_predictions.pickle")
-        if os.path.exists(file_name_true_values) or os.path.exists(file_name_predictions):
-            raise FileExistsError
+        if computed_scores_directory is not None:
+            os.makedirs(computed_scores_directory, exist_ok=True)
+            file_name_true_values = os.path.join(computed_scores_directory, f"{ionmode_1}_{ionmode_2}_true_values.pickle")
+            file_name_predictions = os.path.join(computed_scores_directory, f"{ionmode_1}_{ionmode_2}_predictions.pickle")
+            if os.path.exists(file_name_true_values) or os.path.exists(file_name_predictions):
+                raise FileExistsError
 
         true_values = get_tanimoto_score_between_spectra(validation_spectra[ionmode_1],
                                                          validation_spectra[ionmode_2])
-        save_pickled_file(true_values, file_name_true_values)
+        true_values_collection[f"{ionmode_1}_{ionmode_2}"] = true_values
+        if computed_scores_directory is not None:
+            save_pickled_file(true_values, file_name_true_values)
 
         predictions = ms2deepscore_model.matrix(
             validation_spectra[ionmode_1],
             validation_spectra[ionmode_2],
             is_symmetric=(validation_spectra[ionmode_1] == validation_spectra[ionmode_2]))
-        save_pickled_file(predictions, file_name_predictions)
+        predictions_collection[f"{ionmode_1}_{ionmode_2}"] = predictions
+        if computed_scores_directory is not None:
+            save_pickled_file(predictions, file_name_predictions)
+    return true_values_collection, predictions_collection
 
 
 def calculate_tanimoto_scores_unique_inchikey(list_of_spectra_1: List[Spectrum],

@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## Unreleased
+
+### Changed
+- dense layers are not build with leaky ReLU instead of ReLU [#222](https://github.com/matchms/ms2deepscore/pull/222).
+
+### Added
+- Missing code documentation [#222](https://github.com/matchms/ms2deepscore/pull/222).
+
 ## [2.0.0] - date...
 Large scale expansion, revision, and restructuring of MS2Deepscore.
 

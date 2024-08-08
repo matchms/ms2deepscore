@@ -12,9 +12,9 @@ class SettingsMS2Deepscore:
 
     Attributes:
         base_dims:
-            The in between layers to be used. Default = (500, 500)
+            The in between layers to be used. Default = (2000, 2000, 2000)
         embedding_dim:
-            The dimension of the final embedding. Default = 200
+            The dimension of the final embedding. Default = 400
         additional_metadata:
             Additional metadata that should be used in training the model. e.g. precursor_mz
         dropout_rate:
@@ -43,24 +43,26 @@ class SettingsMS2Deepscore:
             Set to True to shuffle IDs every epoch. Default=True
         same_prob_bins
             List of tuples that define ranges of the true label to be trained with
-            equal frequencies. Default is set to [(0, 0.5), (0.5, 1)], which means
-            that pairs with scores <=0.5 will be picked as often as pairs with scores
-            > 0.5.
+            equal frequencies. Default is set to 10 bins of equal width between 0 and 1.
         average_pairs_per_bin:
             The aimed average number of pairs of spectra per spectrum in each bin.
         max_pairs_per_bin:
             The max_pairs_per_bin is used to reduce memory load.
             Since some spectra will have less than the average_pairs_per_bin, we can compensate by selecting more pairs for
             other spectra in this bin. For each spectrum initially max_pairs_per_bin is selected.
-            If the max_oversampling_rate is too low, no good division can be created for the spectra.
-            If the max_oversampling_rate is high the memory load on your system will be higher.
+            If the max_pairs_per_bin is too low, no good division can be created for the spectra.
+            If the max_pairs_per_bin is high the memory load on your system will be higher.
             If None, all pairs will be initially stored.
         include_diagonal:
             determines if a spectrum can be matched against itself when selection pairs.
+        val_spectra_per_inchikey:
+            Set number of spectra to pick per inchikey in the validation set. 
+            The larger this number, the slower the validation loss computation.
+            Default is set to 1.
         random_seed:
             The random seed to use for selecting compound pairs. Default is None.
         fingerprint_type:
-            The fingerprint type that should be used for tanimoto score calculations.
+            The fingerprint type that should be used for Tanimoto score calculations.
         fingerprint_nbits:
             The number of bits to use for the fingerprint.
         augment_removal_max
@@ -84,14 +86,17 @@ class SettingsMS2Deepscore:
             epoch. Default is False.
         random_seed
             Specify random seed for reproducible random number generation.
-        additional_inputs
-            Array of additional values to be used in training for e.g. ["precursor_mz", "parent_mass"]
+        additional_metadata
+            Array of metadata entries (and their transformation) to be used in training.
+            See `MetadatFeatureGenerator` for more information.
+            Default is set to empty list.
         """
     def __init__(self, **settings):
         # model structure
         self.base_dims = (2000, 2000, 2000)
         self.embedding_dim = 400
         self.ionisation_mode = "positive"
+        self.activation_function = "relu"
 
         # additional model structure options
         self.train_binning_layer: bool = False
@@ -129,7 +134,8 @@ class SettingsMS2Deepscore:
         self.average_pairs_per_bin = 20
         self.max_pairs_per_bin = 100
         self.same_prob_bins = np.array([(x / 10, x / 10 + 0.1) for x in range(0, 10)])
-        self.include_diagonal: bool = True
+        self.include_diagonal = True
+        self.val_spectra_per_inchikey = 1
         self.random_seed: Optional[int] = None
 
         # Tanimioto score setings

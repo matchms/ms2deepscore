@@ -127,7 +127,7 @@ from ms2deepscore.SettingsMS2Deepscore import
 from ms2deepscore.wrapper_functions.training_wrapper_functions import
     train_ms2deepscore_wrapper
 
-settings = SettingsMS2Deepscore({"epochs": 300,
+settings = SettingsMS2Deepscore(**{"epochs": 300,
                                  "base_dims": (1000, 1000, 1000),
                                  "embedding_dim": 500,
                                  "ionisation_mode": "positive",
@@ -135,7 +135,11 @@ settings = SettingsMS2Deepscore({"epochs": 300,
                                  "learning_rate": 0.00025,
                                  "patience": 30,
                                  })
-train_ms2deepscore_wrapper(spectra_file_path=, model_settings=, validation_split_fraction=20)
+train_ms2deepscore_wrapper(
+    spectra_file_path=#add your path,
+    model_settings=settings,
+    validation_split_fraction=20
+)
 ```
 ## Contributing
 We welcome contributions to the development of ms2deepscore! Have a look at the [contribution guidelines](https://github.com/matchms/ms2deepscore/blob/main/CONTRIBUTING.md).

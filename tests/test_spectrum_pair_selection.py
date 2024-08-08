@@ -67,48 +67,55 @@ def dummy_data():
 def test_compute_jaccard_similarity_per_bin(simple_fingerprints):
     selected_pairs_per_bin, selected_scores_per_bin = compute_jaccard_similarity_per_bin(
         simple_fingerprints, max_pairs_per_bin=4)
-    matrix = convert_pair_array_to_coo_array(
+    matrix_numba = convert_pair_array_to_coo_array(
         selected_pairs_per_bin, selected_scores_per_bin, simple_fingerprints.shape[0])
-    assert matrix.shape == (4, 4)
-    assert np.allclose(matrix.diagonal(), 1.0)
-    assert matrix.nnz > 0  # Make sure there are some non-zero entries
+    
+    # Uncompiled
+    selected_pairs_per_bin, selected_scores_per_bin = compute_jaccard_similarity_per_bin.py_func(
+        simple_fingerprints, max_pairs_per_bin=4)
+    matrix_py = convert_pair_array_to_coo_array(
+        selected_pairs_per_bin, selected_scores_per_bin, simple_fingerprints.shape[0])
+    
+    for matrix in [matrix_numba, matrix_py]:
+        assert matrix.shape == (4, 4)
+        assert np.allclose(matrix.diagonal(), 1.0)
+        assert matrix.nnz > 0  # Make sure there are some non-zero entries
 
 
 def test_compute_jaccard_similarity_per_bin_exclude_diagonal(simple_fingerprints):
     selected_pairs_per_bin, selected_scores_per_bin = compute_jaccard_similarity_per_bin(
         simple_fingerprints, max_pairs_per_bin=4, include_diagonal=False)
-    matrix = convert_pair_array_to_coo_array(
+    matrix_numba = convert_pair_array_to_coo_array(
         selected_pairs_per_bin, selected_scores_per_bin, simple_fingerprints.shape[0])
-    diagonal = matrix.diagonal()
-    assert np.all(diagonal == 0)  # Ensure no non-zero diagonal elements
+
+    # Uncompiled
+    selected_pairs_per_bin, selected_scores_per_bin = compute_jaccard_similarity_per_bin.py_func(
+        simple_fingerprints, max_pairs_per_bin=4, include_diagonal=False)
+    matrix_py = convert_pair_array_to_coo_array(
+        selected_pairs_per_bin, selected_scores_per_bin, simple_fingerprints.shape[0])
+
+    for matrix in [matrix_numba, matrix_py]:
+        diagonal = matrix.diagonal()
+        assert np.all(diagonal == 0)  # Ensure no non-zero diagonal elements
 
 
 def test_compute_jaccard_similarity_per_bin_correct_counts(fingerprints):
     selected_pairs_per_bin, selected_scores_per_bin = compute_jaccard_similarity_per_bin(
         fingerprints, max_pairs_per_bin=8)
-    matrix = convert_pair_array_to_coo_array(
+    matrix_numba = convert_pair_array_to_coo_array(
         selected_pairs_per_bin, selected_scores_per_bin, fingerprints.shape[0])
-    dense_matrix = matrix.todense()
-    matrix_histogram = np.histogram(dense_matrix, 10)
-    expected_histogram = np.array([6,  8,  2, 10,  8, 6,  8,  8,  0,  8])
-    assert np.all(matrix_histogram[0] == expected_histogram)
 
-"""
-def test_balanced_selection():
-    expected_average = 2
-    results = balanced_selection([[
-        [(1, 0.1), (2, 0.1), (3, 0.1)],
-        [(1, 0.1), (2, 0.1), (2, 0.1), (2, 0.1)],
-        [(1, 0.1), (2, 0.1), (3, 0.1)],
-        [],
-    ]], expected_average)
-    assert results == [[
-        [(1, 0.1), (2, 0.1)],
-        [(1, 0.1), (2, 0.1), (2, 0.1)],
-        [(1, 0.1), (2, 0.1), (3, 0.1)],
-        [],
-    ]]
-"""
+    # Uncompiled
+    selected_pairs_per_bin, selected_scores_per_bin = compute_jaccard_similarity_per_bin.py_func(
+        fingerprints, max_pairs_per_bin=8)
+    matrix_py = convert_pair_array_to_coo_array(
+        selected_pairs_per_bin, selected_scores_per_bin, fingerprints.shape[0])
+
+    expected_histogram = np.array([6,  8,  2, 10,  8, 6,  8,  8,  0,  8])
+    for matrix in [matrix_numba, matrix_py]:
+        dense_matrix = matrix.todense()
+        matrix_histogram = np.histogram(dense_matrix, 10)
+        assert np.all(matrix_histogram[0] == expected_histogram)
 
 
 @pytest.mark.parametrize("desired_average_pairs_per_bin", [1, 2])
