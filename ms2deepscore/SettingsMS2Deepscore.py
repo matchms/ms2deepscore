@@ -96,6 +96,7 @@ class SettingsMS2Deepscore:
         self.base_dims = (2000, 2000, 2000)
         self.embedding_dim = 400
         self.ionisation_mode = "positive"
+        self.activation_function = "relu"
 
         # additional model structure options
         self.train_binning_layer: bool = False

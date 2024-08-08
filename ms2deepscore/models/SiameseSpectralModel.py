@@ -125,13 +125,13 @@ class SpectralEncoder(nn.Module):
         else:
             input_size = peak_inputs + additional_inputs
         self.dense_layers.append(
-            dense_layer(input_size, settings.base_dims[0], "lrelu")
+            dense_layer(input_size, settings.base_dims[0], settings.activation_function)
         )
         input_dim = settings.base_dims[0]
 
         # Create additional dense layers
         for output_dim in settings.base_dims[1:]:
-            self.dense_layers.append(dense_layer(input_dim, output_dim, "lrelu"))
+            self.dense_layers.append(dense_layer(input_dim, output_dim, settings.activation_function))
             input_dim = output_dim
 
         self.embedding_layer = dense_layer(settings.base_dims[-1], settings.embedding_dim, "tanh")
