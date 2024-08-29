@@ -83,10 +83,16 @@ class SelectedCompoundPairs:
 
         return score, inchikey2
 
-    def generator(self):
-        """Infinite generator to loop through all inchikeys."""
+    def generator(self, shuffle: bool, random_nr_generator):
+        """Infinite generator to loop through all inchikeys.
+        After looping through all inchikeys the order is shuffled.
+        """
+        inchikeys = list(self._inchikey_to_idx.keys())
         while True:
-            for inchikey in self._inchikey_to_idx.keys():
+            if shuffle:
+                random_nr_generator.shuffle(inchikeys)
+
+            for inchikey in inchikeys:
                 result = self.next_pair_for_inchikey(inchikey)
                 if result is None:
                     continue
