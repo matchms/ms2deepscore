@@ -78,12 +78,16 @@ class DataGeneratorPytorch:
             self.current_batch_index += 1
             return batch
         self.current_batch_index = 0  # make generator executable again
-        return
+        raise StopIteration
 
     def _spectrum_pair_generator(self):
         """Use the provided SelectedCompoundPairs object to pick pairs."""
         for _ in range(self.model_settings.batch_size):
-            inchikey1, score, inchikey2 = next(self.inchikey_pair_generator)
+            try:
+                inchikey1, score, inchikey2 = next(self.inchikey_pair_generator)
+            except StopIteration as exc:
+                raise RuntimeError("The inchikey pair generator is not expected to end, "
+                                   "but should instead generate infinite pairs") from exc
 
             spectrum1 = self._get_spectrum_with_inchikey(inchikey1)
             spectrum2 = self._get_spectrum_with_inchikey(inchikey2)
