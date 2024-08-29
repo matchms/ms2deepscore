@@ -218,6 +218,18 @@ def test_SCP_next_pair_for_inchikey(dummy_data):
     assert inchikey2 == "Inchikey2"
 
 
+def test_SCP_next_pair_for_inchikey_with_no_pairs(dummy_data):
+    """It is possible that a inchikey does not have any available pairs. This can be the case if this inchikey already
+    appears very frequently in the list of pairs for other inchikeys. In this way the inchikey still appears frequently,
+    but does not have any inchikey to select. """
+    data, row, col, inchikeys = dummy_data
+    coo = coo_array((data, (row, col)))
+    scp = SelectedCompoundPairs(coo, inchikeys, shuffling=False)
+
+    result = scp.next_pair_for_inchikey("Inchikey2")
+    assert result is None
+
+
 def test_SCP_generator(dummy_data):
     data, row, col, inchikeys = dummy_data
     coo = coo_array((data, (row, col)))
