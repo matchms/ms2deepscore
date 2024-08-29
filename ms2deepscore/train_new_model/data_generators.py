@@ -63,8 +63,7 @@ class DataGeneratorPytorch:
         self.fixed_set = {}
 
         self.selected_compound_pairs = selected_compound_pairs
-        self.inchikey_pair_generator = selected_compound_pairs.generator()
-        self.on_epoch_end()
+        self.inchikey_pair_generator = self.selected_compound_pairs.generator(self.model_settings.shuffle, self.rng)
 
     def __len__(self):
         return int(self.model_settings.num_turns) \
@@ -79,28 +78,18 @@ class DataGeneratorPytorch:
             self.current_bach_index += 1
             return batch
         self.current_bach_index = 0  # make generator executable again
-        self.on_epoch_end()
         raise StopIteration
 
-    def _spectrum_pair_generator(self, batch_index: int):
+    def _spectrum_pair_generator(self):
         """Use the provided SelectedCompoundPairs object to pick pairs."""
         batch_size = self.model_settings.batch_size
-        indexes = self.indexes[batch_index * batch_size:(batch_index + 1) * batch_size]
-        for index in indexes:
-            inchikey1 = self.selected_compound_pairs.idx_to_inchikey[index]
-            result = self.selected_compound_pairs.next_pair_for_inchikey(inchikey1)
-            if result is None:
-                continue
-            score, inchikey2 = result
+
+        for i in range(batch_size):
+            inchikey1, score, inchikey2 = next(self.inchikey_pair_generator)
+
             spectrum1 = self._get_spectrum_with_inchikey(inchikey1)
             spectrum2 = self._get_spectrum_with_inchikey(inchikey2)
-            yield (spectrum1, spectrum2, score)
-
-    def on_epoch_end(self):
-        """Updates indexes after each epoch."""
-        self.indexes = np.tile(np.arange(len(self.selected_compound_pairs.scores)), int(self.model_settings.num_turns))
-        if self.model_settings.shuffle:
-            self.rng.shuffle(self.indexes)
+            yield spectrum1, spectrum2, score
 
     def __getitem__(self, batch_index: int):
         """Generate one batch of data.
@@ -112,7 +101,7 @@ class DataGeneratorPytorch:
             return self.fixed_set[batch_index]
         if self.model_settings.random_seed is not None and batch_index == 0:
             self.rng = np.random.default_rng(self.model_settings.random_seed)
-        spectrum_pairs = self._spectrum_pair_generator(batch_index)
+        spectrum_pairs = self._spectrum_pair_generator()
         spectra_1, spectra_2, meta_1, meta_2, targets = self._tensorize_all(spectrum_pairs)
 
         if self.model_settings.use_fixed_set:
