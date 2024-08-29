@@ -55,6 +55,7 @@ def test_validation_loss_calculator():
     validation_loss_calculator = ValidationLossCalculator(test_spectra,
                                                           settings=SettingsMS2Deepscore(same_prob_bins=bins))
 
-    losses = validation_loss_calculator.compute_binned_validation_loss(model,
+    losses, binned_losses = validation_loss_calculator.compute_binned_validation_loss(model,
                                                                        LOSS_FUNCTIONS.keys())
     assert len(losses) == len(LOSS_FUNCTIONS)
+    assert len(binned_losses) == len(LOSS_FUNCTIONS)

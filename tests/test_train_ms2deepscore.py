@@ -7,7 +7,7 @@ from ms2deepscore.models.load_model import \
 from ms2deepscore.models.SiameseSpectralModel import SiameseSpectralModel
 from ms2deepscore.MS2DeepScore import MS2DeepScore
 from ms2deepscore.SettingsMS2Deepscore import SettingsMS2Deepscore
-from ms2deepscore.train_new_model.train_ms2deepscore import train_ms2ds_model
+from ms2deepscore.train_new_model.train_ms2deepscore import train_ms2ds_model, plot_history
 from tests.create_test_spectra import pesticides_test_spectra
 from tests.test_data_generators import create_test_spectra
 
@@ -26,7 +26,10 @@ def test_train_ms2ds_model(tmp_path):
         "average_pairs_per_bin": 2,
         "batch_size": 8
         })
-    train_ms2ds_model(spectra, pesticides_test_spectra(), tmp_path, settings)
+    _, history = train_ms2ds_model(spectra, pesticides_test_spectra(), tmp_path, settings)
+
+    ms2ds_history_plot_file_name = os.path.join(tmp_path, settings.history_plot_file_name)
+    plot_history(history["losses"], history["val_losses"], ms2ds_history_plot_file_name)
 
     # check if model is saved
     model_file_name = os.path.join(tmp_path, settings.model_file_name)

@@ -1,7 +1,9 @@
+import os
 import numpy as np
 import torch
 import torch.nn.functional as F
 from torch import nn, optim
+from torch.utils.tensorboard import SummaryWriter
 from tqdm import tqdm
 from ms2deepscore.__version__ import __version__
 from ms2deepscore.models.helper_functions import (initialize_device,
@@ -93,6 +95,10 @@ class PeakBinner(nn.Module):
 
 
 class SpectralEncoder(nn.Module):
+    """Encoder part of the Siamese network.
+
+    This model will convert input spectra (spectra_tensors and metadata_tensors) to reduced embeddings.
+    """
     def __init__(self,
                  settings: SettingsMS2Deepscore,
                  peak_inputs: int,
@@ -119,13 +125,13 @@ class SpectralEncoder(nn.Module):
         else:
             input_size = peak_inputs + additional_inputs
         self.dense_layers.append(
-            dense_layer(input_size, settings.base_dims[0], "relu")
+            dense_layer(input_size, settings.base_dims[0], settings.activation_function)
         )
         input_dim = settings.base_dims[0]
 
         # Create additional dense layers
         for output_dim in settings.base_dims[1:]:
-            self.dense_layers.append(dense_layer(input_dim, output_dim, "relu"))
+            self.dense_layers.append(dense_layer(input_dim, output_dim, settings.activation_function))
             input_dim = output_dim
 
         self.embedding_layer = dense_layer(settings.base_dims[-1], settings.embedding_dim, "tanh")
@@ -161,7 +167,8 @@ def train(model: SiameseSpectralModel,
           collect_all_targets: bool = False,
           lambda_l1: float = 0,
           lambda_l2: float = 0,
-          progress_bar: bool = True):
+          progress_bar: bool = True,
+          log_dir: str = "./runs"):
     """Train a model with given parameters.
 
     Parameters
@@ -204,6 +211,12 @@ def train(model: SiameseSpectralModel,
     criterion = LOSS_FUNCTIONS[loss_function.lower()]
 
     optimizer = optim.Adam(model.parameters(), lr=learning_rate)
+
+    # Initialize TensorBoard writer
+    if checkpoint_filename:
+        writer = SummaryWriter(log_dir=os.path.join(log_dir, checkpoint_filename.split(".")[0]))
+    else:
+        writer = SummaryWriter(log_dir=log_dir)
 
     history = {
         "losses": [],
@@ -249,15 +262,27 @@ def train(model: SiameseSpectralModel,
                     loss=float(loss),
                     rmse=np.mean(batch_rmse),
                 )
-        history["losses"].append(np.mean(batch_losses))
-        history["rmse"].append(np.mean(batch_rmse))
+        epoch_loss = np.mean(batch_losses)
+        epoch_rmse = np.mean(batch_rmse) if monitor_rmse else None
+
+        history["losses"].append(epoch_loss)
+        history["rmse"].append(epoch_rmse)
+
+        writer.add_scalar('Loss/train', epoch_loss, epoch)
 
         if validation_loss_calculator is not None:
-            val_losses = validation_loss_calculator.compute_binned_validation_loss(model,
-                                                                                   loss_types=(loss_function, "rmse"))
+            val_losses, _  = validation_loss_calculator.compute_binned_validation_loss(
+                model,
+                loss_types=(loss_function, "rmse")
+                )
             val_loss = val_losses[loss_function]
+            val_rmse = val_losses["rmse"]
             history["val_losses"].append(val_loss)
-            history["val_rmse"].append(val_losses["rmse"])
+            history["val_rmse"].append(val_rmse)
+
+            writer.add_scalar('Loss/validation', val_loss, epoch)
+            writer.add_scalar('RMSE/validation', val_rmse, epoch)
+
             if val_loss < min_val_loss:
                 if checkpoint_filename:
                     print("Saving checkpoint model.")
@@ -274,10 +299,12 @@ def train(model: SiameseSpectralModel,
         print(f"Epoch [{epoch+1}/{num_epochs}], Loss: {np.mean(batch_losses):.4f}")
         if validation_loss_calculator is not None:
             print(f"Validation Loss: {val_loss:.4f} (RMSE: {val_losses['rmse']:.4f}).")
+
+    writer.close()
     return history
 
 
-def dense_layer(input_size, output_size, activation="relu"):
+def dense_layer(input_size, output_size, activation="lrelu"):
     """Combines a densely connected layer and an activation function."""
     activations = nn.ModuleDict([
         ["lrelu", nn.LeakyReLU()],
