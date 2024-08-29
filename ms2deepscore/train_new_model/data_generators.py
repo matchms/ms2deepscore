@@ -39,7 +39,7 @@ class DataGeneratorPytorch:
         settings
             The available settings can be found in SettignsMS2Deepscore
         """
-        self.current_bach_index = 0
+        self.current_batch_index = 0
         self.spectrums = spectrums
 
         # Collect all inchikeys
@@ -73,18 +73,16 @@ class DataGeneratorPytorch:
         return self
 
     def __next__(self):
-        if self.current_bach_index < self.__len__():
-            batch = self.__getitem__(self.current_bach_index)
-            self.current_bach_index += 1
+        if self.current_batch_index < self.__len__():
+            batch = self.__getitem__(self.current_batch_index)
+            self.current_batch_index += 1
             return batch
-        self.current_bach_index = 0  # make generator executable again
-        raise StopIteration
+        self.current_batch_index = 0  # make generator executable again
+        return
 
     def _spectrum_pair_generator(self):
         """Use the provided SelectedCompoundPairs object to pick pairs."""
-        batch_size = self.model_settings.batch_size
-
-        for i in range(batch_size):
+        for _ in range(self.model_settings.batch_size):
             inchikey1, score, inchikey2 = next(self.inchikey_pair_generator)
 
             spectrum1 = self._get_spectrum_with_inchikey(inchikey1)
