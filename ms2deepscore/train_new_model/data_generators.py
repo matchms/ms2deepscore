@@ -64,16 +64,17 @@ class DataGeneratorPytorch:
 
         self.selected_compound_pairs = selected_compound_pairs
         self.inchikey_pair_generator = self.selected_compound_pairs.generator(self.model_settings.shuffle, self.rng)
+        self.nr_of_batches = int(self.model_settings.num_turns) * int(np.ceil(len(self.selected_compound_pairs.scores) /
+                                                                              self.model_settings.batch_size))
 
     def __len__(self):
-        return int(self.model_settings.num_turns) \
-               * int(np.ceil(len(self.selected_compound_pairs.scores) / self.model_settings.batch_size))
+        return self.nr_of_batches
 
     def __iter__(self):
         return self
 
     def __next__(self):
-        if self.current_batch_index < self.__len__():
+        if self.current_batch_index < self.nr_of_batches:
             batch = self.__getitem__(self.current_batch_index)
             self.current_batch_index += 1
             return batch
