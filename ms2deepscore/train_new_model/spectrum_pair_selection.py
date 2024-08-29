@@ -1,5 +1,5 @@
 from collections import Counter
-from typing import List, Tuple
+from typing import List, Tuple, Optional, Union
 import numpy as np
 import pandas as pd
 from matchms import Spectrum
@@ -44,7 +44,7 @@ class SelectedCompoundPairs:
             self._scores.append(sparse_score_array.data[row_mask])
 
         # Initialize counter for each column
-        self._row_generator_index = np.zeros(len(self._idx_to_inchikey), dtype=int)
+        self._row_pair_counter = np.zeros(len(self._idx_to_inchikey), dtype=int)
         if self.shuffling:
             self.shuffle()
 
@@ -59,28 +59,38 @@ class SelectedCompoundPairs:
         self._cols[row_index] = self._cols[row_index][permutation]
         self._scores[row_index] = self._scores[row_index][permutation]
 
-    def next_pair_for_inchikey(self, inchikey):
+    def next_pair_for_inchikey(self, inchikey) -> Optional[Union[float, str]]:
+        # get the index of the inchikey
         row_idx = self._inchikey_to_idx[inchikey]
-
-        # Retrieve the next pair
-        col_idx = self._cols[row_idx][self._row_generator_index[row_idx]]
-        score = self._scores[row_idx][self._row_generator_index[row_idx]]
+        # Select possible indexes for second inchikey (in the columns)
+        column_idexes = self._cols[row_idx]
+        if len(column_idexes) == 0:
+            return None
+        # Check how often a pair has already been made for this inchikey.
+        row_pair_count = self._row_pair_counter[row_idx]
+        # Retrieve the next index and corresponding score
+        col_idx = column_idexes[row_pair_count]
+        inchikey2 = self._idx_to_inchikey[col_idx]
+        score = self._scores[row_idx][row_pair_count]
 
         # Update the counter, wrapping around if necessary
-        self._row_generator_index[row_idx] += 1
-        if self._row_generator_index[row_idx] >= len(self._cols[row_idx]):
-            self._row_generator_index[row_idx] = 0
+        self._row_pair_counter[row_idx] += 1
+        if self._row_pair_counter[row_idx] >= len(self._cols[row_idx]):
+            self._row_pair_counter[row_idx] = 0
             # Went through all scores in this row --> shuffle again
             if self.shuffling:
                 self._shuffle_row(row_idx)
 
-        return score, self._idx_to_inchikey[col_idx]
+        return score, inchikey2
 
     def generator(self):
         """Infinite generator to loop through all inchikeys."""
         while True:
             for inchikey in self._inchikey_to_idx.keys():
-                score, inchikey2 = self.next_pair_for_inchikey(inchikey)
+                result = self.next_pair_for_inchikey(inchikey)
+                if result is None:
+                    continue
+                score, inchikey2 = result
                 yield inchikey, score, inchikey2
 
     @property

@@ -87,7 +87,10 @@ class DataGeneratorPytorch:
         indexes = self.indexes[batch_index * batch_size:(batch_index + 1) * batch_size]
         for index in indexes:
             inchikey1 = self.selected_compound_pairs.idx_to_inchikey[index]
-            score, inchikey2 = self.selected_compound_pairs.next_pair_for_inchikey(inchikey1)
+            result = self.selected_compound_pairs.next_pair_for_inchikey(inchikey1)
+            if result is None:
+                continue
+            score, inchikey2 = result
             spectrum1 = self._get_spectrum_with_inchikey(inchikey1)
             spectrum2 = self._get_spectrum_with_inchikey(inchikey2)
             yield (spectrum1, spectrum2, score)

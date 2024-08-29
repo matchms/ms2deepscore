@@ -207,12 +207,12 @@ def test_SCP_next_pair_for_inchikey(dummy_data):
     assert inchikey2 == "Inchikey2"
 
     score, inchikey2 = scp.next_pair_for_inchikey("Inchikey1")
-    assert scp._row_generator_index[1] == 2
+    assert scp._row_pair_counter[1] == 2
     assert score == 0.3
     assert inchikey2 == "Inchikey3"
 
     # Test wrap around
-    scp._row_generator_index[1] = 0
+    scp._row_pair_counter[1] = 0
     score, inchikey2 = scp.next_pair_for_inchikey("Inchikey1")
     assert score == 0.7
     assert inchikey2 == "Inchikey2"
