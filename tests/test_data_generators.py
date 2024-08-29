@@ -118,16 +118,20 @@ def test_DataGeneratorPytorch():
     assert spec1.shape[0] == spec2.shape[0] == batch_size
     assert spec1.shape[1] == spec2.shape[1] == 9900
     assert targets.shape[0] == batch_size
-    assert len(test_generator.indexes) == 15
     assert len(test_generator) == 2
 
     counts = []
     repetitions = 100
     total = num_of_unique_inchikeys * repetitions
     for _ in range(repetitions):
-        for i, batch in enumerate(test_generator):
+        for batch in test_generator:
+            for i in range(5):
+                assert batch[i].shape[0] == batch_size
             counts.extend(batch[4])
-    assert len(counts) == total
+    # One epoch is close to the number of inchikeys, but a factor of the batch_size.
+    # So if you would have 99 inchikeys and batch size 10, it results in 10 batches and a total of 100.
+    assert len(counts) == len(test_generator) * batch_size * repetitions
+    # check mostly equal distribution. Checking if more than 0.5 occurs more frequently than 40 percent of the time.
     assert (np.array(counts) > 0.5).sum() > 0.4 * total
     assert (np.array(counts) <= 0.5).sum() > 0.4 * total
 
@@ -139,8 +143,6 @@ def test_DataGeneratorPytorch():
 
 
 ### Tests for EmbeddingEvaluator data generator
-
-
 def test_generator_initialization(data_generator_embedding_evaluation):
     """
     Test if the data generator initializes correctly.
