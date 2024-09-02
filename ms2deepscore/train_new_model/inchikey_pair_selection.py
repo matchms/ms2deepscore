@@ -141,39 +141,86 @@ def select_compound_pairs_wrapper(
         settings.fingerprint_type,
         settings.fingerprint_nbits)
 
-    selected_pairs_per_bin, selected_scores_per_bin = compute_jaccard_similarity_per_bin(
+    available_pairs_per_bin_matrix, available_scores_per_bin_matrix = compute_jaccard_similarity_per_bin(
         fingerprints,
         settings.max_pairs_per_bin,
         settings.same_prob_bins,
         settings.include_diagonal)
-    selected_pairs_per_bin = balanced_selection(
-        selected_pairs_per_bin,
-        selected_scores_per_bin,
-        fingerprints.shape[0] * settings.average_pairs_per_bin)
-    scores_sparse = convert_pair_list_to_coo_array(selected_pairs_per_bin, fingerprints.shape[0])
+
+    available_pairs_per_bin = convert_selected_pairs_matrix(available_pairs_per_bin_matrix, available_scores_per_bin_matrix)
+    selected_pairs_per_bin = balanced_selection_of_pairs_per_bin(available_pairs_per_bin, len(inchikeys14_unique))
+    merged_selected_pairs_per_bin = [pair for pairs in selected_pairs_per_bin for pair in pairs]
+    scores_sparse = convert_pair_list_to_coo_array(merged_selected_pairs_per_bin, fingerprints.shape[0])
     return SelectedCompoundPairs(scores_sparse, inchikeys14_unique, shuffling=shuffling), spectra_selected
 
 
-def compute_fingerprint_dataframe(
-        spectrums: List[Spectrum],
-        fingerprint_type,
-        fingerprint_nbits,
-        ) -> pd.DataFrame:
-    """Returns a SelectedCompoundPairs object containing equally balanced pairs over the different bins
+def convert_selected_pairs_matrix(selected_pairs_per_bin_matrix, scores_per_bin):
+    selected_pairs_per_bin = []
+    for bin_idx in range(selected_pairs_per_bin_matrix.shape[0]):
+        inchikey_indexes_1, pair_sample_position = np.where(selected_pairs_per_bin_matrix[bin_idx] != -1)
+        pairs = [(incikey_index_1,
+                  selected_pairs_per_bin_matrix[bin_idx, incikey_index_1, pair_sample_position[i]],
+                  scores_per_bin[bin_idx, incikey_index_1, pair_sample_position[i]]) for i, incikey_index_1 in
+                 enumerate(inchikey_indexes_1)]
+        selected_pairs_per_bin.append(pairs)
+    return selected_pairs_per_bin
 
-    spectrums:
-        A list of spectra
-    settings:
-        The settings that should be used for selecting the compound pairs wrapper. The settings should be specified as a
-        SettingsMS2Deepscore object.
-    """
-    fingerprints, inchikeys14_unique, _ = compute_fingerprints_for_training(
-        spectrums,
-        fingerprint_type,
-        fingerprint_nbits)
 
-    fingerprints_df = pd.DataFrame(fingerprints, index=inchikeys14_unique)
-    return fingerprints_df
+def balanced_selection_of_pairs_per_bin(list_of_pairs_per_bin, nr_of_unique_inchikeys):
+    inchikey_count = {key: 0 for key in range(nr_of_unique_inchikeys)}
+    sorted_bin_indices_on_amount_of_pairs = sorted(range(len(list_of_pairs_per_bin)),
+                                                   key=lambda i: len(list_of_pairs_per_bin[i]))
+    lowest_number_of_pairs = min([len(pairs) for pairs in list_of_pairs_per_bin])
+    selected_pairs_per_bin = []
+    for bin_index in tqdm(sorted_bin_indices_on_amount_of_pairs):
+        selected_pairs_per_bin.append(
+            select_pairs(list_of_pairs_per_bin[bin_index], inchikey_count, lowest_number_of_pairs))
+    return selected_pairs_per_bin
+
+
+def select_pairs(list_of_pairs, inchikey_counts, required_number_of_pairs):
+    selected_pairs = []
+    for i in range(required_number_of_pairs):
+        # Select only the inchikeys that still have a pair available for this bin.
+        available_inchikey_indexes = get_available_inchikey_indexes(list_of_pairs)
+        # get lowest available inchikeys
+        inchikey_with_lowest_count = get_available_inchikeys_with_lowest_count(available_inchikey_indexes,
+                                                                               inchikey_counts)
+        # actually select pairs (instead of single inchikeys)
+        selected_pair = select_available_pair(list_of_pairs, inchikey_with_lowest_count)
+        selected_pairs.append(selected_pair)
+        inchikey_counts[selected_pair[0]] += 1
+        inchikey_counts[selected_pair[1]] += 1
+    return selected_pairs
+
+
+def get_available_inchikeys_with_lowest_count(available_inchikey_indexes, inchikey_counts):
+    # Select only the counts of the available_inchikey_indexes
+    available_inchikey_counts = {inchikey: count for inchikey, count in inchikey_counts.items() if
+                                 inchikey in available_inchikey_indexes}
+    minimum_inchikey_frequency = min(available_inchikey_counts.values())
+    least_frequent_inchikeys = [key for key, count in available_inchikey_counts.items() if
+                                count == minimum_inchikey_frequency]
+    return least_frequent_inchikeys[0]
+
+
+def select_available_pair(list_of_pairs, inchikey_idx_of_interest):
+    """Searches for available pairs"""
+    for i, pair in enumerate(list_of_pairs):
+        idx_1, idx_2, score = pair
+        if inchikey_idx_of_interest == idx_1 or inchikey_idx_of_interest == idx_2:
+            # Remove this entry
+            list_of_pairs.pop(i)
+            return idx_1, idx_2, score
+    raise ValueError
+
+
+def get_available_inchikey_indexes(list_of_pairs):
+    available_inchikey_indexes = []
+    for idx_1, idx2, score in list_of_pairs:
+        available_inchikey_indexes.append(idx_1)
+        available_inchikey_indexes.append(idx2)
+    return set(available_inchikey_indexes)
 
 
 def convert_pair_array_to_coo_data(
@@ -197,7 +244,7 @@ def convert_pair_array_to_coo_array(
                      shape=(size, size))
 
 
-def convert_pair_list_to_coo_array(selected_pairs: List[List[Tuple[int, float]]], size):
+def convert_pair_list_to_coo_array(selected_pairs: List[Tuple[int, int, float]], size):
     data = []
     inchikey_indexes_i = []
     inchikey_indexes_j = []
@@ -271,91 +318,26 @@ def tanimoto_scores_row(fingerprints, idx):
         tanimoto_scores[idx_fingerprint_j] = tanimoto_score
     return tanimoto_scores
 
+def compute_fingerprint_dataframe(
+        spectrums: List[Spectrum],
+        fingerprint_type,
+        fingerprint_nbits,
+        ) -> pd.DataFrame:
+    """Returns a dataframe with a fingerprints dataframe
 
-def balanced_selection(selected_pairs_per_bin: np.ndarray,
-                       selected_scores_per_bin: np.ndarray,
-                       desired_pairs_per_bin: int,
-                       max_oversampling_rate: float = 1):
+    spectrums:
+        A list of spectra
+    settings:
+        The settings that should be used for selecting the compound pairs wrapper. The settings should be specified as a
+        SettingsMS2Deepscore object.
     """
-    Adjusts the selected pairs for each bin to align with the expected average pairs per bin.
+    fingerprints, inchikeys14_unique, _ = compute_fingerprints_for_training(
+        spectrums,
+        fingerprint_type,
+        fingerprint_nbits)
 
-    This function modifies the number of pairs in each bin to be closer to the
-    expected average pairs per bin by truncating or extending the pairs.
-
-    Parameters
-    ----------
-    selected_pairs_per_bin:
-        A 3D numpy array with shape [nr_of_bins, nr_of_fingerprints, max_pairs_per_bin].
-        An example structure for bin 1, with 3 fingerprints and max_pairs_per_bin =4 would be:
-        [[1,2,-1,-1],
-        [0,3,-1,-1],
-        [0,2,-1,-1],]
-        The pairs are encoded by the index and the value.
-        So the first row encodes pairs between fingerpint 0 and 1, fingerprint 0 and 2.
-        The -1 encode that no more pairs were found for this fingerprint in this bin.
-    selected_scores_per_bin:
-        A 3D numpy array with the same structure as selected_pairs_per_bin,
-        but instead of encoding the second pair it encodes the actual tanimoto score.
-    desired_pairs_per_bin: int
-        The desired number of pairs per bin. Will be used if sufficient scores in each bin are found.
-        Otherwise the bin with the lowest number of available pairs is used for setting the nr_or_pairs_per_bin.
-    max_oversampling_rate: float
-        Maximum factor for oversampling. This will allow for sampling the same pairs multiple times in the same bin
-        to reach the desired_pairs_per_bin.
-    """
-    if max_oversampling_rate != 1:
-        raise NotImplementedError("oversampling is not yet supported")
-    # The selected pairs per bin is set to -1 if something is not a pair
-    available_pairs = (selected_pairs_per_bin[:, :, :] != -1).sum(axis=2).sum(axis=1)
-    minimum_bin_occupation = available_pairs.min()
-    print(f"Found minimum bin occupation of {minimum_bin_occupation} pairs.")
-    print(f"Bin occupations are: {available_pairs}.")
-
-    pairs_per_bin = min(minimum_bin_occupation * max_oversampling_rate, desired_pairs_per_bin)
-    if desired_pairs_per_bin > minimum_bin_occupation * max_oversampling_rate:
-        print(f"The desired number of {desired_pairs_per_bin} pairs per bin cannot be reached with the current setting.")
-        print(f"The number of pairs per bin will be set to {minimum_bin_occupation * max_oversampling_rate}.")
-
-    new_selected_pairs_per_bin = []
-    max_pairs_per_bin_sampled = selected_pairs_per_bin.shape[2]
-    for bin_id in range(selected_pairs_per_bin.shape[0]):
-        goal = pairs_per_bin
-        for _ in range(int(np.ceil(max_oversampling_rate))):
-            # We loop over the columns. The 100 columns contain the matches from left to right. So if only 10 matches
-            # are found in this bin. The first 10 columns are filled and the rest is -1. By starting from the first
-            # column, we are first using all compounds that have the lowest number in this bin and only use some
-            # compounds extra if necessary.
-            for pair_sample_position in range(max_pairs_per_bin_sampled):
-                # Select all pairs for the current sample position that are available
-                idx = np.where(selected_pairs_per_bin[bin_id, :, pair_sample_position] != -1)[0]
-                # If more than the goal are available in this pair_sample_position, we select some random pairs.
-                if len(idx) > goal:
-                    # todo: Instead of random selection we could focus on selecting not frequently selected inchikeys.
-                    idx = np.random.choice(idx, goal)
-                if len(idx) == 0 and goal > 0:
-                    print(f"Apply oversampling for bin {bin_id}.")
-                    break
-                # Reformat the pairs to the structure (fingerprint_idx1, fingerprint_idx2, score.
-                pairs = [(idx[i],
-                          selected_pairs_per_bin[bin_id, idx[i], pair_sample_position],
-                          selected_scores_per_bin[bin_id, idx[i], pair_sample_position]) for i in range(len(idx))]
-                new_selected_pairs_per_bin.extend(pairs)
-
-                # Remove the number of added pairs for the goal to check if the loop should continue
-                goal -= len(idx)
-                if goal <= 0:
-                    break
-    return new_selected_pairs_per_bin
-
-
-def get_nr_of_pairs_needed_to_balanced_selection(nr_of_pairs_in_bin_per_compound: List[int],
-                                       expected_average_pairs_per_bin: int
-                                       ):
-    """Calculates how many pairs should be selected to get the exact number o """
-    used_cut_offs = nr_of_pairs_in_bin_per_compound[:]
-    while expected_average_pairs_per_bin < sum(used_cut_offs)/len(used_cut_offs):
-        used_cut_offs[used_cut_offs.index(max(used_cut_offs))] -= 1
-    return used_cut_offs
+    fingerprints_df = pd.DataFrame(fingerprints, index=inchikeys14_unique)
+    return fingerprints_df
 
 
 def compute_fingerprints_for_training(spectrums,
