@@ -9,7 +9,7 @@ from matchms.similarity.vector_similarity_functions import \
 from ms2deepscore.SettingsMS2Deepscore import (SettingsEmbeddingEvaluator,
                                                SettingsMS2Deepscore)
 from ms2deepscore.tensorize_spectra import tensorize_spectra
-from ms2deepscore.train_new_model.spectrum_pair_selection import (
+from ms2deepscore.train_new_model.inchikey_pair_selection import (
     SelectedCompoundPairs, compute_fingerprint_dataframe)
 from ms2deepscore.vector_operations import cosine_similarity_matrix
 

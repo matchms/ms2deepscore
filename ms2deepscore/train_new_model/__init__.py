@@ -1,5 +1,5 @@
 from .data_generators import DataGeneratorPytorch
-from .spectrum_pair_selection import (SelectedCompoundPairs,
+from .inchikey_pair_selection import (SelectedCompoundPairs,
                                       select_compound_pairs_wrapper)
 
 

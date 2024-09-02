@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 from matchms import Spectrum
 from scipy.sparse import coo_array
-from ms2deepscore.train_new_model.spectrum_pair_selection import (
+from ms2deepscore.train_new_model.inchikey_pair_selection import (
     SelectedCompoundPairs, balanced_selection,
     compute_jaccard_similarity_per_bin, convert_pair_array_to_coo_array,
     convert_pair_list_to_coo_array,

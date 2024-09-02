@@ -10,7 +10,7 @@ from matchms.Spectrum import Spectrum
 from tqdm import tqdm
 from ms2deepscore import MS2DeepScore
 from ms2deepscore.models import load_model
-from ms2deepscore.train_new_model.spectrum_pair_selection import \
+from ms2deepscore.train_new_model.inchikey_pair_selection import \
     select_inchi_for_unique_inchikeys
 from ms2deepscore.utils import save_pickled_file
 
