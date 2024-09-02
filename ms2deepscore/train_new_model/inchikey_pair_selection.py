@@ -115,11 +115,35 @@ class SelectedCompoundPairs:
         return f"SelectedCompoundPairs with {len(self._scores)} columns."
 
 
+class SelectedInchikeyPairs:
+    def __init__(self, selected_inchikey_pairs: List[Tuple[str, str, float]]):
+        """
+        Parameters
+        ----------
+        selected_inchikey_pairs:
+            A list with tuples encoding inchikey pairs like: (inchikey1, inchikey2, tanimoto_score)
+        """
+        self.selected_inchikey_pairs = selected_inchikey_pairs
+
+    def generator(self, shuffle: bool, random_nr_generator):
+        """Infinite generator to loop through all inchikeys.
+        After looping through all inchikeys the order is shuffled.
+        """
+        while True:
+            if shuffle:
+                random_nr_generator.shuffle(self.selected_inchikey_pairs)
+
+            for inchikey1, inchikey2, tanimoto_score in self.selected_inchikey_pairs:
+                yield inchikey1, tanimoto_score, inchikey2
+
+    def __str__(self):
+        return f"SelectedInchikeyPairs with {len(self.selected_inchikey_pairs)} pairs available"
+
+
 def select_compound_pairs_wrapper(
         spectrums: List[Spectrum],
         settings: SettingsMS2Deepscore,
-        shuffling: bool = True,
-        ) -> Tuple[SelectedCompoundPairs, List[Spectrum]]:
+        ) -> SelectedInchikeyPairs:
     """Returns a SelectedCompoundPairs object containing equally balanced pairs over the different bins
 
     spectrums:
@@ -147,26 +171,28 @@ def select_compound_pairs_wrapper(
         settings.same_prob_bins,
         settings.include_diagonal)
 
-    available_pairs_per_bin = convert_selected_pairs_matrix(available_pairs_per_bin_matrix, available_scores_per_bin_matrix)
+    available_pairs_per_bin = convert_selected_pairs_matrix(available_pairs_per_bin_matrix, available_scores_per_bin_matrix, inchikeys14_unique)
     selected_pairs_per_bin = balanced_selection_of_pairs_per_bin(available_pairs_per_bin, len(inchikeys14_unique))
-    merged_selected_pairs_per_bin = [pair for pairs in selected_pairs_per_bin for pair in pairs]
-    scores_sparse = convert_pair_list_to_coo_array(merged_selected_pairs_per_bin, fingerprints.shape[0])
-    return SelectedCompoundPairs(scores_sparse, inchikeys14_unique, shuffling=shuffling), spectra_selected
+    return SelectedInchikeyPairs([pair for pairs in selected_pairs_per_bin for pair in pairs])
+    # merged_selected_pairs_per_bin = [pair for pairs in selected_pairs_per_bin for pair in pairs]
+    # scores_sparse = convert_pair_list_to_coo_array(merged_selected_pairs_per_bin, fingerprints.shape[0])
+    # return SelectedCompoundPairs(scores_sparse, inchikeys14_unique, shuffling=shuffling), spectra_selected
 
 
-def convert_selected_pairs_matrix(selected_pairs_per_bin_matrix, scores_per_bin):
+def convert_selected_pairs_matrix(selected_pairs_per_bin_matrix, scores_per_bin, inchikeys) -> List[List[Tuple[str, str, float]]]:
     selected_pairs_per_bin = []
     for bin_idx in range(selected_pairs_per_bin_matrix.shape[0]):
         inchikey_indexes_1, pair_sample_position = np.where(selected_pairs_per_bin_matrix[bin_idx] != -1)
-        pairs = [(incikey_index_1,
-                  selected_pairs_per_bin_matrix[bin_idx, incikey_index_1, pair_sample_position[i]],
+        pairs = [(inchikeys[incikey_index_1],
+                  inchikeys[selected_pairs_per_bin_matrix[bin_idx, incikey_index_1, pair_sample_position[i]]],
                   scores_per_bin[bin_idx, incikey_index_1, pair_sample_position[i]]) for i, incikey_index_1 in
                  enumerate(inchikey_indexes_1)]
         selected_pairs_per_bin.append(pairs)
     return selected_pairs_per_bin
 
 
-def balanced_selection_of_pairs_per_bin(list_of_pairs_per_bin, nr_of_unique_inchikeys):
+def balanced_selection_of_pairs_per_bin(list_of_pairs_per_bin,
+                                        nr_of_unique_inchikeys):
     inchikey_count = {key: 0 for key in range(nr_of_unique_inchikeys)}
     sorted_bin_indices_on_amount_of_pairs = sorted(range(len(list_of_pairs_per_bin)),
                                                    key=lambda i: len(list_of_pairs_per_bin[i]))

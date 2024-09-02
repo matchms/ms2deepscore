@@ -10,7 +10,7 @@ from ms2deepscore.SettingsMS2Deepscore import (SettingsEmbeddingEvaluator,
                                                SettingsMS2Deepscore)
 from ms2deepscore.tensorize_spectra import tensorize_spectra
 from ms2deepscore.train_new_model.inchikey_pair_selection import (
-    SelectedCompoundPairs, compute_fingerprint_dataframe)
+    SelectedInchikeyPairs, compute_fingerprint_dataframe)
 from ms2deepscore.vector_operations import cosine_similarity_matrix
 
 
@@ -25,7 +25,7 @@ class DataGeneratorPytorch:
     """
 
     def __init__(self, spectrums: List[Spectrum],
-                 selected_compound_pairs: SelectedCompoundPairs,
+                 selected_compound_pairs: SelectedInchikeyPairs,
                  settings: SettingsMS2Deepscore):
         """Generates data for training a siamese Pytorch model.
 
@@ -50,7 +50,7 @@ class DataGeneratorPytorch:
 
         # Initialize random number generator
         if self.model_settings.use_fixed_set:
-            if selected_compound_pairs.shuffling:
+            if self.model_settings.shuffle:
                 raise ValueError(
                     "The generator cannot run reproducibly when shuffling is on for `SelectedCompoundPairs`.")
             if self.model_settings.random_seed is None:
@@ -64,7 +64,7 @@ class DataGeneratorPytorch:
 
         self.selected_compound_pairs = selected_compound_pairs
         self.inchikey_pair_generator = self.selected_compound_pairs.generator(self.model_settings.shuffle, self.rng)
-        self.nr_of_batches = int(self.model_settings.num_turns) * int(np.ceil(len(self.selected_compound_pairs.scores) /
+        self.nr_of_batches = int(self.model_settings.num_turns) * int(np.ceil(len(unique_inchikeys) /
                                                                               self.model_settings.batch_size))
 
     def __len__(self):
