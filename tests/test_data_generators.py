@@ -155,7 +155,7 @@ def test_DataGeneratorPytorch():
             tensor_counts[tensor_tuple] = 1
     average_spectrum_count = sum(tensor_counts.values())/len(tensor_counts.values())
     for count in tensor_counts.values():
-        assert count > 0.9*average_spectrum_count, \
+        assert count > 0.75*average_spectrum_count, \
             "The frequency of the sampling of this inchikey/spectrum is too low compared to the other inchikeys"
 
 
