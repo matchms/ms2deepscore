@@ -213,9 +213,21 @@ def convert_pair_list_to_coo_array(selected_pairs: List[List[Tuple[int, float]]]
 def compute_jaccard_similarity_per_bin(
         fingerprints,
         max_pairs_per_bin,
-        selection_bins = np.array([(x / 10, x / 10 + 0.1) for x in range(10)]),
-        include_diagonal = True):
-    """Randomly selects compound pairs per tanimoto bin, up to max_pairs_per_bin"""
+        selection_bins=np.array([(x / 10, x / 10 + 0.1) for x in range(10)]),
+        include_diagonal=True) -> Tuple[np.ndarray, np.ndarray]:
+    """Randomly selects compound pairs per tanimoto bin, up to max_pairs_per_bin
+
+    returns:
+    2 3d numpy arrays are returned, the first encodes the pairs per bin and the second the corresponding scores.
+    A 3D numpy array with shape [nr_of_bins, nr_of_fingerprints, max_pairs_per_bin].
+    An example structure for bin 1, with 3 fingerprints and max_pairs_per_bin =4 would be:
+    [[1,2,-1,-1],
+    [0,3,-1,-1],
+    [0,2,-1,-1],]
+    The pairs are encoded by the index and the value.
+    So the first row encodes pairs between fingerpint 0 and 1, fingerprint 0 and 2.
+    The -1 encode that no more pairs were found for this fingerprint in this bin.
+    """
 
     size = fingerprints.shape[0]
     num_bins = len(selection_bins)
@@ -260,22 +272,33 @@ def tanimoto_scores_row(fingerprints, idx):
     return tanimoto_scores
 
 
-def balanced_selection(selected_pairs_per_bin,
-                       selected_scores_per_bin,
-                       desired_pairs_per_bin,
+def balanced_selection(selected_pairs_per_bin: np.ndarray,
+                       selected_scores_per_bin: np.ndarray,
+                       desired_pairs_per_bin: int,
                        max_oversampling_rate: float = 1):
     """
     Adjusts the selected pairs for each bin to align with the expected average pairs per bin.
-    
-    This function modifies the number of pairs in each bin to be closer to the 
+
+    This function modifies the number of pairs in each bin to be closer to the
     expected average pairs per bin by truncating or extending the pairs.
 
     Parameters
     ----------
-    selected_pairs_per_bin: list of list
-        The list containing bins and for each bin, the list of pairs for each spectrum.
+    selected_pairs_per_bin:
+        A 3D numpy array with shape [nr_of_bins, nr_of_fingerprints, max_pairs_per_bin].
+        An example structure for bin 1, with 3 fingerprints and max_pairs_per_bin =4 would be:
+        [[1,2,-1,-1],
+        [0,3,-1,-1],
+        [0,2,-1,-1],]
+        The pairs are encoded by the index and the value.
+        So the first row encodes pairs between fingerpint 0 and 1, fingerprint 0 and 2.
+        The -1 encode that no more pairs were found for this fingerprint in this bin.
+    selected_scores_per_bin:
+        A 3D numpy array with the same structure as selected_pairs_per_bin,
+        but instead of encoding the second pair it encodes the actual tanimoto score.
     desired_pairs_per_bin: int
         The desired number of pairs per bin. Will be used if sufficient scores in each bin are found.
+        Otherwise the bin with the lowest number of available pairs is used for setting the nr_or_pairs_per_bin.
     max_oversampling_rate: float
         Maximum factor for oversampling. This will allow for sampling the same pairs multiple times in the same bin
         to reach the desired_pairs_per_bin.
@@ -294,7 +317,7 @@ def balanced_selection(selected_pairs_per_bin,
         print(f"The number of pairs per bin will be set to {minimum_bin_occupation * max_oversampling_rate}.")
 
     new_selected_pairs_per_bin = []
-
+    max_pairs_per_bin_sampled = selected_pairs_per_bin.shape[2]
     for bin_id in range(selected_pairs_per_bin.shape[0]):
         goal = pairs_per_bin
         for _ in range(int(np.ceil(max_oversampling_rate))):
@@ -302,17 +325,24 @@ def balanced_selection(selected_pairs_per_bin,
             # are found in this bin. The first 10 columns are filled and the rest is -1. By starting from the first
             # column, we are first using all compounds that have the lowest number in this bin and only use some
             # compounds extra if necessary.
-            for col in range(selected_pairs_per_bin.shape[2]):
-                idx = np.where(selected_pairs_per_bin[bin_id, :, col] != -1)[0]
+            for pair_sample_position in range(max_pairs_per_bin_sampled):
+                # Select all pairs for the current sample position that are available
+                idx = np.where(selected_pairs_per_bin[bin_id, :, pair_sample_position] != -1)[0]
+                # If more than the goal are available in this pair_sample_position, we select some random pairs.
                 if len(idx) > goal:
+                    # todo: Instead of random selection we could focus on selecting not frequently selected inchikeys.
                     idx = np.random.choice(idx, goal)
                 if len(idx) == 0 and goal > 0:
                     print(f"Apply oversampling for bin {bin_id}.")
                     break
-                goal -= len(idx)
-                pairs = [(idx[i], selected_pairs_per_bin[bin_id, idx[i], col],
-                          selected_scores_per_bin[bin_id, idx[i], col]) for i in range(len(idx))]
+                # Reformat the pairs to the structure (fingerprint_idx1, fingerprint_idx2, score.
+                pairs = [(idx[i],
+                          selected_pairs_per_bin[bin_id, idx[i], pair_sample_position],
+                          selected_scores_per_bin[bin_id, idx[i], pair_sample_position]) for i in range(len(idx))]
                 new_selected_pairs_per_bin.extend(pairs)
+
+                # Remove the number of added pairs for the goal to check if the loop should continue
+                goal -= len(idx)
                 if goal <= 0:
                     break
     return new_selected_pairs_per_bin
