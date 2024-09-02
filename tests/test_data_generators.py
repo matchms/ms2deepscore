@@ -107,7 +107,7 @@ def test_DataGeneratorPytorch():
                                     augment_removal_intensity=0.0,
                                     augment_intensity=0.0,
                                     augment_noise_max=0)
-    scp, spectrums = select_compound_pairs_wrapper(spectrums, settings)
+    scp = select_compound_pairs_wrapper(spectrums, settings)
 
     # Create generator
     test_generator = DataGeneratorPytorch(spectrums=spectrums, selected_compound_pairs=scp, settings=settings)
