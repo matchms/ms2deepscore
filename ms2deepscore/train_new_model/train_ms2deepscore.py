@@ -55,11 +55,11 @@ def prepare_folders_and_generators(
     settings.save_to_file(os.path.join(results_folder, "settings.json"))
 
 
-    selected_compound_pairs_training, selected_training_spectra = select_compound_pairs_wrapper(
+    selected_compound_pairs_training = select_compound_pairs_wrapper(
         training_spectra, settings=settings)
 
     # Create generators
-    train_generator = DataGeneratorPytorch(spectrums=selected_training_spectra,
+    train_generator = DataGeneratorPytorch(spectrums=training_spectra,
                                            selected_compound_pairs=selected_compound_pairs_training,
                                            settings=settings)
 
