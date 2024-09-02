@@ -101,7 +101,7 @@ def test_DataGeneratorPytorch():
                                     intensity_scaling=0.5,
                                     additional_metadata=[],
                                     same_prob_bins=np.array([(x / 4, x / 4 + 0.25) for x in range(0, 4)]),
-                                    average_pairs_per_bin=1,
+                                    average_pairs_per_bin=2,
                                     batch_size=batch_size,
                                     augment_removal_max=0.0,
                                     augment_removal_intensity=0.0,
@@ -120,26 +120,43 @@ def test_DataGeneratorPytorch():
     assert targets.shape[0] == batch_size
     assert len(test_generator) == 2
 
-    counts = []
     repetitions = 100
     total = num_of_unique_inchikeys * repetitions
+    selected_spectra = []
+    scores = []
     for _ in range(repetitions):
         for batch in test_generator:
             for i in range(5):
                 assert batch[i].shape[0] == batch_size
-            counts.extend(batch[4])
+            scores.extend(batch[4])
+            for i in range(batch_size):
+                selected_spectra.append(tuple(batch[0][i].tolist()))
+                selected_spectra.append(tuple(batch[1][i].tolist()))
+
     # One epoch is close to the number of inchikeys, but a factor of the batch_size.
     # So if you would have 99 inchikeys and batch size 10, it results in 10 batches and a total of 100.
-    assert len(counts) == len(test_generator) * batch_size * repetitions
+    assert len(scores) == len(test_generator) * batch_size * repetitions
     # check mostly equal distribution. Checking if more than 0.5 occurs more frequently than 40 percent of the time.
-    assert (np.array(counts) > 0.5).sum() > 0.4 * total
-    assert (np.array(counts) <= 0.5).sum() > 0.4 * total
+    assert (np.array(scores) > 0.5).sum() > 0.4 * total
+    assert (np.array(scores) <= 0.5).sum() > 0.4 * total
 
     # Check mostly equal distribution across all four bins:
-    assert (np.array(counts) <= 0.25).sum() > 0.22 * total
-    assert ((np.array(counts) > 0.25) & (np.array(counts) <= 0.5)).sum() > 0.22 * total
-    assert ((np.array(counts) > 0.5) & (np.array(counts) <= 0.75)).sum() > 0.22 * total
-    assert (np.array(counts) > 0.75).sum() > 0.22 * total
+    assert (np.array(scores) <= 0.25).sum() > 0.22 * total
+    assert ((np.array(scores) > 0.25) & (np.array(scores) <= 0.5)).sum() > 0.22 * total
+    assert ((np.array(scores) > 0.5) & (np.array(scores) <= 0.75)).sum() > 0.22 * total
+    assert (np.array(scores) > 0.75).sum() > 0.22 * total
+
+    # Count occurrences of each unique tensor
+    tensor_counts = {}
+    for tensor_tuple in selected_spectra:
+        if tensor_tuple in tensor_counts:
+            tensor_counts[tensor_tuple] += 1
+        else:
+            tensor_counts[tensor_tuple] = 1
+    average_spectrum_count = sum(tensor_counts.values())/len(tensor_counts.values())
+    for count in tensor_counts.values():
+        assert count > 0.9*average_spectrum_count, \
+            "The frequency of the sampling of this inchikey/spectrum is too low compared to the other inchikeys"
 
 
 ### Tests for EmbeddingEvaluator data generator
