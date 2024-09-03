@@ -1,5 +1,5 @@
 from collections import Counter
-from typing import List, Tuple, Optional, Union
+from typing import List, Tuple
 import numpy as np
 import pandas as pd
 from matchms import Spectrum
@@ -9,110 +9,6 @@ from numba import jit, prange
 from scipy.sparse import coo_array
 from tqdm import tqdm
 from ms2deepscore.SettingsMS2Deepscore import SettingsMS2Deepscore
-
-
-class SelectedCompoundPairs:
-    """Class to store sparse ("cherrypicked") compound pairs and their respective scores.
-
-    This is meant to be used with the results of the `compute_spectrum_pairs()` function.
-    The therein selected (cherrypicked) scores are stored similar to a list-of-lists format.
-
-    """
-    def __init__(self, sparse_score_array, inchikeys, shuffling: bool = True):
-        """
-        Parameters
-        ----------
-        sparse_score_array
-            Scipy COO-style sparse array which stores the similarity scores.
-            Meant to be used with the results of the compute_spectrum_pairs() function.
-        inchikeys
-            List or Array of the inchikeys in the order of the sparse_score_array.
-            Meant to be used with the results of the compute_spectrum_pairs() function.
-        shuffling
-            Default is True in which case the selected pairs for each inchikey will be
-            shuffled.
-        """
-        self._scores = []
-        self._cols = []
-        self.shuffling = shuffling
-        self._idx_to_inchikey = dict(enumerate(inchikeys))
-        self._inchikey_to_idx = {key: idx for idx, key in enumerate(inchikeys)}
-
-        for row_idx in self._idx_to_inchikey.keys():
-            row_mask = (sparse_score_array.row == row_idx)
-            self._cols.append(sparse_score_array.col[row_mask])
-            self._scores.append(sparse_score_array.data[row_mask])
-
-        # Initialize counter for each column
-        self._row_pair_counter = np.zeros(len(self._idx_to_inchikey), dtype=int)
-        if self.shuffling:
-            self.shuffle()
-
-    def shuffle(self):
-        """Shuffle all scores for all inchikeys."""
-        for i in range(len(self._scores)):
-            self._shuffle_row(i)
-
-    def _shuffle_row(self, row_index):
-        """Shuffle the column and scores of row with row_index."""
-        permutation = np.random.permutation(len(self._cols[row_index]))
-        self._cols[row_index] = self._cols[row_index][permutation]
-        self._scores[row_index] = self._scores[row_index][permutation]
-
-    def next_pair_for_inchikey(self, inchikey) -> Optional[Union[float, str]]:
-        # get the index of the inchikey
-        row_idx = self._inchikey_to_idx[inchikey]
-        # Select possible indexes for second inchikey (in the columns)
-        column_idexes = self._cols[row_idx]
-        if len(column_idexes) == 0:
-            return None
-        # Check how often a pair has already been made for this inchikey.
-        row_pair_count = self._row_pair_counter[row_idx]
-        # Retrieve the next index and corresponding score
-        col_idx = column_idexes[row_pair_count]
-        inchikey2 = self._idx_to_inchikey[col_idx]
-        score = self._scores[row_idx][row_pair_count]
-
-        # Update the counter, wrapping around if necessary
-        self._row_pair_counter[row_idx] += 1
-        if self._row_pair_counter[row_idx] >= len(self._cols[row_idx]):
-            self._row_pair_counter[row_idx] = 0
-            # Went through all scores in this row --> shuffle again
-            if self.shuffling:
-                self._shuffle_row(row_idx)
-
-        return score, inchikey2
-
-    def generator(self, shuffle: bool, random_nr_generator):
-        """Infinite generator to loop through all inchikeys.
-        After looping through all inchikeys the order is shuffled.
-        """
-        inchikeys = list(self._inchikey_to_idx.keys())
-        while True:
-            if shuffle:
-                random_nr_generator.shuffle(inchikeys)
-
-            for inchikey in inchikeys:
-                result = self.next_pair_for_inchikey(inchikey)
-                if result is None:
-                    continue
-                score, inchikey2 = result
-                yield inchikey, score, inchikey2
-
-    @property
-    def scores(self):
-        return self._scores
-
-    @property
-    def idx_to_inchikey(self):
-        return self._idx_to_inchikey
-
-    @property
-    def inchikey_to_idx(self):
-        return self._inchikey_to_idx
-
-    def __str__(self):
-        return f"SelectedCompoundPairs with {len(self._scores)} columns."
 
 
 class SelectedInchikeyPairs:
