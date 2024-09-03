@@ -10,7 +10,7 @@ from ms2deepscore.SettingsMS2Deepscore import (SettingsEmbeddingEvaluator,
                                                SettingsMS2Deepscore)
 from ms2deepscore.tensorize_spectra import tensorize_spectra
 from ms2deepscore.train_new_model.inchikey_pair_selection import (
-    SelectedInchikeyPairs, compute_fingerprint_dataframe)
+    SelectedInchikeyPairs, compute_fingerprint_dataframe, select_compound_pairs_wrapper)
 from ms2deepscore.vector_operations import cosine_similarity_matrix
 
 
@@ -181,6 +181,17 @@ class DataGeneratorPytorch:
             spectrum_tensor[indices_noise] = self.model_settings.augment_noise_intensity * torch.rand(
                 len(indices_noise))
         return spectrum_tensor
+
+
+def create_data_generator(training_spectra,
+                          settings) -> DataGeneratorPytorch:
+    selected_compound_pairs_training = select_compound_pairs_wrapper(training_spectra, settings=settings)
+
+    # Create generators
+    train_generator = DataGeneratorPytorch(spectrums=training_spectra,
+                                           selected_compound_pairs=selected_compound_pairs_training,
+                                           settings=settings)
+    return train_generator
 
 
 class DataGeneratorEmbeddingEvaluation:

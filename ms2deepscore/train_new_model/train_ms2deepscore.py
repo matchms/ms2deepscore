@@ -8,7 +8,7 @@ from matplotlib import pyplot as plt
 from ms2deepscore.models.SiameseSpectralModel import (SiameseSpectralModel,
                                                       train)
 from ms2deepscore.SettingsMS2Deepscore import SettingsMS2Deepscore
-from ms2deepscore.train_new_model.data_generators import DataGeneratorPytorch
+from ms2deepscore.train_new_model.data_generators import create_data_generator
 from ms2deepscore.train_new_model.inchikey_pair_selection import \
     select_compound_pairs_wrapper
 from ms2deepscore.train_new_model.ValidationLossCalculator import \
@@ -23,11 +23,14 @@ def train_ms2ds_model(
         ):
     """Full workflow to train a MS2DeepScore model.
     """
-    train_generator, validation_loss_calculator = prepare_folders_and_generators(
-        training_spectra,
-        validation_spectra,
-        results_folder,
-        settings)
+    # Make folder and save settings
+    os.makedirs(results_folder, exist_ok=True)
+    settings.save_to_file(os.path.join(results_folder, "settings.json"))
+    # Create a training generator
+    train_generator = create_data_generator(training_spectra, settings)
+    # Create a validation loss calculator
+    validation_loss_calculator = ValidationLossCalculator(validation_spectra,
+                                                          settings=settings)
 
     model = SiameseSpectralModel(settings=settings)
 
@@ -42,30 +45,6 @@ def train_ms2ds_model(
                     loss_function=settings.loss_function,
                     checkpoint_filename=output_model_file_name, lambda_l1=0, lambda_l2=0)
     return model, history
-
-
-def prepare_folders_and_generators(
-        training_spectra,
-        validation_spectra,
-        results_folder,
-        settings
-        ):
-    os.makedirs(results_folder, exist_ok=True)
-    # Save settings
-    settings.save_to_file(os.path.join(results_folder, "settings.json"))
-
-
-    selected_compound_pairs_training = select_compound_pairs_wrapper(
-        training_spectra, settings=settings)
-
-    # Create generators
-    train_generator = DataGeneratorPytorch(spectrums=training_spectra,
-                                           selected_compound_pairs=selected_compound_pairs_training,
-                                           settings=settings)
-
-    validation_loss_calculator = ValidationLossCalculator(validation_spectra,
-                                                          settings=settings)
-    return train_generator, validation_loss_calculator
 
 
 def plot_history(losses, val_losses, file_name: Optional[str] = None):
