@@ -6,7 +6,7 @@ from matchms import Spectrum
 from ms2deepscore.SettingsMS2Deepscore import SettingsMS2Deepscore, SettingsEmbeddingEvaluator
 from ms2deepscore.tensorize_spectra import tensorize_spectra
 from ms2deepscore.train_new_model.data_generators import DataGeneratorPytorch, \
-    DataGeneratorEmbeddingEvaluation
+    DataGeneratorEmbeddingEvaluation, create_data_generator
 from ms2deepscore.train_new_model.inchikey_pair_selection import \
     SelectedInchikeyPairs
 from tests.create_test_spectra import create_test_spectra
@@ -152,8 +152,48 @@ def test_equal_sampling_of_spectra(dummy_data_generator):
         inchikey = spectrum.get("inchikey")[:14]
         inchikey_counts[inchikey] += count
     # Test that the inchikeys are sampled equally
-    assert len(inchikey_counts) == 4
     assert max(inchikey_counts.values()) - min(inchikey_counts.values()) < 2
+
+
+def test_create_data_generator():
+    """tests if a the function create_data_generator creates a datagenerator that samples all input spectra
+    correct distributions of inchikeys and scores are tested in other tests"""
+    test_spectra = create_test_spectra(8, 3)
+    data_generator = create_data_generator(training_spectra=test_spectra,
+                                           settings=SettingsMS2Deepscore(
+                                               min_mz=10,
+                                               max_mz=1000,
+                                               mz_bin_width=0.1,
+                                               intensity_scaling=0.5,
+                                               additional_metadata=[],
+                                               same_prob_bins=np.array([(x / 4, x / 4 + 0.25) for x in range(0, 4)]),
+                                               batch_size=2,
+                                               num_turns=4,
+                                               augment_removal_max=0.0,
+                                               augment_removal_intensity=0.0,
+                                               augment_intensity=0.0,
+                                               augment_noise_max=0))
+    tensorized_spectra = []
+    epochs = 20
+    for _ in range(epochs):
+        for batch in data_generator:
+            for i in range(batch[0].shape[0]):
+                tensorized_spectra.append(tuple(batch[0][i].tolist()))
+                tensorized_spectra.append(tuple(batch[1][i].tolist()))
+    # Count occurrences of each unique tensor, the dummy spectra are generated, so they all result in unique tensors.
+    tensor_counts = {}
+    for spectrum_tensor in tensorized_spectra:
+        if spectrum_tensor in tensor_counts:
+            tensor_counts[spectrum_tensor] += 1
+        else:
+            tensor_counts[spectrum_tensor] = 1
+    # test if all spectra are sampled (at least once)
+    unique_tensors = tensor_counts.keys()
+    # Test that each spectrum is sampled. This is not really always true, since we randomly sample spectra,
+    # but since we sample 640 spectra from 24 options, it is very unlikely (1 in 28 billion)
+    # that this will result in not sampling all at least once.
+    # Because we have a fixed seed, this should not result in random failing tests.
+    assert len(unique_tensors) == len(test_spectra), "Not all spectra are selected at least once"
 
 
 ### Tests for EmbeddingEvaluator data generator
