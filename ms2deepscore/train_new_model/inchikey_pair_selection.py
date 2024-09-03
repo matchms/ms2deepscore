@@ -44,7 +44,7 @@ class SelectedInchikeyPairs:
     def get_inchikey_counts(self) -> Counter:
         """returns the frequency each inchikey occurs"""
         inchikeys = Counter()
-        for inchikey_1, inchikey_2, score in self.selected_inchikey_pairs:
+        for inchikey_1, inchikey_2, _ in self.selected_inchikey_pairs:
             inchikeys[inchikey_1] += 1
             inchikeys[inchikey_2] += 1
         return inchikeys
@@ -107,7 +107,7 @@ def balanced_selection_of_pairs_per_bin(list_of_pairs_per_bin,
     inchikey_count = {inchikey: 0 for inchikey in unique_inchikeys}
     sorted_bin_indices_on_amount_of_pairs = sorted(range(len(list_of_pairs_per_bin)),
                                                    key=lambda i: len(list_of_pairs_per_bin[i]))
-    lowest_number_of_pairs = min([len(pairs) for pairs in list_of_pairs_per_bin])
+    lowest_number_of_pairs = min(len(pairs) for pairs in list_of_pairs_per_bin)
     selected_pairs_per_bin = []
     for bin_index in tqdm(sorted_bin_indices_on_amount_of_pairs):
         selected_pairs_per_bin.append(
@@ -117,7 +117,7 @@ def balanced_selection_of_pairs_per_bin(list_of_pairs_per_bin,
 
 def select_pairs(list_of_available_pairs, inchikey_counts, required_number_of_pairs):
     selected_pairs = []
-    for i in range(required_number_of_pairs):
+    for _ in range(required_number_of_pairs):
         # Select only the inchikeys that still have a pair available for this bin.
         available_inchikey_indexes = get_available_inchikey_indexes(list_of_available_pairs)
         # get lowest available inchikeys
@@ -153,7 +153,7 @@ def get_available_inchikeys_with_lowest_count(available_inchikey_indexes, inchik
 def select_available_pairs(available_inchikey_pairs, least_occuring_inchikey):
     """Searches for available pairs"""
     pairs_matching_inchikey = []
-    for pair_idx, pair in enumerate(available_inchikey_pairs):
+    for _, pair in enumerate(available_inchikey_pairs):
         idx_1, idx_2, score = pair
         if least_occuring_inchikey == idx_1:
             pairs_matching_inchikey.append((idx_1, idx_2, score))
@@ -166,7 +166,7 @@ def select_available_pairs(available_inchikey_pairs, least_occuring_inchikey):
 
 def get_available_inchikey_indexes(list_of_pairs):
     available_inchikeys = []
-    for inchikey_1, inchikey_2, score in list_of_pairs:
+    for inchikey_1, inchikey_2, _ in list_of_pairs:
         available_inchikeys.append(inchikey_1)
         available_inchikeys.append(inchikey_2)
     return set(available_inchikeys)
