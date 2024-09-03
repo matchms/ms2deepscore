@@ -70,7 +70,7 @@ def select_compound_pairs_wrapper(
     if settings.random_seed is not None:
         np.random.seed(settings.random_seed)
 
-    fingerprints, inchikeys14_unique, spectra_selected = compute_fingerprints_for_training(
+    fingerprints, inchikeys14_unique = compute_fingerprints_for_training(
         spectrums,
         settings.fingerprint_type,
         settings.fingerprint_nbits)
@@ -280,7 +280,7 @@ def compute_fingerprint_dataframe(
         The settings that should be used for selecting the compound pairs wrapper. The settings should be specified as a
         SettingsMS2Deepscore object.
     """
-    fingerprints, inchikeys14_unique, _ = compute_fingerprints_for_training(
+    fingerprints, inchikeys14_unique = compute_fingerprints_for_training(
         spectrums,
         fingerprint_type,
         fingerprint_nbits)
@@ -325,8 +325,7 @@ def compute_fingerprints_for_training(spectrums,
 
     fingerprints = np.array([fingerprints[i] for i in idx])
     inchikeys14_unique = [inchikeys14_unique[i] for i in idx]
-    spectra_selected = [spectra_selected[i] for i in idx]
-    return fingerprints, inchikeys14_unique, spectra_selected
+    return fingerprints, inchikeys14_unique
 
 
 def select_inchi_for_unique_inchikeys(
