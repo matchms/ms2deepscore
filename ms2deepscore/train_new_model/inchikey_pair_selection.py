@@ -115,19 +115,28 @@ def balanced_selection_of_pairs_per_bin(list_of_pairs_per_bin,
     return selected_pairs_per_bin
 
 
-def select_pairs(list_of_pairs, inchikey_counts, required_number_of_pairs):
+def select_pairs(list_of_available_pairs, inchikey_counts, required_number_of_pairs):
     selected_pairs = []
     for i in range(required_number_of_pairs):
         # Select only the inchikeys that still have a pair available for this bin.
-        available_inchikey_indexes = get_available_inchikey_indexes(list_of_pairs)
+        available_inchikey_indexes = get_available_inchikey_indexes(list_of_available_pairs)
         # get lowest available inchikeys
         inchikey_with_lowest_count = get_available_inchikeys_with_lowest_count(available_inchikey_indexes,
                                                                                inchikey_counts)
         # actually select pairs (instead of single inchikeys)
-        selected_pair = select_available_pair(list_of_pairs, inchikey_with_lowest_count)
-        selected_pairs.append(selected_pair)
-        inchikey_counts[selected_pair[0]] += 1
-        inchikey_counts[selected_pair[1]] += 1
+        available_pairs_for_least_frequent_inchikey = select_available_pairs(list_of_available_pairs, inchikey_with_lowest_count)
+        idx_2_counts = [inchikey_counts[idx_2] for _, idx_2, _ in available_pairs_for_least_frequent_inchikey]
+        index_of_least_frequent_second_index = idx_2_counts.index(min(idx_2_counts))
+        idx_1, idx_2, score = available_pairs_for_least_frequent_inchikey[index_of_least_frequent_second_index]
+        # Remove the selected pair and a potential reversed pair if available
+        if (idx_1, idx_2, score) in list_of_available_pairs:
+            list_of_available_pairs.remove((idx_1, idx_2, score))
+        if (idx_2, idx_1, score) in list_of_available_pairs:
+            list_of_available_pairs.remove((idx_2, idx_1, score))
+
+        selected_pairs.append((idx_1, idx_2, score))
+        inchikey_counts[idx_1] += 1
+        inchikey_counts[idx_2] += 1
     return selected_pairs
 
 
@@ -141,23 +150,26 @@ def get_available_inchikeys_with_lowest_count(available_inchikey_indexes, inchik
     return least_frequent_inchikeys[0]
 
 
-def select_available_pair(list_of_pairs, inchikey_idx_of_interest):
+def select_available_pairs(available_inchikey_pairs, least_occuring_inchikey):
     """Searches for available pairs"""
-    for i, pair in enumerate(list_of_pairs):
+    pairs_matching_inchikey = []
+    for pair_idx, pair in enumerate(available_inchikey_pairs):
         idx_1, idx_2, score = pair
-        if inchikey_idx_of_interest == idx_1 or inchikey_idx_of_interest == idx_2:
-            # Remove this entry
-            list_of_pairs.pop(i)
-            return idx_1, idx_2, score
-    raise ValueError
+        if least_occuring_inchikey == idx_1:
+            pairs_matching_inchikey.append((idx_1, idx_2, score))
+        if least_occuring_inchikey == idx_2:
+            pairs_matching_inchikey.append((idx_2, idx_1, score))
+    if len(pairs_matching_inchikey) == 0:
+        raise ValueError("select_available_pair expects a inchikey_idx_of_interst that is available in list_of_pairs")
+    return pairs_matching_inchikey
 
 
 def get_available_inchikey_indexes(list_of_pairs):
-    available_inchikey_indexes = []
-    for idx_1, idx2, score in list_of_pairs:
-        available_inchikey_indexes.append(idx_1)
-        available_inchikey_indexes.append(idx2)
-    return set(available_inchikey_indexes)
+    available_inchikeys = []
+    for inchikey_1, inchikey_2, score in list_of_pairs:
+        available_inchikeys.append(inchikey_1)
+        available_inchikeys.append(inchikey_2)
+    return set(available_inchikeys)
 
 
 def convert_pair_array_to_coo_data(
