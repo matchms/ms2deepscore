@@ -193,3 +193,15 @@ def test_balanced_scores_selecting_inchikey_pairs(dummy_selected_inchikey_pairs)
                 score_bin_counts[(min_bound, max_bound)] += 1
     # Check that the number of pairs per bin is equal for all bins
     assert len(set(score_bin_counts.values())) == 1
+
+
+def test_no_repeating_of_pairs_when_selecting_inchikey_pairs(dummy_selected_inchikey_pairs):
+    pairs = dummy_selected_inchikey_pairs.selected_inchikey_pairs
+    for inchikey1_check, inchikey2_check, _ in pairs:
+        count_of_pair = 0
+        for inchikey1, inchikey2, _ in pairs:
+            if inchikey1 == inchikey1_check and inchikey2 == inchikey2_check:
+                count_of_pair += 1
+            elif inchikey1 == inchikey2_check and inchikey2 == inchikey1_check:
+                count_of_pair += 1
+        assert count_of_pair == 1, "The pair occurs multiple times in the selected pairs (likely in reversed form)"
