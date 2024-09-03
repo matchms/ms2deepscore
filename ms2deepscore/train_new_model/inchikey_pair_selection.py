@@ -134,7 +134,10 @@ class SelectedInchikeyPairs:
                 random_nr_generator.shuffle(self.selected_inchikey_pairs)
 
             for inchikey1, inchikey2, tanimoto_score in self.selected_inchikey_pairs:
-                yield inchikey1, tanimoto_score, inchikey2
+                yield inchikey1, inchikey2, tanimoto_score
+
+    def __len__(self):
+        return len(self.selected_inchikey_pairs)
 
     def __str__(self):
         return f"SelectedInchikeyPairs with {len(self.selected_inchikey_pairs)} pairs available"

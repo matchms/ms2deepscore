@@ -85,7 +85,7 @@ class DataGeneratorPytorch:
         """Use the provided SelectedCompoundPairs object to pick pairs."""
         for _ in range(self.model_settings.batch_size):
             try:
-                inchikey1, score, inchikey2 = next(self.inchikey_pair_generator)
+                inchikey1, inchikey2, score = next(self.inchikey_pair_generator)
             except StopIteration as exc:
                 raise RuntimeError("The inchikey pair generator is not expected to end, "
                                    "but should instead generate infinite pairs") from exc
