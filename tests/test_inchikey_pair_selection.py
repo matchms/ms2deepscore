@@ -196,6 +196,8 @@ def test_balanced_scores_selecting_inchikey_pairs(dummy_selected_inchikey_pairs)
 
 
 def test_no_repeating_of_pairs_when_selecting_inchikey_pairs(dummy_selected_inchikey_pairs):
+    """Pairs are stored as inchikey1, inchikey2 score, this test checks that no pairs repair,
+    including the reverse pairs like inchikey2, inchikey1"""
     pairs = dummy_selected_inchikey_pairs.selected_inchikey_pairs
     for inchikey1_check, inchikey2_check, _ in pairs:
         count_of_pair = 0
