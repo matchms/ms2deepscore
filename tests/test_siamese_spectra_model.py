@@ -130,7 +130,7 @@ def test_model_training(simple_training_spectra):
                                     batch_size=2,
                                     num_turns=20,
                                     )
-    scp_train, _ = select_compound_pairs_wrapper(simple_training_spectra, settings)
+    scp_train = select_compound_pairs_wrapper(simple_training_spectra, settings)
 
     # Create generators
     train_generator_simple = DataGeneratorPytorch(spectrums=simple_training_spectra, selected_compound_pairs=scp_train,
