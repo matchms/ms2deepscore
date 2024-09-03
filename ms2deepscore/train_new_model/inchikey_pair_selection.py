@@ -38,6 +38,17 @@ class SelectedInchikeyPairs:
     def __str__(self):
         return f"SelectedInchikeyPairs with {len(self.selected_inchikey_pairs)} pairs available"
 
+    def get_scores(self):
+        return [score for _, _, score in self.selected_inchikey_pairs]
+
+    def get_inchikey_counts(self) -> Counter:
+        """returns the frequency each inchikey occurs"""
+        inchikeys = Counter()
+        for inchikey_1, inchikey_2, score in self.selected_inchikey_pairs:
+            inchikeys[inchikey_1] += 1
+            inchikeys[inchikey_2] += 1
+        return inchikeys
+
 
 def select_compound_pairs_wrapper(
         spectrums: List[Spectrum],
