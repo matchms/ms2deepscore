@@ -2,10 +2,13 @@ import numpy as np
 import pytest
 from matchms import Spectrum
 from scipy.sparse import coo_array
+
+from ms2deepscore import SettingsMS2Deepscore
 from ms2deepscore.train_new_model.inchikey_pair_selection import (
     compute_jaccard_similarity_per_bin, convert_pair_array_to_coo_array,
     SelectedInchikeyPairs,
-    select_inchi_for_unique_inchikeys)
+    select_inchi_for_unique_inchikeys, select_compound_pairs_wrapper)
+from tests.create_test_spectra import create_test_spectra
 
 
 @pytest.fixture
@@ -116,42 +119,6 @@ def test_compute_jaccard_similarity_per_bin_correct_counts(fingerprints):
         assert np.all(matrix_histogram[0] == expected_histogram)
 
 
-# @pytest.mark.parametrize("desired_average_pairs_per_bin", [1, 2])
-# def test_global_bias(fingerprints, desired_average_pairs_per_bin):
-#     bins = np.array([(0, 0.35), (0.35, 0.65), (0.65, 1.0)])
-#
-#     selected_pairs_per_bin, selected_scores_per_bin = compute_jaccard_similarity_per_bin(
-#         fingerprints,
-#         selection_bins=bins,
-#         max_pairs_per_bin=10)
-#
-#     selected_pairs_per_bin_fixed_bias = balanced_selection(
-#         selected_pairs_per_bin, selected_scores_per_bin, fingerprints.shape[0] * desired_average_pairs_per_bin)
-#     matrix = convert_pair_list_to_coo_array(
-#         selected_pairs_per_bin_fixed_bias, fingerprints.shape[0])
-#
-#     # Check if in each bin the nr of pairs is equal to the nr_of_fingerprints
-#     expected_nr_of_pairs = fingerprints.shape[0] * desired_average_pairs_per_bin
-#     expected_histogram = np.array([expected_nr_of_pairs, expected_nr_of_pairs, expected_nr_of_pairs])
-#     matrix_histogram = np.histogram(matrix.data, [0.0, 0.35, 0.65, 1.0])
-#     assert np.all(matrix_histogram[0] == expected_histogram)
-#
-#
-# @pytest.mark.parametrize("nr_of_pairs_in_bin_per_compound, expected_average",
-#                          [
-#                              [[3, 3, 4, 5, 6], 4],
-#                              [[3, 3, 4, 8, 8], 5],
-#                              [[1, 9, 9, 6, 8], 6],
-#                          ])
-# def test_get_nr_of_compounds_that_should_be_selected(nr_of_pairs_in_bin_per_compound, expected_average):
-#     cut_offs_to_use = get_nr_of_pairs_needed_to_balanced_selection(nr_of_pairs_in_bin_per_compound, expected_average)
-#
-#     assert sum(cut_offs_to_use)/len(cut_offs_to_use) == expected_average
-#     assert len(nr_of_pairs_in_bin_per_compound) == len(cut_offs_to_use)
-#     for i in range(len(nr_of_pairs_in_bin_per_compound)):
-#         assert nr_of_pairs_in_bin_per_compound[i] >= cut_offs_to_use[i]
-
-
 def test_select_inchi_for_unique_inchikeys(spectrums):
     spectrums[2].set("inchikey", "ABCABCABCABCAB-nonsense2")
     spectrums[3].set("inchikey", "ABCABCABCABCAB-nonsense3")
@@ -195,3 +162,20 @@ def test_SelectedInchikeyPairs_generator_without_shuffle(dummy_spectrum_pairs):
 
     for _, expected_pair in enumerate(dummy_spectrum_pairs):
         assert expected_pair == next(gen)
+
+
+@pytest.fixture
+def dummy_selected_inchikey_pairs() -> SelectedInchikeyPairs:
+    spectrums = create_test_spectra(num_of_unique_inchikeys=17, num_of_spectra_per_inchikey=2)
+    settings = SettingsMS2Deepscore(same_prob_bins=np.array([(x / 4, x / 4 + 0.25) for x in range(0, 4)]),
+                                    average_pairs_per_bin=2,
+                                    batch_size=8)
+    return select_compound_pairs_wrapper(spectrums, settings)
+
+
+def test_balanced_inchikey_count_selecting_inchikey_pairs(dummy_selected_inchikey_pairs):
+    """Test if SelectedInchikeyPairs has an equal inchikey distribution
+    """
+    inchikey_counts = dummy_selected_inchikey_pairs.get_inchikey_counts()
+    max_difference_in_inchikey_freq = max(inchikey_counts.values()) - min(inchikey_counts.values())
+    assert max_difference_in_inchikey_freq <= 2, "The frequency of the sampling of the inchikeys is too different"
