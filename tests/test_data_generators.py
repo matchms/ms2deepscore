@@ -9,6 +9,7 @@ from ms2deepscore.train_new_model.data_generators import DataGeneratorPytorch,\
     DataGeneratorEmbeddingEvaluation
 from ms2deepscore.train_new_model.inchikey_pair_selection import \
     select_compound_pairs_wrapper
+from tests.create_test_spectra import create_test_spectra
 
 
 class MockMS2DSModel:
@@ -40,38 +41,6 @@ def collect_results(generator, batch_size, dimension):
         X[:, :, 1, i] = batch[0][1]
         y[:, i] = batch[1]
     return X, y
-
-
-def create_test_spectra(num_of_unique_inchikeys):
-    # Define other parameters
-    mz, intens = 100.0, 0.1
-    spectrums = []
-    letters = list(string.ascii_uppercase[:num_of_unique_inchikeys])
-    letters += letters
-
-    def generate_binary_vector(i):
-        binary_vector = np.zeros(10, dtype=int)
-        binary_vector[i % 3] = 1
-        binary_vector[i % 5 + 3] = 1
-        binary_vector[i % 4] = 1
-        binary_vector[i % 10] = 1
-        binary_vector[8 - i // 9] = 1
-        binary_vector[6 - i // 15] = 1
-        return binary_vector
-
-    # Create fake spectra
-    fake_inchikeys = []
-    for i, letter in enumerate(letters):
-        dummy_inchikey = f"{14 * letter}-{10 * letter}-N"
-        fingerprint = generate_binary_vector(i)
-        fake_inchikeys.append(dummy_inchikey)
-        spectrums.append(Spectrum(mz=np.array([mz + (i+1) * 25.0]), intensities=np.array([intens]),
-                                metadata={"precursor_mz": 111.1,
-                                            "inchikey": dummy_inchikey,
-                                            "compound_name": letter,
-                                            "fingerprint": fingerprint,
-                                            }))
-    return spectrums
 
 
 def test_tensorize_spectra():
