@@ -179,3 +179,17 @@ def test_balanced_inchikey_count_selecting_inchikey_pairs(dummy_selected_inchike
     inchikey_counts = dummy_selected_inchikey_pairs.get_inchikey_counts()
     max_difference_in_inchikey_freq = max(inchikey_counts.values()) - min(inchikey_counts.values())
     assert max_difference_in_inchikey_freq <= 2, "The frequency of the sampling of the inchikeys is too different"
+
+
+def test_balanced_scores_selecting_inchikey_pairs(dummy_selected_inchikey_pairs):
+    """Test if SelectedInchikeyPairs has an equal inchikey distribution
+    """
+    scores = dummy_selected_inchikey_pairs.get_scores()
+    score_bins = [(-0.000001, 0.25), (0.25, 0.5), (0.5, 0.75), (0.75, 1)]
+    score_bin_counts = {score_bin: 0 for score_bin in score_bins}
+    for score in scores:
+        for min_bound, max_bound in score_bin_counts.keys():
+            if score > min_bound and score <= max_bound:
+                score_bin_counts[(min_bound, max_bound)] += 1
+    # Check that the number of pairs per bin is equal for all bins
+    assert len(set(score_bin_counts.values())) == 1
