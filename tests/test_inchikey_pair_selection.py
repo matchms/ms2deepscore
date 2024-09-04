@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 from matchms import Spectrum
-from scipy.sparse import coo_array
+
 
 from ms2deepscore import SettingsMS2Deepscore
 from ms2deepscore.train_new_model.inchikey_pair_selection import (
