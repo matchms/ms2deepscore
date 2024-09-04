@@ -17,11 +17,15 @@ from ms2deepscore.vector_operations import cosine_similarity_matrix
 class DataGeneratorPytorch:
     """Generates data for training a siamese Pytorch model.
 
-    This class provides a data generator specifically
-    designed for training a Siamese Pytorch model with a curated set of compound pairs.
-    It uses pre-selected compound pairs, allowing more control over the training process,
-    particularly in scenarios where certain compound pairs are of specific interest or
-    have higher significance in the training dataset.
+    This class provides a data generator specifically designed for training a Siamese Pytorch model with a curated set
+    of compound pairs. It takes a SelectedInchikeyPairs and randomly selects, augments and tensorizes spectra for each
+    inchikey pair.
+
+    By using pre-selected compound pairs (in the SelectedInchikeyPairs), this allows more control over the training
+    process. The selection of inchikey pairs does not happen in DataGeneratorPytorch (only spectrum selection), but in
+    inchikey_pair_selection.py. In inchikey_pair_selection inchikey pairs are picked to balance selected pairs equally
+    over different tanimoto score bins to make sure both pairs of similar and dissimilar compounds are sampled.
+    In addition inchikeys are selected to occur equally for each pair.
     """
 
     def __init__(self, spectrums: List[Spectrum],
