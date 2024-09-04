@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+### fixed
+- A bug of spectrum pair sampling during training was fixed. Due to this bug for each spectrum only one unique spectrum was sampled, even if multiple spectra were available. The bug was introduced with MS2Deepscore 2.0
+
+### Changed
+- The inchikey pair selection and data generator has been refactored. The new data generator results in a more balanced inchikey distribution. For details see [#232](https://github.com/matchms/ms2deepscore/pull/232)
+
 ### Changed
 - dense layers are not build with leaky ReLU instead of ReLU [#222](https://github.com/matchms/ms2deepscore/pull/222).
 
