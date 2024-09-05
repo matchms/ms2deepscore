@@ -110,8 +110,9 @@ def balanced_selection_of_pairs_per_bin(list_of_pairs_per_bin,
     lowest_number_of_pairs = min(len(pairs) for pairs in list_of_pairs_per_bin)
     selected_pairs_per_bin = []
     for bin_index in tqdm(sorted_bin_indices_on_amount_of_pairs):
-        selected_pairs_per_bin.append(
-            select_pairs(list_of_pairs_per_bin[bin_index], inchikey_count, lowest_number_of_pairs))
+        selected_pairs, inchikey_count = select_pairs(list_of_pairs_per_bin[bin_index], inchikey_count,
+                                                       lowest_number_of_pairs)
+        selected_pairs_per_bin.append(selected_pairs)
     return selected_pairs_per_bin
 
 
@@ -137,7 +138,7 @@ def select_pairs(list_of_available_pairs, inchikey_counts, required_number_of_pa
         selected_pairs.append((idx_1, idx_2, score))
         inchikey_counts[idx_1] += 1
         inchikey_counts[idx_2] += 1
-    return selected_pairs
+    return selected_pairs, inchikey_counts
 
 
 def get_available_inchikeys_with_lowest_count(available_inchikey_indexes, inchikey_counts):
