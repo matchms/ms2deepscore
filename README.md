@@ -6,6 +6,8 @@
 [![DOI](https://zenodo.org/badge/310047938.svg)](https://zenodo.org/badge/latestdoi/310047938)
 [![fair-software.eu](https://img.shields.io/badge/fair--software.eu-%E2%97%8F%20%20%E2%97%8F%20%20%E2%97%8F%20%20%E2%97%8F%20%20%E2%97%8B-yellow)](https://fair-software.eu)
 
+<img src="https://github.com/matchms/ms2deepscore/blob/main/materials/ms2deepscore_logo.png" width="400">
+
 # ms2deepscore
 `ms2deepscore` provides a Siamese neural network that is trained to predict molecular structural similarities (Tanimoto scores) 
 from pairs of mass spectrometry spectra. 
