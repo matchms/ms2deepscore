@@ -95,9 +95,13 @@ def convert_selected_pairs_matrix(selected_pairs_per_bin_matrix, scores_per_bin,
             inchikey_1 = inchikeys[inchikey_index_1]
             inchikey_2 = inchikeys[selected_pairs_per_bin_matrix[bin_idx, inchikey_index_1, pair_sample_position[i]]]
             score = scores_per_bin[bin_idx, inchikey_index_1, pair_sample_position[i]]
-            # Check that the reversed pair (which is the same) is not already in the set
-            if (inchikey_2, inchikey_1, score) not in pairs:
+            # sort the pairs on inchikey (to later remove duplicates)
+            if inchikey_1 < inchikey_2:
                 pairs.append((inchikey_1, inchikey_2, score))
+            else:
+                pairs.append((inchikey_2, inchikey_1, score))
+        # Remove duplicates
+        pairs = list(set(pairs))
         selected_pairs_per_bin.append(pairs)
     return selected_pairs_per_bin
 
