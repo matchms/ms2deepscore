@@ -87,6 +87,9 @@ def select_compound_pairs_wrapper(
 
 
 def convert_selected_pairs_matrix(selected_pairs_per_bin_matrix, scores_per_bin, inchikeys) -> List[List[Tuple[str, str, float]]]:
+    """Converts the matrix with pairs and the matrix with the corresponding scores into lists of pairs.
+    A pair is encoded as a tuple(inchikey1, inchikey2, score).
+    Any repeating pairs are removed, including inversed pairs."""
     selected_pairs_per_bin = []
     for bin_idx in range(selected_pairs_per_bin_matrix.shape[0]):
         inchikey_indexes_1, pair_sample_position = np.where(selected_pairs_per_bin_matrix[bin_idx] != -1)
