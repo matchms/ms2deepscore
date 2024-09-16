@@ -90,6 +90,9 @@ class SettingsMS2Deepscore:
             Array of metadata entries (and their transformation) to be used in training.
             See `MetadatFeatureGenerator` for more information.
             Default is set to empty list.
+        max_pair_resampling
+            The maximum number a inchikey pair can be resampled. Resampling is done to balance inchikey pairs over
+            the tanimoto scores. The minimum is 1, meaning that no resampling is performed.
         """
     def __init__(self, **settings):
         # model structure
@@ -137,6 +140,7 @@ class SettingsMS2Deepscore:
         self.include_diagonal = True
         self.val_spectra_per_inchikey = 1
         self.random_seed: Optional[int] = None
+        self.max_pair_resampling = 1
 
         # Tanimioto score setings
         self.fingerprint_type: str = "daylight"

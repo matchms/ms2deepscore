@@ -82,8 +82,8 @@ def select_compound_pairs_wrapper(
         settings.include_diagonal)
 
     available_pairs_per_bin = convert_selected_pairs_matrix(available_pairs_per_bin_matrix, available_scores_per_bin_matrix, inchikeys14_unique)
-    #todo add max_resampling to settings
-    selected_pairs_per_bin = balanced_selection_of_pairs_per_bin(available_pairs_per_bin, inchikeys14_unique, 1)
+    selected_pairs_per_bin = balanced_selection_of_pairs_per_bin(available_pairs_per_bin, inchikeys14_unique,
+                                                                 settings.max_pair_resampling)
     return SelectedInchikeyPairs([pair for pairs in selected_pairs_per_bin for pair in pairs])
 
 
