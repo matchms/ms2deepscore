@@ -82,7 +82,8 @@ def select_compound_pairs_wrapper(
         settings.include_diagonal)
 
     available_pairs_per_bin = convert_selected_pairs_matrix(available_pairs_per_bin_matrix, available_scores_per_bin_matrix, inchikeys14_unique)
-    selected_pairs_per_bin = balanced_selection_of_pairs_per_bin(available_pairs_per_bin, inchikeys14_unique)
+    #todo add max_resampling to settings
+    selected_pairs_per_bin = balanced_selection_of_pairs_per_bin(available_pairs_per_bin, inchikeys14_unique, 1)
     return SelectedInchikeyPairs([pair for pairs in selected_pairs_per_bin for pair in pairs])
 
 
@@ -110,45 +111,79 @@ def convert_selected_pairs_matrix(selected_pairs_per_bin_matrix, scores_per_bin,
 
 
 def balanced_selection_of_pairs_per_bin(list_of_pairs_per_bin,
-                                        unique_inchikeys):
+                                        unique_inchikeys, max_resampling):
+    """From the list_of_pairs_per_bin a balanced selection is made to have a balanced distribution over bins and inchikeys
+    """
     inchikey_count = {inchikey: 0 for inchikey in unique_inchikeys}
     sorted_bin_indices_on_amount_of_pairs = sorted(range(len(list_of_pairs_per_bin)),
                                                    key=lambda i: len(list_of_pairs_per_bin[i]))
     lowest_number_of_pairs = min(len(pairs) for pairs in list_of_pairs_per_bin)
     selected_pairs_per_bin = []
     for bin_index in tqdm(sorted_bin_indices_on_amount_of_pairs):
-        selected_pairs, inchikey_count = select_pairs(list_of_pairs_per_bin[bin_index], inchikey_count,
-                                                       lowest_number_of_pairs)
+        selected_pairs, inchikey_count = select_balanced_pairs(list_of_pairs_per_bin[bin_index], inchikey_count,
+                                                               lowest_number_of_pairs, max_resampling)
         selected_pairs_per_bin.append(selected_pairs)
     return selected_pairs_per_bin
 
 
-def select_pairs(list_of_available_pairs, inchikey_counts, required_number_of_pairs):
+def select_balanced_pairs(list_of_available_pairs: List[Tuple[str, str, float]],
+                          inchikey_counts: dict,
+                          required_number_of_pairs: int,
+                          max_resampling: int):
+    """Select pairs of spectra in a balanced way. """
     selected_pairs = []
-    for _ in range(required_number_of_pairs):
-        # Select only the inchikeys that still have a pair available for this bin.
-        available_inchikey_indexes = get_available_inchikey_indexes(list_of_available_pairs)
-        # get lowest available inchikeys
+    # Select only the inchikeys that have a pair available for this bin.
+    available_inchikey_indexes = get_available_inchikey_indexes(list_of_available_pairs)
+    # Store the frequency each pair has been sampled for keeping track of resampling
+    pair_frequency = {pair: 0 for pair in list_of_available_pairs}
+
+    while len(selected_pairs) < required_number_of_pairs:
+        # get inchikey with lowest count
         inchikey_with_lowest_count = get_available_inchikeys_with_lowest_count(available_inchikey_indexes,
                                                                                inchikey_counts)
         # actually select pairs (instead of single inchikeys)
-        available_pairs_for_least_frequent_inchikey = select_available_pairs(list_of_available_pairs, inchikey_with_lowest_count)
-        idx_2_counts = [inchikey_counts[idx_2] for _, idx_2, _ in available_pairs_for_least_frequent_inchikey]
-        index_of_least_frequent_second_index = idx_2_counts.index(min(idx_2_counts))
-        idx_1, idx_2, score = available_pairs_for_least_frequent_inchikey[index_of_least_frequent_second_index]
-        # Remove the selected pair and a potential reversed pair if available
-        if (idx_1, idx_2, score) in list_of_available_pairs:
-            list_of_available_pairs.remove((idx_1, idx_2, score))
-        if (idx_2, idx_1, score) in list_of_available_pairs:
-            list_of_available_pairs.remove((idx_2, idx_1, score))
+        available_pairs_for_least_frequent_inchikey = select_available_pairs(list_of_available_pairs,
+                                                                             inchikey_with_lowest_count)
+        # Select the pairs that have been resampled the least frequent.
+        available_pairs_with_least_frequency = select_least_frequent_pairs(available_pairs_for_least_frequent_inchikey,
+                                                                           pair_frequency,
+                                                                           max_resampling)
 
+        if available_pairs_with_least_frequency is None:
+            # remove the inchikey, since it does not have any available pairs anymore
+            available_inchikey_indexes.remove(inchikey_with_lowest_count)
+            if len(available_inchikey_indexes) == 0:
+                raise ValueError("There are not enough pairs in this bin to create a pair")
+            continue
+        idx_1, idx_2, score = select_second_least_frequent_inchikey(inchikey_counts,
+                                                                    available_pairs_with_least_frequency,
+                                                                    inchikey_with_lowest_count)
+
+        # Add the selected pair
         selected_pairs.append((idx_1, idx_2, score))
+
+        # Increase count of pair and inchikeys
+        pair_frequency[(idx_1, idx_2, score)] += 1
         inchikey_counts[idx_1] += 1
         inchikey_counts[idx_2] += 1
     return selected_pairs, inchikey_counts
 
 
-def get_available_inchikeys_with_lowest_count(available_inchikey_indexes, inchikey_counts):
+def select_second_least_frequent_inchikey(inchikey_counts, available_pairs, least_frequent_inchikey):
+    second_inchikey_count=[]
+    for inchikey_1, inchikey_2, score in available_pairs:
+        if inchikey_1 == least_frequent_inchikey:
+            other_inchikey = inchikey_2
+        else:
+            other_inchikey = inchikey_1
+
+        second_inchikey_count.append(inchikey_counts[other_inchikey])
+
+    index_of_least_frequent_second_index = second_inchikey_count.index(min(second_inchikey_count))
+    return available_pairs[index_of_least_frequent_second_index]
+
+
+def get_available_inchikeys_with_lowest_count(available_inchikey_indexes: set, inchikey_counts: dict):
     # Select only the counts of the available_inchikey_indexes
     available_inchikey_counts = {inchikey: count for inchikey, count in inchikey_counts.items() if
                                  inchikey in available_inchikey_indexes}
@@ -158,21 +193,31 @@ def get_available_inchikeys_with_lowest_count(available_inchikey_indexes, inchik
     return least_frequent_inchikeys[0]
 
 
-def select_available_pairs(available_inchikey_pairs, least_occuring_inchikey):
+def select_available_pairs(available_inchikey_pairs: List[Tuple[str, str, float]], least_occuring_inchikey: str):
     """Searches for available pairs"""
     pairs_matching_inchikey = []
-    for _, pair in enumerate(available_inchikey_pairs):
+    for pair in available_inchikey_pairs:
         idx_1, idx_2, score = pair
-        if least_occuring_inchikey == idx_1:
+        if least_occuring_inchikey == idx_1 or least_occuring_inchikey == idx_2:
             pairs_matching_inchikey.append((idx_1, idx_2, score))
-        if least_occuring_inchikey == idx_2:
-            pairs_matching_inchikey.append((idx_2, idx_1, score))
+
     if len(pairs_matching_inchikey) == 0:
         raise ValueError("select_available_pair expects a inchikey_idx_of_interst that is available in list_of_pairs")
     return pairs_matching_inchikey
 
 
-def get_available_inchikey_indexes(list_of_pairs):
+def select_least_frequent_pairs(selected_pairs: List[Tuple[str, str, float]], pair_counts: dict, max_resampling: int):
+    """Selects the pairs with the lowest frequency"""
+    frequency_of_pairs = [pair_counts[selected_pair] for selected_pair in selected_pairs]
+    lowest_frequency_of_pairs = min(frequency_of_pairs)
+    if lowest_frequency_of_pairs >= max_resampling:
+        return None
+    pairs_with_lowest_frequency = [selected_pairs[i] for i, frequency in enumerate(frequency_of_pairs) if
+                                   frequency == lowest_frequency_of_pairs]
+    return pairs_with_lowest_frequency
+
+
+def get_available_inchikey_indexes(list_of_pairs) -> set:
     available_inchikeys = []
     for inchikey_1, inchikey_2, _ in list_of_pairs:
         available_inchikeys.append(inchikey_1)
