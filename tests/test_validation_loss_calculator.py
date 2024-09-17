@@ -51,7 +51,8 @@ def test_select_one_spectrum_per_inchikey(simple_test_spectra):
 def test_validation_loss_calculator():
     model = siamese_spectral_model()
     test_spectra = pesticides_test_spectra()
-    bins = np.array([(x / 10, x / 10 + 0.1) for x in range(0, 10)])
+    bins = np.array([(0.8, 0.9), (0.7, 0.8), (0.9, 1.0), (0.6, 0.7), (0.5, 0.6),
+                     (0.4, 0.5), (0.3, 0.4), (0.2, 0.3), (0.1, 0.2), (-0.01, 0.1)])
     validation_loss_calculator = ValidationLossCalculator(test_spectra,
                                                           settings=SettingsMS2Deepscore(same_prob_bins=bins))
 

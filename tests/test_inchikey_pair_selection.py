@@ -167,7 +167,7 @@ def test_SelectedInchikeyPairs_generator_without_shuffle(dummy_spectrum_pairs):
 @pytest.fixture
 def dummy_selected_inchikey_pairs() -> SelectedInchikeyPairs:
     spectrums = create_test_spectra(num_of_unique_inchikeys=17, num_of_spectra_per_inchikey=2)
-    settings = SettingsMS2Deepscore(same_prob_bins=np.array([(x / 4, x / 4 + 0.25) for x in range(0, 4)]),
+    settings = SettingsMS2Deepscore(same_prob_bins=np.array([(-0.000001, 0.25), (0.25, 0.5), (0.5, 0.75), (0.75, 1)]),
                                     average_pairs_per_bin=2,
                                     batch_size=8)
     return select_compound_pairs_wrapper(spectrums, settings)
