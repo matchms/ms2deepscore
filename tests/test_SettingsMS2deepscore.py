@@ -1,7 +1,7 @@
 import json
 import os
 import pytest
-from ms2deepscore.SettingsMS2Deepscore import SettingsMS2Deepscore
+from ms2deepscore.SettingsMS2Deepscore import SettingsMS2Deepscore, validate_bin_order
 
 
 def test_initiate_settingsms2deepscore():
@@ -36,3 +36,21 @@ def test_save_settings(tmp_path):
 
 def test_get_dict():
     result = SettingsMS2Deepscore().get_dict()
+
+
+@pytest.mark.parametrize("bins,correct", [
+    ([(-0.01, 1)], True),
+    ([(0.8, 0.9), (0.7, 0.8), (0.9, 1.0), (0.6, 0.7), (0.5, 0.6),
+      (0.4, 0.5), (0.3, 0.4), (0.2, 0.3), (0.1, 0.2), (-0.01, 0.1)], True),
+    ([(-0.01, 0.6), (0.7, 1.0)], False),  # Test a gap in bins is detected
+    ([(0.0, 0.6), (0.7, 1.0)], False),  # test that the lowest values is below 0.
+    ([(-0.3, -0.1), (-0.1, 1.0)], False),  # test that no bin is entirely below 0.
+    ([(0.0, 0.6), (0.6, 0.6), (0.6, 1.0)], False),  # test no repeating bin borders
+    ([(0.0, 0.6), (0.7, 0.6), (0.7, 1.0)], False),  # test correct order of bin borders
+])
+def test_validate_bin_order(bins, correct):
+    if correct:
+        validate_bin_order(bins)
+    else:
+        with pytest.raises(ValueError):
+            validate_bin_order(bins)

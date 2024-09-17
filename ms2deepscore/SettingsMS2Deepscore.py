@@ -1,5 +1,6 @@
 import json
 import warnings
+from collections import Counter
 from datetime import datetime
 from json import JSONEncoder
 from typing import Optional
@@ -136,7 +137,8 @@ class SettingsMS2Deepscore:
         # Compound pairs selection settings
         self.average_pairs_per_bin = 20
         self.max_pairs_per_bin = 100
-        self.same_prob_bins = np.array([(x / 10, x / 10 + 0.1) for x in range(0, 10)])
+        self.same_prob_bins = np.array([(0.8, 0.9), (0.7, 0.8), (0.9, 1.0), (0.6, 0.7), (0.5, 0.6),
+                                        (0.4, 0.5), (0.3, 0.4), (0.2, 0.3), (0.1, 0.2), (-0.01, 0.1)])
         self.include_diagonal = True
         self.val_spectra_per_inchikey = 1
         self.random_seed: Optional[int] = None
@@ -178,6 +180,7 @@ class SettingsMS2Deepscore:
             assert isinstance(self.random_seed, int), "Random seed must be integer number."
         if self.loss_function.lower() not in LOSS_FUNCTIONS:
             raise ValueError(f"Unknown loss function. Must be one of: {LOSS_FUNCTIONS.keys()}")
+        validate_bin_order(self.same_prob_bins)
 
     def number_of_bins(self):
         return int((self.max_mz - self.min_mz) / self.mz_bin_width)
@@ -194,6 +197,38 @@ class SettingsMS2Deepscore:
                 return JSONEncoder.default(self, o)
         with open(file_path, 'w', encoding="utf-8") as file:
             json.dump(self.__dict__, file, indent=4, cls=NumpyArrayEncoder)
+
+
+def validate_bin_order(score_bins):
+    """Checks that the given bins are of the correct format
+
+    The bins should cover everything between 0 and 1.0 and the lowest bin should be below 0
+    (since pairs > are selected and we want to include zero)"""
+    # check that the correct same_prob_bins are selected
+    bin_borders_below_zero = 0
+    bin_borders_1 = 0
+    not_starting_or_ending_borders = []
+    for score_bin in score_bins:
+        if score_bin[0] > score_bin[1]:
+            raise ValueError("The first number in the bin should be smaller than the second")
+        for bin_border in score_bin:
+            if bin_border < 0:
+                bin_borders_below_zero += 1
+            elif bin_border == 1.0:
+                bin_borders_1 += 1
+            else:
+                not_starting_or_ending_borders.append(bin_border)
+    border_counts = Counter(not_starting_or_ending_borders)
+    if bin_borders_below_zero != 1:
+        raise ValueError(f"There should be one bin border with a value below 0. "
+                         f"But {bin_borders_below_zero} bin borders with value below 0 are found")
+    if bin_borders_1 != 1:
+        raise ValueError(
+            f"There should be one bin border with value 1. "
+            f"But {bin_borders_below_zero} bin borders with value 1 are found")
+    for count in border_counts.values():
+        if count != 2:
+            raise ValueError(f"There is a gap in the bins, the bins should cover everything between 0 and 1.")
 
 
 class SettingsEmbeddingEvaluator:
