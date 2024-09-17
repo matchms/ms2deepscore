@@ -95,7 +95,7 @@ class SettingsMS2Deepscore:
             The maximum number a inchikey pair can be resampled. Resampling is done to balance inchikey pairs over
             the tanimoto scores. The minimum is 1, meaning that no resampling is performed.
         """
-    def __init__(self, **settings):
+    def __init__(self, validate_settings=True, **settings):
         # model structure
         self.base_dims = (2000, 2000, 2000)
         self.embedding_dim = 400
@@ -164,9 +164,16 @@ class SettingsMS2Deepscore:
                                         f"the type given is {type(value)}, the value given is {value}")
                     setattr(self, key, value)
                 else:
-                    raise ValueError(f"Unknown setting: {key}")
+                    if validate_settings:
+                        raise ValueError(f"Unknown setting: {key}")
+                    else:
+                        # When loading an older model, there can be incompatibilities between training settings.
+                        #  If these settings were just used during training it should not break the loading of a model,
+                        #  since it does not affect how the model runs.
+                        setattr(self, key, value)
 
-        self.validate_settings()
+        if validate_settings:
+            self.validate_settings()
         if self.random_seed is not None:
             np.random.seed(self.random_seed)
 
