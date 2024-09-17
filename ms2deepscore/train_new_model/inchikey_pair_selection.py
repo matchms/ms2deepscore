@@ -1,3 +1,4 @@
+import logging
 from collections import Counter
 from typing import List, Tuple
 import numpy as np
@@ -81,9 +82,19 @@ def select_compound_pairs_wrapper(
         settings.same_prob_bins,
         settings.include_diagonal)
 
-    available_pairs_per_bin = convert_selected_pairs_matrix(available_pairs_per_bin_matrix, available_scores_per_bin_matrix, inchikeys14_unique)
+    available_pairs_per_bin = convert_selected_pairs_matrix(available_pairs_per_bin_matrix,
+                                                            available_scores_per_bin_matrix, inchikeys14_unique)
+
+    # Select the nr_of_pairs_per_bin to use
+    nr_of_pairs_per_bin = settings.average_pairs_per_bin*len(inchikeys14_unique)
+    lowest_max_number_of_pairs = min(len(pairs) for pairs in available_pairs_per_bin) * settings.max_pair_resampling
+    if lowest_max_number_of_pairs < nr_of_pairs_per_bin:
+        nr_of_pairs_per_bin = lowest_max_number_of_pairs
+        print("Warning: The set average_pairs_per_bin cannot be reached. "
+              "Instead the lowest number of available pairs in a bin times the resampling is used")
+
     selected_pairs_per_bin = balanced_selection_of_pairs_per_bin(available_pairs_per_bin, inchikeys14_unique,
-                                                                 settings.max_pair_resampling)
+                                                                 settings, nr_of_pairs_per_bin)
     return SelectedInchikeyPairs([pair for pairs in selected_pairs_per_bin for pair in pairs])
 
 
@@ -111,17 +122,19 @@ def convert_selected_pairs_matrix(selected_pairs_per_bin_matrix, scores_per_bin,
 
 
 def balanced_selection_of_pairs_per_bin(list_of_pairs_per_bin,
-                                        unique_inchikeys, max_resampling):
+                                        unique_inchikeys,
+                                        settings,
+                                        nr_of_pairs_per_bin):
     """From the list_of_pairs_per_bin a balanced selection is made to have a balanced distribution over bins and inchikeys
     """
+
     inchikey_count = {inchikey: 0 for inchikey in unique_inchikeys}
-    sorted_bin_indices_on_amount_of_pairs = sorted(range(len(list_of_pairs_per_bin)),
-                                                   key=lambda i: len(list_of_pairs_per_bin[i]))
-    lowest_number_of_pairs = min(len(pairs) for pairs in list_of_pairs_per_bin)
     selected_pairs_per_bin = []
-    for bin_index in tqdm(sorted_bin_indices_on_amount_of_pairs):
-        selected_pairs, inchikey_count = select_balanced_pairs(list_of_pairs_per_bin[bin_index], inchikey_count,
-                                                               lowest_number_of_pairs, max_resampling)
+    for pairs_in_bin in tqdm(list_of_pairs_per_bin):
+        selected_pairs, inchikey_count = select_balanced_pairs(pairs_in_bin,
+                                                               inchikey_count,
+                                                               nr_of_pairs_per_bin,
+                                                               settings.max_pair_resampling)
         selected_pairs_per_bin.append(selected_pairs)
     return selected_pairs_per_bin
 
@@ -131,6 +144,7 @@ def select_balanced_pairs(list_of_available_pairs: List[Tuple[str, str, float]],
                           required_number_of_pairs: int,
                           max_resampling: int):
     """Select pairs of spectra in a balanced way. """
+
     selected_pairs = []
     # Select only the inchikeys that have a pair available for this bin.
     available_inchikey_indexes = get_available_inchikey_indexes(list_of_available_pairs)
@@ -153,7 +167,7 @@ def select_balanced_pairs(list_of_available_pairs: List[Tuple[str, str, float]],
             # remove the inchikey, since it does not have any available pairs anymore
             available_inchikey_indexes.remove(inchikey_with_lowest_count)
             if len(available_inchikey_indexes) == 0:
-                raise ValueError("There are not enough pairs in this bin to create a pair")
+                raise ValueError("The number of pairs available is less than required_number_of_pairs.")
             continue
         idx_1, idx_2, score = select_second_least_frequent_inchikey(inchikey_counts,
                                                                     available_pairs_with_least_frequency,
