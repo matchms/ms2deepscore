@@ -290,10 +290,7 @@ def compute_jaccard_similarity_per_bin(
 
         for bin_number in range(num_bins):
             selection_bin = selection_bins[bin_number]
-            if bin_number == 0:
-                indices = np.nonzero((tanimoto_scores >= selection_bin[0]) & (tanimoto_scores <= selection_bin[1]))[0]
-            else:
-                indices = np.nonzero((tanimoto_scores > selection_bin[0]) & (tanimoto_scores <= selection_bin[1]))[0]
+            indices = np.nonzero((tanimoto_scores > selection_bin[0]) & (tanimoto_scores <= selection_bin[1]))[0]
 
             if not include_diagonal and idx_fingerprint_i in indices:
                 indices = indices[indices != idx_fingerprint_i]
