@@ -4,7 +4,7 @@ from matchms.Spectrum import Spectrum
 from ms2deepscore.models.loss_functions import LOSS_FUNCTIONS
 from ms2deepscore.SettingsMS2Deepscore import SettingsMS2Deepscore
 from ms2deepscore.train_new_model.ValidationLossCalculator import (
-    ValidationLossCalculator, select_one_spectrum_per_inchikey)
+    ValidationLossCalculator, select_spectra_per_inchikey)
 from tests.create_test_spectra import (pesticides_test_spectra,
                                        siamese_spectral_model)
 
@@ -36,7 +36,7 @@ def simple_test_spectra():
 
 
 def test_select_one_spectrum_per_inchikey(simple_test_spectra):
-    one_spectrum_per_inchikey = select_one_spectrum_per_inchikey(simple_test_spectra, 42)
+    one_spectrum_per_inchikey = select_spectra_per_inchikey(simple_test_spectra, 42, 1)
     assert len(one_spectrum_per_inchikey) == 2
 
     # Check if the spectra only are unique inchikeys
