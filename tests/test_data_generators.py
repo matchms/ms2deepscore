@@ -26,7 +26,7 @@ class MockMS2DSModel:
 
 @pytest.fixture
 def data_generator_embedding_evaluation():
-    spectrums = create_test_spectra(num_of_unique_inchikeys=25)
+    spectrums = create_test_spectra(num_of_unique_inchikeys=25, num_of_spectra_per_inchikey=2)
     params = {"evaluator_distribution_size": 10}
     return DataGeneratorEmbeddingEvaluation(spectrums=spectrums,
                                             ms2ds_model=MockMS2DSModel(),
