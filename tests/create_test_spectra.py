@@ -36,7 +36,6 @@ def create_test_spectra(num_of_unique_inchikeys: int,
     intens = [0.1, 1]
     spectrums = []
     letters = list(string.ascii_uppercase[:num_of_unique_inchikeys])
-    letters += letters
 
     def generate_binary_vector(i):
         binary_vector = np.zeros(10, dtype=int)
