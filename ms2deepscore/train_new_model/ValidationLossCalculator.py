@@ -55,16 +55,21 @@ def select_spectra_per_inchikey(spectra,
                                 spectra_per_inchikey: int = 1):
     """Pick spectra_per_inchikey spectra for every unique inchikey14 (when possible).
     """
+    if spectra_per_inchikey < 1:
+        raise ValueError
     inchikeys14_array = np.array([s.get("inchikey")[:14] for s in spectra])
     unique_inchikeys = np.unique(inchikeys14_array)
     rng = np.random.default_rng(seed=random_seed)
     selected_spectra = []
     for inchikey in unique_inchikeys:
         matching_spectra_idx = np.where(inchikeys14_array == inchikey)[0]
-        if (spectra_per_inchikey > 1) & (spectra_per_inchikey <= len(matching_spectra_idx)):
-            spectrum_id = rng.choice(matching_spectra_idx, spectra_per_inchikey, replace=False)
-            selected_spectra.extend([spectra[i] for i in spectrum_id])
-        else:
-            spectrum_id = rng.choice(matching_spectra_idx)
-            selected_spectra.append(spectra[spectrum_id])
+        if len(matching_spectra_idx) == 0:
+            raise ValueError("Expected at least one spectrum per inchikey")
+        selected_spectrum_ids = []
+        for i in range(int(spectra_per_inchikey//len(matching_spectra_idx))):
+            selected_spectrum_ids.extend(list(matching_spectra_idx))
+        additional_spectrum_ids = rng.choice(matching_spectra_idx, spectra_per_inchikey%len(matching_spectra_idx),
+                                             replace=False)
+        selected_spectrum_ids.extend(additional_spectrum_ids)
+        selected_spectra.extend([spectra[i] for i in selected_spectrum_ids])
     return selected_spectra
