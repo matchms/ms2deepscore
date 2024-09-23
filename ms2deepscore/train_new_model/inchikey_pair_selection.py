@@ -10,6 +10,7 @@ from numba import jit, prange
 from scipy.sparse import coo_array
 from tqdm import tqdm
 from ms2deepscore.SettingsMS2Deepscore import SettingsMS2Deepscore
+import json
 
 
 class SelectedInchikeyPairs:
@@ -50,6 +51,25 @@ class SelectedInchikeyPairs:
             inchikeys[inchikey_2] += 1
         return inchikeys
 
+    def get_scores_per_inchikey(self):
+        inchikey_scores = {}
+        for inchikey_1, inchikey_2, score in self.selected_inchikey_pairs:
+            if inchikey_1 in inchikey_scores:
+                inchikey_scores[inchikey_1].append(score)
+            else:
+                inchikey_scores[inchikey_1] = []
+            if inchikey_2 in inchikey_scores:
+                inchikey_scores[inchikey_2].append(score)
+            else:
+                inchikey_scores[inchikey_2] = []
+        return inchikey_scores
+
+    def save_as_json(self, file_name):
+        data_for_json = [(item[0], item[1], float(item[2])) for item in self.selected_inchikey_pairs]
+
+        with open(file_name, "w") as f:
+            json.dump(data_for_json, f)
+
 
 def select_compound_pairs_wrapper(
         spectrums: List[Spectrum],
@@ -70,7 +90,6 @@ def select_compound_pairs_wrapper(
     """
     if settings.random_seed is not None:
         np.random.seed(settings.random_seed)
-
     fingerprints, inchikeys14_unique = compute_fingerprints_for_training(
         spectrums,
         settings.fingerprint_type,
