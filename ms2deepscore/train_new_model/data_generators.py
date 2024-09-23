@@ -188,9 +188,11 @@ class DataGeneratorPytorch:
 
 
 def create_data_generator(training_spectra,
-                          settings) -> DataGeneratorPytorch:
+                          settings,
+                          json_save_file=None) -> DataGeneratorPytorch:
     selected_compound_pairs_training = select_compound_pairs_wrapper(training_spectra, settings=settings)
-
+    if json_save_file is not None:
+        selected_compound_pairs_training.save_as_json(json_save_file)
     # Create generators
     train_generator = DataGeneratorPytorch(spectrums=training_spectra,
                                            selected_compound_pairs=selected_compound_pairs_training,

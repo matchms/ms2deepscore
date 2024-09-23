@@ -25,7 +25,8 @@ def train_ms2ds_model(
     os.makedirs(results_folder, exist_ok=True)
     settings.save_to_file(os.path.join(results_folder, "settings.json"))
     # Create a training generator
-    train_generator = create_data_generator(training_spectra, settings)
+    train_generator = create_data_generator(training_spectra, settings,
+                                            os.path.join(results_folder, "inchikey_pairs.json"))
     # Create a validation loss calculator
     validation_loss_calculator = ValidationLossCalculator(validation_spectra,
                                                           settings=settings)
