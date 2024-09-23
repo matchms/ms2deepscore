@@ -122,7 +122,8 @@ def convert_selected_pairs_matrix(selected_pairs_per_bin_matrix, scores_per_bin,
     A pair is encoded as a tuple(inchikey1, inchikey2, score).
     Any repeating pairs are removed, including inversed pairs."""
     selected_pairs_per_bin = []
-    for bin_idx in range(selected_pairs_per_bin_matrix.shape[0]):
+    for bin_idx in tqdm(range(selected_pairs_per_bin_matrix.shape[0]),
+                        desc="Converting score pairs matrix to inchikey pairs"):
         inchikey_indexes_1, pair_sample_position = np.where(selected_pairs_per_bin_matrix[bin_idx] != -1)
         pairs = []
         for i, inchikey_index_1 in enumerate(inchikey_indexes_1):
@@ -149,7 +150,7 @@ def balanced_selection_of_pairs_per_bin(list_of_pairs_per_bin,
 
     inchikey_count = {inchikey: 0 for inchikey in unique_inchikeys}
     selected_pairs_per_bin = []
-    for pairs_in_bin in tqdm(list_of_pairs_per_bin):
+    for pairs_in_bin in tqdm(list_of_pairs_per_bin, desc="Doing a balanced selection of compound pairs per bin"):
         selected_pairs, inchikey_count = select_balanced_pairs(pairs_in_bin,
                                                                inchikey_count,
                                                                nr_of_pairs_per_bin,
