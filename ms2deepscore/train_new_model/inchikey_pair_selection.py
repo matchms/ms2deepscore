@@ -103,7 +103,7 @@ def select_compound_pairs_wrapper(
     # Select the nr_of_pairs_per_bin to use
     nr_of_available_pairs_per_bin = get_nr_of_available_pairs_in_bin(available_pairs_per_bin_matrix)
     lowest_max_number_of_pairs = min(nr_of_available_pairs_per_bin) * settings.max_pair_resampling
-
+    print(f"The available nr of pairs per bin are: {nr_of_available_pairs_per_bin}")
     aimed_nr_of_pairs_per_bin = settings.average_pairs_per_bin*len(inchikeys14_unique)
     if lowest_max_number_of_pairs < aimed_nr_of_pairs_per_bin:
         print(f"Warning: The average_pairs_per_bin: {settings.average_pairs_per_bin} cannot be reached, "
@@ -157,7 +157,8 @@ def select_balanced_pairs(available_pairs_for_bin_matrix: np.ndarray,
     # All cases where no pair is available is set to max_resampling times 2 (can be any number > max_resampling)
     # This ensures this pair is never selected.
     pair_frequency[pair_frequency == -1] = max_resampling * 2
-    with tqdm(total=required_number_of_pairs, desc="sampling_balanced_pairs") as progress_bar:
+    with tqdm(total=required_number_of_pairs,
+              desc="Balanced sampling of inchikey pairs (will repeat for each bin)") as progress_bar:
         while nr_of_pairs_selected < required_number_of_pairs:
             # get inchikey with lowest count
             inchikey_with_lowest_count = available_inchikey_indexes[
@@ -206,12 +207,12 @@ def balanced_selection_of_pairs_per_bin(available_pairs_per_bin_matrix: np.ndarr
 
     inchikey_count = np.zeros(available_pairs_per_bin_matrix.shape[1])
     pair_frequency_matrixes = []
-    for pairs_in_bin in tqdm(available_pairs_per_bin_matrix,
-                             desc="Doing a balanced selection of compound pairs per bin"):
+    for pairs_in_bin in available_pairs_per_bin_matrix:
         pair_frequencies, inchikey_count = select_balanced_pairs(pairs_in_bin,
                                                                  inchikey_count,
                                                                  nr_of_pairs_per_bin,
-                                                                 max_pair_resampling)
+                                                                 max_pair_resampling,
+                                                                 )
         pair_frequency_matrixes.append(pair_frequencies)
     pair_frequency_matrixes = np.array(pair_frequency_matrixes)
     pair_frequency_matrixes[pair_frequency_matrixes == 2 * max_pair_resampling] = 0
