@@ -5,6 +5,7 @@ import numba
 import numpy as np
 from matchms import Spectrum
 from matchms.importing import load_spectra
+from tqdm import tqdm
 
 
 def save_pickled_file(obj, filename: str):
@@ -37,7 +38,7 @@ def return_non_existing_file_name(file_name):
 def load_spectra_as_list(file_name) -> List[Spectrum]:
     spectra = load_spectra(file_name, metadata_harmonization=True)
     if isinstance(spectra, Generator):
-        return list(spectra)
+        return list(tqdm(spectra, desc="Loading in spectra"))
     return spectra
 
 
