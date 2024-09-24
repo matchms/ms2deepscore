@@ -101,20 +101,140 @@ def select_compound_pairs_wrapper(
         settings.same_prob_bins,
         settings.include_diagonal)
 
-    available_pairs_per_bin = convert_selected_pairs_matrix(available_pairs_per_bin_matrix,
-                                                            available_scores_per_bin_matrix, inchikeys14_unique)
-
     # Select the nr_of_pairs_per_bin to use
-    nr_of_pairs_per_bin = settings.average_pairs_per_bin*len(inchikeys14_unique)
-    lowest_max_number_of_pairs = min(len(pairs) for pairs in available_pairs_per_bin) * settings.max_pair_resampling
-    if lowest_max_number_of_pairs < nr_of_pairs_per_bin:
-        nr_of_pairs_per_bin = lowest_max_number_of_pairs
-        print("Warning: The set average_pairs_per_bin cannot be reached. "
-              "Instead the lowest number of available pairs in a bin times the resampling is used")
+    nr_of_available_pairs_per_bin = get_nr_of_available_pairs_in_bin(available_pairs_per_bin_matrix)
+    lowest_max_number_of_pairs = min(nr_of_available_pairs_per_bin) * settings.max_pair_resampling
 
-    selected_pairs_per_bin = balanced_selection_of_pairs_per_bin(available_pairs_per_bin, inchikeys14_unique,
-                                                                 settings, nr_of_pairs_per_bin)
+    aimed_nr_of_pairs_per_bin = settings.average_pairs_per_bin*len(inchikeys14_unique)
+    if lowest_max_number_of_pairs < aimed_nr_of_pairs_per_bin:
+        print(f"Warning: The average_pairs_per_bin: {settings.average_pairs_per_bin} cannot be reached, "
+              f"since this would require "
+              f"{settings.average_pairs_per_bin} * {len(inchikeys14_unique)} = {aimed_nr_of_pairs_per_bin} pairs."
+              f"But one of the bins has only {lowest_max_number_of_pairs} available"
+              f"Instead the lowest number of available pairs in a bin times the resampling is used, "
+              f"which is: {lowest_max_number_of_pairs}")
+        aimed_nr_of_pairs_per_bin = lowest_max_number_of_pairs
+
+    pair_frequency_matrixes = balanced_selection_of_pairs_per_bin(available_pairs_per_bin_matrix,
+                                                                 settings.max_pair_resampling,
+                                                                 aimed_nr_of_pairs_per_bin)
+
+    selected_pairs_per_bin = convert_to_selected_pairs_list(pair_frequency_matrixes, available_pairs_per_bin_matrix,
+                                          available_scores_per_bin_matrix, inchikeys14_unique)
     return SelectedInchikeyPairs([pair for pairs in selected_pairs_per_bin for pair in pairs])
+
+
+def convert_to_selected_pairs_list(pair_frequency_matrixes, available_pairs_per_bin_matrix, scores_matrix,
+                                   inchikeys14_unique):
+    selected_pairs_per_bin = []
+    for bin_id, bin_pair_frequency_matrix in enumerate(tqdm(pair_frequency_matrixes)):
+        selected_pairs = []
+        for inchikey1, pair_frequency_row in enumerate(bin_pair_frequency_matrix):
+            for inchikey2_index, pair_frequency in enumerate(pair_frequency_row):
+                if pair_frequency > 0:
+                    inchikey2 = available_pairs_per_bin_matrix[bin_id][inchikey1][inchikey2_index]
+                    score = scores_matrix[bin_id][inchikey1][inchikey2_index]
+                    selected_pairs.extend([(inchikeys14_unique[inchikey1], inchikeys14_unique[inchikey2], score)]*pair_frequency)
+                    # remove duplicate pairs
+                    position_of_first_inchikey_in_matrix = available_pairs_per_bin_matrix[bin_id][inchikey2] == inchikey1
+                    bin_pair_frequency_matrix[inchikey2][position_of_first_inchikey_in_matrix] = 0
+        selected_pairs_per_bin.append(selected_pairs)
+    return selected_pairs_per_bin
+
+
+def select_balanced_pairs(available_pairs_for_bin_matrix: np.ndarray,
+                          inchikey_counts: np.ndarray,
+                          required_number_of_pairs: int,
+                          max_resampling: int):
+    """Select pairs of spectra in a balanced way. """
+
+    nr_of_pairs_selected = 0
+    # Keep track of which inchikeys are available in this bin. If all have been sampled it is removed from this list.
+    available_inchikey_indexes = list(np.arange(available_pairs_for_bin_matrix.shape[0]))
+
+    # Create a sampling frequency matrix. This matrix keeps track of how frequenctly a pair has been sampled.
+    pair_frequency = available_pairs_for_bin_matrix.copy()
+    pair_frequency[pair_frequency != -1] = 0
+    # All cases where no pair is available is set to max_resampling times 2 (can be any number > max_resampling)
+    # This ensures this pair is never selected.
+    pair_frequency[pair_frequency == -1] = max_resampling * 2
+    with tqdm(total=required_number_of_pairs, desc="sampling_balanced_pairs") as progress_bar:
+        while nr_of_pairs_selected < required_number_of_pairs:
+            # get inchikey with lowest count
+            inchikey_with_lowest_count = available_inchikey_indexes[
+                np.argmin(inchikey_counts[available_inchikey_indexes])]
+
+            # Select the pairs that have been resampled the least frequent.
+            lowest_pair_frequency = np.min(pair_frequency[inchikey_with_lowest_count])
+            if lowest_pair_frequency >= max_resampling:
+                # remove the inchikey, since it does not have any available pairs anymore
+                available_inchikey_indexes.remove(inchikey_with_lowest_count)
+                if len(available_inchikey_indexes) == 0:
+                    raise ValueError("The number of pairs available is less than required_number_of_pairs.")
+                continue
+
+            pair_indexes_with_min_count = pair_frequency[inchikey_with_lowest_count] == lowest_pair_frequency
+
+            available_inchikeys_with_min_count = available_pairs_for_bin_matrix[
+                inchikey_with_lowest_count][pair_indexes_with_min_count]
+
+            second_inchikey_with_lowest_count = available_inchikeys_with_min_count[np.argmin(
+                inchikey_counts[available_inchikeys_with_min_count])]
+
+            # Add the selected pairs to pair_frequency:
+            position_of_second_inchikey_in_matrix = available_pairs_for_bin_matrix[
+                                                        inchikey_with_lowest_count] == second_inchikey_with_lowest_count
+            pair_frequency[inchikey_with_lowest_count][position_of_second_inchikey_in_matrix] += 1
+
+            if second_inchikey_with_lowest_count != inchikey_with_lowest_count:
+                # also increase pair_frequency if duplicate
+                position_of_first_inchikey_in_matrix = available_pairs_for_bin_matrix[
+                                                           second_inchikey_with_lowest_count] == inchikey_with_lowest_count
+                pair_frequency[second_inchikey_with_lowest_count][position_of_first_inchikey_in_matrix] += 1
+            # increase inchikey counts
+            inchikey_counts[inchikey_with_lowest_count] += 1
+            inchikey_counts[second_inchikey_with_lowest_count] += 1
+            nr_of_pairs_selected += 1
+            progress_bar.update(1)
+    return pair_frequency, inchikey_counts
+
+
+def balanced_selection_of_pairs_per_bin(available_pairs_per_bin_matrix: np.ndarray,
+                                        max_pair_resampling,
+                                        nr_of_pairs_per_bin):
+    """From the list_of_pairs_per_bin a balanced selection is made to have a balanced distribution over bins and inchikeys
+    """
+
+    inchikey_count = np.zeros(available_pairs_per_bin_matrix.shape[1])
+    pair_frequency_matrixes = []
+    for pairs_in_bin in tqdm(available_pairs_per_bin_matrix,
+                             desc="Doing a balanced selection of compound pairs per bin"):
+        pair_frequencies, inchikey_count = select_balanced_pairs(pairs_in_bin,
+                                                                 inchikey_count,
+                                                                 nr_of_pairs_per_bin,
+                                                                 max_pair_resampling)
+        pair_frequency_matrixes.append(pair_frequencies)
+    pair_frequency_matrixes = np.array(pair_frequency_matrixes)
+    pair_frequency_matrixes[pair_frequency_matrixes == 2 * max_pair_resampling] = 0
+    return pair_frequency_matrixes
+
+
+def get_nr_of_available_pairs_in_bin(selected_pairs_per_bin_matrix: np.ndarray) -> List[int]:
+    """Calculates the number of unique pairs available per bin, discarding duplicated (inverted) pairs"""
+    nr_of_unique_pairs_per_bin = []
+    for bin_idx in tqdm(range(selected_pairs_per_bin_matrix.shape[0]),
+                        desc="Determining number of available pairs per bin"):
+        inchikey_indexes_1, pair_sample_position = np.where(selected_pairs_per_bin_matrix[bin_idx] != -1)
+        pairs = []
+        for i, inchikey_index_1 in enumerate(inchikey_indexes_1):
+            inchikey_index_2 = selected_pairs_per_bin_matrix[bin_idx, inchikey_index_1, pair_sample_position[i]]
+            # sort the pairs on inchikey (to later remove duplicates)
+            if inchikey_index_1 < inchikey_index_2:
+                pairs.append((inchikey_index_1, inchikey_index_2))
+            else:
+                pairs.append((inchikey_index_2, inchikey_index_1))
+        nr_of_unique_pairs_per_bin.append(len(set(pairs)))
+    return nr_of_unique_pairs_per_bin
 
 
 def convert_selected_pairs_matrix(selected_pairs_per_bin_matrix, scores_per_bin, inchikeys) -> List[List[Tuple[str, str, float]]]:
@@ -139,68 +259,6 @@ def convert_selected_pairs_matrix(selected_pairs_per_bin_matrix, scores_per_bin,
         pairs = list(set(pairs))
         selected_pairs_per_bin.append(pairs)
     return selected_pairs_per_bin
-
-
-def balanced_selection_of_pairs_per_bin(list_of_pairs_per_bin,
-                                        unique_inchikeys,
-                                        settings,
-                                        nr_of_pairs_per_bin):
-    """From the list_of_pairs_per_bin a balanced selection is made to have a balanced distribution over bins and inchikeys
-    """
-
-    inchikey_count = {inchikey: 0 for inchikey in unique_inchikeys}
-    selected_pairs_per_bin = []
-    for pairs_in_bin in tqdm(list_of_pairs_per_bin, desc="Doing a balanced selection of compound pairs per bin"):
-        selected_pairs, inchikey_count = select_balanced_pairs(pairs_in_bin,
-                                                               inchikey_count,
-                                                               nr_of_pairs_per_bin,
-                                                               settings.max_pair_resampling)
-        selected_pairs_per_bin.append(selected_pairs)
-    return selected_pairs_per_bin
-
-
-def select_balanced_pairs(list_of_available_pairs: List[Tuple[str, str, float]],
-                          inchikey_counts: dict,
-                          required_number_of_pairs: int,
-                          max_resampling: int):
-    """Select pairs of spectra in a balanced way. """
-
-    selected_pairs = []
-    # Select only the inchikeys that have a pair available for this bin.
-    available_inchikey_indexes = get_available_inchikey_indexes(list_of_available_pairs)
-    # Store the frequency each pair has been sampled for keeping track of resampling
-    pair_frequency = {pair: 0 for pair in list_of_available_pairs}
-
-    while len(selected_pairs) < required_number_of_pairs:
-        # get inchikey with lowest count
-        inchikey_with_lowest_count = get_available_inchikeys_with_lowest_count(available_inchikey_indexes,
-                                                                               inchikey_counts)
-        # actually select pairs (instead of single inchikeys)
-        available_pairs_for_least_frequent_inchikey = select_available_pairs(list_of_available_pairs,
-                                                                             inchikey_with_lowest_count)
-        # Select the pairs that have been resampled the least frequent.
-        available_pairs_with_least_frequency = select_least_frequent_pairs(available_pairs_for_least_frequent_inchikey,
-                                                                           pair_frequency,
-                                                                           max_resampling)
-
-        if available_pairs_with_least_frequency is None:
-            # remove the inchikey, since it does not have any available pairs anymore
-            available_inchikey_indexes.remove(inchikey_with_lowest_count)
-            if len(available_inchikey_indexes) == 0:
-                raise ValueError("The number of pairs available is less than required_number_of_pairs.")
-            continue
-        idx_1, idx_2, score = select_second_least_frequent_inchikey(inchikey_counts,
-                                                                    available_pairs_with_least_frequency,
-                                                                    inchikey_with_lowest_count)
-
-        # Add the selected pair
-        selected_pairs.append((idx_1, idx_2, score))
-
-        # Increase count of pair and inchikeys
-        pair_frequency[(idx_1, idx_2, score)] += 1
-        inchikey_counts[idx_1] += 1
-        inchikey_counts[idx_2] += 1
-    return selected_pairs, inchikey_counts
 
 
 def select_second_least_frequent_inchikey(inchikey_counts, available_pairs, least_frequent_inchikey):
