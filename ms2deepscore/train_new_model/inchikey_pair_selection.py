@@ -1,4 +1,3 @@
-import logging
 from collections import Counter
 from typing import List, Tuple
 import numpy as np
