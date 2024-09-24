@@ -9,8 +9,7 @@ from ms2deepscore import SettingsMS2Deepscore
 from ms2deepscore.train_new_model.inchikey_pair_selection import (
     compute_jaccard_similarity_per_bin, convert_pair_array_to_coo_array,
     SelectedInchikeyPairs,
-    select_inchi_for_unique_inchikeys, select_compound_pairs_wrapper, compute_fingerprints_for_training,
-    convert_selected_pairs_matrix)
+    select_inchi_for_unique_inchikeys, select_compound_pairs_wrapper, compute_fingerprints_for_training)
 from tests.create_test_spectra import create_test_spectra
 
 
@@ -222,21 +221,16 @@ def get_available_score_distribution(settings, spectra):
         settings.same_prob_bins,
         settings.include_diagonal)
 
-    available_pairs_per_bin = convert_selected_pairs_matrix(available_pairs_per_bin_matrix,
-                                                            available_scores_per_bin_matrix, inchikeys14_unique)
-
     score_distribution_per_inchikey = {inchikey: [0]*len(settings.same_prob_bins) for inchikey in inchikeys14_unique}
-    for available_pairs in available_pairs_per_bin:
-        for inchikey_1, inchikey_2, score in available_pairs:
-            for i, score_bin in enumerate(settings.same_prob_bins):
-                if score > score_bin[0] and score <= score_bin[1]:
-                    score_distribution_per_inchikey[inchikey_1][i] += 1
-                    score_distribution_per_inchikey[inchikey_2][i] += 1
+    for bin_id, available_pairs in enumerate(available_pairs_per_bin_matrix):
+        for inchikey_1_idx, row_of_pairs in enumerate(available_pairs):
+            inchikey_1 = inchikeys14_unique[inchikey_1_idx]
+            score_distribution_per_inchikey[inchikey_1][bin_id] = len(np.where(row_of_pairs != -1)[0])
     return score_distribution_per_inchikey
 
 
 def print_balanced_bins_per_inchikey(selected_inchikey_pairs: SelectedInchikeyPairs, settings, spectra):
-    """Prints the availabl distribution and the balanced distribution
+    """Prints the available distribution and the balanced distribution
 
     Currently doesn't do any checks, because it is hard to check if the wanted behaviour is achieved,
     since it is different for small test sets compared to large test sets."""
