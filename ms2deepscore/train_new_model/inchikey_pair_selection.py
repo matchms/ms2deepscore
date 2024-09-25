@@ -1,5 +1,6 @@
 from collections import Counter
 from typing import List, Tuple
+import heapq
 import numpy as np
 from matchms import Spectrum
 from matchms.filtering import add_fingerprint
@@ -244,10 +245,6 @@ def convert_to_selected_pairs_list(pair_frequency_matrixes: np.ndarray,
     return selected_pairs_per_bin
 
 
-import numpy as np
-from tqdm import tqdm
-import heapq
-
 def select_balanced_pairs(available_pairs_for_bin_matrix: np.ndarray,
                           inchikey_counts: np.ndarray,
                           required_number_of_pairs: int,
@@ -280,7 +277,7 @@ def select_balanced_pairs(available_pairs_for_bin_matrix: np.ndarray,
     inchikey_counts:
         The updated inchikey counts.
     """
-
+    # pylint: disable=too-many-locals
     num_inchikeys = available_pairs_for_bin_matrix.shape[0]
 
     # Initialize pair frequency matrix
