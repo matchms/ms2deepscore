@@ -1,6 +1,5 @@
 import json
 import warnings
-from collections import Counter
 from datetime import datetime
 from json import JSONEncoder
 from typing import Optional
