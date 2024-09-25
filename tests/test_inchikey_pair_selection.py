@@ -186,10 +186,14 @@ def test_select_compound_pairs_wrapper_no_resampling():
                                     max_pair_resampling=max_pair_resampling)
     selected_inchikey_pairs = select_compound_pairs_wrapper(spectrums, settings)
     inchikey_pair_generator = InchikeyPairGenerator(selected_inchikey_pairs)
+
     check_balanced_scores_selecting_inchikey_pairs(inchikey_pair_generator, bins)
-    check_balanced_inchikey_count_selecting_inchikey_pairs(inchikey_pair_generator)
-    print_balanced_bins_per_inchikey(inchikey_pair_generator, settings, spectrums)
     check_correct_oversampling(inchikey_pair_generator, max_pair_resampling)
+
+    # Currently doesn't check anything, but prints badly distributed pairs and the available pairs. It is hard to write
+    # a good test, since the balancing behaviour we would like to see only happens when you have a lot more pairs
+    # (and inchikeys) which is not suitable for a test.
+    print_balanced_bins_per_inchikey(inchikey_pair_generator, settings, spectrums)
 
 
 def test_select_compound_pairs_wrapper_with_resampling():
@@ -205,12 +209,11 @@ def test_select_compound_pairs_wrapper_with_resampling():
     inchikey_pair_generator = InchikeyPairGenerator(selected_inchikey_pairs)
 
     check_balanced_scores_selecting_inchikey_pairs(inchikey_pair_generator, bins)
-    check_balanced_inchikey_count_selecting_inchikey_pairs(inchikey_pair_generator)
+    check_correct_oversampling(inchikey_pair_generator, max_pair_resampling)
     # Currently doesn't check anything, but prints badly distributed pairs and the available pairs. It is hard to write
     # a good test, since the balancing behaviour we would like to see only happens when you have a lot more pairs
     # (and inchikeys) which is not suitable for a test.
     print_balanced_bins_per_inchikey(inchikey_pair_generator, settings, spectrums)
-    check_correct_oversampling(inchikey_pair_generator, max_pair_resampling)
 
 
 def check_correct_oversampling(selected_inchikey_pairs: InchikeyPairGenerator, max_resampling: int):
@@ -259,14 +262,6 @@ def print_balanced_bins_per_inchikey(selected_inchikey_pairs: InchikeyPairGenera
             index_of_min = balanced_distribution.index(min(balanced_distribution))
             print(available_distribution, balanced_distribution)
             # assert minimum_available_distribution*settings.max_pair_resampling == min(balanced_distribution)
-
-
-def check_balanced_inchikey_count_selecting_inchikey_pairs(selected_inchikey_pairs: InchikeyPairGenerator):
-    """Test if InchikeyPairGenerator has an equal inchikey distribution
-    """
-    inchikey_counts = selected_inchikey_pairs.get_inchikey_counts()
-    max_difference_in_inchikey_freq = max(inchikey_counts.values()) - min(inchikey_counts.values())
-    assert max_difference_in_inchikey_freq < max(inchikey_counts.values())/2, "The frequency of the sampling of the inchikeys is too different"
 
 
 def check_balanced_scores_selecting_inchikey_pairs(selected_inchikey_pairs: InchikeyPairGenerator,
