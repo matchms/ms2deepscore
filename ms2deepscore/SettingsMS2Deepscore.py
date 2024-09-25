@@ -229,6 +229,8 @@ def validate_bin_order(score_bins):
         low, high = score_bin
         if low > high:
             raise ValueError("The first number in the bin should be smaller than or equal to the second")
+        if high < 0:
+            raise ValueError("No bin should be entirely below 0.")
         if previous_high is not None:
             if low != previous_high:
                 raise ValueError("There is a gap or overlap between bins; The bins should cover everything between 0 and 1.")
