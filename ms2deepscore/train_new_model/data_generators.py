@@ -368,5 +368,5 @@ class InchikeyPairGenerator:
     def save_as_json(self, file_name):
         data_for_json = [(item[0], item[1], float(item[2])) for item in self.selected_inchikey_pairs]
 
-        with open(file_name, "w") as f:
+        with open(file_name, "w", encoding="utf-8") as f:
             json.dump(data_for_json, f)

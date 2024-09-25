@@ -166,11 +166,10 @@ class SettingsMS2Deepscore:
                 else:
                     if validate_settings:
                         raise ValueError(f"Unknown setting: {key}")
-                    else:
-                        # When loading an older model, there can be incompatibilities between training settings.
-                        #  If these settings were just used during training it should not break the loading of a model,
-                        #  since it does not affect how the model runs.
-                        setattr(self, key, value)
+                    # When loading an older model, there can be incompatibilities between training settings.
+                    #  If these settings were just used during training it should not break the loading of a model,
+                    #  since it does not affect how the model runs.
+                    setattr(self, key, value)
 
         if validate_settings:
             self.validate_settings()
@@ -235,7 +234,7 @@ def validate_bin_order(score_bins):
             f"But {bin_borders_below_zero} bin borders with value 1 are found")
     for count in border_counts.values():
         if count != 2:
-            raise ValueError(f"There is a gap in the bins, the bins should cover everything between 0 and 1.")
+            raise ValueError("There is a gap in the bins, the bins should cover everything between 0 and 1.")
 
 
 class SettingsEmbeddingEvaluator:
