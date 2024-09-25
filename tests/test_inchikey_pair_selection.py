@@ -220,10 +220,8 @@ def check_correct_oversampling(selected_inchikey_pairs: InchikeyPairGenerator, m
 
 def get_available_score_distribution(settings, spectra):
     """Gets the score distribution for the available pairs (before doing balanced selection)"""
-    fingerprints, inchikeys14_unique = compute_fingerprints_for_training(
-        spectra,
-        settings.fingerprint_type,
-        settings.fingerprint_nbits)
+    fingerprints, inchikeys14_unique = compute_fingerprints_for_training(spectra, settings.fingerprint_type,
+                                                                         settings.fingerprint_nbits)
 
     available_pairs_per_bin_matrix, available_scores_per_bin_matrix = compute_jaccard_similarity_per_bin(
         fingerprints,
