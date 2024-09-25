@@ -4,6 +4,7 @@ import json
 from collections import Counter
 from typing import List, Tuple
 import numpy as np
+import pandas as pd
 import torch
 from matchms import Spectrum
 from matchms.similarity.vector_similarity_functions import \
@@ -12,7 +13,7 @@ from ms2deepscore.SettingsMS2Deepscore import (SettingsEmbeddingEvaluator,
                                                SettingsMS2Deepscore)
 from ms2deepscore.tensorize_spectra import tensorize_spectra
 from ms2deepscore.train_new_model.inchikey_pair_selection import (
-    compute_fingerprint_dataframe, select_compound_pairs_wrapper)
+    select_compound_pairs_wrapper, compute_fingerprints_for_training)
 from ms2deepscore.vector_operations import cosine_similarity_matrix
 
 
@@ -241,8 +242,8 @@ class DataGeneratorEmbeddingEvaluation:
         self.ms2ds_model.to(self.device)
         self.indexes = np.arange(len(self.spectrums))
         self.batch_size = self.settings.evaluator_distribution_size
-        self.fingerprint_df = compute_fingerprint_dataframe(self.spectrums,
-                                                            fingerprint_type=self.ms2ds_model.model_settings.fingerprint_type,
+        self.fingerprint_df = self.compute_fingerprint_dataframe(self.spectrums,
+                                                                 fingerprint_type=self.ms2ds_model.model_settings.fingerprint_type,
                                                             fingerprint_nbits=self.ms2ds_model.model_settings.fingerprint_nbits)
 
         # Initialize random number generator
@@ -291,6 +292,25 @@ class DataGeneratorEmbeddingEvaluation:
         """Generate one batch of data.
         """
         return self._compute_embeddings_and_scores(batch_index)
+
+    def compute_fingerprint_dataframe(self,
+                                      spectrums: List[Spectrum],
+                                      fingerprint_type,
+                                      fingerprint_nbits,
+                                      ) -> pd.DataFrame:
+        """Returns a dataframe with a fingerprints dataframe
+
+        spectrums:
+            A list of spectra
+        settings:
+            The settings that should be used for selecting the compound pairs wrapper. The settings should be specified as a
+            SettingsMS2Deepscore object.
+        """
+        fingerprints, inchikeys14_unique = compute_fingerprints_for_training(spectrums, fingerprint_type,
+                                                                             fingerprint_nbits)
+
+        fingerprints_df = pd.DataFrame(fingerprints, index=inchikeys14_unique)
+        return fingerprints_df
 
 
 class InchikeyPairGenerator:

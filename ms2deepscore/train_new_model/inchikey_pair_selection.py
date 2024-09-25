@@ -1,7 +1,6 @@
 from collections import Counter
 from typing import List, Tuple
 import numpy as np
-import pandas as pd
 from matchms import Spectrum
 from matchms.filtering import add_fingerprint
 from matchms.similarity.vector_similarity_functions import jaccard_index
@@ -9,16 +8,16 @@ from numba import jit, prange
 from tqdm import tqdm
 from ms2deepscore.SettingsMS2Deepscore import SettingsMS2Deepscore
 
-from ms2deepscore.train_new_model import InchikeyPairGenerator
+from ms2deepscore.train_new_model.data_generators import InchikeyPairGenerator
 
 
 def select_compound_pairs_wrapper(
-        spectrums: List[Spectrum],
+        spectra: List[Spectrum],
         settings: SettingsMS2Deepscore,
-        ) -> InchikeyPairGenerator:
-    """Returns a SelectedCompoundPairs object containing equally balanced pairs over the different bins
+) -> InchikeyPairGenerator:
+    """Returns a InchikeyPairGenerator object containing equally balanced pairs over the different bins
 
-    spectrums:
+    spectra:
         A list of spectra
     settings:
         The settings that should be used for selecting the compound pairs wrapper. The settings should be specified as a
@@ -26,15 +25,14 @@ def select_compound_pairs_wrapper(
 
     Returns
     -------
-    scores
-        Sparse array (List of lists) with cherrypicked scores.
+    InchikeyPairGenerator
+        InchikeyPairGenerator containing balanced pairs. The pairs are stored as [(inchikey1, inchikey2, score)]
     """
     if settings.random_seed is not None:
         np.random.seed(settings.random_seed)
-    fingerprints, inchikeys14_unique = compute_fingerprints_for_training(
-        spectrums,
-        settings.fingerprint_type,
-        settings.fingerprint_nbits)
+
+    fingerprints, inchikeys14_unique = compute_fingerprints_for_training(spectra, settings.fingerprint_type,
+                                                                         settings.fingerprint_nbits)
 
     available_pairs_per_bin_matrix, available_scores_per_bin_matrix = compute_jaccard_similarity_per_bin(
         fingerprints,
@@ -42,31 +40,194 @@ def select_compound_pairs_wrapper(
         settings.same_prob_bins,
         settings.include_diagonal)
 
+    aimed_nr_of_pairs_per_bin = determine_aimed_nr_of_pairs_per_bin(available_pairs_per_bin_matrix,
+                                                                    settings,
+                                                                    nr_of_inchikeys=len(inchikeys14_unique))
+
+    pair_frequency_matrixes = balanced_selection_of_pairs_per_bin(available_pairs_per_bin_matrix,
+                                                                  settings.max_pair_resampling,
+                                                                  aimed_nr_of_pairs_per_bin)
+
+    selected_pairs_per_bin = convert_to_selected_pairs_list(pair_frequency_matrixes, available_pairs_per_bin_matrix,
+                                                            available_scores_per_bin_matrix, inchikeys14_unique)
+    return InchikeyPairGenerator([pair for pairs in selected_pairs_per_bin for pair in pairs])
+
+
+def compute_fingerprints_for_training(spectra,
+                                      fingerprint_type: str = "daylight",
+                                      nbits: int = 2048):
+    """Calculates fingerprints for each unique inchikey.
+
+    Function returns only the inchikeys for which a fingerprint could be calculated.
+
+    Parameters
+    ----------
+    spectra:
+        The spectra for which fingerprints should be calculated
+    fingerprint_type:
+        The fingerprint type that should be used for tanimoto score calculations.
+    nbits:
+        The number of bits to use for the fingerprint.
+    """
+    if len(spectra) == 0:
+        raise ValueError("No spectra were selected to calculate fingerprints")
+
+    spectra_selected, inchikeys14_unique = select_inchi_for_unique_inchikeys(spectra)
+    print(f"Selected {len(spectra_selected)} spectra with unique inchikeys for calculating tanimoto scores "
+          f"(out of {len(spectra)} spectra)")
+
+    # Compute fingerprints using matchms
+    spectra_selected = [add_fingerprint(s, fingerprint_type, nbits) \
+                            if s.get("fingerprint") is None else s for s in spectra_selected]
+
+    # Ignore missing / not-computed fingerprints
+    fingerprints = [s.get("fingerprint") for s in tqdm(spectra_selected,
+                                                       desc="Calculating fingerprints")]
+    idx = np.array([i for i, x in enumerate(fingerprints) if x is not None]).astype(int)
+    if len(idx) == 0:
+        raise ValueError("No fingerprints could be computed")
+    if len(idx) < len(fingerprints):
+        print(f"Successfully generated fingerprints for {len(idx)} of {len(fingerprints)} spectra")
+
+    fingerprints = np.array([fingerprints[i] for i in idx])
+    inchikeys14_unique = [inchikeys14_unique[i] for i in idx]
+    return fingerprints, inchikeys14_unique
+
+
+@jit(nopython=True, parallel=True)
+def compute_jaccard_similarity_per_bin(
+        fingerprints,
+        max_pairs_per_bin,
+        selection_bins=np.array([(x / 10, x / 10 + 0.1) for x in range(10)]),
+        include_diagonal=True) -> Tuple[np.ndarray, np.ndarray]:
+    """Randomly selects compound pairs per tanimoto bin, up to max_pairs_per_bin
+
+    returns:
+    2 3d numpy arrays are returned, the first encodes the pairs per bin and the second the corresponding scores.
+    A 3D numpy array with shape [nr_of_bins, nr_of_fingerprints, max_pairs_per_bin].
+    An example structure for bin 1, with 3 fingerprints and max_pairs_per_bin =4 would be:
+    [[1,2,-1,-1],
+    [0,3,-1,-1],
+    [0,2,-1,-1],]
+    The pairs are encoded by the index and the value.
+    So the first row encodes pairs between fingerpint 0 and 1, fingerprint 0 and 2.
+    The -1 encode that no more pairs were found for this fingerprint in this bin.
+    """
+
+    size = fingerprints.shape[0]
+    num_bins = len(selection_bins)
+
+    selected_pairs_per_bin = -1 * np.ones((num_bins, size, max_pairs_per_bin), dtype=np.int32)
+    selected_scores_per_bin = np.zeros((num_bins, size, max_pairs_per_bin), dtype=np.float32)
+
+    # pylint: disable=not-an-iterable
+    for idx_fingerprint_i in prange(size):
+        tanimoto_scores = tanimoto_scores_row(fingerprints, idx_fingerprint_i)
+
+        for bin_number in range(num_bins):
+            selection_bin = selection_bins[bin_number]
+            indices = np.nonzero((tanimoto_scores > selection_bin[0]) & (tanimoto_scores <= selection_bin[1]))[0]
+
+            if not include_diagonal and idx_fingerprint_i in indices:
+                indices = indices[indices != idx_fingerprint_i]
+
+            np.random.shuffle(indices)
+            indices = indices[:max_pairs_per_bin]
+            num_indices = len(indices)
+
+            selected_pairs_per_bin[bin_number, idx_fingerprint_i, :num_indices] = indices
+            selected_scores_per_bin[bin_number, idx_fingerprint_i, :num_indices] = tanimoto_scores[indices]
+
+    return selected_pairs_per_bin, selected_scores_per_bin
+
+
+def determine_aimed_nr_of_pairs_per_bin(available_pairs_per_bin_matrix, settings, nr_of_inchikeys):
+    """Determines the aimed_nr_of_pairs_per_bin.
+    If the settings given are higher than the highest possible number of pairs it is lowered to that"""
+
     # Select the nr_of_pairs_per_bin to use
     nr_of_available_pairs_per_bin = get_nr_of_available_pairs_in_bin(available_pairs_per_bin_matrix)
     lowest_max_number_of_pairs = min(nr_of_available_pairs_per_bin) * settings.max_pair_resampling
     print(f"The available nr of pairs per bin are: {nr_of_available_pairs_per_bin}")
-    aimed_nr_of_pairs_per_bin = settings.average_pairs_per_bin*len(inchikeys14_unique)
+    aimed_nr_of_pairs_per_bin = settings.average_pairs_per_bin * nr_of_inchikeys
     if lowest_max_number_of_pairs < aimed_nr_of_pairs_per_bin:
         print(f"Warning: The average_pairs_per_bin: {settings.average_pairs_per_bin} cannot be reached, "
               f"since this would require "
-              f"{settings.average_pairs_per_bin} * {len(inchikeys14_unique)} = {aimed_nr_of_pairs_per_bin} pairs."
+              f"{settings.average_pairs_per_bin} * {nr_of_inchikeys} = {aimed_nr_of_pairs_per_bin} pairs."
               f"But one of the bins has only {lowest_max_number_of_pairs} available"
               f"Instead the lowest number of available pairs in a bin times the resampling is used, "
               f"which is: {lowest_max_number_of_pairs}")
         aimed_nr_of_pairs_per_bin = lowest_max_number_of_pairs
-
-    pair_frequency_matrixes = balanced_selection_of_pairs_per_bin(available_pairs_per_bin_matrix,
-                                                                 settings.max_pair_resampling,
-                                                                 aimed_nr_of_pairs_per_bin)
-
-    selected_pairs_per_bin = convert_to_selected_pairs_list(pair_frequency_matrixes, available_pairs_per_bin_matrix,
-                                          available_scores_per_bin_matrix, inchikeys14_unique)
-    return InchikeyPairGenerator([pair for pairs in selected_pairs_per_bin for pair in pairs])
+    return aimed_nr_of_pairs_per_bin
 
 
-def convert_to_selected_pairs_list(pair_frequency_matrixes, available_pairs_per_bin_matrix, scores_matrix,
-                                   inchikeys14_unique):
+def balanced_selection_of_pairs_per_bin(available_pairs_per_bin_matrix: np.ndarray,
+                                        max_pair_resampling,
+                                        nr_of_pairs_per_bin):
+    """From the list_of_pairs_per_bin a balanced selection is made to have a balanced distribution.
+
+    The algorithm is designed to have a perfect balance over the tanimoto bins,
+    a close to equal sampling of all inchikeys
+    and a  close to equal distribution of pairs per inchikey over the bins.
+
+    This is achieved by storing the inchikey counts in the sampled pairs.
+    The bins are sampled in the order they appear in available_pairs_per_bin_matrix
+    (which is determined by the order in settings.same_prob_bins.
+    The least frequent sampled inchikeys are always sampled first,
+    resulting in a well balanced distribution over the bins.
+
+    Parameters
+    ----------
+    available_pairs_per_bin_matrix:
+        A numpy 3D matrix. The first dimension is the tanimoto bins.
+        For each tanimoto bin a matrix is stored with pairs. The indexes of the rows are the indexes of the first
+        inchikey of the pair and the value given in the rows are the indexes of the second inchikey of the pair.
+        If the value is -1 it indicates that there were no more pairs available for this inchikey in this bin.
+    max_pair_resampling:
+        The maximum number of times a pair can be resampled.
+        Resampling means that the exact same inchikey pair is added multiple times to the list of pairs.
+    nr_of_pairs_per_bin:
+        The number of pairs that should be sampled for each tanimoto bin.
+    """
+
+    inchikey_count = np.zeros(available_pairs_per_bin_matrix.shape[1])
+    pair_frequency_matrixes = []
+    for pairs_in_bin in available_pairs_per_bin_matrix:
+        pair_frequencies, inchikey_count = select_balanced_pairs(pairs_in_bin,
+                                                                 inchikey_count,
+                                                                 nr_of_pairs_per_bin,
+                                                                 max_pair_resampling,
+                                                                 )
+        pair_frequency_matrixes.append(pair_frequencies)
+    pair_frequency_matrixes = np.array(pair_frequency_matrixes)
+    pair_frequency_matrixes[pair_frequency_matrixes == 2 * max_pair_resampling] = 0
+    return pair_frequency_matrixes
+
+
+def convert_to_selected_pairs_list(pair_frequency_matrixes: np.ndarray,
+                                   available_pairs_per_bin_matrix: np.ndarray,
+                                   scores_matrix: np.ndarray,
+                                   inchikeys14_unique: List[str]):
+    """Convert the matrixes denoting the pairs to a list of pairs, encoded as [(inchikey1, inchikey2, score)]
+
+    Parameters
+    ----------
+    pair_frequency_matrixes:
+        The frequency each pair should be sampled.
+        The positions correspond to available_pairs_per_bin_matrix,
+        but contain the frequency of sampling for the corresponding pairs.
+    available_pairs_per_bin_matrix:
+        A numpy 3D matrix. The first dimension is the tanimoto bins.
+        For each tanimoto bin a matrix is stored with pairs. The indexes of the rows are the indexes of the first
+        inchikey of the pair and the value given in the rows are the indexes of the second inchikey of the pair.
+        If the value is -1 it indicates that there were no more pairs available for this inchikey in this bin.
+    scores_matrix:
+        A numpy 3D matrix containing the scores per pair.
+        The positions correspond to available_pairs_per_bin_matrix, but contain the scores for the corresponding pairs.
+    inchikeys14_unique:
+        List of inchikeys.
+        This is used to map the indexes of inchikeys used in the matrixes, to the corresponding inchikeys.
+    """
     selected_pairs_per_bin = []
     for bin_id, bin_pair_frequency_matrix in enumerate(tqdm(pair_frequency_matrixes)):
         selected_pairs = []
@@ -75,9 +236,11 @@ def convert_to_selected_pairs_list(pair_frequency_matrixes, available_pairs_per_
                 if pair_frequency > 0:
                     inchikey2 = available_pairs_per_bin_matrix[bin_id][inchikey1][inchikey2_index]
                     score = scores_matrix[bin_id][inchikey1][inchikey2_index]
-                    selected_pairs.extend([(inchikeys14_unique[inchikey1], inchikeys14_unique[inchikey2], score)]*pair_frequency)
+                    selected_pairs.extend(
+                        [(inchikeys14_unique[inchikey1], inchikeys14_unique[inchikey2], score)] * pair_frequency)
                     # remove duplicate pairs
-                    position_of_first_inchikey_in_matrix = available_pairs_per_bin_matrix[bin_id][inchikey2] == inchikey1
+                    position_of_first_inchikey_in_matrix = available_pairs_per_bin_matrix[bin_id][
+                                                               inchikey2] == inchikey1
                     bin_pair_frequency_matrix[inchikey2][position_of_first_inchikey_in_matrix] = 0
         selected_pairs_per_bin.append(selected_pairs)
     return selected_pairs_per_bin
@@ -141,26 +304,6 @@ def select_balanced_pairs(available_pairs_for_bin_matrix: np.ndarray,
     return pair_frequency, inchikey_counts
 
 
-def balanced_selection_of_pairs_per_bin(available_pairs_per_bin_matrix: np.ndarray,
-                                        max_pair_resampling,
-                                        nr_of_pairs_per_bin):
-    """From the list_of_pairs_per_bin a balanced selection is made to have a balanced distribution over bins and inchikeys
-    """
-
-    inchikey_count = np.zeros(available_pairs_per_bin_matrix.shape[1])
-    pair_frequency_matrixes = []
-    for pairs_in_bin in available_pairs_per_bin_matrix:
-        pair_frequencies, inchikey_count = select_balanced_pairs(pairs_in_bin,
-                                                                 inchikey_count,
-                                                                 nr_of_pairs_per_bin,
-                                                                 max_pair_resampling,
-                                                                 )
-        pair_frequency_matrixes.append(pair_frequencies)
-    pair_frequency_matrixes = np.array(pair_frequency_matrixes)
-    pair_frequency_matrixes[pair_frequency_matrixes == 2 * max_pair_resampling] = 0
-    return pair_frequency_matrixes
-
-
 def get_nr_of_available_pairs_in_bin(selected_pairs_per_bin_matrix: np.ndarray) -> List[int]:
     """Calculates the number of unique pairs available per bin, discarding duplicated (inverted) pairs"""
     nr_of_unique_pairs_per_bin = []
@@ -179,53 +322,6 @@ def get_nr_of_available_pairs_in_bin(selected_pairs_per_bin_matrix: np.ndarray) 
     return nr_of_unique_pairs_per_bin
 
 
-@jit(nopython=True, parallel=True)
-def compute_jaccard_similarity_per_bin(
-        fingerprints,
-        max_pairs_per_bin,
-        selection_bins=np.array([(x / 10, x / 10 + 0.1) for x in range(10)]),
-        include_diagonal=True) -> Tuple[np.ndarray, np.ndarray]:
-    """Randomly selects compound pairs per tanimoto bin, up to max_pairs_per_bin
-
-    returns:
-    2 3d numpy arrays are returned, the first encodes the pairs per bin and the second the corresponding scores.
-    A 3D numpy array with shape [nr_of_bins, nr_of_fingerprints, max_pairs_per_bin].
-    An example structure for bin 1, with 3 fingerprints and max_pairs_per_bin =4 would be:
-    [[1,2,-1,-1],
-    [0,3,-1,-1],
-    [0,2,-1,-1],]
-    The pairs are encoded by the index and the value.
-    So the first row encodes pairs between fingerpint 0 and 1, fingerprint 0 and 2.
-    The -1 encode that no more pairs were found for this fingerprint in this bin.
-    """
-
-    size = fingerprints.shape[0]
-    num_bins = len(selection_bins)
-
-    selected_pairs_per_bin = -1 * np.ones((num_bins, size, max_pairs_per_bin), dtype=np.int32)
-    selected_scores_per_bin = np.zeros((num_bins, size, max_pairs_per_bin), dtype=np.float32)
-
-    # pylint: disable=not-an-iterable
-    for idx_fingerprint_i in prange(size):
-        tanimoto_scores = tanimoto_scores_row(fingerprints, idx_fingerprint_i)
-
-        for bin_number in range(num_bins):
-            selection_bin = selection_bins[bin_number]
-            indices = np.nonzero((tanimoto_scores > selection_bin[0]) & (tanimoto_scores <= selection_bin[1]))[0]
-
-            if not include_diagonal and idx_fingerprint_i in indices:
-                indices = indices[indices != idx_fingerprint_i]
-
-            np.random.shuffle(indices)
-            indices = indices[:max_pairs_per_bin]
-            num_indices = len(indices)
- 
-            selected_pairs_per_bin[bin_number, idx_fingerprint_i, :num_indices] = indices
-            selected_scores_per_bin[bin_number, idx_fingerprint_i, :num_indices] = tanimoto_scores[indices]
-
-    return selected_pairs_per_bin, selected_scores_per_bin
-
-
 @jit(nopython=True)
 def tanimoto_scores_row(fingerprints, idx):
     size = fingerprints.shape[0]
@@ -238,70 +334,10 @@ def tanimoto_scores_row(fingerprints, idx):
         tanimoto_scores[idx_fingerprint_j] = tanimoto_score
     return tanimoto_scores
 
-def compute_fingerprint_dataframe(
-        spectrums: List[Spectrum],
-        fingerprint_type,
-        fingerprint_nbits,
-        ) -> pd.DataFrame:
-    """Returns a dataframe with a fingerprints dataframe
-
-    spectrums:
-        A list of spectra
-    settings:
-        The settings that should be used for selecting the compound pairs wrapper. The settings should be specified as a
-        SettingsMS2Deepscore object.
-    """
-    fingerprints, inchikeys14_unique = compute_fingerprints_for_training(
-        spectrums,
-        fingerprint_type,
-        fingerprint_nbits)
-
-    fingerprints_df = pd.DataFrame(fingerprints, index=inchikeys14_unique)
-    return fingerprints_df
-
-
-def compute_fingerprints_for_training(spectrums,
-                                      fingerprint_type: str = "daylight",
-                                      nbits: int = 2048):
-    """Calculates fingerprints for each unique inchikey.
-
-    Function also removes spectra for which no fingerprint could be created.
-
-    Parameters
-    ----------
-    fingerprint_type:
-        The fingerprint type that should be used for tanimoto score calculations.
-    fingerprint_nbits:
-        The number of bits to use for the fingerprint.
-    """
-    if len(spectrums) == 0:
-        raise ValueError("No spectra were selected to calculate fingerprints")
-
-    spectra_selected, inchikeys14_unique = select_inchi_for_unique_inchikeys(spectrums)
-    print(f"Selected {len(spectra_selected)} spectra with unique inchikeys for calculating tanimoto scores "
-          f"(out of {len(spectrums)} spectra)")
-
-    # Compute fingerprints using matchms
-    spectra_selected = [add_fingerprint(s, fingerprint_type, nbits)\
-                        if s.get("fingerprint") is None else s for s in spectra_selected]
-
-    # Ignore missing / not-computed fingerprints
-    fingerprints = [s.get("fingerprint") for s in tqdm(spectra_selected,
-                                                       desc="Calculating fingerprints")]
-    idx = np.array([i for i, x in enumerate(fingerprints) if x is not None]).astype(int)
-    if len(idx) == 0:
-        raise ValueError("No fingerprints could be computed")
-    if len(idx) < len(fingerprints):
-        print(f"Successfully generated fingerprints for {len(idx)} of {len(fingerprints)} spectra")
-
-    fingerprints = np.array([fingerprints[i] for i in idx])
-    inchikeys14_unique = [inchikeys14_unique[i] for i in idx]
-    return fingerprints, inchikeys14_unique
-
 
 def select_inchi_for_unique_inchikeys(
         list_of_spectra: List['Spectrum']
-        ) -> Tuple[List['Spectrum'], List[str]]:
+) -> Tuple[List['Spectrum'], List[str]]:
     """Select spectra with most frequent inchi for unique inchikeys.
 
     Method needed to calculate Tanimoto scores.
