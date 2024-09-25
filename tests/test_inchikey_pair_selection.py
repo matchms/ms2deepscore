@@ -7,8 +7,7 @@ from matchms import Spectrum
 
 from ms2deepscore import SettingsMS2Deepscore
 from ms2deepscore.train_new_model.inchikey_pair_selection import (
-    compute_jaccard_similarity_per_bin, convert_pair_array_to_coo_array,
-    SelectedInchikeyPairs,
+    compute_jaccard_similarity_per_bin, SelectedInchikeyPairs,
     select_inchi_for_unique_inchikeys, select_compound_pairs_wrapper, compute_fingerprints_for_training)
 from tests.create_test_spectra import create_test_spectra
 
@@ -68,57 +67,68 @@ def dummy_spectrum_pairs():
 
 
 def test_compute_jaccard_similarity_per_bin(simple_fingerprints):
-    selected_pairs_per_bin, selected_scores_per_bin = compute_jaccard_similarity_per_bin(
-        simple_fingerprints, max_pairs_per_bin=4)
-    matrix_numba = convert_pair_array_to_coo_array(
-        selected_pairs_per_bin, selected_scores_per_bin, simple_fingerprints.shape[0])
-    
+    max_pairs_per_bin = 5
+    nr_of_bins = 10
+    selection_bins = np.array([(x / nr_of_bins, x / nr_of_bins + 1/ nr_of_bins) for x in range(nr_of_bins)])
+    selected_pairs_per_bin_numba, selected_scores_per_bin_numba = compute_jaccard_similarity_per_bin(
+        simple_fingerprints, max_pairs_per_bin=max_pairs_per_bin,
+        selection_bins=selection_bins)
+
     # Uncompiled
-    selected_pairs_per_bin, selected_scores_per_bin = compute_jaccard_similarity_per_bin.py_func(
-        simple_fingerprints, max_pairs_per_bin=4)
-    matrix_py = convert_pair_array_to_coo_array(
-        selected_pairs_per_bin, selected_scores_per_bin, simple_fingerprints.shape[0])
-    
-    for matrix in [matrix_numba, matrix_py]:
-        assert matrix.shape == (4, 4)
-        assert np.allclose(matrix.diagonal(), 1.0)
-        assert matrix.nnz > 0  # Make sure there are some non-zero entries
+    selected_pairs_per_bin_py, selected_scores_per_bin_py = compute_jaccard_similarity_per_bin.py_func(
+        simple_fingerprints, max_pairs_per_bin=max_pairs_per_bin,
+        selection_bins=selection_bins)
+
+    def check_correct_matrixes(selected_pairs_per_bin, selected_scores_per_bin):
+        assert selected_pairs_per_bin.shape == (nr_of_bins, len(simple_fingerprints), max_pairs_per_bin)
+        expected_nr_of_pairs_per_bin = np.array([0, 0, 4, 4, 0, 0, 2, 0, 0, 4])
+
+        for bin_id, pairs_matrix in enumerate(selected_pairs_per_bin):
+
+            number_of_pairs_in_bin = len(np.where(pairs_matrix != -1)[0])
+            assert expected_nr_of_pairs_per_bin[bin_id] == number_of_pairs_in_bin
+
+            assert np.all(selected_scores_per_bin[bin_id][pairs_matrix == -1] == 0), \
+                "If no pair is available the score should be 0"
+            assert np.all(selected_scores_per_bin[bin_id][pairs_matrix != -1] > 0.0), \
+                "If a pair is found the score should not be 0 (in principle it could be, but not the case for these fingerprints)"
+
+            if selection_bins[bin_id][1] == 1:
+                for inchikey_idx, row in enumerate(pairs_matrix):
+                    assert len(np.where(row == inchikey_idx)[0]) == 1, \
+                        "When select_diagonal is True there should be a pair with itself in the bin including 1.0"
+                    assert selected_scores_per_bin[bin_id][inchikey_idx][row == inchikey_idx] == 1.0
+            else:
+                for inchikey_idx, row in enumerate(pairs_matrix):
+                    assert len(np.where(row == inchikey_idx)[0]) == 0, \
+                        "The bins not including 1.0, should not have pairs between the same inchikey"
+
+    check_correct_matrixes(selected_pairs_per_bin_numba, selected_scores_per_bin_numba)
+    check_correct_matrixes(selected_pairs_per_bin_py, selected_scores_per_bin_py)
 
 
 def test_compute_jaccard_similarity_per_bin_exclude_diagonal(simple_fingerprints):
-    selected_pairs_per_bin, selected_scores_per_bin = compute_jaccard_similarity_per_bin(
-        simple_fingerprints, max_pairs_per_bin=4, include_diagonal=False)
-    matrix_numba = convert_pair_array_to_coo_array(
-        selected_pairs_per_bin, selected_scores_per_bin, simple_fingerprints.shape[0])
+    max_pairs_per_bin = 5
+    nr_of_bins = 10
+    selection_bins = np.array([(x / nr_of_bins, x / nr_of_bins + 1 / nr_of_bins) for x in range(nr_of_bins)])
+    selected_pairs_per_bin_numba, selected_scores_per_bin_numba = compute_jaccard_similarity_per_bin(
+        simple_fingerprints, max_pairs_per_bin=max_pairs_per_bin,
+        selection_bins=selection_bins, include_diagonal=False)
 
     # Uncompiled
-    selected_pairs_per_bin, selected_scores_per_bin = compute_jaccard_similarity_per_bin.py_func(
-        simple_fingerprints, max_pairs_per_bin=4, include_diagonal=False)
-    matrix_py = convert_pair_array_to_coo_array(
-        selected_pairs_per_bin, selected_scores_per_bin, simple_fingerprints.shape[0])
+    selected_pairs_per_bin_py, selected_scores_per_bin_py = compute_jaccard_similarity_per_bin.py_func(
+        simple_fingerprints, max_pairs_per_bin=max_pairs_per_bin,
+        selection_bins=selection_bins, include_diagonal=False)
 
-    for matrix in [matrix_numba, matrix_py]:
-        diagonal = matrix.diagonal()
-        assert np.all(diagonal == 0)  # Ensure no non-zero diagonal elements
+    def check_correct_matrixes(selected_pairs_per_bin):
+        assert selected_pairs_per_bin.shape == (nr_of_bins, len(simple_fingerprints), max_pairs_per_bin)
+        for bin_id, pairs_matrix in enumerate(selected_pairs_per_bin):
+            for inchikey_idx, row in enumerate(pairs_matrix):
+                assert len(np.where(row == inchikey_idx)[0]) == 0, \
+                    "When include_diagonal is False there should not have pairs between the same inchikey"
 
-
-def test_compute_jaccard_similarity_per_bin_correct_counts(fingerprints):
-    selected_pairs_per_bin, selected_scores_per_bin = compute_jaccard_similarity_per_bin(
-        fingerprints, max_pairs_per_bin=8)
-    matrix_numba = convert_pair_array_to_coo_array(
-        selected_pairs_per_bin, selected_scores_per_bin, fingerprints.shape[0])
-
-    # Uncompiled
-    selected_pairs_per_bin, selected_scores_per_bin = compute_jaccard_similarity_per_bin.py_func(
-        fingerprints, max_pairs_per_bin=8)
-    matrix_py = convert_pair_array_to_coo_array(
-        selected_pairs_per_bin, selected_scores_per_bin, fingerprints.shape[0])
-
-    expected_histogram = np.array([6,  8,  2, 10,  8, 6,  8,  8,  0,  8])
-    for matrix in [matrix_numba, matrix_py]:
-        dense_matrix = matrix.todense()
-        matrix_histogram = np.histogram(dense_matrix, 10)
-        assert np.all(matrix_histogram[0] == expected_histogram)
+    check_correct_matrixes(selected_pairs_per_bin_numba)
+    check_correct_matrixes(selected_pairs_per_bin_py)
 
 
 def test_select_inchi_for_unique_inchikeys(test_spectra):

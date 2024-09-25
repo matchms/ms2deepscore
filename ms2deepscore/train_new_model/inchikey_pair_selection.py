@@ -237,39 +237,6 @@ def get_nr_of_available_pairs_in_bin(selected_pairs_per_bin_matrix: np.ndarray) 
     return nr_of_unique_pairs_per_bin
 
 
-def convert_pair_array_to_coo_data(
-        selected_pairs_per_bin, selected_scores_per_bin):
-    data = []
-    inchikey_indexes_i = []
-    inchikey_indexes_j = []
-    for row_id in range(selected_pairs_per_bin.shape[1]):
-        idx = np.where(selected_pairs_per_bin[:, row_id, :] != -1)
-        data.extend(selected_scores_per_bin[idx[0], row_id, idx[1]])
-        inchikey_indexes_i.extend(row_id * np.ones(len(idx[0])))
-        inchikey_indexes_j.extend(selected_pairs_per_bin[idx[0], row_id, idx[1]])
-    return np.array(data), np.array(inchikey_indexes_i), np.array(inchikey_indexes_j)
-
-
-def convert_pair_array_to_coo_array(
-        selected_pairs_per_bin, selected_scores_per_bin, size):
-    data, inchikey_indexes_i, inchikey_indexes_j = convert_pair_array_to_coo_data(
-        selected_pairs_per_bin, selected_scores_per_bin)
-    return coo_array((data, (inchikey_indexes_i, np.array(inchikey_indexes_j))),
-                     shape=(size, size))
-
-
-def convert_pair_list_to_coo_array(selected_pairs: List[Tuple[int, int, float]], size):
-    data = []
-    inchikey_indexes_i = []
-    inchikey_indexes_j = []
-    for inchikey_idx_i, inchikey_idx_j, score in selected_pairs:
-        data.append(score)
-        inchikey_indexes_i.append(inchikey_idx_i)
-        inchikey_indexes_j.append(inchikey_idx_j)
-    return coo_array((np.array(data), (np.array(inchikey_indexes_i), np.array(inchikey_indexes_j))),
-                     shape=(size, size))
-
-
 @jit(nopython=True, parallel=True)
 def compute_jaccard_similarity_per_bin(
         fingerprints,
