@@ -7,8 +7,8 @@ from matchms import Spectrum
 
 from ms2deepscore import SettingsMS2Deepscore
 from ms2deepscore.train_new_model.inchikey_pair_selection import (
-    compute_jaccard_similarity_per_bin, InchikeyPairGenerator,
-    select_inchi_for_unique_inchikeys, select_compound_pairs_wrapper, compute_fingerprints_for_training)
+    compute_jaccard_similarity_per_bin, select_inchi_for_unique_inchikeys, select_compound_pairs_wrapper, compute_fingerprints_for_training)
+from ms2deepscore.train_new_model import InchikeyPairGenerator
 from tests.create_test_spectra import create_test_spectra
 
 
