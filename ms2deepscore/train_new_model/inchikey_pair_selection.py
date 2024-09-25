@@ -164,7 +164,7 @@ def determine_aimed_nr_of_pairs_per_bin(available_pairs_per_bin_matrix, settings
 def balanced_selection_of_pairs_per_bin(available_pairs_per_bin_matrix: np.ndarray,
                                         max_pair_resampling,
                                         nr_of_pairs_per_bin):
-    """From the list_of_pairs_per_bin a balanced selection is made to have a balanced distribution.
+    """From the available_pairs_per_bin_matrix a balanced selection is made to have a balanced distribution.
 
     The algorithm is designed to have a perfect balance over the tanimoto bins,
     a close to equal sampling of all inchikeys
@@ -250,7 +250,35 @@ def select_balanced_pairs(available_pairs_for_bin_matrix: np.ndarray,
                           inchikey_counts: np.ndarray,
                           required_number_of_pairs: int,
                           max_resampling: int):
-    """Select pairs of spectra in a balanced way. """
+    """Determines how frequently each available pair should be sampled.
+
+    Inchikey pairs are selected by first selecting the least frequent inchikey. For this inchikey all available pairs
+    are selected. The pair is picked, where the second inchikey has the lowest frequency in inchikey_counts.
+
+    Parameters
+    ----------
+    available_pairs_for_bin_matrix:
+        A numpy 2D matrix, storing the available inchikey pairs (for the current bin). The indexes of the rows are the
+        indexes of the first inchikey of the pair and the value given in the rows are the indexes of the second inchikey
+         of the pair. If the value is -1 it indicates that there were no more pairs available for this inchikey in this bin.
+    inchikey_counts:
+        The number of times each inchikey is sampled. This is used to determine which pairs should be sampled first.
+        The inchikey counts as input already contain the counts for the previous bins. In this way the inchikeys that
+        have been "under sampled" before can be compensated in this bin.
+    max_resampling:
+        The maximum number of times a pair can be resampled.
+        Resampling means that the exact same inchikey pair is added multiple times to the list of pairs.
+    required_number_of_pairs:
+        The number of pairs that are sampled.
+
+    Returns
+    -------
+    pair_frequency:
+        A 2D matrix matching available_pairs_for_bin_matrix in dimensions. Each position encodes the number of times the
+        corresponding pair should be sampled.
+    inchikey_counts:
+        The updated inchikey counts.
+    """
 
     nr_of_pairs_selected = 0
     # Keep track of which inchikeys are available in this bin. If all have been sampled it is removed from this list.
