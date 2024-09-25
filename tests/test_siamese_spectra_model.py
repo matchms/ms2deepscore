@@ -5,7 +5,7 @@ from ms2deepscore.models.SiameseSpectralModel import (SiameseSpectralModel,
                                                       train)
 from ms2deepscore.SettingsMS2Deepscore import SettingsMS2Deepscore
 from ms2deepscore.tensorize_spectra import tensorize_spectra
-from ms2deepscore.train_new_model.data_generators import DataGeneratorPytorch
+from ms2deepscore.train_new_model.data_generators import SpectrumPairGenerator
 from ms2deepscore.train_new_model.inchikey_pair_selection import \
     select_compound_pairs_wrapper
 from ms2deepscore.train_new_model.ValidationLossCalculator import \
@@ -133,8 +133,8 @@ def test_model_training(simple_training_spectra):
     scp_train = select_compound_pairs_wrapper(simple_training_spectra, settings)
 
     # Create generators
-    train_generator_simple = DataGeneratorPytorch(spectrums=simple_training_spectra, selected_compound_pairs=scp_train,
-                                                  settings=settings)
+    train_generator_simple = SpectrumPairGenerator(spectrums=simple_training_spectra, selected_compound_pairs=scp_train,
+                                                   settings=settings)
     settings.same_prob_bins = np.array([(0, 1.0)])
     validation_loss_calculator = ValidationLossCalculator(
         simple_training_spectra,

@@ -16,7 +16,7 @@ from ms2deepscore.train_new_model.inchikey_pair_selection import (
 from ms2deepscore.vector_operations import cosine_similarity_matrix
 
 
-class DataGeneratorPytorch:
+class SpectrumPairGenerator:
     """Generates data for training a siamese Pytorch model.
 
     This class provides a data generator specifically designed for training a Siamese Pytorch model with a curated set
@@ -24,7 +24,7 @@ class DataGeneratorPytorch:
     inchikey pair.
 
     By using pre-selected compound pairs (in the InchikeyPairGenerator), this allows more control over the training
-    process. The selection of inchikey pairs does not happen in DataGeneratorPytorch (only spectrum selection), but in
+    process. The selection of inchikey pairs does not happen in SpectrumPairGenerator (only spectrum selection), but in
     inchikey_pair_selection.py. In inchikey_pair_selection inchikey pairs are picked to balance selected pairs equally
     over different tanimoto score bins to make sure both pairs of similar and dissimilar compounds are sampled.
     In addition inchikeys are selected to occur equally for each pair.
@@ -191,14 +191,14 @@ class DataGeneratorPytorch:
 
 def create_data_generator(training_spectra,
                           settings,
-                          json_save_file=None) -> DataGeneratorPytorch:
+                          json_save_file=None) -> SpectrumPairGenerator:
     selected_compound_pairs_training = select_compound_pairs_wrapper(training_spectra, settings=settings)
     if json_save_file is not None:
         selected_compound_pairs_training.save_as_json(json_save_file)
     # Create generators
-    train_generator = DataGeneratorPytorch(spectrums=training_spectra,
-                                           selected_compound_pairs=selected_compound_pairs_training,
-                                           settings=settings)
+    train_generator = SpectrumPairGenerator(spectrums=training_spectra,
+                                            selected_compound_pairs=selected_compound_pairs_training,
+                                            settings=settings)
     return train_generator
 
 

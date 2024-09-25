@@ -1,8 +1,8 @@
-from .data_generators import DataGeneratorPytorch, InchikeyPairGenerator
+from .data_generators import SpectrumPairGenerator, InchikeyPairGenerator
 from .inchikey_pair_selection import (select_compound_pairs_wrapper)
 
 
 __all__ = [
-    "DataGeneratorPytorch",
+    "SpectrumPairGenerator",
     "select_compound_pairs_wrapper",
 ]
