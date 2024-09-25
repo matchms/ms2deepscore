@@ -7,7 +7,7 @@ from matchms import Spectrum
 
 from ms2deepscore import SettingsMS2Deepscore
 from ms2deepscore.train_new_model.inchikey_pair_selection import (
-    compute_jaccard_similarity_per_bin, SelectedInchikeyPairs,
+    compute_jaccard_similarity_per_bin, InchikeyPairGenerator,
     select_inchi_for_unique_inchikeys, select_compound_pairs_wrapper, compute_fingerprints_for_training)
 from tests.create_test_spectra import create_test_spectra
 
@@ -147,7 +147,7 @@ def test_select_inchi_for_unique_inchikeys_two_inchikeys(test_spectra):
 
 
 def test_SelectedInchikeyPairs_generator_with_shuffle(dummy_spectrum_pairs):
-    selected_inchikey_pairs = SelectedInchikeyPairs(dummy_spectrum_pairs)
+    selected_inchikey_pairs = InchikeyPairGenerator(dummy_spectrum_pairs)
     rng = np.random.default_rng(0)
     gen = selected_inchikey_pairs.generator(True, rng)
 
@@ -169,7 +169,7 @@ def test_SelectedInchikeyPairs_generator_with_shuffle(dummy_spectrum_pairs):
 
 
 def test_SelectedInchikeyPairs_generator_without_shuffle(dummy_spectrum_pairs):
-    selected_inchikey_pairs = SelectedInchikeyPairs(dummy_spectrum_pairs)
+    selected_inchikey_pairs = InchikeyPairGenerator(dummy_spectrum_pairs)
     gen = selected_inchikey_pairs.generator(False, None)
 
     for _, expected_pair in enumerate(dummy_spectrum_pairs):
@@ -212,7 +212,7 @@ def test_select_compound_pairs_wrapper_with_resampling():
     check_correct_oversampling(selected_inchikey_pairs, max_pair_resampling)
 
 
-def check_correct_oversampling(selected_inchikey_pairs: SelectedInchikeyPairs, max_resampling: int):
+def check_correct_oversampling(selected_inchikey_pairs: InchikeyPairGenerator, max_resampling: int):
     pair_counts = Counter(selected_inchikey_pairs.selected_inchikey_pairs)
     for count in pair_counts.values():
         assert count <= max_resampling, "the resampling was done too frequently"
@@ -239,7 +239,7 @@ def get_available_score_distribution(settings, spectra):
     return score_distribution_per_inchikey
 
 
-def print_balanced_bins_per_inchikey(selected_inchikey_pairs: SelectedInchikeyPairs, settings, spectra):
+def print_balanced_bins_per_inchikey(selected_inchikey_pairs: InchikeyPairGenerator, settings, spectra):
     """Prints the available distribution and the balanced distribution
 
     Currently doesn't do any checks, because it is hard to check if the wanted behaviour is achieved,
@@ -262,17 +262,17 @@ def print_balanced_bins_per_inchikey(selected_inchikey_pairs: SelectedInchikeyPa
             # assert minimum_available_distribution*settings.max_pair_resampling == min(balanced_distribution)
 
 
-def check_balanced_inchikey_count_selecting_inchikey_pairs(selected_inchikey_pairs: SelectedInchikeyPairs):
-    """Test if SelectedInchikeyPairs has an equal inchikey distribution
+def check_balanced_inchikey_count_selecting_inchikey_pairs(selected_inchikey_pairs: InchikeyPairGenerator):
+    """Test if InchikeyPairGenerator has an equal inchikey distribution
     """
     inchikey_counts = selected_inchikey_pairs.get_inchikey_counts()
     max_difference_in_inchikey_freq = max(inchikey_counts.values()) - min(inchikey_counts.values())
     assert max_difference_in_inchikey_freq < max(inchikey_counts.values())/2, "The frequency of the sampling of the inchikeys is too different"
 
 
-def check_balanced_scores_selecting_inchikey_pairs(selected_inchikey_pairs: SelectedInchikeyPairs,
+def check_balanced_scores_selecting_inchikey_pairs(selected_inchikey_pairs: InchikeyPairGenerator,
                                                    score_bins):
-    """Test if SelectedInchikeyPairs has an equal inchikey distribution
+    """Test if InchikeyPairGenerator has an equal inchikey distribution
     """
     scores = selected_inchikey_pairs.get_scores()
     # converting to float32 is required, since the scores are float32, otherwise equal numbers are seen as not equal

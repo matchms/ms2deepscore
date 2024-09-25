@@ -6,13 +6,12 @@ from matchms import Spectrum
 from matchms.filtering import add_fingerprint
 from matchms.similarity.vector_similarity_functions import jaccard_index
 from numba import jit, prange
-from scipy.sparse import coo_array
 from tqdm import tqdm
 from ms2deepscore.SettingsMS2Deepscore import SettingsMS2Deepscore
 import json
 
 
-class SelectedInchikeyPairs:
+class InchikeyPairGenerator:
     def __init__(self, selected_inchikey_pairs: List[Tuple[str, str, float]]):
         """
         Parameters
@@ -37,7 +36,7 @@ class SelectedInchikeyPairs:
         return len(self.selected_inchikey_pairs)
 
     def __str__(self):
-        return f"SelectedInchikeyPairs with {len(self.selected_inchikey_pairs)} pairs available"
+        return f"InchikeyPairGenerator with {len(self.selected_inchikey_pairs)} pairs available"
 
     def get_scores(self):
         return [score for _, _, score in self.selected_inchikey_pairs]
@@ -73,7 +72,7 @@ class SelectedInchikeyPairs:
 def select_compound_pairs_wrapper(
         spectrums: List[Spectrum],
         settings: SettingsMS2Deepscore,
-        ) -> SelectedInchikeyPairs:
+        ) -> InchikeyPairGenerator:
     """Returns a SelectedCompoundPairs object containing equally balanced pairs over the different bins
 
     spectrums:
@@ -120,7 +119,7 @@ def select_compound_pairs_wrapper(
 
     selected_pairs_per_bin = convert_to_selected_pairs_list(pair_frequency_matrixes, available_pairs_per_bin_matrix,
                                           available_scores_per_bin_matrix, inchikeys14_unique)
-    return SelectedInchikeyPairs([pair for pairs in selected_pairs_per_bin for pair in pairs])
+    return InchikeyPairGenerator([pair for pairs in selected_pairs_per_bin for pair in pairs])
 
 
 def convert_to_selected_pairs_list(pair_frequency_matrixes, available_pairs_per_bin_matrix, scores_matrix,

@@ -10,7 +10,7 @@ from ms2deepscore.SettingsMS2Deepscore import (SettingsEmbeddingEvaluator,
                                                SettingsMS2Deepscore)
 from ms2deepscore.tensorize_spectra import tensorize_spectra
 from ms2deepscore.train_new_model.inchikey_pair_selection import (
-    SelectedInchikeyPairs, compute_fingerprint_dataframe, select_compound_pairs_wrapper)
+    InchikeyPairGenerator, compute_fingerprint_dataframe, select_compound_pairs_wrapper)
 from ms2deepscore.vector_operations import cosine_similarity_matrix
 
 
@@ -18,10 +18,10 @@ class DataGeneratorPytorch:
     """Generates data for training a siamese Pytorch model.
 
     This class provides a data generator specifically designed for training a Siamese Pytorch model with a curated set
-    of compound pairs. It takes a SelectedInchikeyPairs and randomly selects, augments and tensorizes spectra for each
+    of compound pairs. It takes a InchikeyPairGenerator and randomly selects, augments and tensorizes spectra for each
     inchikey pair.
 
-    By using pre-selected compound pairs (in the SelectedInchikeyPairs), this allows more control over the training
+    By using pre-selected compound pairs (in the InchikeyPairGenerator), this allows more control over the training
     process. The selection of inchikey pairs does not happen in DataGeneratorPytorch (only spectrum selection), but in
     inchikey_pair_selection.py. In inchikey_pair_selection inchikey pairs are picked to balance selected pairs equally
     over different tanimoto score bins to make sure both pairs of similar and dissimilar compounds are sampled.
@@ -29,7 +29,7 @@ class DataGeneratorPytorch:
     """
 
     def __init__(self, spectrums: List[Spectrum],
-                 selected_compound_pairs: SelectedInchikeyPairs,
+                 selected_compound_pairs: InchikeyPairGenerator,
                  settings: SettingsMS2Deepscore):
         """Generates data for training a siamese Pytorch model.
 
