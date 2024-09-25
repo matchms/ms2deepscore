@@ -8,13 +8,11 @@ from numba import jit, prange
 from tqdm import tqdm
 from ms2deepscore.SettingsMS2Deepscore import SettingsMS2Deepscore
 
-from ms2deepscore.train_new_model.data_generators import InchikeyPairGenerator
-
 
 def select_compound_pairs_wrapper(
         spectra: List[Spectrum],
         settings: SettingsMS2Deepscore,
-) -> InchikeyPairGenerator:
+) -> List[Tuple[str, str, float]]:
     """Returns a InchikeyPairGenerator object containing equally balanced pairs over the different bins
 
     spectra:
@@ -50,7 +48,7 @@ def select_compound_pairs_wrapper(
 
     selected_pairs_per_bin = convert_to_selected_pairs_list(pair_frequency_matrixes, available_pairs_per_bin_matrix,
                                                             available_scores_per_bin_matrix, inchikeys14_unique)
-    return InchikeyPairGenerator([pair for pairs in selected_pairs_per_bin for pair in pairs])
+    return [pair for pairs in selected_pairs_per_bin for pair in pairs]
 
 
 def compute_fingerprints_for_training(spectra,

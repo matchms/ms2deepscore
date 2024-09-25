@@ -185,11 +185,11 @@ def test_select_compound_pairs_wrapper_no_resampling():
                                     batch_size=8,
                                     max_pair_resampling=max_pair_resampling)
     selected_inchikey_pairs = select_compound_pairs_wrapper(spectrums, settings)
-
-    check_balanced_scores_selecting_inchikey_pairs(selected_inchikey_pairs, bins)
-    check_balanced_inchikey_count_selecting_inchikey_pairs(selected_inchikey_pairs)
-    print_balanced_bins_per_inchikey(selected_inchikey_pairs, settings, spectrums)
-    check_correct_oversampling(selected_inchikey_pairs, max_pair_resampling)
+    inchikey_pair_generator = InchikeyPairGenerator(selected_inchikey_pairs)
+    check_balanced_scores_selecting_inchikey_pairs(inchikey_pair_generator, bins)
+    check_balanced_inchikey_count_selecting_inchikey_pairs(inchikey_pair_generator)
+    print_balanced_bins_per_inchikey(inchikey_pair_generator, settings, spectrums)
+    check_correct_oversampling(inchikey_pair_generator, max_pair_resampling)
 
 
 def test_select_compound_pairs_wrapper_with_resampling():
@@ -202,14 +202,15 @@ def test_select_compound_pairs_wrapper_with_resampling():
                                     batch_size=8,
                                     max_pair_resampling=max_pair_resampling)
     selected_inchikey_pairs = select_compound_pairs_wrapper(spectrums, settings)
+    inchikey_pair_generator = InchikeyPairGenerator(selected_inchikey_pairs)
 
-    check_balanced_scores_selecting_inchikey_pairs(selected_inchikey_pairs, bins)
-    check_balanced_inchikey_count_selecting_inchikey_pairs(selected_inchikey_pairs)
+    check_balanced_scores_selecting_inchikey_pairs(inchikey_pair_generator, bins)
+    check_balanced_inchikey_count_selecting_inchikey_pairs(inchikey_pair_generator)
     # Currently doesn't check anything, but prints badly distributed pairs and the available pairs. It is hard to write
     # a good test, since the balancing behaviour we would like to see only happens when you have a lot more pairs
     # (and inchikeys) which is not suitable for a test.
-    print_balanced_bins_per_inchikey(selected_inchikey_pairs, settings, spectrums)
-    check_correct_oversampling(selected_inchikey_pairs, max_pair_resampling)
+    print_balanced_bins_per_inchikey(inchikey_pair_generator, settings, spectrums)
+    check_correct_oversampling(inchikey_pair_generator, max_pair_resampling)
 
 
 def check_correct_oversampling(selected_inchikey_pairs: InchikeyPairGenerator, max_resampling: int):
