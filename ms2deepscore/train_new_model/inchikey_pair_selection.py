@@ -244,14 +244,18 @@ def convert_to_selected_pairs_list(pair_frequency_matrixes: np.ndarray,
     return selected_pairs_per_bin
 
 
+import numpy as np
+from tqdm import tqdm
+import heapq
+
 def select_balanced_pairs(available_pairs_for_bin_matrix: np.ndarray,
                           inchikey_counts: np.ndarray,
                           required_number_of_pairs: int,
                           max_resampling: int):
     """Determines how frequently each available pair should be sampled.
 
-    Inchikey pairs are selected by first selecting the least frequent inchikey. For this inchikey all available pairs
-    are selected. The pair is picked, where the second inchikey has the lowest frequency in inchikey_counts.
+    Inchikey pairs are selected by first selecting the least frequent inchikey. For this inchikey, all available pairs
+    are considered. The pair is picked where the second inchikey has the lowest frequency in inchikey_counts.
 
     Parameters
     ----------
@@ -266,66 +270,94 @@ def select_balanced_pairs(available_pairs_for_bin_matrix: np.ndarray,
         The maximum number of times a pair can be resampled.
         Resampling means that the exact same inchikey pair is added multiple times to the list of pairs.
     required_number_of_pairs:
-        The number of pairs that are sampled.
+        The number of pairs to sample.
 
     Returns
     -------
     pair_frequency:
-        A 2D matrix matching available_pairs_for_bin_matrix in dimensions. Each position encodes the number of times the
+        A 2D array matching available_pairs_for_bin_matrix in dimensions. Each position encodes the number of times the
         corresponding pair should be sampled.
     inchikey_counts:
         The updated inchikey counts.
     """
 
+    num_inchikeys = available_pairs_for_bin_matrix.shape[0]
+
+    # Initialize pair frequency matrix
+    pair_frequency = np.zeros_like(available_pairs_for_bin_matrix, dtype=int)
+
+    # Mask for invalid pairs (where value is -1)
+    invalid_mask = (available_pairs_for_bin_matrix == -1)
+    pair_frequency[invalid_mask] = max_resampling * 2  # Ensure these pairs are never selected
+
+    # Initialize available inchikeys as a min-heap based on inchikey_counts
+    available_inchikey_indexes = [(inchikey_counts[i], i) for i in range(num_inchikeys)
+                                  if not np.all(pair_frequency[i] >= max_resampling)]
+    heapq.heapify(available_inchikey_indexes)
+
     nr_of_pairs_selected = 0
-    # Keep track of which inchikeys are available in this bin. If all have been sampled it is removed from this list.
-    available_inchikey_indexes = list(np.arange(available_pairs_for_bin_matrix.shape[0]))
 
-    # Create a sampling frequency matrix. This matrix keeps track of how frequenctly a pair has been sampled.
-    pair_frequency = available_pairs_for_bin_matrix.copy()
-    pair_frequency[pair_frequency != -1] = 0
-    # All cases where no pair is available is set to max_resampling times 2 (can be any number > max_resampling)
-    # This ensures this pair is never selected.
-    pair_frequency[pair_frequency == -1] = max_resampling * 2
     with tqdm(total=required_number_of_pairs,
-              desc="Balanced sampling of inchikey pairs (will repeat for each bin)") as progress_bar:
+              desc="Balanced sampling of inchikey pairs (per bin)") as progress_bar:
         while nr_of_pairs_selected < required_number_of_pairs:
-            # get inchikey with lowest count
-            inchikey_with_lowest_count = available_inchikey_indexes[
-                np.argmin(inchikey_counts[available_inchikey_indexes])]
+            if not available_inchikey_indexes:
+                raise ValueError("The number of pairs available is less than required_number_of_pairs.")
 
-            # Select the pairs that have been resampled the least frequent.
-            lowest_pair_frequency = np.min(pair_frequency[inchikey_with_lowest_count])
-            if lowest_pair_frequency >= max_resampling:
-                # remove the inchikey, since it does not have any available pairs anymore
-                available_inchikey_indexes.remove(inchikey_with_lowest_count)
-                if len(available_inchikey_indexes) == 0:
-                    raise ValueError("The number of pairs available is less than required_number_of_pairs.")
-                continue
+            # Pop the inchikey with the lowest count
+            _, inchikey_with_lowest_count = heapq.heappop(available_inchikey_indexes)
 
-            pair_indexes_with_min_count = pair_frequency[inchikey_with_lowest_count] == lowest_pair_frequency
+            # Get pair frequencies and available pairs for this inchikey
+            pair_freq_row = pair_frequency[inchikey_with_lowest_count]
+            available_pairs_row = available_pairs_for_bin_matrix[inchikey_with_lowest_count]
 
-            available_inchikeys_with_min_count = available_pairs_for_bin_matrix[
-                inchikey_with_lowest_count][pair_indexes_with_min_count]
+            # Find indices where pair frequency is less than max_resampling
+            valid_pairs_mask = pair_freq_row < max_resampling
 
-            second_inchikey_with_lowest_count = available_inchikeys_with_min_count[np.argmin(
-                inchikey_counts[available_inchikeys_with_min_count])]
+            if not np.any(valid_pairs_mask):
+                continue  # No valid pairs left for this inchikey
 
-            # Add the selected pairs to pair_frequency:
-            position_of_second_inchikey_in_matrix = available_pairs_for_bin_matrix[
-                                                        inchikey_with_lowest_count] == second_inchikey_with_lowest_count
-            pair_frequency[inchikey_with_lowest_count][position_of_second_inchikey_in_matrix] += 1
+            # Among valid pairs, find those with the lowest pair frequency
+            min_pair_freq = np.min(pair_freq_row[valid_pairs_mask])
+            min_freq_mask = (pair_freq_row == min_pair_freq) & valid_pairs_mask
 
+            # Get second inchikeys for pairs with minimal pair frequency
+            second_inchikeys = available_pairs_row[min_freq_mask]
+
+            # Get counts for second inchikeys
+            second_inchikey_counts = inchikey_counts[second_inchikeys]
+
+            # Select the second inchikey with the lowest count
+            min_count_idx = np.argmin(second_inchikey_counts)
+            second_inchikey_with_lowest_count = second_inchikeys[min_count_idx]
+
+            # Update pair frequency
+            pair_indices = np.where(available_pairs_row == second_inchikey_with_lowest_count)[0]
+            pair_frequency[inchikey_with_lowest_count, pair_indices] += 1
+
+            # If the pair is not symmetrical, update the reverse pair frequency
             if second_inchikey_with_lowest_count != inchikey_with_lowest_count:
-                # also increase pair_frequency if duplicate
-                position_of_first_inchikey_in_matrix = available_pairs_for_bin_matrix[
-                                                           second_inchikey_with_lowest_count] == inchikey_with_lowest_count
-                pair_frequency[second_inchikey_with_lowest_count][position_of_first_inchikey_in_matrix] += 1
-            # increase inchikey counts
+                reverse_pairs_row = available_pairs_for_bin_matrix[second_inchikey_with_lowest_count]
+                reverse_pair_indices = np.where(reverse_pairs_row == inchikey_with_lowest_count)[0]
+                pair_frequency[second_inchikey_with_lowest_count, reverse_pair_indices] += 1
+
+            # Update inchikey counts
             inchikey_counts[inchikey_with_lowest_count] += 1
             inchikey_counts[second_inchikey_with_lowest_count] += 1
+
             nr_of_pairs_selected += 1
             progress_bar.update(1)
+
+            # If this inchikey still has valid pairs, push it back into the heap
+            if np.any(pair_frequency[inchikey_with_lowest_count] < max_resampling):
+                heapq.heappush(available_inchikey_indexes,
+                               (inchikey_counts[inchikey_with_lowest_count], inchikey_with_lowest_count))
+
+            # Also check if the second inchikey needs to be added back to the heap
+            if second_inchikey_with_lowest_count != inchikey_with_lowest_count:
+                if np.any(pair_frequency[second_inchikey_with_lowest_count] < max_resampling):
+                    heapq.heappush(available_inchikey_indexes,
+                                   (inchikey_counts[second_inchikey_with_lowest_count], second_inchikey_with_lowest_count))
+
     return pair_frequency, inchikey_counts
 
 
