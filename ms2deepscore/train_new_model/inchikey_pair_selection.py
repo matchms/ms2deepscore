@@ -256,13 +256,12 @@ def select_balanced_pairs(available_pairs_for_bin_matrix: np.ndarray,
     Parameters
     ----------
     available_pairs_for_bin_matrix:
-        A numpy 2D matrix, storing the available inchikey pairs (for the current bin). The indexes of the rows are the
-        indexes of the first inchikey of the pair and the value given in the rows are the indexes of the second inchikey
-         of the pair. If the value is -1 it indicates that there were no more pairs available for this inchikey in this bin.
+        A 2D numpy array storing the available inchikey pairs for the current bin. The rows represent the first inchikey
+        of the pair, and the values in the rows are the indexes of the second inchikey of the pair.
+        A value of -1 indicates no more pairs are available for this inchikey in this bin.
     inchikey_counts:
-        The number of times each inchikey is sampled. This is used to determine which pairs should be sampled first.
-        The inchikey counts as input already contain the counts for the previous bins. In this way the inchikeys that
-        have been "under sampled" before can be compensated in this bin.
+        An array representing the number of times each inchikey has been sampled. This is used to determine which pairs
+        should be sampled first. The inchikey counts as input already contain the counts from previous bins.
     max_resampling:
         The maximum number of times a pair can be resampled.
         Resampling means that the exact same inchikey pair is added multiple times to the list of pairs.
