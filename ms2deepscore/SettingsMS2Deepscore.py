@@ -220,7 +220,7 @@ def validate_bin_order(score_bins):
         for bin_border in score_bin:
             if bin_border < 0:
                 bin_borders_below_zero += 1
-            elif bin_border == 1.0:
+            elif bin_border == 1:
                 bin_borders_1 += 1
             else:
                 not_starting_or_ending_borders.append(bin_border)
