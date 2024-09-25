@@ -206,10 +206,12 @@ class SettingsMS2Deepscore:
 
 
 def validate_bin_order(score_bins):
-    """Checks that the given bins are of the correct format
-    The bins should cover everything between 0 and 1.0 and the lowest bin should be below 0
-    (since pairs > are selected and we want to include zero)"""
-    # check that the correct same_prob_bins are selected
+    """
+    Checks that the given bins are of the correct format:
+    - Each bin is a tuple/list of two numbers [low, high], with low <= high
+    - Bins cover the entire interval from 0 to 1, with no gaps or overlaps
+    - The lowest bin starts below 0 (since pairs >=0 are selected and we want to include zero)
+    """
 
     # Sort bins by their lower bound
     sorted_bins = sorted(score_bins, key=lambda b: b[0])
