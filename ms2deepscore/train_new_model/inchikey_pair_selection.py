@@ -315,7 +315,7 @@ def select_balanced_pairs(available_pairs_for_bin_matrix: np.ndarray,
 
             # Among valid pairs, find those with the lowest pair frequency
             min_pair_freq = np.min(pair_freq_row[valid_pairs_mask])
-            min_freq_mask = (pair_freq_row == min_pair_freq) & valid_pairs_mask
+            min_freq_mask = pair_freq_row == min_pair_freq
 
             # Get second inchikeys for pairs with minimal pair frequency
             second_inchikeys = available_pairs_row[min_freq_mask]
