@@ -303,9 +303,8 @@ def select_balanced_pairs(available_pairs_for_bin_matrix: np.ndarray,
             # Pop the inchikey with the lowest count
             _, inchikey_with_lowest_count = heapq.heappop(available_inchikey_indexes)
 
-            # Get pair frequencies and available pairs for this inchikey
+            # Get pair frequencies
             pair_freq_row = pair_frequency[inchikey_with_lowest_count]
-            available_pairs_row = available_pairs_for_bin_matrix[inchikey_with_lowest_count]
 
             # Find indices where pair frequency is less than max_resampling
             valid_pairs_mask = pair_freq_row < max_resampling
@@ -316,6 +315,9 @@ def select_balanced_pairs(available_pairs_for_bin_matrix: np.ndarray,
             # Among valid pairs, find those with the lowest pair frequency
             min_pair_freq = np.min(pair_freq_row[valid_pairs_mask])
             min_freq_mask = pair_freq_row == min_pair_freq
+
+            # Get available second inchikeys
+            available_pairs_row = available_pairs_for_bin_matrix[inchikey_with_lowest_count]
 
             # Get second inchikeys for pairs with minimal pair frequency
             second_inchikeys = available_pairs_row[min_freq_mask]
