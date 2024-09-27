@@ -351,12 +351,6 @@ def select_balanced_pairs(available_pairs_for_bin_matrix: np.ndarray,
                 heapq.heappush(available_inchikey_indexes,
                                (inchikey_counts[inchikey_with_lowest_count], inchikey_with_lowest_count))
 
-            # Also check if the second inchikey needs to be added back to the heap
-            if second_inchikey_with_lowest_count != inchikey_with_lowest_count:
-                if np.any(pair_frequency[second_inchikey_with_lowest_count] < max_resampling):
-                    heapq.heappush(available_inchikey_indexes,
-                                   (inchikey_counts[second_inchikey_with_lowest_count], second_inchikey_with_lowest_count))
-
     return pair_frequency, inchikey_counts
 
 
