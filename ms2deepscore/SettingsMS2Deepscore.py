@@ -1,6 +1,5 @@
 import json
 import warnings
-from collections import Counter
 from datetime import datetime
 from json import JSONEncoder
 from typing import Optional
@@ -206,35 +205,37 @@ class SettingsMS2Deepscore:
 
 
 def validate_bin_order(score_bins):
-    """Checks that the given bins are of the correct format
+    """
+    Checks that the given bins are of the correct format:
+    - Each bin is a tuple/list of two numbers [low, high], with low <= high
+    - Bins cover the entire interval from 0 to 1, with no gaps or overlaps
+    - The lowest bin starts below 0 (since pairs >=0 are selected and we want to include zero)
+    """
 
-    The bins should cover everything between 0 and 1.0 and the lowest bin should be below 0
-    (since pairs > are selected and we want to include zero)"""
-    # check that the correct same_prob_bins are selected
-    bin_borders_below_zero = 0
-    bin_borders_1 = 0
-    not_starting_or_ending_borders = []
-    for score_bin in score_bins:
-        if score_bin[0] > score_bin[1]:
-            raise ValueError("The first number in the bin should be smaller than the second")
-        for bin_border in score_bin:
-            if bin_border < 0:
-                bin_borders_below_zero += 1
-            elif bin_border == 1:
-                bin_borders_1 += 1
-            else:
-                not_starting_or_ending_borders.append(bin_border)
-    border_counts = Counter(not_starting_or_ending_borders)
-    if bin_borders_below_zero != 1:
-        raise ValueError(f"There should be one bin border with a value below 0. "
-                         f"But {bin_borders_below_zero} bin borders with value below 0 are found")
-    if bin_borders_1 != 1:
-        raise ValueError(
-            f"There should be one bin border with value 1. "
-            f"But {bin_borders_below_zero} bin borders with value 1 are found")
-    for count in border_counts.values():
-        if count != 2:
-            raise ValueError("There is a gap in the bins, the bins should cover everything between 0 and 1.")
+    # Sort bins by their lower bound
+    sorted_bins = sorted(score_bins, key=lambda b: b[0])
+
+    # Check upper and lower bound
+    if sorted_bins[0][0] >= 0:
+        raise ValueError(f"The first bin should start below 0, but starts at {sorted_bins[0][0]}")
+
+    if sorted_bins[-1][1] != 1:
+        raise ValueError(f"The last bin should end at 1, but ends at {sorted_bins[-1][1]}")
+
+    # Check order, format, and overlaps
+    previous_high = None
+    for score_bin in sorted_bins:
+        if len(score_bin) != 2:
+            raise ValueError("Each bin should have exactly two elements")
+        low, high = score_bin
+        if low > high:
+            raise ValueError("The first number in the bin should be smaller than or equal to the second")
+        if high < 0:
+            raise ValueError("No bin should be entirely below 0.")
+        if previous_high is not None:
+            if low != previous_high:
+                raise ValueError("There is a gap or overlap between bins; The bins should cover everything between 0 and 1.")
+        previous_high = high
 
 
 class SettingsEmbeddingEvaluator:

@@ -43,10 +43,11 @@ def test_get_dict():
     ([(0.8, 0.9), (0.7, 0.8), (0.9, 1.0), (0.6, 0.7), (0.5, 0.6),
       (0.4, 0.5), (0.3, 0.4), (0.2, 0.3), (0.1, 0.2), (-0.01, 0.1)], True),
     ([(-0.01, 0.6), (0.7, 1.0)], False),  # Test a gap in bins is detected
-    ([(0.0, 0.6), (0.7, 1.0)], False),  # test that the lowest values is below 0.
-    ([(-0.3, -0.1), (-0.1, 1.0)], False),  # test that no bin is entirely below 0.
-    ([(0.0, 0.6), (0.6, 0.6), (0.6, 1.0)], False),  # test no repeating bin borders
-    ([(0.0, 0.6), (0.7, 0.6), (0.7, 1.0)], False),  # test correct order of bin borders
+    ([(0.0, 0.6), (0.7, 1.0)], False),  # Test that the lowest values is below 0.
+    ([(-0.3, -0.1), (-0.1, 1.0)], False),  # Test that no bin is entirely below 0.
+    ([(0.0, 0.6), (0.6, 0.6), (0.6, 1.0)], False),  # Test no repeating bin borders
+    ([(0.0, 0.6), (0.7, 0.6), (0.7, 1.0)], False),  # Test correct order of bin borders
+    ([(0.0, 0.5, 1.), (0.5, 0.7, 1.), (0.7, 1.0)], False),  # Test all bins have two elements
 ])
 def test_validate_bin_order(bins, correct):
     if correct:
