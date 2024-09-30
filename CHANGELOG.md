@@ -14,7 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - The inchikey pair selection and data generator has been refactored. The new data generator results in a more balanced inchikey distribution. For details see [#232](https://github.com/matchms/ms2deepscore/pull/232)
 
 ### Changed
-- dense layers are not build with leaky ReLU instead of ReLU [#222](https://github.com/matchms/ms2deepscore/pull/222).
+- dense layers are now build with leaky ReLU instead of ReLU [#222](https://github.com/matchms/ms2deepscore/pull/222).
 
 ### Added
 - Missing code documentation [#222](https://github.com/matchms/ms2deepscore/pull/222).
