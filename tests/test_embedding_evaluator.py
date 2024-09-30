@@ -5,7 +5,8 @@ from sklearn.datasets import make_regression
 import torch
 from ms2deepscore.models import EmbeddingEvaluationModel, LinearModel
 from ms2deepscore.models import load_linear_model, load_model, load_embedding_evaluator
-from tests.test_data_generators import create_test_spectra, data_generator_embedding_evaluation, MockMS2DSModel
+from tests.test_data_generators import data_generator_embedding_evaluation, MockMS2DSModel
+from tests.create_test_spectra import create_test_spectra
 from ms2deepscore.SettingsMS2Deepscore import SettingsEmbeddingEvaluator
 
 

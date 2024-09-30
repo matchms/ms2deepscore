@@ -1,7 +1,10 @@
 """ Data generators for training/inference with MS2DeepScore model.
 """
-from typing import List
+import json
+from collections import Counter
+from typing import List, Tuple
 import numpy as np
+import pandas as pd
 import torch
 from matchms import Spectrum
 from matchms.similarity.vector_similarity_functions import \
@@ -9,23 +12,27 @@ from matchms.similarity.vector_similarity_functions import \
 from ms2deepscore.SettingsMS2Deepscore import (SettingsEmbeddingEvaluator,
                                                SettingsMS2Deepscore)
 from ms2deepscore.tensorize_spectra import tensorize_spectra
-from ms2deepscore.train_new_model.spectrum_pair_selection import (
-    SelectedCompoundPairs, compute_fingerprint_dataframe)
+from ms2deepscore.train_new_model.inchikey_pair_selection import (
+    select_compound_pairs_wrapper, compute_fingerprints_for_training)
 from ms2deepscore.vector_operations import cosine_similarity_matrix
 
 
-class DataGeneratorPytorch:
+class SpectrumPairGenerator:
     """Generates data for training a siamese Pytorch model.
 
-    This class provides a data generator specifically
-    designed for training a Siamese Pytorch model with a curated set of compound pairs.
-    It uses pre-selected compound pairs, allowing more control over the training process,
-    particularly in scenarios where certain compound pairs are of specific interest or
-    have higher significance in the training dataset.
+    This class provides a data generator specifically designed for training a Siamese Pytorch model with a curated set
+    of compound pairs. It takes a InchikeyPairGenerator and randomly selects, augments and tensorizes spectra for each
+    inchikey pair.
+
+    By using pre-selected compound pairs (in the InchikeyPairGenerator), this allows more control over the training
+    process. The selection of inchikey pairs does not happen in SpectrumPairGenerator (only spectrum selection), but in
+    inchikey_pair_selection.py. In inchikey_pair_selection inchikey pairs are picked to balance selected pairs equally
+    over different tanimoto score bins to make sure both pairs of similar and dissimilar compounds are sampled.
+    In addition inchikeys are selected to occur equally for each pair.
     """
 
     def __init__(self, spectrums: List[Spectrum],
-                 selected_compound_pairs: SelectedCompoundPairs,
+                 selected_compound_pairs: "InchikeyPairGenerator",
                  settings: SettingsMS2Deepscore):
         """Generates data for training a siamese Pytorch model.
 
@@ -39,7 +46,7 @@ class DataGeneratorPytorch:
         settings
             The available settings can be found in SettignsMS2Deepscore
         """
-        self.current_index = 0
+        self.current_batch_index = 0
         self.spectrums = spectrums
 
         # Collect all inchikeys
@@ -50,7 +57,7 @@ class DataGeneratorPytorch:
 
         # Initialize random number generator
         if self.model_settings.use_fixed_set:
-            if selected_compound_pairs.shuffling:
+            if self.model_settings.shuffle:
                 raise ValueError(
                     "The generator cannot run reproducibly when shuffling is on for `SelectedCompoundPairs`.")
             if self.model_settings.random_seed is None:
@@ -63,40 +70,36 @@ class DataGeneratorPytorch:
         self.fixed_set = {}
 
         self.selected_compound_pairs = selected_compound_pairs
-        self.on_epoch_end()
+        self.inchikey_pair_generator = self.selected_compound_pairs.generator(self.model_settings.shuffle, self.rng)
+        self.nr_of_batches = int(self.model_settings.num_turns) * int(np.ceil(len(unique_inchikeys) /
+                                                                              self.model_settings.batch_size))
 
     def __len__(self):
-        return int(self.model_settings.num_turns) \
-               * int(np.ceil(len(self.selected_compound_pairs.scores) / self.model_settings.batch_size))
+        return self.nr_of_batches
 
     def __iter__(self):
         return self
 
     def __next__(self):
-        if self.current_index < self.__len__():
-            batch = self.__getitem__(self.current_index)
-            self.current_index += 1
+        if self.current_batch_index < self.nr_of_batches:
+            batch = self.__getitem__(self.current_batch_index)
+            self.current_batch_index += 1
             return batch
-        self.current_index = 0  # make generator executable again
-        self.on_epoch_end()
+        self.current_batch_index = 0  # make generator executable again
         raise StopIteration
 
-    def _spectrum_pair_generator(self, batch_index: int):
+    def _spectrum_pair_generator(self):
         """Use the provided SelectedCompoundPairs object to pick pairs."""
-        batch_size = self.model_settings.batch_size
-        indexes = self.indexes[batch_index * batch_size:(batch_index + 1) * batch_size]
-        for index in indexes:
-            inchikey1 = self.selected_compound_pairs.idx_to_inchikey[index]
-            score, inchikey2 = self.selected_compound_pairs.next_pair_for_inchikey(inchikey1)
+        for _ in range(self.model_settings.batch_size):
+            try:
+                inchikey1, inchikey2, score = next(self.inchikey_pair_generator)
+            except StopIteration as exc:
+                raise RuntimeError("The inchikey pair generator is not expected to end, "
+                                   "but should instead generate infinite pairs") from exc
+
             spectrum1 = self._get_spectrum_with_inchikey(inchikey1)
             spectrum2 = self._get_spectrum_with_inchikey(inchikey2)
-            yield (spectrum1, spectrum2, score)
-
-    def on_epoch_end(self):
-        """Updates indexes after each epoch."""
-        self.indexes = np.tile(np.arange(len(self.selected_compound_pairs.scores)), int(self.model_settings.num_turns))
-        if self.model_settings.shuffle:
-            self.rng.shuffle(self.indexes)
+            yield spectrum1, spectrum2, score
 
     def __getitem__(self, batch_index: int):
         """Generate one batch of data.
@@ -108,7 +111,7 @@ class DataGeneratorPytorch:
             return self.fixed_set[batch_index]
         if self.model_settings.random_seed is not None and batch_index == 0:
             self.rng = np.random.default_rng(self.model_settings.random_seed)
-        spectrum_pairs = self._spectrum_pair_generator(batch_index)
+        spectrum_pairs = self._spectrum_pair_generator()
         spectra_1, spectra_2, meta_1, meta_2, targets = self._tensorize_all(spectrum_pairs)
 
         if self.model_settings.use_fixed_set:
@@ -187,6 +190,20 @@ class DataGeneratorPytorch:
         return spectrum_tensor
 
 
+def create_data_generator(training_spectra,
+                          settings,
+                          json_save_file=None) -> SpectrumPairGenerator:
+    selected_compound_pairs_training = select_compound_pairs_wrapper(training_spectra, settings=settings)
+    inchikey_pair_generator = InchikeyPairGenerator(selected_compound_pairs_training)
+    if json_save_file is not None:
+        inchikey_pair_generator.save_as_json(json_save_file)
+    # Create generators
+    train_generator = SpectrumPairGenerator(spectrums=training_spectra,
+                                            selected_compound_pairs=inchikey_pair_generator,
+                                            settings=settings)
+    return train_generator
+
+
 class DataGeneratorEmbeddingEvaluation:
     """Generates data for training an embedding evaluation model.
 
@@ -226,8 +243,8 @@ class DataGeneratorEmbeddingEvaluation:
         self.ms2ds_model.to(self.device)
         self.indexes = np.arange(len(self.spectrums))
         self.batch_size = self.settings.evaluator_distribution_size
-        self.fingerprint_df = compute_fingerprint_dataframe(self.spectrums,
-                                                            fingerprint_type=self.ms2ds_model.model_settings.fingerprint_type,
+        self.fingerprint_df = self.compute_fingerprint_dataframe(self.spectrums,
+                                                                 fingerprint_type=self.ms2ds_model.model_settings.fingerprint_type,
                                                             fingerprint_nbits=self.ms2ds_model.model_settings.fingerprint_nbits)
 
         # Initialize random number generator
@@ -276,3 +293,80 @@ class DataGeneratorEmbeddingEvaluation:
         """Generate one batch of data.
         """
         return self._compute_embeddings_and_scores(batch_index)
+
+    def compute_fingerprint_dataframe(self,
+                                      spectrums: List[Spectrum],
+                                      fingerprint_type,
+                                      fingerprint_nbits,
+                                      ) -> pd.DataFrame:
+        """Returns a dataframe with a fingerprints dataframe
+
+        spectrums:
+            A list of spectra
+        settings:
+            The settings that should be used for selecting the compound pairs wrapper. The settings should be specified as a
+            SettingsMS2Deepscore object.
+        """
+        fingerprints, inchikeys14_unique = compute_fingerprints_for_training(spectrums, fingerprint_type,
+                                                                             fingerprint_nbits)
+
+        fingerprints_df = pd.DataFrame(fingerprints, index=inchikeys14_unique)
+        return fingerprints_df
+
+
+class InchikeyPairGenerator:
+    def __init__(self, selected_inchikey_pairs: List[Tuple[str, str, float]]):
+        """
+        Parameters
+        ----------
+        selected_inchikey_pairs:
+            A list with tuples encoding inchikey pairs like: (inchikey1, inchikey2, tanimoto_score)
+        """
+        self.selected_inchikey_pairs = selected_inchikey_pairs
+
+    def generator(self, shuffle: bool, random_nr_generator):
+        """Infinite generator to loop through all inchikeys.
+        After looping through all inchikeys the order is shuffled.
+        """
+        while True:
+            if shuffle:
+                random_nr_generator.shuffle(self.selected_inchikey_pairs)
+
+            for inchikey1, inchikey2, tanimoto_score in self.selected_inchikey_pairs:
+                yield inchikey1, inchikey2, tanimoto_score
+
+    def __len__(self):
+        return len(self.selected_inchikey_pairs)
+
+    def __str__(self):
+        return f"InchikeyPairGenerator with {len(self.selected_inchikey_pairs)} pairs available"
+
+    def get_scores(self):
+        return [score for _, _, score in self.selected_inchikey_pairs]
+
+    def get_inchikey_counts(self) -> Counter:
+        """returns the frequency each inchikey occurs"""
+        inchikeys = Counter()
+        for inchikey_1, inchikey_2, _ in self.selected_inchikey_pairs:
+            inchikeys[inchikey_1] += 1
+            inchikeys[inchikey_2] += 1
+        return inchikeys
+
+    def get_scores_per_inchikey(self):
+        inchikey_scores = {}
+        for inchikey_1, inchikey_2, score in self.selected_inchikey_pairs:
+            if inchikey_1 in inchikey_scores:
+                inchikey_scores[inchikey_1].append(score)
+            else:
+                inchikey_scores[inchikey_1] = []
+            if inchikey_2 in inchikey_scores:
+                inchikey_scores[inchikey_2].append(score)
+            else:
+                inchikey_scores[inchikey_2] = []
+        return inchikey_scores
+
+    def save_as_json(self, file_name):
+        data_for_json = [(item[0], item[1], float(item[2])) for item in self.selected_inchikey_pairs]
+
+        with open(file_name, "w", encoding="utf-8") as f:
+            json.dump(data_for_json, f)

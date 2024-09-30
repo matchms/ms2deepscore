@@ -90,8 +90,11 @@ class SettingsMS2Deepscore:
             Array of metadata entries (and their transformation) to be used in training.
             See `MetadatFeatureGenerator` for more information.
             Default is set to empty list.
+        max_pair_resampling
+            The maximum number a inchikey pair can be resampled. Resampling is done to balance inchikey pairs over
+            the tanimoto scores. The minimum is 1, meaning that no resampling is performed.
         """
-    def __init__(self, **settings):
+    def __init__(self, validate_settings=True, **settings):
         # model structure
         self.base_dims = (2000, 2000, 2000)
         self.embedding_dim = 400
@@ -133,10 +136,12 @@ class SettingsMS2Deepscore:
         # Compound pairs selection settings
         self.average_pairs_per_bin = 20
         self.max_pairs_per_bin = 100
-        self.same_prob_bins = np.array([(x / 10, x / 10 + 0.1) for x in range(0, 10)])
+        self.same_prob_bins = np.array([(0.8, 0.9), (0.7, 0.8), (0.9, 1.0), (0.6, 0.7), (0.5, 0.6),
+                                        (0.4, 0.5), (0.3, 0.4), (0.2, 0.3), (0.1, 0.2), (-0.01, 0.1)])
         self.include_diagonal = True
         self.val_spectra_per_inchikey = 1
         self.random_seed: Optional[int] = None
+        self.max_pair_resampling = 1
 
         # Tanimioto score setings
         self.fingerprint_type: str = "daylight"
@@ -158,9 +163,15 @@ class SettingsMS2Deepscore:
                                         f"the type given is {type(value)}, the value given is {value}")
                     setattr(self, key, value)
                 else:
-                    raise ValueError(f"Unknown setting: {key}")
+                    if validate_settings:
+                        raise ValueError(f"Unknown setting: {key}")
+                    # When loading an older model, there can be incompatibilities between training settings.
+                    #  If these settings were just used during training it should not break the loading of a model,
+                    #  since it does not affect how the model runs.
+                    setattr(self, key, value)
 
-        self.validate_settings()
+        if validate_settings:
+            self.validate_settings()
         if self.random_seed is not None:
             np.random.seed(self.random_seed)
 
@@ -174,6 +185,7 @@ class SettingsMS2Deepscore:
             assert isinstance(self.random_seed, int), "Random seed must be integer number."
         if self.loss_function.lower() not in LOSS_FUNCTIONS:
             raise ValueError(f"Unknown loss function. Must be one of: {LOSS_FUNCTIONS.keys()}")
+        validate_bin_order(self.same_prob_bins)
 
     def number_of_bins(self):
         return int((self.max_mz - self.min_mz) / self.mz_bin_width)
@@ -190,6 +202,40 @@ class SettingsMS2Deepscore:
                 return JSONEncoder.default(self, o)
         with open(file_path, 'w', encoding="utf-8") as file:
             json.dump(self.__dict__, file, indent=4, cls=NumpyArrayEncoder)
+
+
+def validate_bin_order(score_bins):
+    """
+    Checks that the given bins are of the correct format:
+    - Each bin is a tuple/list of two numbers [low, high], with low <= high
+    - Bins cover the entire interval from 0 to 1, with no gaps or overlaps
+    - The lowest bin starts below 0 (since pairs >=0 are selected and we want to include zero)
+    """
+
+    # Sort bins by their lower bound
+    sorted_bins = sorted(score_bins, key=lambda b: b[0])
+
+    # Check upper and lower bound
+    if sorted_bins[0][0] >= 0:
+        raise ValueError(f"The first bin should start below 0, but starts at {sorted_bins[0][0]}")
+
+    if sorted_bins[-1][1] != 1:
+        raise ValueError(f"The last bin should end at 1, but ends at {sorted_bins[-1][1]}")
+
+    # Check order, format, and overlaps
+    previous_high = None
+    for score_bin in sorted_bins:
+        if len(score_bin) != 2:
+            raise ValueError("Each bin should have exactly two elements")
+        low, high = score_bin
+        if low > high:
+            raise ValueError("The first number in the bin should be smaller than or equal to the second")
+        if high < 0:
+            raise ValueError("No bin should be entirely below 0.")
+        if previous_high is not None:
+            if low != previous_high:
+                raise ValueError("There is a gap or overlap between bins; The bins should cover everything between 0 and 1.")
+        previous_high = high
 
 
 class SettingsEmbeddingEvaluator:

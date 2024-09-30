@@ -13,10 +13,12 @@ from ms2deepscore.models.loss_functions import bin_dependent_losses
 from ms2deepscore.benchmarking.calculate_scores_for_validation import \
     calculate_true_values_and_predictions_for_validation_spectra
 from ms2deepscore.SettingsMS2Deepscore import SettingsMS2Deepscore
+from ms2deepscore.train_new_model.ValidationLossCalculator import ValidationLossCalculator
+from ms2deepscore.train_new_model.data_generators import create_data_generator
 from ms2deepscore.train_new_model.split_positive_and_negative_mode import \
     split_by_ionmode
 from ms2deepscore.train_new_model.train_ms2deepscore import \
-    train_ms2ds_model, plot_history, prepare_folders_and_generators
+    train_ms2ds_model, plot_history
 from ms2deepscore.train_new_model.validation_and_test_split import \
     split_spectra_in_random_inchikey_sets
 from ms2deepscore.utils import load_spectra_as_list
@@ -147,11 +149,14 @@ def parameter_search(
         #     if field in keys:
         #         search_includes_generator_parameters = True
         #  if search_includes_generator_parameters or (train_generator is None):
-        train_generator, validation_loss_calculator = prepare_folders_and_generators(
-            training_spectra,
-            validation_spectra,
-            results_folder,
-            settings)
+        # Make folder and save settings
+        os.makedirs(results_folder, exist_ok=True)
+        settings.save_to_file(os.path.join(results_folder, "settings.json"))
+        # Create a training generator
+        train_generator = create_data_generator(training_spectra, settings)
+        # Create a validation loss calculator
+        validation_loss_calculator = ValidationLossCalculator(validation_spectra,
+                                                              settings=settings)
 
         model = SiameseSpectralModel(settings=settings)
 
