@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## Unreleased
+## [2.1.0] - 2024-10-07
 
 ### fixed
 - A bug of spectrum pair sampling during training was fixed. Due to this bug for each spectrum only one unique spectrum was sampled, even if multiple spectra were available. The bug was introduced with MS2Deepscore 2.0
@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - dense layers are now build with leaky ReLU instead of ReLU [#222](https://github.com/matchms/ms2deepscore/pull/222).
+- The zenodo link to the latest model has been updated to a model trained using the new algorithm.
 
 ### Added
 - Missing code documentation [#222](https://github.com/matchms/ms2deepscore/pull/222).
