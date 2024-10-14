@@ -85,7 +85,7 @@ def train_ms2deepscore_wrapper(spectra_file_path,
 
 
 def parameter_search(
-        spectra_file_path,
+        spectra_file_path_or_dir: str,
         base_settings: SettingsMS2Deepscore,
         setting_variations,
         validation_split_fraction=20,
@@ -96,15 +96,16 @@ def parameter_search(
 
     If the data split was already done, the data split will be reused.
 
-    spectra_file_path:
-        The path to the spectra that should be used for training. (it will be split in train, val and test)
+    spectra_file_path_or_dir:
+        The path to the spectra that should be used for training. (it will be split in train, val and test).
+        Or the path in which an already existing split is present in a subfolder train_and_validation_split.
     base_settings:
         An object with the MS2Deepscore model settings.
     validation_split_fraction:
         The fraction of the inchikeys that will be used for validation and test.
     """
     print("Initialize Stored Data")
-    stored_training_data = StoreTrainingData(spectra_file_path,
+    stored_training_data = StoreTrainingData(spectra_file_path_or_dir,
                                              split_fraction=validation_split_fraction,
                                              random_seed=base_settings.random_seed)
 
@@ -150,6 +151,7 @@ def parameter_search(
         #     if field in keys:
         #         search_includes_generator_parameters = True
         #  if search_includes_generator_parameters or (train_generator is None):
+
         # Make folder and save settings
         os.makedirs(results_folder, exist_ok=True)
         settings.save_to_file(os.path.join(results_folder, "settings.json"))

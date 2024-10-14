@@ -90,14 +90,14 @@ def test_parameter_search_wrapper(tmp_path):
     }
 
     results = parameter_search(
-        spectra_file_path=spectra_file_name,
+        spectra_file_path_or_dir=spectra_file_name,
         base_settings=base_settings,
         setting_variations=setting_variations,
         validation_split_fraction=5
     )
 
     assert len(results) == 4  # Two variations of epochs and two for batch size = 2 * 2
-    for key, value in results.items():
+    for _, value in results.items():
         assert "params" in value
         assert "history" in value
         assert "losses" in value
