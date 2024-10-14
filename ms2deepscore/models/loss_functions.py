@@ -107,7 +107,6 @@ def bin_dependent_losses(predictions,
     weighting_factor
         Default is 0. Set to value between -1 and 1 to scale the losses linearly.
     """
-    # pylint: disable=too-many-locals
     if predictions.shape != true_values.shape:
         raise ValueError("Expected true values and predictions to have the same shape")
     bin_content = []

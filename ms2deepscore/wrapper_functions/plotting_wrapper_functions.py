@@ -38,10 +38,25 @@ def create_plots_for_all_models(models_directory,
                                                   ref_score_bins=ref_score_bins)
 
 
-def create_plots_between_all_ionmodes(model_directory,
-                                      results_folder=None,
-                                      ref_score_bins=np.array([(x / 10, x / 10 + 0.1) for x in range(0, 10)])):
-    # pylint: disable=too-many-locals
+def create_plots_between_all_ionmodes(model_directory: str,
+                                      results_folder: str = None,
+                                      ref_score_bins: np.ndarray = np.array([(x / 10, x / 10 + 0.1) for x in range(10)])):
+    """
+    Creates comparison plots between different ion modes using precomputed true values and predictions.
+
+    This function generates performance comparison plots for ion modes (positive, negative, and both) based on
+    validation spectra. The results are saved as RMSE comparison plots, which can help evaluate the model's 
+    performance across different ionization modes.
+
+    Parameters
+    ----------
+    model_directory:
+        Directory containing the precomputed benchmarking results (true values and predictions).
+    results_folder:
+        Directory where the plots will be saved. If None, a default folder inside the model directory is used.
+    ref_score_bins:
+        Reference score bins to be used for plotting. Defaults to bins with 0.1 intervals from 0 to 1.
+    """
     spectra_folder = os.path.join(model_directory, "..", "..", "training_and_validation_split")
     if results_folder is None:
         results_folder = os.path.join(model_directory, "benchmarking_results", "plots_1_spectrum_per_inchikey")
@@ -50,19 +65,24 @@ def create_plots_between_all_ionmodes(model_directory,
     negative_validation_spectra = load_spectra_as_list(os.path.join(spectra_folder, "negative_validation_spectra.mgf"))
     both_validation_spectra = positive_validation_spectra + negative_validation_spectra
 
-    validation_spectra = {"positive": positive_validation_spectra,
-                          "negative": negative_validation_spectra,
-                          "both": both_validation_spectra}
+    validation_spectra = {
+        "positive": positive_validation_spectra,
+        "negative": negative_validation_spectra,
+        "both": both_validation_spectra
+    }
 
-    possible_comparisons = (("positive", "positive"),
-                            ("negative", "positive"),
-                            ("negative", "negative"),
-                            ("both", "both"))
+    possible_comparisons = [
+        ("positive", "positive"),
+        ("negative", "positive"),
+        ("negative", "negative"),
+        ("both", "both")
+    ]
     all_selected_true_values = []
     all_selected_predictions = []
     all_labels = []
     for ionmode_1, ionmode_2 in possible_comparisons:
         print(f"Creating plots for {ionmode_1} vs {ionmode_2}")
+
         selected_true_values, selected_predictions = create_all_plots(
             predictions=load_pickled_file(os.path.join(model_directory,
                                                        "benchmarking_results",
@@ -74,14 +94,18 @@ def create_plots_between_all_ionmodes(model_directory,
             val_spectra_2=validation_spectra[ionmode_2],
             benchmarking_results_folder=results_folder,
             file_name_prefix=f"{ionmode_1}_vs_{ionmode_2}",
-            ref_score_bins=ref_score_bins)
+            ref_score_bins=ref_score_bins
+        )
+
         all_selected_true_values.append(selected_true_values)
         all_selected_predictions.append(selected_predictions)
         all_labels.append(f"{ionmode_1} vs {ionmode_2}")
+
     plot_rmse_per_bin_multiple_benchmarks(list_of_predicted_scores=all_selected_predictions,
                                           list_of_true_values=all_selected_true_values,
                                           labels=all_labels,
                                           ref_score_bins=ref_score_bins)
+
     plt.savefig(os.path.join(results_folder, "RMSE_comparison.svg"))
 
 
@@ -92,7 +116,7 @@ def create_all_plots(predictions: np.array,
                      benchmarking_results_folder,
                      file_name_prefix: str,
                      ref_score_bins=np.array([(x / 10, x / 10 + 0.1) for x in range(0, 10)])
-                     ):  # pylint: disable=too-many-arguments
+                     ):
     """Creates and saves plots and in between files for validation spectra
 
     predictions:

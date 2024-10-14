@@ -103,7 +103,6 @@ def parameter_search(
     validation_split_fraction:
         The fraction of the inchikeys that will be used for validation and test.
     """
-    # pylint: disable=too-many-arguments, too-many-locals
     print("Initialize Stored Data")
     stored_training_data = StoreTrainingData(spectra_file_path,
                                              split_fraction=validation_split_fraction,

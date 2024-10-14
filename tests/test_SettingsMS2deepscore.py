@@ -35,7 +35,7 @@ def test_save_settings(tmp_path):
 
 
 def test_get_dict():
-    result = SettingsMS2Deepscore().get_dict()
+    _ = SettingsMS2Deepscore().get_dict()
 
 
 @pytest.mark.parametrize("bins,correct", [

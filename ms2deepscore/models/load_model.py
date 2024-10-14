@@ -81,7 +81,6 @@ def load_embedding_evaluator(filename: Union[str, Path]) -> EmbeddingEvaluationM
 def load_linear_model(filepath):
     """Load a LinearModel from json.
     """
-    # pylint: disable=protected-access
     with open(filepath, "r", encoding="utf-8") as f:
         model_params = json.load(f)
 
