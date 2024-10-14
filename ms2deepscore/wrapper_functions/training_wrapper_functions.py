@@ -4,6 +4,7 @@ reducing the amount of rerunning that is necessary"""
 import itertools
 import os
 import pickle
+from typing import Optional
 from datetime import datetime
 from matchms.exporting import save_spectra
 from matchms.importing import load_spectra
@@ -241,21 +242,34 @@ def create_model_directory_name(settings: SettingsMS2Deepscore):
 
 
 class StoreTrainingData:
-    """Stores, loads and creates all the training data for a spectrum file.
+    """Stores, loads, and creates all the training data for a spectrum file or existing split.
 
-    This includes splitting positive and negative mode spectra and splitting train, test, val spectra.
+    This includes splitting positive and negative mode spectra and splitting train, test, and val spectra.
     It allows for reusing previously created training data for the creation of additional models.
-    To do this, just specify the same spectrum file name and directory."""
+    Users can either provide a single spectra file or an existing folder with split data.
+    """
 
-    def __init__(self, spectra_file_name,
-                 split_fraction=20,
-                 random_seed=None):
-        self.root_directory = os.path.dirname(spectra_file_name)
-        assert os.path.isdir(self.root_directory)
-        self.spectra_file_name = spectra_file_name
-        assert os.path.isfile(self.spectra_file_name)
+    def __init__(self,
+                 spectra_file_path_or_dir: str,
+                 split_fraction: int = 20,
+                 random_seed: Optional[int] = None):
+        self.root_directory = spectra_file_path_or_dir
         self.split_fraction = split_fraction
         self.random_seed = random_seed
+
+        # Check if the input is a directory with pre-split data or a spectra file
+        if os.path.isdir(spectra_file_path_or_dir):
+            self.spectra_file_name = None  # No specific spectra file
+            self.root_directory = spectra_file_path_or_dir
+            print("Starting from an existing split directory.")
+        elif os.path.isfile(spectra_file_path_or_dir):
+            self.spectra_file_name = spectra_file_path_or_dir  # Input is a spectra file
+            self.root_directory = os.path.dirname(spectra_file_path_or_dir)
+            print(f"Starting from spectra file: {self.spectra_file_name}")
+        else:
+            raise ValueError("The provided path is neither a valid directory nor a spectra file.")
+
+        # Define folders for training and validation splits
         self.trained_models_folder = os.path.join(self.root_directory, "trained_models")
         os.makedirs(self.trained_models_folder, exist_ok=True)
 
@@ -265,7 +279,7 @@ class StoreTrainingData:
         self.positive_negative_split_dir = os.path.join(self.root_directory, "pos_neg_split")
         os.makedirs(self.positive_negative_split_dir, exist_ok=True)
 
-        # Spectrum file names
+        # Spectrum file paths for splits
         self.positive_mode_spectra_file = os.path.join(self.positive_negative_split_dir, "positive_spectra.mgf")
         self.negative_mode_spectra_file = os.path.join(self.positive_negative_split_dir, "negative_spectra.mgf")
         self.positive_validation_spectra_file = os.path.join(self.training_and_val_dir, "positive_validation_spectra.mgf")
@@ -274,6 +288,7 @@ class StoreTrainingData:
         self.negative_validation_spectra_file = os.path.join(self.training_and_val_dir, "negative_validation_spectra.mgf")
         self.negative_training_spectra_file = os.path.join(self.training_and_val_dir, "negative_training_spectra.mgf")
         self.negative_testing_spectra_file = os.path.join(self.training_and_val_dir, "negative_testing_spectra.mgf")
+
 
     def load_positive_mode_spectra(self):
         if os.path.isfile(self.positive_mode_spectra_file):
