@@ -34,7 +34,6 @@ def create_confusion_matrix_plot(reference_scores,
     color_by_reference_fraction
         When True, color squares by fractions within the reference score bin. Default is True.
     """
-    # pylint: disable=too-many-arguments
     confusion_like_matrix, confusion_like_matrix_scatter = derive_scatter_data(reference_scores,
                                                                                comparison_scores,
                                                                                lower_bound, upper_bound,
@@ -56,7 +55,6 @@ def plot_confusion_like_matrix(confusion_like_matrix_scatter,
                                upper_bound=1,
                                color_by_reference_fraction=True):
     """Do the actual plotting"""
-    # pylint: disable=too-many-arguments
     summed_tanimoto = []
     for i in range(confusion_like_matrix.shape[0]):
         for _ in range(confusion_like_matrix.shape[1]):
@@ -99,7 +97,6 @@ def derive_scatter_data(reference_scores,
                         upper_bound,
                         n_bins_x, n_bins_y):
     """Helper function to collect actual scatter plot data"""
-    # pylint: disable=too-many-arguments
     bins_x = np.linspace(lower_bound,upper_bound, n_bins_x+1)
     bins_y = np.linspace(lower_bound,upper_bound, n_bins_y+1)
     confusion_like_matrix = np.zeros((n_bins_x, n_bins_y))

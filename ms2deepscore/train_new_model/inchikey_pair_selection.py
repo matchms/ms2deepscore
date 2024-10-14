@@ -121,7 +121,6 @@ def compute_jaccard_similarity_per_bin(
     selected_pairs_per_bin = -1 * np.ones((num_bins, size, max_pairs_per_bin), dtype=np.int32)
     selected_scores_per_bin = np.zeros((num_bins, size, max_pairs_per_bin), dtype=np.float32)
 
-    # pylint: disable=not-an-iterable
     for idx_fingerprint_i in prange(size):
         tanimoto_scores = tanimoto_scores_row(fingerprints, idx_fingerprint_i)
 
@@ -281,7 +280,6 @@ def select_balanced_pairs(available_pairs_for_bin_matrix: np.ndarray,
     inchikey_counts:
         The updated inchikey counts.
     """
-    # pylint: disable=too-many-locals
     num_inchikeys = available_pairs_for_bin_matrix.shape[0]
 
     # Initialize pair frequency matrix

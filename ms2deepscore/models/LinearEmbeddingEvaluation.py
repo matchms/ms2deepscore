@@ -60,7 +60,8 @@ class LinearModel:
         return self.model.predict(X_transformed)
 
     def save(self, filepath):
-        # pylint: disable=protected-access
+        """Save the model to filepath.
+        """
 
         # Extract the model's parameters
         model_params = {
