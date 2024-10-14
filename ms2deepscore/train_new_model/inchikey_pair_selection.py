@@ -52,9 +52,11 @@ def select_compound_pairs_wrapper(
     return [pair for pairs in selected_pairs_per_bin for pair in pairs]
 
 
-def compute_fingerprints_for_training(spectra,
-                                      fingerprint_type: str = "daylight",
-                                      nbits: int = 2048):
+def compute_fingerprints_for_training(
+    spectra: List[Spectrum],
+    fingerprint_type: str = "daylight",
+    nbits: int = 2048
+) -> Tuple[np.ndarray, List[str]]:
     """Calculates fingerprints for each unique inchikey.
 
     Function returns only the inchikeys for which a fingerprint could be calculated.
@@ -160,9 +162,11 @@ def determine_aimed_nr_of_pairs_per_bin(available_pairs_per_bin_matrix, settings
     return aimed_nr_of_pairs_per_bin
 
 
-def balanced_selection_of_pairs_per_bin(available_pairs_per_bin_matrix: np.ndarray,
-                                        max_pair_resampling,
-                                        nr_of_pairs_per_bin):
+def balanced_selection_of_pairs_per_bin(
+        available_pairs_per_bin_matrix: np.ndarray,
+        max_pair_resampling: int,
+        nr_of_pairs_per_bin: int
+        ) -> np.ndarray:
     """From the available_pairs_per_bin_matrix a balanced selection is made to have a balanced distribution.
 
     The algorithm is designed to have a perfect balance over the tanimoto bins,
