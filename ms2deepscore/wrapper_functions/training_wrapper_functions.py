@@ -6,6 +6,7 @@ import os
 import pickle
 from typing import Optional
 from datetime import datetime
+from matchms import Spectrum
 from matchms.exporting import save_spectra
 from matchms.importing import load_spectra
 from ms2deepscore.models.SiameseSpectralModel import (SiameseSpectralModel,
@@ -289,24 +290,40 @@ class StoreTrainingData:
         self.negative_training_spectra_file = os.path.join(self.training_and_val_dir, "negative_training_spectra.mgf")
         self.negative_testing_spectra_file = os.path.join(self.training_and_val_dir, "negative_testing_spectra.mgf")
 
-
-    def load_positive_mode_spectra(self):
+    def load_positive_mode_spectra(self) -> list[Spectrum]:
+        """Load or split positive mode spectra."""
         if os.path.isfile(self.positive_mode_spectra_file):
+            print("Loading previously stored positive mode spectra.")
             return load_spectra_as_list(self.positive_mode_spectra_file)
+
+        if not self.spectra_file_name:
+            raise ValueError("No spectra file provided and no pre-split data available for positive mode spectra.")
+
         positive_mode_spectra, _ = self.split_and_save_positive_and_negative_spectra()
-        print("Loaded previously stored positive mode spectra")
+        print("Loaded and split positive mode spectra.")
         return positive_mode_spectra
 
-    def load_negative_mode_spectra(self):
+    def load_negative_mode_spectra(self) -> list[Spectrum]:
+        """Load or split negative mode spectra."""
         if os.path.isfile(self.negative_mode_spectra_file):
+            print("Loading previously stored negative mode spectra.")
             return load_spectra_as_list(self.negative_mode_spectra_file)
+
+        if not self.spectra_file_name:
+            raise ValueError("No spectra file provided and no pre-split data available for negative mode spectra.")
+
         _, negative_mode_spectra = self.split_and_save_positive_and_negative_spectra()
-        print("Loaded previously stored negative mode spectra")
+        print("Loaded and split negative mode spectra.")
         return negative_mode_spectra
 
     def split_and_save_positive_and_negative_spectra(self):
-        assert not os.path.isfile(self.positive_mode_spectra_file), "the positive mode spectra file already exists"
-        assert not os.path.isfile(self.negative_mode_spectra_file), "the negative mode spectra file already exists"
+        """Split the spectra into positive and negative modes and save them."""
+        if not self.spectra_file_name:
+            raise ValueError("No spectra file provided for splitting")
+        if os.path.isfile(self.positive_mode_spectra_file):
+            raise ValueError("The positive mode spectra file already exists")
+        if os.path.isfile(self.negative_mode_spectra_file):
+            raise ValueError("The negative mode spectra file already exists")
         positive_mode_spectra, negative_mode_spectra = split_by_ionmode(
             load_spectra(self.spectra_file_name, metadata_harmonization=True))
         save_spectra(positive_mode_spectra, self.positive_mode_spectra_file)
