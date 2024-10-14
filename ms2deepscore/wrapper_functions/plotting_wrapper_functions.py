@@ -116,7 +116,7 @@ def create_all_plots(predictions: np.array,
                      benchmarking_results_folder,
                      file_name_prefix: str,
                      ref_score_bins=np.array([(x / 10, x / 10 + 0.1) for x in range(0, 10)])
-                     ):  # pylint: disable=too-many-arguments
+                     ):
     """Creates and saves plots and in between files for validation spectra
 
     predictions:
