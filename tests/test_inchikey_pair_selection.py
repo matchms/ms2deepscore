@@ -259,7 +259,7 @@ def print_balanced_bins_per_inchikey(selected_inchikey_pairs: InchikeyPairGenera
         average_balanced_distribution = sum(balanced_distribution)/len(balanced_distribution)
         if min(balanced_distribution)*2 < average_balanced_distribution:
             available_distribution = available_score_distribution[inchikey]
-            index_of_min = balanced_distribution.index(min(balanced_distribution))
+            _ = balanced_distribution.index(min(balanced_distribution))
             print(available_distribution, balanced_distribution)
             # assert minimum_available_distribution*settings.max_pair_resampling == min(balanced_distribution)
 

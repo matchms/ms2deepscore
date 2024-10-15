@@ -4,7 +4,9 @@ reducing the amount of rerunning that is necessary"""
 import itertools
 import os
 import pickle
+from typing import Optional
 from datetime import datetime
+from matchms import Spectrum
 from matchms.exporting import save_spectra
 from matchms.importing import load_spectra
 from ms2deepscore.models.SiameseSpectralModel import (SiameseSpectralModel,
@@ -83,7 +85,7 @@ def train_ms2deepscore_wrapper(spectra_file_path,
 
 
 def parameter_search(
-        spectra_file_path,
+        spectra_file_path_or_dir: str,
         base_settings: SettingsMS2Deepscore,
         setting_variations,
         validation_split_fraction=20,
@@ -94,16 +96,16 @@ def parameter_search(
 
     If the data split was already done, the data split will be reused.
 
-    spectra_file_path:
-        The path to the spectra that should be used for training. (it will be split in train, val and test)
+    spectra_file_path_or_dir:
+        The path to the spectra that should be used for training. (it will be split in train, val and test).
+        Or the path in which an already existing split is present in a subfolder train_and_validation_split.
     base_settings:
         An object with the MS2Deepscore model settings.
     validation_split_fraction:
         The fraction of the inchikeys that will be used for validation and test.
     """
-    # pylint: disable=too-many-arguments, too-many-locals
     print("Initialize Stored Data")
-    stored_training_data = StoreTrainingData(spectra_file_path,
+    stored_training_data = StoreTrainingData(spectra_file_path_or_dir,
                                              split_fraction=validation_split_fraction,
                                              random_seed=base_settings.random_seed)
 
@@ -149,6 +151,7 @@ def parameter_search(
         #     if field in keys:
         #         search_includes_generator_parameters = True
         #  if search_includes_generator_parameters or (train_generator is None):
+
         # Make folder and save settings
         os.makedirs(results_folder, exist_ok=True)
         settings.save_to_file(os.path.join(results_folder, "settings.json"))
@@ -241,21 +244,34 @@ def create_model_directory_name(settings: SettingsMS2Deepscore):
 
 
 class StoreTrainingData:
-    """Stores, loads and creates all the training data for a spectrum file.
+    """Stores, loads, and creates all the training data for a spectrum file or existing split.
 
-    This includes splitting positive and negative mode spectra and splitting train, test, val spectra.
+    This includes splitting positive and negative mode spectra and splitting train, test, and val spectra.
     It allows for reusing previously created training data for the creation of additional models.
-    To do this, just specify the same spectrum file name and directory."""
+    Users can either provide a single spectra file or an existing folder with split data.
+    """
 
-    def __init__(self, spectra_file_name,
-                 split_fraction=20,
-                 random_seed=None):
-        self.root_directory = os.path.dirname(spectra_file_name)
-        assert os.path.isdir(self.root_directory)
-        self.spectra_file_name = spectra_file_name
-        assert os.path.isfile(self.spectra_file_name)
+    def __init__(self,
+                 spectra_file_path_or_dir: str,
+                 split_fraction: int = 20,
+                 random_seed: Optional[int] = None):
+        self.root_directory = spectra_file_path_or_dir
         self.split_fraction = split_fraction
         self.random_seed = random_seed
+
+        # Check if the input is a directory with pre-split data or a spectra file
+        if os.path.isdir(spectra_file_path_or_dir):
+            self.spectra_file_name = None  # No specific spectra file
+            self.root_directory = spectra_file_path_or_dir
+            print("Starting from an existing split directory.")
+        elif os.path.isfile(spectra_file_path_or_dir):
+            self.spectra_file_name = spectra_file_path_or_dir  # Input is a spectra file
+            self.root_directory = os.path.dirname(spectra_file_path_or_dir)
+            print(f"Starting from spectra file: {self.spectra_file_name}")
+        else:
+            raise ValueError("The provided path is neither a valid directory nor a spectra file.")
+
+        # Define folders for training and validation splits
         self.trained_models_folder = os.path.join(self.root_directory, "trained_models")
         os.makedirs(self.trained_models_folder, exist_ok=True)
 
@@ -265,7 +281,7 @@ class StoreTrainingData:
         self.positive_negative_split_dir = os.path.join(self.root_directory, "pos_neg_split")
         os.makedirs(self.positive_negative_split_dir, exist_ok=True)
 
-        # Spectrum file names
+        # Spectrum file paths for splits
         self.positive_mode_spectra_file = os.path.join(self.positive_negative_split_dir, "positive_spectra.mgf")
         self.negative_mode_spectra_file = os.path.join(self.positive_negative_split_dir, "negative_spectra.mgf")
         self.positive_validation_spectra_file = os.path.join(self.training_and_val_dir, "positive_validation_spectra.mgf")
@@ -275,27 +291,45 @@ class StoreTrainingData:
         self.negative_training_spectra_file = os.path.join(self.training_and_val_dir, "negative_training_spectra.mgf")
         self.negative_testing_spectra_file = os.path.join(self.training_and_val_dir, "negative_testing_spectra.mgf")
 
-    def load_positive_mode_spectra(self):
+    def load_positive_mode_spectra(self) -> list[Spectrum]:
+        """Load or split positive mode spectra."""
         if os.path.isfile(self.positive_mode_spectra_file):
+            print("Loading previously stored positive mode spectra.")
             return load_spectra_as_list(self.positive_mode_spectra_file)
+
+        if not self.spectra_file_name:
+            raise ValueError("No spectra file provided and no pre-split data available for positive mode spectra.")
+
         positive_mode_spectra, _ = self.split_and_save_positive_and_negative_spectra()
-        print("Loaded previously stored positive mode spectra")
+        print("Loaded positive mode spectra")
         return positive_mode_spectra
 
-    def load_negative_mode_spectra(self):
+    def load_negative_mode_spectra(self) -> list[Spectrum]:
+        """Load or split negative mode spectra."""
         if os.path.isfile(self.negative_mode_spectra_file):
+            print("Loading previously stored negative mode spectra.")
             return load_spectra_as_list(self.negative_mode_spectra_file)
+
+        if not self.spectra_file_name:
+            raise ValueError("No spectra file provided and no pre-split data available for negative mode spectra.")
+
         _, negative_mode_spectra = self.split_and_save_positive_and_negative_spectra()
-        print("Loaded previously stored negative mode spectra")
+        print("Loaded negative mode spectra")
         return negative_mode_spectra
 
     def split_and_save_positive_and_negative_spectra(self):
-        assert not os.path.isfile(self.positive_mode_spectra_file), "the positive mode spectra file already exists"
-        assert not os.path.isfile(self.negative_mode_spectra_file), "the negative mode spectra file already exists"
+        """Split the spectra into positive and negative modes and save them."""
+        if not self.spectra_file_name:
+            raise ValueError("No spectra file provided for splitting")
+        if os.path.isfile(self.positive_mode_spectra_file):
+            raise ValueError("The positive mode spectra file already exists")
+        if os.path.isfile(self.negative_mode_spectra_file):
+            raise ValueError("The negative mode spectra file already exists")
         positive_mode_spectra, negative_mode_spectra = split_by_ionmode(
             load_spectra(self.spectra_file_name, metadata_harmonization=True))
         save_spectra(positive_mode_spectra, self.positive_mode_spectra_file)
         save_spectra(negative_mode_spectra, self.negative_mode_spectra_file)
+        print("Separated and stored positive mode and negative mode spectra.")
         return positive_mode_spectra, negative_mode_spectra
 
     def load_positive_train_split(self, spectra_type):

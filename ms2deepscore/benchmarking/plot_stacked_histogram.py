@@ -60,7 +60,6 @@ def plot_stacked_histogram_plot_wrapper(tanimoto_scores: np.array,
         to make it always fit in the figure. By changing ms2deepscore_nr_of_bin_correction, the starting nr of bins for
         the ms2deepscore histograms is changed.
     """
-    # pylint: disable=too-many-arguments
     if tanimoto_scores.max() > 1 or tanimoto_scores.min() < 0:
         raise ValueError("The tanimoto score predictions are not between 0 and 1. "
                          "Ms2deepscore predictions and tanimoto score predictions might be accidentally reversed")
@@ -83,7 +82,6 @@ def plot_stacked_histogram(normalized_counts_per_bin,
                            y_label,
                            title):
     """Creates a stacked histogram"""
-    # pylint: disable=too-many-arguments
     nr_of_bins = len(normalized_counts_per_bin)
     if len(used_x_axis_bins_per_bin) != nr_of_bins or len(total_pairs_per_bin) != nr_of_bins:
         raise ValueError("The nr of tanimoto bins for each of the input values should be equal")

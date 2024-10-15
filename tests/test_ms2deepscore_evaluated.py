@@ -1,8 +1,7 @@
 from pathlib import Path
 import numpy as np
-import pytest
 from ms2deepscore import MS2DeepScoreEvaluated
-from ms2deepscore.SettingsMS2Deepscore import SettingsMS2Deepscore, SettingsEmbeddingEvaluator
+from ms2deepscore.SettingsMS2Deepscore import SettingsEmbeddingEvaluator
 from ms2deepscore.models import load_model, LinearModel, EmbeddingEvaluationModel
 from tests.test_user_worfklow import load_processed_spectrums
 
