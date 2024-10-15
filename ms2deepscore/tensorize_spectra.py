@@ -33,7 +33,6 @@ def tensorize_spectra(
 @numba.jit(nopython=True)
 def vectorize_spectrum(mz_array, intensities_array, min_mz, max_mz, mz_bin_width, intensity_scaling):
     """Fast function to convert mz and intensity arrays into dense spectrum vector."""
-    # pylint: disable=too-many-arguments
     num_bins = int((max_mz - min_mz) / mz_bin_width)
     vector = np.zeros((num_bins))
     for mz, intensity in zip(mz_array, intensities_array):
