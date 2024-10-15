@@ -76,7 +76,6 @@ class MS2DeepScoreMonteCarlo(BaseSimilarity):
             Set to True to monitor the embedding creating with a progress bar.
             Default is False.
         """
-        # pylint: disable=too-many-arguments
         self.model = model
         if self.model.encoder.dropout.p == 0:
             raise TypeError("Monte Carlo Dropout is not supposed to be used with a model where dropout-rate=0.")

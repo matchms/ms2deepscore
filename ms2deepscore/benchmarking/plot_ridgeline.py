@@ -30,7 +30,6 @@ def create_combined_ridgeline_plot(reference_scores,
     compare_score_name
         Label string. The default is "MS2DeepScore".
     """
-    # pylint: disable=too-many-arguments
 
     histograms, used_bins, _, _ = calculate_histograms(reference_scores, comparison_scores,
                                                        n_bins, min_resolution, max_resolution)
@@ -115,7 +114,6 @@ def score_histogram(scores, n_bins, ax=None, ylabel="scores"):
 
 def calculate_histograms(reference_scores, comparison_scores, n_bins=10, min_resolution=20, max_resolution=100):
     """Calcualte a series of histograms, one for every bin."""
-    # pylint: disable=too-many-locals
     def get_hist_bins(resolution):
         hist_bins = np.linspace(0, 1, resolution)
         hist_bins = np.concatenate((hist_bins, np.array([2.0])))
