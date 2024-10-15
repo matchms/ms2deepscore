@@ -301,7 +301,7 @@ class StoreTrainingData:
             raise ValueError("No spectra file provided and no pre-split data available for positive mode spectra.")
 
         positive_mode_spectra, _ = self.split_and_save_positive_and_negative_spectra()
-        print("Loaded and split positive mode spectra.")
+        print("Loaded positive mode spectra")
         return positive_mode_spectra
 
     def load_negative_mode_spectra(self) -> list[Spectrum]:
@@ -314,7 +314,7 @@ class StoreTrainingData:
             raise ValueError("No spectra file provided and no pre-split data available for negative mode spectra.")
 
         _, negative_mode_spectra = self.split_and_save_positive_and_negative_spectra()
-        print("Loaded and split negative mode spectra.")
+        print("Loaded negative mode spectra")
         return negative_mode_spectra
 
     def split_and_save_positive_and_negative_spectra(self):
@@ -329,6 +329,7 @@ class StoreTrainingData:
             load_spectra(self.spectra_file_name, metadata_harmonization=True))
         save_spectra(positive_mode_spectra, self.positive_mode_spectra_file)
         save_spectra(negative_mode_spectra, self.negative_mode_spectra_file)
+        print("Separated and stored positive mode and negative mode spectra.")
         return positive_mode_spectra, negative_mode_spectra
 
     def load_positive_train_split(self, spectra_type):
