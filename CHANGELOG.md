@@ -5,15 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Changed
+- Switch linter (and linting style) from pylint + prospector to ruff [#240](https://github.com/matchms/ms2deepscore/pull/240)
+- Clearer documentation and naming to run training from existing splits [#239](https://github.com/matchms/ms2deepscore/pull/239)
+
 ## [2.1.0] - 2024-10-07
 
-### fixed
+### Fixed
 - A bug of spectrum pair sampling during training was fixed. Due to this bug for each spectrum only one unique spectrum was sampled, even if multiple spectra were available. The bug was introduced with MS2Deepscore 2.0
 
 ### Changed
 - The inchikey pair selection and data generator has been refactored. The new data generator results in a more balanced inchikey distribution. For details see [#232](https://github.com/matchms/ms2deepscore/pull/232)
-
-### Changed
 - dense layers are now build with leaky ReLU instead of ReLU [#222](https://github.com/matchms/ms2deepscore/pull/222).
 - The zenodo link to the latest model has been updated to a model trained using the new algorithm.
 
@@ -180,7 +184,9 @@ Last version using Tensorflow. Next versions will be using PyTorch.
 
 - This is the initial version of MS2DeepScore
 
-[Unreleased]: https://github.com/matchms/ms2deepscore/compare/1.0.0...HEAD
+[Unreleased]: https://github.com/matchms/ms2deepscore/compare/2.1.0...HEAD
+[2.1.0]: https://github.com/matchms/ms2deepscore/compare/2.0.0...2.1.0
+[2.0.0]: https://github.com/matchms/ms2deepscore/compare/1.0.0...2.0.0
 [1.0.0]: https://github.com/matchms/ms2deepscore/compare/0.5.0...1.0.0
 [0.5.0]: https://github.com/matchms/ms2deepscore/compare/0.4.0...0.5.0
 [0.4.0]: https://github.com/matchms/ms2deepscore/compare/0.3.1...0.4.0
