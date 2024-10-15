@@ -46,15 +46,15 @@ def select_compound_pairs_wrapper(
         )
 
     pair_frequency_matrixes = balanced_selection_of_pairs_per_bin(
-        available_pairs_per_bin_matrix,
+        available_pairs_per_bin_matrix[bin_priorities, :],
         settings.max_pair_resampling,
-        aimed_nr_of_pairs_per_bin
+        aimed_nr_of_pairs_per_bin,
         )
 
     selected_pairs_per_bin = convert_to_selected_pairs_list(
         pair_frequency_matrixes,
-        available_pairs_per_bin_matrix,
-        available_scores_per_bin_matrix,
+        available_pairs_per_bin_matrix[bin_priorities, :],
+        available_scores_per_bin_matrix[bin_priorities, :],
         inchikeys14_unique
         )
     return [pair for pairs in selected_pairs_per_bin for pair in pairs]
@@ -180,7 +180,6 @@ def balanced_selection_of_pairs_per_bin(
         available_pairs_per_bin_matrix: np.ndarray,
         max_pair_resampling: int,
         nr_of_pairs_per_bin: int,
-        bin_priority: np.ndarray = None,
         ) -> np.ndarray:
     """From the available_pairs_per_bin_matrix a balanced selection is made to have a balanced distribution.
 
@@ -206,16 +205,11 @@ def balanced_selection_of_pairs_per_bin(
         Resampling means that the exact same inchikey pair is added multiple times to the list of pairs.
     nr_of_pairs_per_bin:
         The number of pairs that should be sampled for each tanimoto bin.
-    bin_priority:
-        Bins will be processed in the order given in bin_priority. Default is set to None in which case no change
-        to the order will be done.
     """
-    if bin_priority is None:
-        bin_priority = np.arange(0, available_pairs_per_bin_matrix.shape[0])
 
     inchikey_count = np.zeros(available_pairs_per_bin_matrix.shape[1])
     pair_frequency_matrixes = []
-    for pairs_in_bin in available_pairs_per_bin_matrix[bin_priority]:
+    for pairs_in_bin in available_pairs_per_bin_matrix:
         pair_frequencies, inchikey_count = select_balanced_pairs(pairs_in_bin,
                                                                  inchikey_count,
                                                                  nr_of_pairs_per_bin,
