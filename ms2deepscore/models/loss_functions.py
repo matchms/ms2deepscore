@@ -109,6 +109,10 @@ def bin_dependent_losses(predictions,
     """
     if predictions.shape != true_values.shape:
         raise ValueError("Expected true values and predictions to have the same shape")
+    
+    # Make sure bins are sorted
+    ref_score_bins = sorted(ref_score_bins, key=lambda x: x[0])
+
     bin_content = []
     losses = {"bin": []}
     for loss_type in loss_types:
