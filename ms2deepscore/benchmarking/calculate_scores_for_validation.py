@@ -2,6 +2,7 @@ import os
 from typing import List
 import numpy as np
 import pandas as pd
+import torch
 from matchms.filtering.metadata_processing.add_fingerprint import \
     _derive_fingerprint_from_smiles
 from matchms.similarity.vector_similarity_functions import \
@@ -54,6 +55,11 @@ def calculate_true_values_and_predictions_for_validation_spectra(positive_valida
         predictions_collection[f"{ionmode_1}_{ionmode_2}"] = predictions
         if computed_scores_directory is not None:
             save_pickled_file(predictions, file_name_predictions)
+
+    # Avoid memory leakage
+    torch.cuda.empty_cache()
+    del ms2deepscore_model
+
     return true_values_collection, predictions_collection
 
 
