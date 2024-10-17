@@ -18,15 +18,20 @@ def train_ms2ds_model(
         validation_spectra,
         results_folder,
         settings: SettingsMS2Deepscore,
+        inchikey_pairs_file: str = None,
         ):
     """Full workflow to train a MS2DeepScore model.
     """
     # Make folder and save settings
     os.makedirs(results_folder, exist_ok=True)
     settings.save_to_file(os.path.join(results_folder, "settings.json"))
+
     # Create a training generator
-    train_generator = create_data_generator(training_spectra, settings,
-                                            os.path.join(results_folder, "inchikey_pairs.json"))
+    if inchikey_pairs_file is None:
+        train_generator = create_data_generator(training_spectra, settings, None)
+    else:
+        train_generator = create_data_generator(training_spectra, settings,
+                                                os.path.join(results_folder, inchikey_pairs_file))
     # Create a validation loss calculator
     validation_loss_calculator = ValidationLossCalculator(validation_spectra,
                                                           settings=settings)
