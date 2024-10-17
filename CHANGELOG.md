@@ -7,9 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.2.0] - 2024-10-17
+
 ### Changed
 - Switch linter (and linting style) from pylint + prospector to ruff [#240](https://github.com/matchms/ms2deepscore/pull/240)
 - Clearer documentation and naming to run training from existing splits [#239](https://github.com/matchms/ms2deepscore/pull/239)
+
+### Fixed
+- Fixed one memory leak when running the `parameter_serch` function (there might be more though) [#243](https://github.com/matchms/ms2deepscore/pull/243)
 
 ## [2.1.0] - 2024-10-07
 
@@ -184,7 +189,8 @@ Last version using Tensorflow. Next versions will be using PyTorch.
 
 - This is the initial version of MS2DeepScore
 
-[Unreleased]: https://github.com/matchms/ms2deepscore/compare/2.1.0...HEAD
+[Unreleased]: https://github.com/matchms/ms2deepscore/compare/2.2.0...HEAD
+[2.2.0]: https://github.com/matchms/ms2deepscore/compare/2.1.0...2.2.0
 [2.1.0]: https://github.com/matchms/ms2deepscore/compare/2.0.0...2.1.0
 [2.0.0]: https://github.com/matchms/ms2deepscore/compare/1.0.0...2.0.0
 [1.0.0]: https://github.com/matchms/ms2deepscore/compare/0.5.0...1.0.0
