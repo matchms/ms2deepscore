@@ -9,6 +9,7 @@ import random
 
 
 def dummy_tanimoto_scores(num_of_unique_inchikeys):
+    """Creates a dataframe with dummy tanimoto scores"""
     # Create list of dummy_inchikeys, with the same letter repeating
     dummy_inchikeys = [f"{14 * letter}" for letter in list(string.ascii_uppercase[:num_of_unique_inchikeys])]
     # Generate random values
@@ -23,6 +24,8 @@ def dummy_tanimoto_scores(num_of_unique_inchikeys):
 
 
 def create_dummy_predictions(tanimoto_scores: pd.DataFrame):
+    """Creates a dataframe with predictions that has the same inchikeys as the given tanimoto scores,
+    but for half of the tanimoto scores extra colums are added to mimick multiple spectra per inchikey"""
     predictions = tanimoto_scores.__deepcopy__()
     inchikeys = list(predictions.index)
     random_half_of_inchikeys = random.sample(inchikeys, len(inchikeys)//2)
