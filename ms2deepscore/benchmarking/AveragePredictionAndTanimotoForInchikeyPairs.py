@@ -7,7 +7,7 @@ from ms2deepscore.vector_operations import cosine_similarity_matrix
 from ms2deepscore.models.load_model import load_model
 
 
-class PredictionTanimotoPairs:
+class AveragePredictionAndTanimotoForInchikeyPairs:
     """Calculates the true tanimoto scores and average ms2deepscore between unique inchikeys """
     def __init__(self,
                  model_file_name, positive_validation_spectra, negative_validation_spectra):

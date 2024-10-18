@@ -3,7 +3,7 @@ from tqdm import tqdm
 
 from matplotlib import pyplot as plt
 
-from ms2deepscore.benchmarking.PredictionTanimotoPairs import PredictionTanimotoPairs
+from ms2deepscore.benchmarking.AveragePredictionAndTanimotoForInchikeyPairs import AveragePredictionAndTanimotoForInchikeyPairs
 
 
 def select_pairs_per_bin(tanimoto_scores, predictions, bins):
@@ -20,7 +20,7 @@ def select_pairs_per_bin(tanimoto_scores, predictions, bins):
     return average_per_bin
 
 
-def plot_average_per_bin(pairs: PredictionTanimotoPairs, nr_of_bins):
+def plot_average_per_bin(pairs: AveragePredictionAndTanimotoForInchikeyPairs, nr_of_bins):
     bins = np.linspace(0, 1.00000001, nr_of_bins + 1)
     bin_centers = (bins[:-1] + bins[1:]) / 2  # Compute bin centers for plotting
 

@@ -1,10 +1,10 @@
 import numpy as np
 from matplotlib import pyplot as plt
 
-from ms2deepscore.benchmarking.PredictionTanimotoPairs import PredictionTanimotoPairs
+from ms2deepscore.benchmarking.AveragePredictionAndTanimotoForInchikeyPairs import AveragePredictionAndTanimotoForInchikeyPairs
 
 
-def create_3_heatmaps(pairs: PredictionTanimotoPairs, nr_of_bins):
+def create_3_heatmaps(pairs: AveragePredictionAndTanimotoForInchikeyPairs, nr_of_bins):
     # Get the minimum and maximum prediction (if larger of smaller than 1
     minimum_y_axis = min(min(pairs.pos_vs_neg_predictions), min(pairs.pos_vs_pos_predictions), min(pairs.neg_vs_neg_predictions), 0)
     maximum_y_axis = max(max(pairs.pos_vs_neg_predictions), max(pairs.pos_vs_pos_predictions), max(pairs.neg_vs_neg_predictions), 1)
