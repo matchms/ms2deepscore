@@ -1,6 +1,6 @@
 import pytest
 
-from ms2deepscore.benchmarking.AveragePredictionAndTanimotoForInchikeyPairs import AveragePredictionAndTanimotoForInchikeyPairs
+from ms2deepscore.benchmarking.CalculateScoresBetweenAllIonmodes import CalculateScoresBetweenAllIonmodes
 from ms2deepscore.benchmarking.plot_heatmaps import create_3_heatmaps
 from tests.test_user_worfklow import load_processed_spectrums, TEST_RESOURCES_PATH
 import random
@@ -12,7 +12,7 @@ def testCreatePlots():
 
     # Load pretrained model
     model_file = TEST_RESOURCES_PATH / "testmodel.pt"
-    plots_creator = AveragePredictionAndTanimotoForInchikeyPairs(model_file, spectrums, spectrums, 2)
+    plots_creator = CalculateScoresBetweenAllIonmodes(model_file, spectrums, spectrums)
 
 
 @pytest.fixture()
@@ -28,7 +28,7 @@ def dummy_pairs():
             second_numbers.append(second_number)
         return second_numbers, first_numbers
 
-    class TestInstance(AveragePredictionAndTanimotoForInchikeyPairs):
+    class TestInstance(CalculateScoresBetweenAllIonmodes):
         def __init__(self):
             nr_of_pairs = 10000
             random.seed(42)

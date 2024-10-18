@@ -1,20 +1,27 @@
 import numpy as np
 from matplotlib import pyplot as plt
 
-from ms2deepscore.benchmarking.AveragePredictionAndTanimotoForInchikeyPairs import AveragePredictionAndTanimotoForInchikeyPairs
+from ms2deepscore.benchmarking.CalculateScoresBetweenAllIonmodes import CalculateScoresBetweenAllIonmodes
 
 
-def create_3_heatmaps(pairs: AveragePredictionAndTanimotoForInchikeyPairs, nr_of_bins):
+def create_3_heatmaps(pairs: CalculateScoresBetweenAllIonmodes, nr_of_bins):
     # Get the minimum and maximum prediction (if larger of smaller than 1
-    minimum_y_axis = min(min(pairs.pos_vs_neg_predictions), min(pairs.pos_vs_pos_predictions), min(pairs.neg_vs_neg_predictions), 0)
-    maximum_y_axis = max(max(pairs.pos_vs_neg_predictions), max(pairs.pos_vs_pos_predictions), max(pairs.neg_vs_neg_predictions), 1)
+    minimum_y_axis = min(min(pairs.pos_vs_neg_scores.list_of_average_predictions),
+                         min(pairs.pos_vs_pos_scores.list_of_average_predictions),
+                         min(pairs.neg_vs_neg_scores.list_of_average_predictions), 0)
+    maximum_y_axis = max(max(pairs.pos_vs_neg_scores.list_of_average_predictions),
+                         max(pairs.pos_vs_pos_scores.list_of_average_predictions),
+                         max(pairs.neg_vs_neg_scores.list_of_average_predictions), 1)
 
     x_bins = np.linspace(0, 1, nr_of_bins + 1)
     y_bins = np.linspace(minimum_y_axis, maximum_y_axis + 0.00001, nr_of_bins + 1)
 
-    pos_pos_heatmap = np.histogram2d(pairs.pos_vs_pos_tanimoto_scores, pairs.pos_vs_pos_predictions, bins=(x_bins, y_bins))[0]
-    neg_neg_heatmap = np.histogram2d(pairs.neg_vs_neg_tanimoto_scores, pairs.neg_vs_neg_predictions, bins=(x_bins, y_bins))[0]
-    pos_neg_heatmap = np.histogram2d(pairs.pos_vs_neg_tanimoto_scores, pairs.pos_vs_neg_predictions, bins=(x_bins, y_bins))[0]
+    pos_pos_heatmap = np.histogram2d(pairs.pos_vs_pos_scores.list_of_tanimoto_scores,
+                                     pairs.pos_vs_pos_scores.list_of_average_predictions, bins=(x_bins, y_bins))[0]
+    neg_neg_heatmap = np.histogram2d(pairs.neg_vs_neg_scores.list_of_tanimoto_scores,
+                                     pairs.neg_vs_neg_scores.list_of_average_predictions, bins=(x_bins, y_bins))[0]
+    pos_neg_heatmap = np.histogram2d(pairs.pos_vs_neg_scores.list_of_tanimoto_scores,
+                                     pairs.pos_vs_neg_scores.list_of_average_predictions, bins=(x_bins, y_bins))[0]
 
     # Take the average per bin
     pos_pos_normalized_heatmap = pos_pos_heatmap / pos_pos_heatmap.sum(axis=1, keepdims=True)
