@@ -1,3 +1,5 @@
+from typing import Tuple, List
+
 import pandas as pd
 import numpy as np
 
@@ -23,7 +25,7 @@ class AveragePredictionAndTanimotoForInchikeyPairs:
         self.neg_vs_neg_predictions, self.neg_vs_neg_tanimoto_scores = self.get_tanimoto_and_prediction_pairs(
             negative_validation_spectra)
 
-    def get_tanimoto_and_prediction_pairs(self, spectra_1, spectra_2 = None):
+    def get_tanimoto_and_prediction_pairs(self, spectra_1, spectra_2=None):
         symmetric = False
         if spectra_2 is None:
             spectra_2 = spectra_1
@@ -32,19 +34,23 @@ class AveragePredictionAndTanimotoForInchikeyPairs:
             predictions_df = create_embedding_matrix_symmetric(self.model, spectra_1)
         else:
             predictions_df = create_embedding_matrix_not_symmetric(self.model, spectra_1, spectra_2)
-        predictions_per_inchikey = convert_predictions_matrix_to_average_per_inchikey(predictions_df,
+        tanimoto_scores_df = calculate_tanimoto_scores_unique_inchikey(spectra_1, spectra_2)
+
+        average_predictions_per_inchikey = convert_predictions_matrix_to_average_per_inchikey(predictions_df,
                                                                                       symmetric=symmetric)
-        tanimoto_scores = calculate_tanimoto_scores_unique_inchikey(spectra_1, spectra_2)
-        predictions, tanimoto_scores = select_score_pairs(predictions_per_inchikey, tanimoto_scores)
+        predictions, tanimoto_scores = convert_scores_df_to_list_of_pairs(average_predictions_per_inchikey,
+                                                                          tanimoto_scores_df)
         return predictions, tanimoto_scores
 
 
-def select_score_pairs(predictions_per_inchikey, tanimoto_df):
+def convert_scores_df_to_list_of_pairs(average_predictions_per_inchikey: pd.DataFrame,
+                                       tanimoto_df: pd.DataFrame) -> Tuple[List[float], List[float]]:
+    """Takes in two dataframes with inchikeys as index and returns two lists with scores, which correspond to pairs"""
     predictions = []
     tanimoto_scores = []
-    for inchikey_1 in predictions_per_inchikey.index:
-        for inchikey_2 in  predictions_per_inchikey.index:
-            prediction = predictions_per_inchikey[inchikey_2][inchikey_1]
+    for inchikey_1 in average_predictions_per_inchikey.index:
+        for inchikey_2 in  average_predictions_per_inchikey.index:
+            prediction = average_predictions_per_inchikey[inchikey_2][inchikey_1]
             # don't include pairs where the prediciton is Nan (this is the case when only a pair against itself is available)
             if not np.isnan(prediction):
                 tanimoto = tanimoto_df[inchikey_2][inchikey_1]
