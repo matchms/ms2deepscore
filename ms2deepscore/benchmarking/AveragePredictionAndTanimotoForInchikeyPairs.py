@@ -100,38 +100,3 @@ def convert_predictions_matrix_to_average_per_inchikey(predictions_df, symmetric
         predictions_df.index).mean()  # Grouping rows by index and averaging across columns
     df_grouped_columns = df_grouped.groupby(lambda x: x, axis=1).mean()  # Grouping columns with duplicate names
     return df_grouped_columns
-
-
-# # functions for sampling pairs per bin equally
-
-#
-#
-#
-#
-# class ReshuffleSampler:
-#     def __init__(self, values):
-#         self.original_values = values
-#         self.current_values = []
-#         self.shuffle()
-#
-#     def shuffle(self):
-#         """Shuffle the list and reset the current values."""
-#         self.current_values = self.original_values.copy()
-#         random.shuffle(self.current_values)
-#
-#     def sample(self):
-#         """Sample a value, reshuffle if list is exhausted."""
-#         if not self.current_values:
-#             self.shuffle()  # Reshuffle when the list is exhausted
-#         return self.current_values.pop()  # Pop a value from the list
-#
-#
-# def sample_pairs_per_bin_equally(score_pairs_per_bin, nr_of_pairs_per_bin):
-#     selected_pairs = []
-#     for pairs_in_bin in tqdm(score_pairs_per_bin, desc="Sample pairs per bin"):
-#         sampler = ReshuffleSampler(pairs_in_bin)
-#
-#         for i in range(nr_of_pairs_per_bin):
-#             selected_pairs.append(sampler.sample())
-#     return selected_pairs
-#
