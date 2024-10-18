@@ -1,6 +1,6 @@
 import pytest
 
-from ms2deepscore.benchmarking.CalculateScoresBetweenAllIonmodes import CalculateScoresBetweenAllIonmodes
+from ms2deepscore.benchmarking.CalculateScoresBetweenAllIonmodes import CalculateScoresBetweenAllIonmodes, PredictionsAndTanimotoScores
 from ms2deepscore.benchmarking.plot_heatmaps import create_3_heatmaps
 from tests.test_user_worfklow import load_processed_spectrums, TEST_RESOURCES_PATH
 import random
@@ -16,7 +16,7 @@ def testCreatePlots():
 
 
 @pytest.fixture()
-def dummy_pairs():
+def dummy_scores():
     def create_test_scores(num_tuples, noise_std=0.1):
         first_numbers = []
         second_numbers = []
@@ -28,21 +28,25 @@ def dummy_pairs():
             second_numbers.append(second_number)
         return second_numbers, first_numbers
 
-    class TestInstance(CalculateScoresBetweenAllIonmodes):
+    class TestPredictionsAndTanimotoScores(PredictionsAndTanimotoScores):
         def __init__(self):
             nr_of_pairs = 10000
             random.seed(42)
-            self.pos_vs_neg_predictions, self.pos_vs_neg_tanimoto_scores = create_test_scores(nr_of_pairs)
-            self.pos_vs_pos_predictions, self.pos_vs_pos_tanimoto_scores = create_test_scores(nr_of_pairs)
-            self.neg_vs_neg_predictions, self.neg_vs_neg_tanimoto_scores = create_test_scores(nr_of_pairs)
-    return TestInstance()
+            self.list_of_average_predictions, self.list_of_tanimoto_scores = create_test_scores(nr_of_pairs)
+
+    class TestCalculateScoresBetweenAllIonmodes(CalculateScoresBetweenAllIonmodes):
+        def __init__(self):
+            self.pos_vs_neg_scores = TestPredictionsAndTanimotoScores()
+            self.pos_vs_pos_scores = TestPredictionsAndTanimotoScores()
+            self.neg_vs_neg_scores = TestPredictionsAndTanimotoScores()
+    return TestCalculateScoresBetweenAllIonmodes()
 
 
-def test_create_three_heatmaps(dummy_pairs):
-    fig = create_3_heatmaps(dummy_pairs, 50)
+def test_create_three_heatmaps(dummy_scores):
+    fig = create_3_heatmaps(dummy_scores, 50)
     fig.show()
 
 
-def test_plot_average_per_bin(dummy_pairs):
-    fig = plot_average_per_bin(dummy_pairs, 50)
+def test_plot_average_per_bin(dummy_scores):
+    fig = plot_average_per_bin(dummy_scores, 50)
     fig.show()
