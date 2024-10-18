@@ -73,19 +73,19 @@ class PredictionsAndTanimotoScores:
         self.tanimoto_df = tanimoto_df
         self.symmetric = symmetric
 
+        # remove predicitons between the same spectrum
+        if self.symmetric:
+            np.fill_diagonal(self.predictions_df.values, np.nan)
+
         average_prediction_per_inchikey_pair = self._get_average_prediction_per_inchikey_pair()
         self.list_of_average_predictions, self.list_of_tanimoto_scores = self._convert_scores_df_to_list_of_pairs(
             average_prediction_per_inchikey_pair)
 
     def _get_average_prediction_per_inchikey_pair(self):
         """Takes a matrix with per spectrum predictions and converts it to a df with the average prediction between all inchikeys"""
-        # remove predicitons between the same spectrum
-        if self.symmetric:
-            np.fill_diagonal(self.predictions_df.values, np.nan)
         # get the mean prediction per inchikey
-        df_grouped = self.predictions_df.groupby(
-            self.predictions_df.index).mean()
-        df_grouped_columns = df_grouped.groupby(lambda x: x, axis=1).mean()  # Grouping columns with duplicate names
+        df_grouped = self.predictions_df.groupby(self.predictions_df.index).mean()
+        df_grouped_columns = df_grouped.groupby(lambda x: x, axis=1).mean()  # Other axis
         return df_grouped_columns
 
     def _convert_scores_df_to_list_of_pairs(self, average_predictions_per_inchikey: pd.DataFrame) -> Tuple[List[float], List[float]]:
