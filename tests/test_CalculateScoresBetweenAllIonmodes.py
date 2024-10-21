@@ -39,6 +39,9 @@ def create_dummy_predictions(tanimoto_scores: pd.DataFrame):
     random_noise = np.random.normal(loc=0, scale=0.1, size=predictions.shape)
     predictions = predictions + random_noise
     symmetric_predictions = (predictions + predictions.T) / 2
+    # Set diagonal to nan
+    for i in range(min(symmetric_predictions.shape)):
+        symmetric_predictions.iloc[i, i] = None
     return symmetric_predictions
 
 
