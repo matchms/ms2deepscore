@@ -4,6 +4,7 @@ import numpy as np
 import pandas as pd
 
 from ms2deepscore.benchmarking.CalculateScoresBetweenAllIonmodes import CalculateScoresBetweenAllIonmodes, PredictionsAndTanimotoScores
+from ms2deepscore.benchmarking.plot_rmse_per_bin import plot_rmse_per_bin, plot_rmse_per_bin_multiple_benchmarks
 from tests.test_user_worfklow import load_processed_spectrums, TEST_RESOURCES_PATH
 import random
 
@@ -53,7 +54,26 @@ def create_dummy_predictions_and_tanimoto_scores(nr_of_unique_inchikeys):
 
 def test_predictions_and_tanimoto_scores():
     predictions_and_tanimoto_scores = create_dummy_predictions_and_tanimoto_scores(26)
+    average_loss = predictions_and_tanimoto_scores.get_average_loss_per_inchikey_pair()
+    average_MSE = predictions_and_tanimoto_scores.get_average_MSE_per_inchikey_pair()
+    average_RMSE = predictions_and_tanimoto_scores.get_average_RMSE_per_inchikey_pair()
+    print(average_RMSE)
     # todo add actual tests for correctly creating other files
+
+
+def test_plot_rmse_per_bin():
+    predictions_and_tanimoto_scores = create_dummy_predictions_and_tanimoto_scores(26)
+
+    plot_rmse_per_bin(predictions_and_tanimoto_scores)
+    from matplotlib import pyplot as plt
+
+    plt.show()
+
+    predictions_and_tanimoto_scores_1 = create_dummy_predictions_and_tanimoto_scores(26)
+
+    plot_rmse_per_bin_multiple_benchmarks([predictions_and_tanimoto_scores, predictions_and_tanimoto_scores_1],
+                                          ["test_1", "test_2"])
+    plt.show()
 
 
 def test_calculate_scores_between_all_ionmodes():
