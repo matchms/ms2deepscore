@@ -97,34 +97,7 @@ def test_predictions_and_tanimoto_scores():
     average_MSE = predictions_and_tanimoto_scores.get_average_MSE_per_inchikey_pair()
     average_RMSE = predictions_and_tanimoto_scores.get_average_RMSE_per_inchikey_pair()
     print(average_RMSE)
-    # todo add actual tests for correctly creating other files
-
-
-def test_plot_rmse_per_bin():
-    from matplotlib import pyplot as plt
-
-    predictions_and_tanimoto_scores = create_dummy_predictions_and_tanimoto_scores(26)
-    plot_loss_per_bin(predictions_and_tanimoto_scores, loss_type="MSE")
-    plt.show()
-    plot_loss_per_bin(predictions_and_tanimoto_scores, loss_type="RMSE")
-    plt.show()
-    plot_loss_per_bin(predictions_and_tanimoto_scores, loss_type="MAE")
-    plt.show()
-
-    predictions_and_tanimoto_scores_1 = create_dummy_predictions_and_tanimoto_scores(26)
-
-    plot_loss_per_bin_multiple_benchmarks([predictions_and_tanimoto_scores, predictions_and_tanimoto_scores_1],
-                                          ["test_1", "test_2"], loss_type="MSE")
-    plt.show()
-    plot_loss_per_bin_multiple_benchmarks([predictions_and_tanimoto_scores, predictions_and_tanimoto_scores_1],
-                                          ["test_1", "test_2"],
-                                          loss_type="RMSE")
-    plt.show()
-    plot_loss_per_bin_multiple_benchmarks([predictions_and_tanimoto_scores, predictions_and_tanimoto_scores_1],
-                                          ["test_1", "test_2"],
-                                          loss_type="MAE")
-    plt.show()
-
+    # todo add actual tests for correctly calculating all scores
 
 def test_calculate_scores_between_all_ionmodes():
     spectrums = load_processed_spectrums()
