@@ -1,17 +1,52 @@
+from typing import List
+
 import numpy as np
 from matplotlib import pyplot as plt
-from ms2deepscore.models.loss_functions import bin_dependent_losses
+
+from ms2deepscore.benchmarking.CalculateScoresBetweenAllIonmodes import PredictionsAndTanimotoScores
 
 
-def plot_rmse_per_bin(predicted_scores, true_scores,
+def bin_dependent_losses(average_loss_per_inchikey_pair,
+                         true_values,
+                         ref_score_bins,
+                         ):
+    """Compute errors (RMSE and MSE) for different bins of the reference scores (scores_ref).
+
+    Parameters
+    ----------
+    average_loss_per_inchikey_pair
+        Precalculated average loss per inchikey pair (this can be any loss type)
+    true_values
+        Reference scores (= ground truth).
+    ref_score_bins
+        Bins for the reference score to evaluate the performance of scores. in the form [(0.0, 0.1), (0.1, 0.2) ...]
+
+    """
+    if average_loss_per_inchikey_pair.shape != true_values.shape:
+        raise ValueError("Expected true values and predictions to have the same shape")
+    bin_content = []
+    losses = []
+    bounds = []
+    for i, (low, high) in enumerate(ref_score_bins):
+        bounds.append((low, high))
+        if i == 0:
+            idx = np.where((true_values >= low) & (true_values <= high))
+        else:
+            idx = np.where((true_values > low) & (true_values <= high))
+        if idx[0].shape[0] == 0:
+            raise ValueError("No reference scores within bin")
+        bin_content.append(idx[0].shape[0])
+        # Add values
+        losses.append(average_loss_per_inchikey_pair.iloc[idx].mean().mean())
+    return bin_content, bounds, losses
+
+
+def plot_rmse_per_bin(predictions_and_tanimoto_scores: PredictionsAndTanimotoScores,
                       ref_score_bins=np.array([(x / 10, x / 10 + 0.1) for x in range(0, 10)])):
-    bin_content, bounds, losses = bin_dependent_losses(
-        predictions=predicted_scores,
-        true_values=true_scores,
-        ref_score_bins=ref_score_bins,
-        loss_types=["rmse"]
-        )
-    rmses = losses["rmse"]
+    bin_content, bounds, rmses = bin_dependent_losses(
+        average_loss_per_inchikey_pair=predictions_and_tanimoto_scores.get_average_RMSE_per_inchikey_pair(),
+        true_values=predictions_and_tanimoto_scores.tanimoto_df,
+        ref_score_bins=ref_score_bins,)
     _, (ax1, ax2) = plt.subplots(2, 1, sharex=True, figsize=(4, 5), dpi=120)
 
     ax1.plot(np.arange(len(rmses)), rmses, "o:", color="crimson")
@@ -30,25 +65,19 @@ def plot_rmse_per_bin(predicted_scores, true_scores,
     plt.tight_layout()
 
 
-def plot_rmse_per_bin_multiple_benchmarks(list_of_predicted_scores,
-                                          list_of_true_values,
+def plot_rmse_per_bin_multiple_benchmarks(list_of_predictions_and_tanimoto_scores: List[PredictionsAndTanimotoScores],
                                           labels,
                                           ref_score_bins=np.array([(x / 10, x / 10 + 0.1) for x in range(0, 10)])):
     """Combines the plot of multiple comparisons into one plot
-
     """
-    if not len(list_of_true_values) == len(list_of_true_values) == len(labels):
-        raise ValueError("The number of predicted scores and true values should be equal.")
     fig, (ax1, ax2) = plt.subplots(2, 1, sharex=True,
                                    figsize=(8, 6), dpi=120)
-    for i, true_values in enumerate(list_of_true_values):
-        bin_content, bounds, losses = bin_dependent_losses(
-            list_of_predicted_scores[i],
-            true_values,
+    for predictions_and_tanimoto_scores in list_of_predictions_and_tanimoto_scores:
+        bin_content, bounds, rmses = bin_dependent_losses(
+            predictions_and_tanimoto_scores.get_average_RMSE_per_inchikey_pair(),
+            predictions_and_tanimoto_scores.tanimoto_df,
             ref_score_bins,
-            loss_types=["rmse"]
             )
-        rmses = losses["rmse"]
         ax1.plot(np.arange(len(rmses)), rmses, "o:")
         ax2.plot(np.arange(len(rmses)), bin_content, "o:")
     fig.legend(labels, loc="center right")
