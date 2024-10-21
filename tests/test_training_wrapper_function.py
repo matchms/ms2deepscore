@@ -33,11 +33,7 @@ def test_train_wrapper_ms2ds_model(tmp_path):
     assert os.path.isfile(expected_file_names.negative_mode_spectra_file)
     assert os.path.isfile(expected_file_names.negative_validation_spectra_file)
     assert os.path.isfile(os.path.join(tmp_path, expected_file_names.trained_models_folder,
-                                       model_directory_name, "benchmarking_results",
-                                       "both_both_predictions.pickle"))
-    assert os.path.isfile(os.path.join(tmp_path, expected_file_names.trained_models_folder,
-                                       model_directory_name, "benchmarking_results",
-                                       "plots_1_spectrum_per_inchikey", "both_vs_both_stacked_histogram.svg"))
+                                       model_directory_name, "benchmarking_results", "average_per_bin.svg"))
     assert os.path.isfile(os.path.join(tmp_path, expected_file_names.trained_models_folder,
                                        model_directory_name, "settings.json"))
 
