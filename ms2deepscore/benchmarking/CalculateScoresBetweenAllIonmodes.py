@@ -102,7 +102,7 @@ class PredictionsAndTanimotoScores:
                     tanimoto_scores.append(tanimoto)
         return predictions, tanimoto_scores
 
-    def get_average_loss_per_inchikey_pair(self):
+    def get_average_MAE_per_inchikey_pair(self):
         loss = abs(self.predictions_df - self.tanimoto_df)
         grouped_losses = loss.groupby(loss.index).mean()
         average_losses = grouped_losses.groupby(lambda x: x, axis=1).mean()
@@ -116,3 +116,14 @@ class PredictionsAndTanimotoScores:
 
     def get_average_RMSE_per_inchikey_pair(self):
         return self.get_average_MSE_per_inchikey_pair()**0.5
+
+    def get_loss_per_inchikey_pair(self, loss_type):
+        if loss_type not in ("RMSE", "MSE", "MAE"):
+            raise ValueError(f'The loss type {loss_type} is not implemented choose from ("RMSE", "MSE", "MAE")')
+
+        if loss_type == "RMSE":
+            return self.get_average_RMSE_per_inchikey_pair()
+        if loss_type == "MSE":
+            return self.get_average_MSE_per_inchikey_pair()
+        if loss_type == "MAE":
+            return self.get_average_MAE_per_inchikey_pair()
