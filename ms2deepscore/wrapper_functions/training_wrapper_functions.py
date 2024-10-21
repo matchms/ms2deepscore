@@ -25,7 +25,7 @@ from ms2deepscore.train_new_model.validation_and_test_split import \
     split_spectra_in_random_inchikey_sets
 from ms2deepscore.utils import load_spectra_as_list
 from ms2deepscore.wrapper_functions.plotting_wrapper_functions import \
-    create_plots_between_all_ionmodes
+    create_plots_between_ionmodes
 
 
 def train_ms2deepscore_wrapper(spectra_file_path,
@@ -60,27 +60,20 @@ def train_ms2deepscore_wrapper(spectra_file_path,
         training_spectra, validation_spectra,
         results_folder,
         settings
-        )
-    
+    )
+
     ms2ds_history_plot_file_name = os.path.join(results_folder, settings.history_plot_file_name)
     plot_history(history["losses"], history["val_losses"], ms2ds_history_plot_file_name)
 
     # Create performance plots for validation spectra
-    ms2deepsore_model_file_name = os.path.join(stored_training_data.trained_models_folder,
-                                               model_directory_name,
-                                               settings.model_file_name)
-    calculate_true_values_and_predictions_for_validation_spectra(
-        positive_validation_spectra=stored_training_data.load_positive_train_split("validation"),
-        negative_validation_spectra=stored_training_data.load_negative_train_split("validation"),
-        ms2deepsore_model_file_name=ms2deepsore_model_file_name,
-        computed_scores_directory=os.path.join(
-            stored_training_data.trained_models_folder,
-            model_directory_name, "benchmarking_results"))
-
-    create_plots_between_all_ionmodes(model_directory=os.path.join(stored_training_data.trained_models_folder,
-                                                                   model_directory_name),
-                                      ref_score_bins=settings.same_prob_bins)
-
+    create_plots_between_ionmodes(positive_validation_spectra=stored_training_data.load_training_data("positive", "validation"),
+                                  negative_validation_spectra=stored_training_data.load_training_data("negative", "validation"),
+                                  results_folder=os.path.join(stored_training_data.trained_models_folder,
+                                                              model_directory_name, "benchmarking_results"),
+                                  model_file_name=os.path.join(stored_training_data.trained_models_folder,
+                                                               model_directory_name,
+                                                               settings.model_file_name),
+                                  nr_of_bins=50)
     return model_directory_name
 
 
@@ -91,7 +84,7 @@ def parameter_search(
         validation_split_fraction=20,
         loss_types=("mse",),
         path_checkpoint="results_checkpoint.pkl"
-        ):
+):
     """Runs a grid search.
 
     If the data split was already done, the data split will be reused.
@@ -177,7 +170,7 @@ def parameter_search(
                 loss_function=settings.loss_function,
                 checkpoint_filename=output_model_file_name,
                 lambda_l1=0, lambda_l2=0
-                )
+            )
         except Exception as error:
             print("An exception occurred:", error)
             print("---- Model training failed! ----")
@@ -219,7 +212,7 @@ def parameter_search(
         # Store checkpoint
         with open(path_checkpoint, 'wb') as f:
             pickle.dump(results, f, pickle.HIGHEST_PROTOCOL)
-    
+
     return results
 
 
@@ -284,10 +277,12 @@ class StoreTrainingData:
         # Spectrum file paths for splits
         self.positive_mode_spectra_file = os.path.join(self.positive_negative_split_dir, "positive_spectra.mgf")
         self.negative_mode_spectra_file = os.path.join(self.positive_negative_split_dir, "negative_spectra.mgf")
-        self.positive_validation_spectra_file = os.path.join(self.training_and_val_dir, "positive_validation_spectra.mgf")
+        self.positive_validation_spectra_file = os.path.join(self.training_and_val_dir,
+                                                             "positive_validation_spectra.mgf")
         self.positive_training_spectra_file = os.path.join(self.training_and_val_dir, "positive_training_spectra.mgf")
         self.positive_testing_spectra_file = os.path.join(self.training_and_val_dir, "positive_testing_spectra.mgf")
-        self.negative_validation_spectra_file = os.path.join(self.training_and_val_dir, "negative_validation_spectra.mgf")
+        self.negative_validation_spectra_file = os.path.join(self.training_and_val_dir,
+                                                             "negative_validation_spectra.mgf")
         self.negative_training_spectra_file = os.path.join(self.training_and_val_dir, "negative_training_spectra.mgf")
         self.negative_testing_spectra_file = os.path.join(self.training_and_val_dir, "negative_testing_spectra.mgf")
 
