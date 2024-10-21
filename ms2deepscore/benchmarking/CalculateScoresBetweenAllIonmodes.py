@@ -101,3 +101,18 @@ class PredictionsAndTanimotoScores:
                     predictions.append(prediction)
                     tanimoto_scores.append(tanimoto)
         return predictions, tanimoto_scores
+
+    def get_average_loss_per_inchikey_pair(self):
+        loss = abs(self.predictions_df - self.tanimoto_df)
+        grouped_losses = loss.groupby(loss.index).mean()
+        average_losses = grouped_losses.groupby(lambda x: x, axis=1).mean()
+        return average_losses
+
+    def get_average_MSE_per_inchikey_pair(self):
+        loss = (self.predictions_df - self.tanimoto_df)**2
+        grouped_losses = loss.groupby(loss.index).mean()
+        average_mse = grouped_losses.groupby(lambda x: x, axis=1).mean()
+        return average_mse
+
+    def get_average_RMSE_per_inchikey_pair(self):
+        return self.get_average_MSE_per_inchikey_pair()**0.5
