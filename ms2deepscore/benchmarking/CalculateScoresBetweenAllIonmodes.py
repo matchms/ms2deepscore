@@ -88,6 +88,9 @@ class CalculateScoresBetweenAllIonmodes:
             positive_validation_spectra, label="positive vs positive")
         self.neg_vs_neg_scores = self.get_tanimoto_and_prediction_pairs(
             negative_validation_spectra, label="negative vs negative")
+        # Avoid memory leakage
+        torch.cuda.empty_cache()
+        del self.model
 
     def get_tanimoto_and_prediction_pairs(self, spectra_1, spectra_2=None, label="") -> PredictionsAndTanimotoScores:
         symmetric = False
