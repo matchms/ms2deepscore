@@ -6,7 +6,7 @@ from matchms.Spectrum import Spectrum
 from matplotlib import pyplot as plt
 from tqdm import tqdm
 from ms2deepscore.benchmarking.plot_rmse_per_bin import (
-    plot_rmse_per_bin, plot_rmse_per_bin_multiple_benchmarks)
+    plot_loss_per_bin, plot_loss_per_bin_multiple_benchmarks)
 from ms2deepscore.benchmarking.plot_stacked_histogram import (
     plot_reversed_stacked_histogram_plot, plot_stacked_histogram_plot_wrapper)
 from ms2deepscore.benchmarking.select_spectrum_pairs_for_visualization import \
@@ -101,7 +101,7 @@ def create_plots_between_all_ionmodes(model_directory: str,
         all_selected_predictions.append(selected_predictions)
         all_labels.append(f"{ionmode_1} vs {ionmode_2}")
 
-    plot_rmse_per_bin_multiple_benchmarks(list_of_predicted_scores=all_selected_predictions,
+    plot_loss_per_bin_multiple_benchmarks(list_of_predicted_scores=all_selected_predictions,
                                           list_of_true_values=all_selected_true_values,
                                           labels=all_labels,
                                           ref_score_bins=ref_score_bins)
@@ -147,7 +147,7 @@ def create_all_plots(predictions: np.array,
         tanimoto_scores=selected_true_values, ms2deepscore_predictions=selected_predictions,
         title=file_name_prefix.replace("_", " "), ms2deepscore_nr_of_bin_correction=nr_of_sample_times)
     plt.savefig(os.path.join(benchmarking_results_folder, f"{file_name_prefix}_reversed_stacked_histogram.svg"))
-    plot_rmse_per_bin(predicted_scores=selected_predictions,
+    plot_loss_per_bin(predicted_scores=selected_predictions,
                       true_scores=selected_true_values,
                       ref_score_bins=ref_score_bins)
     plt.savefig(os.path.join(benchmarking_results_folder, f"{file_name_prefix}_RMSE_per_bin.svg"))

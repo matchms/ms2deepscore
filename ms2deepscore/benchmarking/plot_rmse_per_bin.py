@@ -41,17 +41,19 @@ def bin_dependent_losses(average_loss_per_inchikey_pair,
     return bin_content, bounds, losses
 
 
-def plot_rmse_per_bin(predictions_and_tanimoto_scores: PredictionsAndTanimotoScores,
-                      ref_score_bins=np.array([(x / 10, x / 10 + 0.1) for x in range(0, 10)])):
+def plot_loss_per_bin(predictions_and_tanimoto_scores: PredictionsAndTanimotoScores,
+                      ref_score_bins=np.array([(x / 10, x / 10 + 0.1) for x in range(0, 10)]),
+                      loss_type="RMSE"):
+
     bin_content, bounds, rmses = bin_dependent_losses(
-        average_loss_per_inchikey_pair=predictions_and_tanimoto_scores.get_average_RMSE_per_inchikey_pair(),
+        average_loss_per_inchikey_pair=predictions_and_tanimoto_scores.get_loss_per_inchikey_pair(loss_type),
         true_values=predictions_and_tanimoto_scores.tanimoto_df,
         ref_score_bins=ref_score_bins,)
     _, (ax1, ax2) = plt.subplots(2, 1, sharex=True, figsize=(4, 5), dpi=120)
 
     ax1.plot(np.arange(len(rmses)), rmses, "o:", color="crimson")
-    ax1.set_title('RMSE')
-    ax1.set_ylabel("RMSE")
+    ax1.set_title(loss_type)
+    ax1.set_ylabel(loss_type)
     ax1.grid(True)
 
     ax2.plot(np.arange(len(rmses)), bin_content, "o:", color="teal")
@@ -65,24 +67,25 @@ def plot_rmse_per_bin(predictions_and_tanimoto_scores: PredictionsAndTanimotoSco
     plt.tight_layout()
 
 
-def plot_rmse_per_bin_multiple_benchmarks(list_of_predictions_and_tanimoto_scores: List[PredictionsAndTanimotoScores],
+def plot_loss_per_bin_multiple_benchmarks(list_of_predictions_and_tanimoto_scores: List[PredictionsAndTanimotoScores],
                                           labels,
-                                          ref_score_bins=np.array([(x / 10, x / 10 + 0.1) for x in range(0, 10)])):
+                                          ref_score_bins=np.array([(x / 10, x / 10 + 0.1) for x in range(0, 10)]),
+                                          loss_type="RMSE"):
     """Combines the plot of multiple comparisons into one plot
     """
     fig, (ax1, ax2) = plt.subplots(2, 1, sharex=True,
                                    figsize=(8, 6), dpi=120)
     for predictions_and_tanimoto_scores in list_of_predictions_and_tanimoto_scores:
         bin_content, bounds, rmses = bin_dependent_losses(
-            predictions_and_tanimoto_scores.get_average_RMSE_per_inchikey_pair(),
+            predictions_and_tanimoto_scores.get_loss_per_inchikey_pair(loss_type),
             predictions_and_tanimoto_scores.tanimoto_df,
             ref_score_bins,
             )
         ax1.plot(np.arange(len(rmses)), rmses, "o:")
         ax2.plot(np.arange(len(rmses)), bin_content, "o:")
     fig.legend(labels, loc="center right")
-    ax1.set_title('RMSE')
-    ax1.set_ylabel("RMSE")
+    ax1.set_title(loss_type)
+    ax1.set_ylabel(loss_type)
     ax1.grid(True)
 
     ax2.set_title('# of spectrum pairs')

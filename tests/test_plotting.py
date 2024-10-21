@@ -7,7 +7,7 @@ from ms2deepscore.benchmarking.CalculateScoresBetweenAllIonmodes import Predicti
 from ms2deepscore.benchmarking.plot_average_per_bin import plot_average_per_bin
 from ms2deepscore.benchmarking.plot_heatmaps import create_3_heatmaps
 from ms2deepscore.benchmarking.plot_rmse_per_bin import (
-    plot_rmse_per_bin, plot_rmse_per_bin_multiple_benchmarks)
+    plot_loss_per_bin, plot_loss_per_bin_multiple_benchmarks)
 from ms2deepscore.benchmarking.plot_stacked_histogram import (
     calculate_all_histograms, plot_reversed_stacked_histogram_plot,
     plot_stacked_histogram_plot_wrapper)
@@ -59,12 +59,11 @@ def test_reverse_plot_stacked_histogram():
 
 
 def test_plot_rmse_per_bin():
-    plot_rmse_per_bin(predicted_scores=np.random.random((200, 200)) ** 3,
-                      true_scores=np.random.random((200, 200)) ** 3)
+    plot_loss_per_bin()
 
 
 def test_plot_rmse_per_bin_multiple_benchmarks():
-    plot_rmse_per_bin_multiple_benchmarks(
+    plot_loss_per_bin_multiple_benchmarks(
         [np.random.random((200, 200)) ** 3, np.random.random((100, 100)) ** 1,
          np.random.random((200, 100)) ** 1, np.random.random((300, 300)) ** 1, ],
         [np.random.random((200, 200)) ** 3, np.random.random((100, 100)) ** 3,

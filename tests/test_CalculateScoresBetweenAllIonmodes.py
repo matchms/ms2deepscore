@@ -4,7 +4,7 @@ import numpy as np
 import pandas as pd
 
 from ms2deepscore.benchmarking.CalculateScoresBetweenAllIonmodes import CalculateScoresBetweenAllIonmodes, PredictionsAndTanimotoScores
-from ms2deepscore.benchmarking.plot_rmse_per_bin import plot_rmse_per_bin, plot_rmse_per_bin_multiple_benchmarks
+from ms2deepscore.benchmarking.plot_rmse_per_bin import plot_loss_per_bin, plot_loss_per_bin_multiple_benchmarks
 from tests.test_user_worfklow import load_processed_spectrums, TEST_RESOURCES_PATH
 import random
 
@@ -62,17 +62,28 @@ def test_predictions_and_tanimoto_scores():
 
 
 def test_plot_rmse_per_bin():
-    predictions_and_tanimoto_scores = create_dummy_predictions_and_tanimoto_scores(26)
-
-    plot_rmse_per_bin(predictions_and_tanimoto_scores)
     from matplotlib import pyplot as plt
 
+    predictions_and_tanimoto_scores = create_dummy_predictions_and_tanimoto_scores(26)
+    plot_loss_per_bin(predictions_and_tanimoto_scores, loss_type="MSE")
+    plt.show()
+    plot_loss_per_bin(predictions_and_tanimoto_scores, loss_type="RMSE")
+    plt.show()
+    plot_loss_per_bin(predictions_and_tanimoto_scores, loss_type="MAE")
     plt.show()
 
     predictions_and_tanimoto_scores_1 = create_dummy_predictions_and_tanimoto_scores(26)
 
-    plot_rmse_per_bin_multiple_benchmarks([predictions_and_tanimoto_scores, predictions_and_tanimoto_scores_1],
-                                          ["test_1", "test_2"])
+    plot_loss_per_bin_multiple_benchmarks([predictions_and_tanimoto_scores, predictions_and_tanimoto_scores_1],
+                                          ["test_1", "test_2"], loss_type="MSE")
+    plt.show()
+    plot_loss_per_bin_multiple_benchmarks([predictions_and_tanimoto_scores, predictions_and_tanimoto_scores_1],
+                                          ["test_1", "test_2"],
+                                          loss_type="RMSE")
+    plt.show()
+    plot_loss_per_bin_multiple_benchmarks([predictions_and_tanimoto_scores, predictions_and_tanimoto_scores_1],
+                                          ["test_1", "test_2"],
+                                          loss_type="MAE")
     plt.show()
 
 
