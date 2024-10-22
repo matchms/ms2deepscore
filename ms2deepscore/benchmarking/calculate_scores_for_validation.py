@@ -19,6 +19,8 @@ from ms2deepscore.utils import save_pickled_file
 def calculate_true_values_and_predictions_for_validation_spectra(positive_validation_spectra: List[Spectrum],
                                                                  negative_validation_spectra: List[Spectrum],
                                                                  ms2deepsore_model_file_name,
+                                                                 fingerprint_type: str,
+                                                                 nbits: int, 
                                                                  computed_scores_directory = None,
                                                                  ):
     validation_spectra = {"positive": positive_validation_spectra,
@@ -27,10 +29,12 @@ def calculate_true_values_and_predictions_for_validation_spectra(positive_valida
     # Load in MS2Deepscore model
     ms2deepscore_model = MS2DeepScore(load_model(ms2deepsore_model_file_name))
 
-    possible_comparisons = (("positive", "positive"),
-                            ("negative", "positive"),
-                            ("negative", "negative"),
-                            ("both", "both"))
+    possible_comparisons = (
+        ("positive", "positive"),
+        ("negative", "positive"),
+        ("negative", "negative"),
+        ("both", "both")
+        )
 
     true_values_collection = {}
     predictions_collection = {}
@@ -42,8 +46,13 @@ def calculate_true_values_and_predictions_for_validation_spectra(positive_valida
             if os.path.exists(file_name_true_values) or os.path.exists(file_name_predictions):
                 raise FileExistsError
 
-        true_values = get_tanimoto_score_between_spectra(validation_spectra[ionmode_1],
-                                                         validation_spectra[ionmode_2])
+        true_values = get_tanimoto_score_between_spectra(
+            validation_spectra[ionmode_1],
+            validation_spectra[ionmode_2],
+            fingerprint_type,
+            nbits
+            )
+
         true_values_collection[f"{ionmode_1}_{ionmode_2}"] = true_values
         if computed_scores_directory is not None:
             save_pickled_file(true_values, file_name_true_values)
