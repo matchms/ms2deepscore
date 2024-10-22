@@ -3,9 +3,8 @@ from pathlib import Path
 import numpy as np
 from matchms import Spectrum
 from ms2deepscore.benchmarking.calculate_scores_for_validation import (
-    calculate_tanimoto_scores_unique_inchikey,
     get_tanimoto_score_between_spectra)
-
+from ms2deepscore.benchmarking.CalculateScoresBetweenAllIonmodes import calculate_tanimoto_scores_unique_inchikey
 
 TEST_RESOURCES_PATH = Path(__file__).parent / 'resources'
 
