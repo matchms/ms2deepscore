@@ -20,7 +20,7 @@ def calculate_true_values_and_predictions_for_validation_spectra(positive_valida
                                                                  negative_validation_spectra: List[Spectrum],
                                                                  ms2deepsore_model_file_name,
                                                                  fingerprint_type: str,
-                                                                 nbits: int, 
+                                                                 fingerprint_nbits: int, 
                                                                  computed_scores_directory = None,
                                                                  ):
     validation_spectra = {"positive": positive_validation_spectra,
@@ -50,7 +50,7 @@ def calculate_true_values_and_predictions_for_validation_spectra(positive_valida
             validation_spectra[ionmode_1],
             validation_spectra[ionmode_2],
             fingerprint_type,
-            nbits
+            fingerprint_nbits
             )
 
         true_values_collection[f"{ionmode_1}_{ionmode_2}"] = true_values

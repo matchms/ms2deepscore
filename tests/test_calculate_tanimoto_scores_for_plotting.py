@@ -60,5 +60,6 @@ def test_calculate_tanimoto_scores_unique_inchikey():
     spectrums = create_dummy_data(nr_of_test_spectra)
     tanimoto_scores = calculate_tanimoto_scores_unique_inchikey(
         spectrums + spectrums,
-        spectrums)
+        spectrums
+        )
     assert tanimoto_scores.shape == (nr_of_test_spectra, nr_of_test_spectra)
