@@ -8,8 +8,7 @@ from ms2deepscore.models.load_model import load_model
 
 
 class CalculateScoresBetweenAllIonmodes:
-    """Calculates the true tanimoto scores and average ms2deepscore between unique inchikeys """
-
+    """Calculates the true tanimoto scores and scores between all ionmodes"""
     def __init__(self,
                  model_file_name, positive_validation_spectra, negative_validation_spectra):
         self.model_file_name = model_file_name
