@@ -189,12 +189,13 @@ def parameter_search(
             "history": history,
             "losses": {}
         }
-
-        for predictions_and_tanimoto_scores in scores_between_all_ionmodes.list_of_predictions_and_tanimoto_scores():
-            for loss_type in loss_types:
-                _, _, losses = predictions_and_tanimoto_scores.get_average_loss_per_bin_per_inchikey_pair(loss_type,
-                                                                                                          settings.same_prob_bins)
-                combination["losses"][loss_type][predictions_and_tanimoto_scores.label] = losses
+        for loss_type in loss_types:
+            losses_per_ionmode = {}
+            for predictions_and_tanimoto_scores in scores_between_all_ionmodes.list_of_predictions_and_tanimoto_scores():
+                    _, _, losses = predictions_and_tanimoto_scores.get_average_loss_per_bin_per_inchikey_pair(loss_type,
+                                                                                                              settings.same_prob_bins)
+                    losses_per_ionmode[predictions_and_tanimoto_scores.label] = losses
+            combination["losses"][loss_type] = losses_per_ionmode
 
         # Store results
         combination_key = tuple(params.items())
