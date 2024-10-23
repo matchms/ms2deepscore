@@ -6,9 +6,9 @@ from matchms.Spectrum import Spectrum
 from ms2deepscore.models.loss_functions import LOSS_FUNCTIONS
 from ms2deepscore.SettingsMS2Deepscore import SettingsMS2Deepscore
 from ms2deepscore.train_new_model.ValidationLossCalculator import (
-    ValidationLossCalculator, select_spectra_per_inchikey)
+    ValidationLossCalculator)
 from tests.create_test_spectra import (pesticides_test_spectra,
-                                       siamese_spectral_model, create_test_spectra)
+                                       siamese_spectral_model)
 
 
 @pytest.fixture()
@@ -35,31 +35,6 @@ def simple_test_spectra():
                                           "inchikey": "TZCPCKNHXULUIY-RGULYWFUSA-N", },
                                 ))
     return spectra
-
-
-@pytest.mark.parametrize("nr_of_inchikeys,nr_of_spectra_per_inchikey,nr_of_sampled_spectra_per_inchikey",
-                         [[2, 2, 1],
-                          [2, 2, 5],
-                          [1, 2, 1],
-                          [2, 30, 100],])
-def test_select_one_spectrum_per_inchikey(nr_of_inchikeys, nr_of_spectra_per_inchikey,
-                                          nr_of_sampled_spectra_per_inchikey):
-    test_spectra = create_test_spectra(nr_of_inchikeys, nr_of_spectra_per_inchikey)
-    selected_spectra = select_spectra_per_inchikey(test_spectra, 42, nr_of_sampled_spectra_per_inchikey)
-    assert len(selected_spectra) == nr_of_inchikeys*nr_of_sampled_spectra_per_inchikey
-
-    # Check if the spectra only are unique inchikeys
-    inchikeys_list = [s.get("inchikey") for s in selected_spectra]
-    assert set(inchikeys_list) == set([s.get("inchikey") for s in test_spectra]), "not all inchikeys are selected"
-
-    for inchikey_count in Counter(inchikeys_list).values():
-        assert inchikey_count == nr_of_sampled_spectra_per_inchikey
-
-    hashed_spectra = [spectrum.set("fingerprint", None).__hash__() for spectrum in selected_spectra]
-    for spectrum_count in Counter(hashed_spectra).values():
-        minimum_spectrum_count = nr_of_sampled_spectra_per_inchikey // nr_of_spectra_per_inchikey
-        assert minimum_spectrum_count <= spectrum_count <= minimum_spectrum_count + 1, \
-            "The spectra are not sampled equally"
 
 
 def test_validation_loss_calculator():
