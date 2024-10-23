@@ -9,7 +9,7 @@ from ms2deepscore.models.SiameseSpectralModel import (SiameseSpectralModel,
                                                       train)
 from ms2deepscore.SettingsMS2Deepscore import SettingsMS2Deepscore
 from ms2deepscore.train_new_model.data_generators import create_data_generator
-from ms2deepscore.train_new_model.ValidationLossCalculator import \
+from ms2deepscore.validation_loss_calculation.ValidationLossCalculator import \
     ValidationLossCalculator
 
 

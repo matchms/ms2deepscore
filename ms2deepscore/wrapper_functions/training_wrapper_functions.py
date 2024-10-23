@@ -14,7 +14,7 @@ from ms2deepscore.benchmarking.CalculateScoresBetweenAllIonmodes import Calculat
 from ms2deepscore.models.SiameseSpectralModel import (SiameseSpectralModel,
                                                       train)
 from ms2deepscore.SettingsMS2Deepscore import SettingsMS2Deepscore
-from ms2deepscore.train_new_model.ValidationLossCalculator import ValidationLossCalculator
+from ms2deepscore.validation_loss_calculation.ValidationLossCalculator import ValidationLossCalculator
 from ms2deepscore.train_new_model.data_generators import create_data_generator
 from ms2deepscore.train_new_model.split_positive_and_negative_mode import \
     split_by_ionmode

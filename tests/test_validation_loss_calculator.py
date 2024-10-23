@@ -1,11 +1,9 @@
-from collections import Counter
-
 import numpy as np
 import pytest
 from matchms.Spectrum import Spectrum
 from ms2deepscore.models.loss_functions import LOSS_FUNCTIONS
 from ms2deepscore.SettingsMS2Deepscore import SettingsMS2Deepscore
-from ms2deepscore.train_new_model.ValidationLossCalculator import (
+from ms2deepscore.validation_loss_calculation.ValidationLossCalculator import (
     ValidationLossCalculator)
 from tests.create_test_spectra import (pesticides_test_spectra,
                                        siamese_spectral_model)

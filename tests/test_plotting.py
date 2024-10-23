@@ -2,7 +2,6 @@ import pytest
 from matplotlib import pyplot as plt
 
 from ms2deepscore.benchmarking.CalculateScoresBetweenAllIonmodes import CalculateScoresBetweenAllIonmodes
-from ms2deepscore.benchmarking.PredictionsAndTanimotoScores import PredictionsAndTanimotoScores
 from ms2deepscore.benchmarking.plot_average_per_bin import plot_average_per_bin
 from ms2deepscore.benchmarking.plot_heatmaps import create_3_heatmaps
 from ms2deepscore.benchmarking.plot_rmse_per_bin import (

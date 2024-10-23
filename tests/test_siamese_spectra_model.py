@@ -8,7 +8,7 @@ from ms2deepscore.tensorize_spectra import tensorize_spectra
 from ms2deepscore.train_new_model.data_generators import SpectrumPairGenerator, InchikeyPairGenerator
 from ms2deepscore.train_new_model.inchikey_pair_selection import \
     select_compound_pairs_wrapper
-from ms2deepscore.train_new_model.ValidationLossCalculator import \
+from ms2deepscore.validation_loss_calculation.ValidationLossCalculator import \
     ValidationLossCalculator
 
 

@@ -1,8 +1,8 @@
 import torch
 
 from ms2deepscore import MS2DeepScore
-from ms2deepscore.benchmarking.PredictionsAndTanimotoScores import PredictionsAndTanimotoScores
-from ms2deepscore.benchmarking.calculate_scores_for_validation import create_embedding_matrix_symmetric, \
+from ms2deepscore.validation_loss_calculation.PredictionsAndTanimotoScores import PredictionsAndTanimotoScores
+from ms2deepscore.validation_loss_calculation.calculate_scores_for_validation import create_embedding_matrix_symmetric, \
     create_embedding_matrix_not_symmetric, calculate_tanimoto_scores_unique_inchikey
 from ms2deepscore.models.load_model import load_model
 

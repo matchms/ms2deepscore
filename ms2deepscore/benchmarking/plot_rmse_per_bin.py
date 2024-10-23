@@ -3,7 +3,7 @@ from typing import List
 import numpy as np
 from matplotlib import pyplot as plt
 
-from ms2deepscore.benchmarking.PredictionsAndTanimotoScores import PredictionsAndTanimotoScores
+from ms2deepscore.validation_loss_calculation.PredictionsAndTanimotoScores import PredictionsAndTanimotoScores
 from ms2deepscore.utils import create_evenly_spaced_bins
 
 

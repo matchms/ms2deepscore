@@ -2,7 +2,7 @@ import string
 from pathlib import Path
 import numpy as np
 from matchms import Spectrum
-from ms2deepscore.benchmarking.calculate_scores_for_validation import calculate_tanimoto_scores_unique_inchikey
+from ms2deepscore.validation_loss_calculation.calculate_scores_for_validation import calculate_tanimoto_scores_unique_inchikey
 
 TEST_RESOURCES_PATH = Path(__file__).parent / 'resources'
 
