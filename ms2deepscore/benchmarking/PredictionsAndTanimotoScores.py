@@ -123,8 +123,11 @@ class PredictionsAndTanimotoScores:
             bounds.append((low, high))
             idx = np.where((self.tanimoto_df > low) & (self.tanimoto_df <= high))
             if idx[0].shape[0] == 0:
-                raise ValueError("No reference scores within bin")
-            bin_content.append(idx[0].shape[0])
-            # Add values
-            losses.append(average_loss_per_inchikey_pair.iloc[idx].mean().mean())
+                bin_content.append(0)
+                losses.append(0)
+                print(f"There are no scores within the bin {low} - {high}")
+            else:
+                bin_content.append(idx[0].shape[0])
+                # Add values
+                losses.append(average_loss_per_inchikey_pair.iloc[idx].mean().mean())
         return bin_content, bounds, losses

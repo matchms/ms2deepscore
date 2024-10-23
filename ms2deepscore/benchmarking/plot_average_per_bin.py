@@ -16,8 +16,10 @@ def select_pairs_per_bin(predictions_and_tanimoto_scores: PredictionsAndTanimoto
         for i in indexes_of_pairs_in_bin:
             predictions_in_this_bin.append(predictions_and_tanimoto_scores.list_of_average_predictions[i])
         if len(predictions_in_this_bin) == 0:
-            raise ValueError(f"The bin between {bins[bin]} - {bins[bin + 1]}does not have any pairs")
-        average_per_bin.append(sum(predictions_in_this_bin)/len(predictions_in_this_bin))
+            average_per_bin.append(0)
+            print(f"The bin between {bins[bin]} - {bins[bin + 1]}does not have any pairs")
+        else:
+            average_per_bin.append(sum(predictions_in_this_bin)/len(predictions_in_this_bin))
     return average_per_bin
 
 
