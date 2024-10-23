@@ -89,3 +89,11 @@ def compute_scaled_intensitiy_sums(spectra, min_mz=0, max_mz=1000, scaling=2):
         )
 
     return scaled_intensities
+
+
+def create_evenly_spaced_bins(nr_of_bins):
+    """Creates evenly spaced bins between -0.0000001 and 1"""
+    bin_borders = np.linspace(0, 1, nr_of_bins+1)
+    bin_borders[0] = -0.00000001
+    bins = [(bin_borders[i], bin_borders[i+1]) for i in range(nr_of_bins)]
+    return bins

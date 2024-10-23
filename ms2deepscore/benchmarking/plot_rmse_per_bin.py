@@ -4,11 +4,13 @@ import numpy as np
 from matplotlib import pyplot as plt
 
 from ms2deepscore.benchmarking.PredictionsAndTanimotoScores import PredictionsAndTanimotoScores
+from ms2deepscore.utils import create_evenly_spaced_bins
 
 
 def plot_loss_per_bin(predictions_and_tanimoto_scores: PredictionsAndTanimotoScores,
-                      ref_score_bins=np.array([(x / 10, x / 10 + 0.1) for x in range(0, 10)]),
+                      nr_of_bins=10,
                       loss_type="MSE"):
+    ref_score_bins = create_evenly_spaced_bins(nr_of_bins)
     bin_content, bounds, rmses = predictions_and_tanimoto_scores.get_average_loss_per_bin_per_inchikey_pair(
         loss_type, ref_score_bins)
     _, (ax1, ax2) = plt.subplots(2, 1, sharex=True, figsize=(4, 5), dpi=120)
@@ -34,7 +36,7 @@ def plot_loss_per_bin_multiple_benchmarks(list_of_predictions_and_tanimoto_score
                                           loss_type="MSE"):
     """Combines the plot of multiple comparisons into one plot
     """
-    ref_score_bins = np.array([(x / nr_of_bins, x / nr_of_bins + 1/nr_of_bins) for x in range(nr_of_bins)])
+    ref_score_bins = create_evenly_spaced_bins(nr_of_bins)
     fig, (ax1, ax2) = plt.subplots(2, 1, sharex=True,
                                    figsize=(8, 6), dpi=120)
     labels = []
