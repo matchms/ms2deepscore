@@ -13,9 +13,6 @@ from matchms.importing import load_spectra
 from ms2deepscore.benchmarking.CalculateScoresBetweenAllIonmodes import CalculateScoresBetweenAllIonmodes
 from ms2deepscore.models.SiameseSpectralModel import (SiameseSpectralModel,
                                                       train)
-from ms2deepscore.models.loss_functions import bin_dependent_losses
-from ms2deepscore.benchmarking.calculate_scores_for_validation import \
-    calculate_true_values_and_predictions_for_validation_spectra
 from ms2deepscore.SettingsMS2Deepscore import SettingsMS2Deepscore
 from ms2deepscore.train_new_model.ValidationLossCalculator import ValidationLossCalculator
 from ms2deepscore.train_new_model.data_generators import create_data_generator
