@@ -21,17 +21,14 @@ def select_pairs_per_bin(predictions_and_tanimoto_scores: PredictionsAndTanimoto
     return average_per_bin
 
 
-def plot_average_per_bin(pairs: CalculateScoresBetweenAllIonmodes, nr_of_bins):
+def plot_average_per_bin(scores_between_ionmodes: CalculateScoresBetweenAllIonmodes, nr_of_bins):
     bins = np.linspace(0, 1.00000001, nr_of_bins + 1)
     bin_centers = (bins[:-1] + bins[1:]) / 2  # Compute bin centers for plotting
-
-    pos_pos_average_per_bin = select_pairs_per_bin(pairs.pos_vs_pos_scores, bins)
-    pos_neg_average_per_bin = select_pairs_per_bin(pairs.pos_vs_neg_scores, bins)
-    neg_neg_average_per_bin = select_pairs_per_bin(pairs.neg_vs_neg_scores, bins)
     fig, ax = plt.subplots()
-    ax.plot(bin_centers, neg_neg_average_per_bin, label="Negative vs negative")
-    ax.plot(bin_centers, pos_pos_average_per_bin, label="Positive vs positive")
-    ax.plot(bin_centers, pos_neg_average_per_bin, label="Positive vs negative")
+
+    for predictions_and_tanimoto_scores in scores_between_ionmodes.list_of_predictions_and_tanimoto_scores():
+        average_per_bin = select_pairs_per_bin(predictions_and_tanimoto_scores, bins)
+        ax.plot(bin_centers, average_per_bin, label=predictions_and_tanimoto_scores.label)
 
     ax.set_xlabel("True chemical similarity")
     ax.set_ylabel("Average predicted chemical similarity")
