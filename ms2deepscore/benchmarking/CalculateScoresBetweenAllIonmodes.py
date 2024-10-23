@@ -165,45 +165,47 @@ class CalculateScoresBetweenAllIonmodes:
             spectra_2 = spectra_1
             symmetric = True
         if symmetric:
-            predictions_df = self.create_embedding_matrix_symmetric(spectra_1)
+            predictions_df = create_embedding_matrix_symmetric(self.model, spectra_1)
         else:
-            predictions_df = self.create_embedding_matrix_not_symmetric(spectra_1, spectra_2)
+            predictions_df = create_embedding_matrix_not_symmetric(self.model, spectra_1, spectra_2)
         tanimoto_scores_df = calculate_tanimoto_scores_unique_inchikey(spectra_1, spectra_2)
         return PredictionsAndTanimotoScores(predictions_df, tanimoto_scores_df, symmetric, label)
-
-    # Functions for creating predictions and true value matrix
-    def create_embedding_matrix_symmetric(self, spectra):
-        print("Calculating embeddings")
-        embeddings = self.model.get_embedding_array(spectra)
-        print("Calculating similarity between embeddings")
-        predictions = cosine_similarity_matrix(embeddings, embeddings)
-        # Select the inchikeys per spectrum
-        inchikeys = []
-        for spectrum in spectra:
-            inchikeys.append(spectrum.get("inchikey")[:14])
-        # create dataframe with inchikeys as indexes
-        predictions_df = pd.DataFrame(predictions, index=inchikeys, columns=inchikeys)
-        return predictions_df
-
-    def create_embedding_matrix_not_symmetric(self, spectra, spectra_2):
-        print("Calculating embeddings")
-        embeddings1 = self.model.get_embedding_array(spectra)
-        embeddings2 = self.model.get_embedding_array(spectra_2)
-        print("Calculating similarity between embeddings")
-
-        predictions = cosine_similarity_matrix(embeddings1, embeddings2)
-        # Select the inchikeys per spectrum
-        inchikeys1 = [spectrum.get("inchikey")[:14] for spectrum in spectra]
-        inchikeys2 = [spectrum.get("inchikey")[:14] for spectrum in spectra_2]
-
-        # create dataframe with inchikeys as indexes
-        predictions_df = pd.DataFrame(predictions, index=inchikeys1, columns=inchikeys2)
-        return predictions_df
 
     def list_of_predictions_and_tanimoto_scores(self):
         return [self.pos_vs_pos_scores,
                 self.pos_vs_neg_scores,
                 self.neg_vs_neg_scores, ]
+
+
+# Functions for creating predictions and true value matrix
+def create_embedding_matrix_symmetric(model, spectra):
+    print("Calculating embeddings")
+    embeddings = model.get_embedding_array(spectra)
+    print("Calculating similarity between embeddings")
+    predictions = cosine_similarity_matrix(embeddings, embeddings)
+    # Select the inchikeys per spectrum
+    inchikeys = []
+    for spectrum in spectra:
+        inchikeys.append(spectrum.get("inchikey")[:14])
+    # create dataframe with inchikeys as indexes
+    predictions_df = pd.DataFrame(predictions, index=inchikeys, columns=inchikeys)
+    return predictions_df
+
+
+def create_embedding_matrix_not_symmetric(model, spectra, spectra_2):
+    print("Calculating embeddings")
+    embeddings1 = model.get_embedding_array(spectra)
+    embeddings2 = model.get_embedding_array(spectra_2)
+    print("Calculating similarity between embeddings")
+
+    predictions = cosine_similarity_matrix(embeddings1, embeddings2)
+    # Select the inchikeys per spectrum
+    inchikeys1 = [spectrum.get("inchikey")[:14] for spectrum in spectra]
+    inchikeys2 = [spectrum.get("inchikey")[:14] for spectrum in spectra_2]
+
+    # create dataframe with inchikeys as indexes
+    predictions_df = pd.DataFrame(predictions, index=inchikeys1, columns=inchikeys2)
+    return predictions_df
 
 
 def calculate_tanimoto_scores_unique_inchikey(list_of_spectra_1: List[Spectrum],
