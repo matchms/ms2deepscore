@@ -3,8 +3,8 @@ import string
 import numpy as np
 import pandas as pd
 
-from ms2deepscore.benchmarking.CalculateScoresBetweenAllIonmodes import CalculateScoresBetweenAllIonmodes, \
-    PredictionsAndTanimotoScores
+from ms2deepscore.benchmarking.CalculateScoresBetweenAllIonmodes import CalculateScoresBetweenAllIonmodes
+from ms2deepscore.benchmarking.PredictionsAndTanimotoScores import PredictionsAndTanimotoScores
 from tests.test_user_worfklow import load_processed_spectrums, TEST_RESOURCES_PATH
 import random
 

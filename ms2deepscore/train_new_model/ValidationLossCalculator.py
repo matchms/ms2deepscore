@@ -2,7 +2,8 @@ import numpy as np
 
 from ms2deepscore import MS2DeepScore
 from ms2deepscore.benchmarking.CalculateScoresBetweenAllIonmodes import calculate_tanimoto_scores_unique_inchikey, \
-    PredictionsAndTanimotoScores, create_embedding_matrix_symmetric
+    create_embedding_matrix_symmetric
+from ms2deepscore.benchmarking.PredictionsAndTanimotoScores import PredictionsAndTanimotoScores
 from ms2deepscore.models.SiameseSpectralModel import (SiameseSpectralModel,
                                                       compute_embedding_array)
 from ms2deepscore.SettingsMS2Deepscore import SettingsMS2Deepscore

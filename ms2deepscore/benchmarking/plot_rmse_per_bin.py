@@ -3,7 +3,7 @@ from typing import List
 import numpy as np
 from matplotlib import pyplot as plt
 
-from ms2deepscore.benchmarking.CalculateScoresBetweenAllIonmodes import PredictionsAndTanimotoScores
+from ms2deepscore.benchmarking.PredictionsAndTanimotoScores import PredictionsAndTanimotoScores
 
 
 def plot_loss_per_bin(predictions_and_tanimoto_scores: PredictionsAndTanimotoScores,

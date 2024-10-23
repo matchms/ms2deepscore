@@ -3,8 +3,8 @@ from tqdm import tqdm
 
 from matplotlib import pyplot as plt
 
-from ms2deepscore.benchmarking.CalculateScoresBetweenAllIonmodes import CalculateScoresBetweenAllIonmodes, \
-    PredictionsAndTanimotoScores
+from ms2deepscore.benchmarking.CalculateScoresBetweenAllIonmodes import CalculateScoresBetweenAllIonmodes
+from ms2deepscore.benchmarking.PredictionsAndTanimotoScores import PredictionsAndTanimotoScores
 
 
 def select_pairs_per_bin(predictions_and_tanimoto_scores: PredictionsAndTanimotoScores, bins):
