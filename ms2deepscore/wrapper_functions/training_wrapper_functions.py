@@ -9,6 +9,8 @@ from datetime import datetime
 from matchms import Spectrum
 from matchms.exporting import save_spectra
 from matchms.importing import load_spectra
+
+from ms2deepscore.benchmarking.CalculateScoresBetweenAllIonmodes import CalculateScoresBetweenAllIonmodes
 from ms2deepscore.models.SiameseSpectralModel import (SiameseSpectralModel,
                                                       train)
 from ms2deepscore.models.loss_functions import bin_dependent_losses
@@ -178,16 +180,12 @@ def parameter_search(
             print(settings.get_dict())
             continue
 
-        ms2deepsore_model_file_name = os.path.join(stored_training_data.trained_models_folder,
+        scores_between_all_ionmodes = CalculateScoresBetweenAllIonmodes(
+            model_file_name=os.path.join(stored_training_data.trained_models_folder,
                                                    model_directory_name,
-                                                   settings.model_file_name)
-        # Evaluate model
-        true_values_collection, predictions_collection = calculate_true_values_and_predictions_for_validation_spectra(
-            positive_validation_spectra,
-            negative_validation_spectra,
-            ms2deepsore_model_file_name,
-            computed_scores_directory=None,
-        )
+                                                   settings.model_file_name),
+            positive_validation_spectra=positive_validation_spectra,
+            negative_validation_spectra=negative_validation_spectra)
 
         combination_results = {
             "params": params,
@@ -195,15 +193,11 @@ def parameter_search(
             "losses": {}
         }
 
-        for condition, true_values in true_values_collection.items():
-            predictions = predictions_collection[condition]
-            _, _, losses = bin_dependent_losses(
-                predictions,
-                true_values,
-                settings.same_prob_bins,
-                loss_types=loss_types
-            )
-            combination_results["losses"][condition] = losses
+        for predictions_and_tanimoto_scores in scores_between_all_ionmodes.list_of_predictions_and_tanimoto_scores():
+            for loss_type in loss_types:
+                _, _, losses = predictions_and_tanimoto_scores.get_average_loss_per_bin_per_inchikey_pair(loss_type,
+                                                                                                          settings.same_prob_bins)
+                combination["losses"][loss_type][predictions_and_tanimoto_scores.label] = losses
 
         # Store results
         combination_key = tuple(params.items())
