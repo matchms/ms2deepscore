@@ -4,6 +4,8 @@ import numpy as np
 import pandas as pd
 import torch
 
+from ms2deepscore.SettingsMS2Deepscore import validate_bin_order
+
 
 class PredictionsAndTanimotoScores:
     def __init__(self, predictions_df, tanimoto_df, symmetric, label=""):
@@ -47,7 +49,7 @@ class PredictionsAndTanimotoScores:
 
     def get_average_loss_per_bin_per_inchikey_pair(self,
                                                    loss_type: str,
-                                                   tanimoto_bins):
+                                                   tanimoto_bins: np.ndarray):
         """Calculates the loss per tanimoto bin.
         First the average prediction for each inchikey pair is calculated,
         by taking the average over all predictions between spectra matching these inchikeys"""
@@ -102,7 +104,7 @@ class PredictionsAndTanimotoScores:
 
     def get_average_loss_per_bin(self,
                                  average_loss_per_inchikey_pair: pd.DataFrame,
-                                 ref_score_bins: List[Tuple[float, float]]):
+                                 ref_score_bins: np.ndarray):
         """Compute average loss per tanimoto score bin
 
         Parameters
@@ -115,13 +117,11 @@ class PredictionsAndTanimotoScores:
         bin_content = []
         losses = []
         bounds = []
-        for i, (low, high) in enumerate(sorted(ref_score_bins)):
+        validate_bin_order(ref_score_bins)
+        ref_score_bins.sort()
+        for low, high in ref_score_bins:
             bounds.append((low, high))
-            if i == 0:
-                # The lowest bin should start including that bin
-                idx = np.where((self.tanimoto_df >= low) & (self.tanimoto_df <= high))
-            else:
-                idx = np.where((self.tanimoto_df > low) & (self.tanimoto_df <= high))
+            idx = np.where((self.tanimoto_df > low) & (self.tanimoto_df <= high))
             if idx[0].shape[0] == 0:
                 raise ValueError("No reference scores within bin")
             bin_content.append(idx[0].shape[0])

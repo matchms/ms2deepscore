@@ -135,7 +135,7 @@ def test_model_training(simple_training_spectra):
     # Create generators
     train_generator_simple = SpectrumPairGenerator(spectrums=simple_training_spectra, selected_compound_pairs=inchikey_pair_generator,
                                                    settings=settings)
-    settings.same_prob_bins = np.array([(0, 1.0)])
+    settings.same_prob_bins = np.array([(-0.01, 1.0)])
     validation_loss_calculator = ValidationLossCalculator(
         simple_training_spectra,
         settings=settings) # Just calculating the loss in one bin (since we have just two inchikeys)
