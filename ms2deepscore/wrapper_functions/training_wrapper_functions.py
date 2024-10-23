@@ -75,7 +75,10 @@ def train_ms2deepscore_wrapper(spectra_file_path,
         ms2deepsore_model_file_name=ms2deepsore_model_file_name,
         computed_scores_directory=os.path.join(
             stored_training_data.trained_models_folder,
-            model_directory_name, "benchmarking_results"))
+            model_directory_name, "benchmarking_results"),
+        fingerprint_type=settings.fingerprint_type,
+        fingerprint_nbits=settings.fingerprint_nbits
+        )
 
     create_plots_between_all_ionmodes(model_directory=os.path.join(stored_training_data.trained_models_folder,
                                                                    model_directory_name),
@@ -194,6 +197,8 @@ def parameter_search(
             negative_validation_spectra,
             ms2deepsore_model_file_name,
             computed_scores_directory=None,
+            fingerprint_type=settings.fingerprint_type,
+            fingerprint_nbits=settings.fingerprint_nbits
         )
 
         combination_results = {
