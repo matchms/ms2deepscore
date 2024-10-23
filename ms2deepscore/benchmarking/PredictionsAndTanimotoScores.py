@@ -8,7 +8,7 @@ from ms2deepscore.SettingsMS2Deepscore import validate_bin_order
 
 
 class PredictionsAndTanimotoScores:
-    def __init__(self, predictions_df, tanimoto_df, symmetric, label=""):
+    def __init__(self, predictions_df: pd.DataFrame, tanimoto_df: pd.DataFrame, symmetric: bool, label=""):
         self.predictions_df = predictions_df
         self.tanimoto_df = tanimoto_df
         self.symmetric = symmetric
@@ -85,11 +85,11 @@ class PredictionsAndTanimotoScores:
         """MSE weighted by target position on scale 0 to 1.
         """
         errors = self.tanimoto_df - self.predictions_df
-        errors = torch.sign(errors) * errors ** 2
+        errors = np.sign(errors) * errors ** 2
         uppers = self.tanimoto_df * errors
         lowers = (self.tanimoto_df - 1) * errors
         # Get the max in upper or lower
-        risk_aware_squared_error = lowers.combine(uppers, func=max)
+        risk_aware_squared_error = pd.DataFrame(np.maximum(lowers, uppers), columns=uppers.columns)
         return risk_aware_squared_error
 
     def _get_risk_aware_absolute_error_per_spectrum_pair(self):
@@ -99,7 +99,8 @@ class PredictionsAndTanimotoScores:
         uppers = self.tanimoto_df * errors
         lowers = (self.tanimoto_df - 1) * errors
         # get the max in upper or lower
-        risk_aware_absolute_error = lowers.combine(uppers, func=max)
+        risk_aware_absolute_error = pd.DataFrame(np.maximum(lowers, uppers),
+                                                 columns=lowers.columns)
         return risk_aware_absolute_error
 
     def get_average_loss_per_bin(self,
