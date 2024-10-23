@@ -93,10 +93,6 @@ def create_dummy_predictions_and_tanimoto_scores(nr_of_unique_inchikeys, nr_of_u
 
 def test_predictions_and_tanimoto_scores():
     predictions_and_tanimoto_scores = create_dummy_predictions_and_tanimoto_scores(26, 10)
-    average_loss = predictions_and_tanimoto_scores.get_average_MAE_per_inchikey_pair()
-    average_MSE = predictions_and_tanimoto_scores.get_average_MSE_per_inchikey_pair()
-    average_RMSE = predictions_and_tanimoto_scores.get_average_RMSE_per_inchikey_pair()
-    print(average_RMSE)
     # todo add actual tests for correctly calculating all scores
 
 def test_calculate_scores_between_all_ionmodes():
