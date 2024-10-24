@@ -1,5 +1,3 @@
-from typing import Tuple, List
-
 import numpy as np
 import pandas as pd
 
@@ -144,23 +142,6 @@ class PredictionsAndTanimotoScores:
                 # Add values
                 losses.append(average_loss_per_inchikey_pair.iloc[idx].mean().mean())
         return bin_content, bounds, losses
-
-
-def convert_dataframes_to_lists_with_matching_pairs(tanimoto_df: pd.DataFrame,
-                                           average_predictions_per_inchikey_pair: pd.DataFrame
-                                           ) -> Tuple[List[float], List[float]]:
-    """Takes in two dataframes with inchikeys as index and returns two lists with scores, which correspond to pairs"""
-    predictions = []
-    tanimoto_scores = []
-    for inchikey_1 in average_predictions_per_inchikey_pair.index:
-        for inchikey_2 in average_predictions_per_inchikey_pair.columns:
-            prediction = average_predictions_per_inchikey_pair[inchikey_2][inchikey_1]
-            # don't include pairs where the prediciton is Nan (this is the case when only a pair against itself is available)
-            if not np.isnan(prediction):
-                tanimoto = tanimoto_df[inchikey_2][inchikey_1]
-                predictions.append(prediction)
-                tanimoto_scores.append(tanimoto)
-    return predictions, tanimoto_scores
 
 
 def get_average_per_inchikey_pair(df: pd.DataFrame):

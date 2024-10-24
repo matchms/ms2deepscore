@@ -1,9 +1,11 @@
+from typing import Tuple, List
+
 import numpy as np
+import pandas as pd
 from matplotlib import pyplot as plt
 
 from ms2deepscore.benchmarking.CalculateScoresBetweenAllIonmodes import CalculateScoresBetweenAllIonmodes
-from ms2deepscore.validation_loss_calculation.PredictionsAndTanimotoScores import PredictionsAndTanimotoScores, \
-    convert_dataframes_to_lists_with_matching_pairs
+from ms2deepscore.validation_loss_calculation.PredictionsAndTanimotoScores import PredictionsAndTanimotoScores
 
 
 def create_3_heatmaps(pairs: CalculateScoresBetweenAllIonmodes, nr_of_bins):
@@ -54,10 +56,27 @@ def create_normalized_heatmap_data(prediction_and_tanimoto_scores: PredictionsAn
                                    x_bins, y_bins):
     average_prediction = \
         prediction_and_tanimoto_scores.get_average_prediction_per_inchikey_pair()
-    list_of_average_predictions, list_of_tanimoto_scores = convert_dataframes_to_lists_with_matching_pairs(prediction_and_tanimoto_scores.tanimoto_df,
-                                                                                                           average_prediction)
+    list_of_tanimoto_scores, list_of_average_predictions = convert_dataframes_to_lists_with_matching_pairs(
+        prediction_and_tanimoto_scores.tanimoto_df,
+        average_prediction)
     heatmap = np.histogram2d(list_of_tanimoto_scores,
                              list_of_average_predictions,
                              bins=(x_bins, y_bins))[0]
     normalized_heatmap = heatmap / heatmap.sum(axis=1, keepdims=True)
     return normalized_heatmap
+
+
+def convert_dataframes_to_lists_with_matching_pairs(tanimoto_df: pd.DataFrame,
+                                                    average_predictions_per_inchikey_pair: pd.DataFrame
+                                                    ) -> Tuple[List[float], List[float]]:
+    """Takes in two dataframes with inchikeys as index and returns two lists with scores, which correspond to pairs"""
+    predictions = []
+    tanimoto_scores = []
+    for inchikey_1 in average_predictions_per_inchikey_pair.index:
+        for inchikey_2 in average_predictions_per_inchikey_pair.columns:
+            prediction = average_predictions_per_inchikey_pair[inchikey_2][inchikey_1]
+            # don't include pairs where the prediciton is Nan (this is the case when only a pair against itself is available)
+            if not np.isnan(prediction):
+                predictions.append(prediction)
+                tanimoto_scores.append(tanimoto_df[inchikey_2][inchikey_1])
+    return tanimoto_scores, predictions
