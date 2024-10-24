@@ -1,6 +1,4 @@
-import numpy as np
 import torch
-from torch import nn
 
 
 def weighted_linear(target, weighting_factor):
