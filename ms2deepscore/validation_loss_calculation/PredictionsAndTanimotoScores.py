@@ -1,7 +1,7 @@
 import numpy as np
 import pandas as pd
 
-from ms2deepscore.SettingsMS2Deepscore import validate_bin_order
+from ms2deepscore.utils import validate_bin_order
 
 
 class PredictionsAndTanimotoScores:

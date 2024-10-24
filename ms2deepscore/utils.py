@@ -97,3 +97,37 @@ def create_evenly_spaced_bins(nr_of_bins):
     bin_borders[0] = -0.00000001
     bins = [(bin_borders[i], bin_borders[i+1]) for i in range(nr_of_bins)]
     return bins
+
+
+def validate_bin_order(score_bins):
+    """
+    Checks that the given bins are of the correct format:
+    - Each bin is a tuple/list of two numbers [low, high], with low <= high
+    - Bins cover the entire interval from 0 to 1, with no gaps or overlaps
+    - The lowest bin starts below 0 (since pairs >=0 are selected and we want to include zero)
+    """
+
+    # Sort bins by their lower bound
+    sorted_bins = sorted(score_bins, key=lambda b: b[0])
+
+    # Check upper and lower bound
+    if sorted_bins[0][0] >= 0:
+        raise ValueError(f"The first bin should start below 0, but starts at {sorted_bins[0][0]}")
+
+    if sorted_bins[-1][1] != 1:
+        raise ValueError(f"The last bin should end at 1, but ends at {sorted_bins[-1][1]}")
+
+    # Check order, format, and overlaps
+    previous_high = None
+    for score_bin in sorted_bins:
+        if len(score_bin) != 2:
+            raise ValueError("Each bin should have exactly two elements")
+        low, high = score_bin
+        if low > high:
+            raise ValueError("The first number in the bin should be smaller than or equal to the second")
+        if high < 0:
+            raise ValueError("No bin should be entirely below 0.")
+        if previous_high is not None:
+            if low != previous_high:
+                raise ValueError("There is a gap or overlap between bins; The bins should cover everything between 0 and 1.")
+        previous_high = high
