@@ -50,33 +50,6 @@ def risk_aware_mse(outputs, targets, weighting_factor=0):
     return losses.mean()
 
 
-class RiskAwareMAE(nn.Module):
-    """Loss functions taking into account the actual distribution of the target labels"""
-    def __init__(self, percentiles=None, device="cpu"):
-        super().__init__()
-        self.device = device
-        if percentiles is None:
-            self.percentiles = torch.linspace(0.01, 1.0, 100)
-        else:
-            self.percentiles = percentiles
-
-    def forward(self, outputs, targets):
-        device = self.device
-        idx = torch.empty((len(targets)))
-        for i, target in enumerate(targets):
-            idx[i] = torch.argmin(torch.abs(self.percentiles.to(device) - target.to(device)))
-
-        max_bin = self.percentiles.shape[0]
-        factors = (idx + 1) / max_bin
-
-        errors = targets.to(device) - outputs.to(device)
-        uppers =  factors.to(device) * errors
-        lowers = (factors.to(device) - 1) * errors
-
-        losses = torch.max(lowers, uppers)
-        return losses.mean()
-
-
 LOSS_FUNCTIONS = {
     "mse": mse_loss,
     "mae": mae_loss,

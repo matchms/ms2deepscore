@@ -1,7 +1,6 @@
-import numpy as np
 import torch
 from ms2deepscore.models.loss_functions import (risk_aware_mae, risk_aware_mse,
-                                                rmse_loss, RiskAwareMAE,
+                                                rmse_loss,
                                                 mae_loss, mse_loss)
 
 
@@ -54,12 +53,3 @@ def test_risk_aware_mse():
     assert risk_aware_mse(torch.tensor([0.7]), torch.tensor([0.5])) == risk_aware_mse(torch.tensor([0.3]), torch.tensor([0.5]))
     assert torch.allclose(risk_aware_mse(torch.tensor([0.3]), torch.tensor([0.5])), torch.tensor(0.2 ** 2 * 0.5))
     assert torch.allclose(risk_aware_mse(torch.tensor([0.4]), torch.tensor([0.8])), torch.tensor(0.4 ** 2 * 0.8))
-
-
-def test_risk_aware_mae_class():
-    """Just test if class and function are consistent."""
-    model = RiskAwareMAE()
-    outputs = torch.tensor([0.2, 0.4, 0.6])
-    targets = torch.tensor([0.3, 0.5, 0.7])
-    assert model(outputs, targets) == risk_aware_mae(outputs, targets), "Class-based Risk-aware MAE mismatch"
-
