@@ -2,7 +2,6 @@ import json
 import os
 import pytest
 from ms2deepscore.SettingsMS2Deepscore import SettingsMS2Deepscore
-from ms2deepscore.utils import validate_bin_order
 
 
 def test_initiate_settingsms2deepscore():
