@@ -74,3 +74,10 @@ def test_bin_dependent_losses():
     assert len(bin_content) == 2, "Bin content length mismatch"
     assert len(losses["mse"]) == 2, "Losses for MSE mismatch"
     assert len(losses["mae"]) == 2, "Losses for MAE mismatch"
+    assert bin_content == [2, 2]
+    assert losses["bin"] == ref_score_bins
+    # Check if the losses are as expected.
+    assert torch.allclose(losses["mse"][0], torch.tensor(0.01, dtype=torch.float64))
+    assert torch.allclose(losses["mse"][1], torch.tensor(0.01, dtype=torch.float64))
+    assert torch.allclose(losses["mae"][0], torch.tensor(0.1, dtype=torch.float64))
+    assert torch.allclose(losses["mae"][1], torch.tensor(0.1, dtype=torch.float64))
