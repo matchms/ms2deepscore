@@ -4,17 +4,23 @@ from tqdm import tqdm
 from matplotlib import pyplot as plt
 
 from ms2deepscore.benchmarking.CalculateScoresBetweenAllIonmodes import CalculateScoresBetweenAllIonmodes
-from ms2deepscore.validation_loss_calculation.PredictionsAndTanimotoScores import PredictionsAndTanimotoScores
+from ms2deepscore.validation_loss_calculation.PredictionsAndTanimotoScores import PredictionsAndTanimotoScores, \
+    convert_dataframes_to_lists_with_matching_pairs
 
 
 def select_pairs_per_bin(predictions_and_tanimoto_scores: PredictionsAndTanimotoScores, bins):
-    digitized = np.digitize(predictions_and_tanimoto_scores.list_of_tanimoto_scores, bins) - 1
+    average_predictions = predictions_and_tanimoto_scores.get_average_prediction_per_inchikey_pair()
+    # Convert to two lists containing the predictions and tanimoto scores they are sorted
+    list_of_average_predictions, list_of_tanimoto_scores = convert_dataframes_to_lists_with_matching_pairs(
+        predictions_and_tanimoto_scores.tanimoto_df, average_predictions)
+
+    digitized = np.digitize(list_of_tanimoto_scores, bins) - 1
     average_per_bin = []
     for bin in tqdm(range(len(bins)-1), desc="Selecting available inchikey pairs per bin"):
         predictions_in_this_bin = []
         indexes_of_pairs_in_bin = np.where(digitized == bin)[0]
         for i in indexes_of_pairs_in_bin:
-            predictions_in_this_bin.append(predictions_and_tanimoto_scores.list_of_average_predictions[i])
+            predictions_in_this_bin.append(list_of_average_predictions[i])
         if len(predictions_in_this_bin) == 0:
             average_per_bin.append(0)
             print(f"The bin between {bins[bin]} - {bins[bin + 1]}does not have any pairs")

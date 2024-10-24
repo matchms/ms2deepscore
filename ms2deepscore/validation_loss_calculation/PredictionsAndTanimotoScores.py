@@ -2,50 +2,62 @@ from typing import Tuple, List
 
 import numpy as np
 import pandas as pd
-import torch
 
 from ms2deepscore.SettingsMS2Deepscore import validate_bin_order
 
 
 class PredictionsAndTanimotoScores:
-    def __init__(self, predictions_df: pd.DataFrame, tanimoto_df: pd.DataFrame, symmetric: bool, label=""):
+    """Stores predictions and tanimoto scores and can calculate losses and averages per inchikey pair"""
+    def __init__(self, predictions_df: pd.DataFrame,
+                 tanimoto_df: pd.DataFrame,
+                 symmetric: bool, label=""):
+        """
+        Parameters
+        ----------
+        predictions_df:
+            A dataframe with predictions between all spectra. The df has to be labeled with inchikeys. If there are
+            multiple spectra per inchikey, the inchikey is repeated in rows and columns.
+        tanimoto_df:
+            A dataframe with the tanimoto scores between inchikeys. These are unique pairs, so inchikeys don't repeat.
+        symmetric:
+            If the dataframe is symmetric.
+        label:
+            A label that can be used by plotting functions. For instance "Positive vs Negative".
+        """
         self.predictions_df = predictions_df
         self.tanimoto_df = tanimoto_df
         self.symmetric = symmetric
         self.label = label
+
+        self.check_input_data()
         # remove predicitons between the same spectrum
         if self.symmetric:
             np.fill_diagonal(self.predictions_df.values, np.nan)
 
-        average_prediction_per_inchikey_pair = self._get_average_prediction_per_inchikey_pair()
-        self.list_of_average_predictions, self.list_of_tanimoto_scores = self._convert_scores_df_to_list_of_pairs(
-            average_prediction_per_inchikey_pair)
+    def check_input_data(self):
+        """Checks that the prediction df and tanimoto df have the expected format"""
+        if not isinstance(self.predictions_df, pd.DataFrame) or not isinstance(self.tanimoto_df, pd.DataFrame):
+            raise TypeError("Expected a pandas DF as input")
 
-    def _get_average_prediction_per_inchikey_pair(self):
-        """Takes a matrix with per spectrum predictions and converts it to a df with the average prediction between all inchikeys"""
-        # get the mean prediction per inchikey
-        df_grouped = self.predictions_df.groupby(self.predictions_df.index).mean()
-        df_grouped_columns = df_grouped.groupby(lambda x: x, axis=1).mean()  # Other axis
-        return df_grouped_columns
+        if not len(np.unique(self.tanimoto_df.index)) == len(self.tanimoto_df.index):
+            raise ValueError("The tanimoto df should have unique indices representing the inchikeys")
+        if not len(np.unique(self.tanimoto_df.columns)) == len(self.tanimoto_df.columns):
+            raise ValueError("The tanimoto df should have unique column indexes representing the inchikeys")
 
-    def _convert_scores_df_to_list_of_pairs(self, average_predictions_per_inchikey: pd.DataFrame) -> Tuple[List[float], List[float]]:
-        """Takes in two dataframes with inchikeys as index and returns two lists with scores, which correspond to pairs"""
-        predictions = []
-        tanimoto_scores = []
-        for inchikey_1 in average_predictions_per_inchikey.index:
-            for inchikey_2 in average_predictions_per_inchikey.columns:
-                prediction = average_predictions_per_inchikey[inchikey_2][inchikey_1]
-                # don't include pairs where the prediciton is Nan (this is the case when only a pair against itself is available)
-                if not np.isnan(prediction):
-                    tanimoto = self.tanimoto_df[inchikey_2][inchikey_1]
-                    predictions.append(prediction)
-                    tanimoto_scores.append(tanimoto)
-        return predictions, tanimoto_scores
+        if np.all(np.unique(self.predictions_df.index).sort() == self.tanimoto_df.index.sort_values()):
+            raise ValueError("All predicition indexes should appear at least once in tanimoto df indexes")
+        if np.all(np.unique(self.predictions_df.columns).sort() == self.tanimoto_df.columns.sort_values()):
+            raise ValueError("All predicition columns should appear at least once in tanimoto df columns")
 
-    def _get_average_over_inchikey_pairs(self, losses: pd.DataFrame):
-        grouped_losses = losses.groupby(losses.index).mean()
-        average_losses = grouped_losses.groupby(lambda x: x, axis=1).mean()
-        return average_losses
+        if self.symmetric:
+            if not np.all(self.predictions_df.index == self.predictions_df.columns):
+                raise ValueError("If the setting is symmetric, indexes and columns are expected to be equal")
+            if not np.all(self.tanimoto_df.index == self.tanimoto_df.columns):
+                raise ValueError("If the setting is symmetric, indexes and columns are expected to be equal")
+
+    def get_average_prediction_per_inchikey_pair(self) -> pd.DataFrame:
+        """Gets the average prediction per unique inchikey pair (instead of per spectrum pair)"""
+        return get_average_per_inchikey_pair(self.predictions_df)
 
     def get_average_loss_per_bin_per_inchikey_pair(self,
                                                    loss_type: str,
@@ -65,7 +77,7 @@ class PredictionsAndTanimotoScores:
         else:
             raise ValueError(f"The given loss type: {loss_type} is not a valid loss type, choose from mse, "
                              f"rmse, mae, risk_mse and risk_mae")
-        average_losses_per_inchikey_pair = self._get_average_over_inchikey_pairs(losses_per_spectrum_pair)
+        average_losses_per_inchikey_pair = get_average_per_inchikey_pair(losses_per_spectrum_pair)
 
         bin_content, bounds, average_loss_per_bin = self.get_average_loss_per_bin(average_losses_per_inchikey_pair,
                                                                                   tanimoto_bins)
@@ -132,3 +144,32 @@ class PredictionsAndTanimotoScores:
                 # Add values
                 losses.append(average_loss_per_inchikey_pair.iloc[idx].mean().mean())
         return bin_content, bounds, losses
+
+
+def convert_dataframes_to_lists_with_matching_pairs(tanimoto_df: pd.DataFrame,
+                                           average_predictions_per_inchikey_pair: pd.DataFrame
+                                           ) -> Tuple[List[float], List[float]]:
+    """Takes in two dataframes with inchikeys as index and returns two lists with scores, which correspond to pairs"""
+    predictions = []
+    tanimoto_scores = []
+    for inchikey_1 in average_predictions_per_inchikey_pair.index:
+        for inchikey_2 in average_predictions_per_inchikey_pair.columns:
+            prediction = average_predictions_per_inchikey_pair[inchikey_2][inchikey_1]
+            # don't include pairs where the prediciton is Nan (this is the case when only a pair against itself is available)
+            if not np.isnan(prediction):
+                tanimoto = tanimoto_df[inchikey_2][inchikey_1]
+                predictions.append(prediction)
+                tanimoto_scores.append(tanimoto)
+    return predictions, tanimoto_scores
+
+
+def get_average_per_inchikey_pair(df: pd.DataFrame):
+    """Calculates the average in a df of everything with the same index and column
+
+    Used to get the average prediction or loss for an inchikey with multiple available spectra (repeating indexes/columns)
+    """
+    # Group the same inchikeys per index and get the mean
+    indexes_grouped = df.groupby(df.index).mean()
+    # Group the same inchikeys per column and get the mean
+    average_per_inchikey_pair = indexes_grouped.groupby(lambda x: x, axis=1).mean()
+    return average_per_inchikey_pair

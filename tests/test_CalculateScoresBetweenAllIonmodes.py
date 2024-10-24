@@ -88,7 +88,8 @@ def create_dummy_predictions_and_tanimoto_scores(nr_of_unique_inchikeys, nr_of_u
         predictions = create_dummy_predictions_symmetric(tanimoto_scores)
     else:
         predictions = create_dummy_predictions_not_symmetric(tanimoto_scores)
-    return PredictionsAndTanimotoScores(predictions, tanimoto_scores, True)
+    symmetric = nr_of_unique_inchikeys == nr_of_unique_inchikeys_2
+    return PredictionsAndTanimotoScores(predictions, tanimoto_scores, symmetric)
 
 
 def test_predictions_and_tanimoto_scores():
