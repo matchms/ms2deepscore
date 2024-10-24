@@ -6,7 +6,7 @@ from ms2deepscore.benchmarking.plot_average_per_bin import plot_average_per_bin
 from ms2deepscore.benchmarking.plot_heatmaps import create_3_heatmaps
 from ms2deepscore.benchmarking.plot_rmse_per_bin import (
     plot_loss_per_bin, plot_loss_per_bin_multiple_benchmarks)
-from tests.test_CalculateScoresBetweenAllIonmodes import create_dummy_predictions_and_tanimoto_scores
+from tests.test_PredictionsAndTanimotoScores import create_dummy_predictions_and_tanimoto_scores
 
 
 @pytest.fixture()
