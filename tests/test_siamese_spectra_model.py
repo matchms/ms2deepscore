@@ -8,7 +8,7 @@ from ms2deepscore.tensorize_spectra import tensorize_spectra
 from ms2deepscore.train_new_model.data_generators import SpectrumPairGenerator, InchikeyPairGenerator
 from ms2deepscore.train_new_model.inchikey_pair_selection import \
     select_compound_pairs_wrapper
-from ms2deepscore.train_new_model.ValidationLossCalculator import \
+from ms2deepscore.validation_loss_calculation.ValidationLossCalculator import \
     ValidationLossCalculator
 
 
@@ -135,7 +135,7 @@ def test_model_training(simple_training_spectra):
     # Create generators
     train_generator_simple = SpectrumPairGenerator(spectrums=simple_training_spectra, selected_compound_pairs=inchikey_pair_generator,
                                                    settings=settings)
-    settings.same_prob_bins = np.array([(0, 1.0)])
+    settings.same_prob_bins = np.array([(-0.01, 1.0)])
     validation_loss_calculator = ValidationLossCalculator(
         simple_training_spectra,
         settings=settings) # Just calculating the loss in one bin (since we have just two inchikeys)
