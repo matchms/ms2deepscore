@@ -192,8 +192,8 @@ def parameter_search(
         for loss_type in loss_types:
             losses_per_ionmode = {}
             for predictions_and_tanimoto_scores in scores_between_all_ionmodes.list_of_predictions_and_tanimoto_scores():
-                    _, _, losses = predictions_and_tanimoto_scores.get_average_loss_per_bin_per_inchikey_pair(loss_type,
-                                                                                                              settings.same_prob_bins)
+                    _, losses = predictions_and_tanimoto_scores.get_average_loss_per_bin_per_inchikey_pair(loss_type,
+                                                                                                           settings.same_prob_bins)
                     losses_per_ionmode[predictions_and_tanimoto_scores.label] = losses
             combination_results["losses"][loss_type] = losses_per_ionmode
 
