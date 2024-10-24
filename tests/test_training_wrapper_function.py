@@ -89,7 +89,8 @@ def test_parameter_search_wrapper(tmp_path):
         spectra_file_path_or_dir=spectra_file_name,
         base_settings=base_settings,
         setting_variations=setting_variations,
-        validation_split_fraction=5
+        validation_split_fraction=5,
+        path_checkpoint=os.path.join(tmp_path, "results_checkpoint.pkl")
     )
 
     assert len(results) == 4  # Two variations of epochs and two for batch size = 2 * 2
