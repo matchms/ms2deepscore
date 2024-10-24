@@ -78,11 +78,11 @@ class PredictionsAndTanimotoScores:
                              f"rmse, mae, risk_mse and risk_mae")
         average_losses_per_inchikey_pair = get_average_per_inchikey_pair(losses_per_spectrum_pair)
 
-        bin_content, bounds, average_loss_per_bin = self._get_average_loss_per_bin(average_losses_per_inchikey_pair,
-                                                                                   tanimoto_bins)
-        if loss_type == "RMSE":
+        bin_content, average_loss_per_bin = self._get_average_loss_per_bin(average_losses_per_inchikey_pair,
+                                                                           tanimoto_bins)
+        if loss_type == "rmse":
             average_loss_per_bin = [average_loss ** 0.5 for average_loss in average_loss_per_bin]
-        return bin_content, bounds, average_loss_per_bin
+        return bin_content, average_loss_per_bin
 
     def _get_absolute_error_per_spectrum_pair(self):
         """Calculates the absolute error
@@ -134,11 +134,9 @@ class PredictionsAndTanimotoScores:
         """
         bin_content = []
         losses = []
-        bounds = []
         validate_bin_order(ref_score_bins)
         ref_score_bins.sort()
         for low, high in ref_score_bins:
-            bounds.append((low, high))
             idx = np.where((self.tanimoto_df > low) & (self.tanimoto_df <= high))
             if idx[0].shape[0] == 0:
                 bin_content.append(0)
@@ -148,7 +146,7 @@ class PredictionsAndTanimotoScores:
                 bin_content.append(idx[0].shape[0])
                 # Add values
                 losses.append(average_loss_per_inchikey_pair.iloc[idx].mean().mean())
-        return bin_content, bounds, losses
+        return bin_content, losses
 
 
 def get_average_per_inchikey_pair(df: pd.DataFrame):

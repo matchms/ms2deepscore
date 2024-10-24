@@ -30,7 +30,7 @@ class ValidationLossCalculator:
             predictions_df=ms2ds_scores, tanimoto_df=self.tanimoto_scores, symmetric=True)
         losses_per_bin = {}
         for loss_type in loss_types:
-            _, _, average_loss_per_bin = predictions_and_tanimoto_scores.get_average_loss_per_bin_per_inchikey_pair(
+            _, average_loss_per_bin = predictions_and_tanimoto_scores.get_average_loss_per_bin_per_inchikey_pair(
                 loss_type,
                 self.settings.same_prob_bins)
             losses_per_bin[loss_type] = average_loss_per_bin
