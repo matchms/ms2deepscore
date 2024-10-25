@@ -2,6 +2,7 @@ import os
 import numpy as np
 from matchms.exporting import save_as_mgf
 from ms2deepscore.SettingsMS2Deepscore import SettingsMS2Deepscore
+from ms2deepscore.models import load_model
 from ms2deepscore.wrapper_functions.training_wrapper_functions import (
     StoreTrainingData, train_ms2deepscore_wrapper, parameter_search)
 from tests.create_test_spectra import pesticides_test_spectra
@@ -28,8 +29,11 @@ def test_train_wrapper_ms2ds_model(tmp_path):
 
     model_directory_name = train_ms2deepscore_wrapper(spectra_file_name, settings, validation_split_fraction=5)
     expected_file_names = StoreTrainingData(spectra_file_name)
-    assert os.path.isfile(os.path.join(tmp_path, expected_file_names.trained_models_folder,
-                                       model_directory_name, settings.model_file_name))
+    # Test model is created and can be loaded
+    model_file_name = os.path.join(tmp_path, expected_file_names.trained_models_folder,
+                                       model_directory_name, settings.model_file_name)
+    assert os.path.isfile(model_file_name)
+    model = load_model(model_file_name)
     assert os.path.isfile(expected_file_names.negative_mode_spectra_file)
     assert os.path.isfile(expected_file_names.negative_validation_spectra_file)
     assert os.path.isfile(os.path.join(tmp_path, expected_file_names.trained_models_folder,
