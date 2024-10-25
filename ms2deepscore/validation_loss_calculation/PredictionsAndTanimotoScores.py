@@ -1,3 +1,5 @@
+from typing import Tuple, List
+
 import numpy as np
 import pandas as pd
 from tqdm import tqdm
@@ -121,7 +123,7 @@ class PredictionsAndTanimotoScores:
 
     def _get_average_per_bin(self,
                              average_per_inchikey_pair: pd.DataFrame,
-                             tanimoto_bins: np.ndarray):
+                             tanimoto_bins: np.ndarray) -> Tuple[List[float], List[float]]:
         """Compute average loss per tanimoto score bin
 
         Parameters
