@@ -11,7 +11,7 @@ def plot_average_per_bin(scores_between_ionmodes: CalculateScoresBetweenAllIonmo
 
     for predictions_and_tanimoto_scores in scores_between_ionmodes.list_of_predictions_and_tanimoto_scores():
         average_predictions = predictions_and_tanimoto_scores.get_average_prediction_per_inchikey_pair()
-        _, average_per_bin = predictions_and_tanimoto_scores._get_average_per_bin(average_predictions, bins)
+        _, average_per_bin = predictions_and_tanimoto_scores.get_average_per_bin(average_predictions, bins)
         ax.plot(bin_centers, average_per_bin, label=predictions_and_tanimoto_scores.label)
 
     ax.set_xlabel("True chemical similarity")

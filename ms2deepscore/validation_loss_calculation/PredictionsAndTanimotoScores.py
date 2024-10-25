@@ -80,7 +80,7 @@ class PredictionsAndTanimotoScores:
                              f"rmse, mae, risk_mse and risk_mae")
         average_losses_per_inchikey_pair = get_average_per_inchikey_pair(losses_per_spectrum_pair)
 
-        bin_content, average_loss_per_bin = self._get_average_per_bin(average_losses_per_inchikey_pair, tanimoto_bins)
+        bin_content, average_loss_per_bin = self.get_average_per_bin(average_losses_per_inchikey_pair, tanimoto_bins)
         if loss_type == "rmse":
             average_loss_per_bin = [average_loss ** 0.5 for average_loss in average_loss_per_bin]
         return bin_content, average_loss_per_bin
@@ -121,9 +121,9 @@ class PredictionsAndTanimotoScores:
                                                  columns=lowers.columns)
         return risk_aware_absolute_error
 
-    def _get_average_per_bin(self,
-                             average_per_inchikey_pair: pd.DataFrame,
-                             tanimoto_bins: np.ndarray) -> Tuple[List[float], List[float]]:
+    def get_average_per_bin(self,
+                            average_per_inchikey_pair: pd.DataFrame,
+                            tanimoto_bins: np.ndarray) -> Tuple[List[float], List[float]]:
         """Compute average loss per tanimoto score bin
 
         Parameters
