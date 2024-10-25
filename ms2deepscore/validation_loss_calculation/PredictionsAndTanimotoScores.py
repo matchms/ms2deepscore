@@ -165,5 +165,5 @@ def get_average_per_inchikey_pair(df: pd.DataFrame):
     # Group the same inchikeys per index and get the mean
     indexes_grouped = df.groupby(df.index).mean()
     # Group the same inchikeys per column and get the mean
-    average_per_inchikey_pair = indexes_grouped.groupby(lambda x: x, axis=1).mean()
+    average_per_inchikey_pair = indexes_grouped.T.groupby(df.columns).mean().T
     return average_per_inchikey_pair
