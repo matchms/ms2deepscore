@@ -1,5 +1,4 @@
 import pytest
-from matplotlib import pyplot as plt
 
 from ms2deepscore.benchmarking.CalculateScoresBetweenAllIonmodes import CalculateScoresBetweenAllIonmodes
 from ms2deepscore.benchmarking.plot_average_per_bin import plot_average_per_bin
@@ -20,32 +19,24 @@ def scores_between_all_ionmodes():
 
 
 def test_create_three_heatmaps(scores_between_all_ionmodes):
-    fig = create_3_heatmaps(scores_between_all_ionmodes, 30)
-    fig.show()
+    create_3_heatmaps(scores_between_all_ionmodes, 30)
 
 
 def test_plot_average_per_bin(scores_between_all_ionmodes):
-    fig = plot_average_per_bin(scores_between_all_ionmodes, 10)
-    fig.show()
+    plot_average_per_bin(scores_between_all_ionmodes, 10)
 
 
 def test_plot_loss_per_bin_multiple_benchmarks(scores_between_all_ionmodes):
     plot_loss_per_bin_multiple_benchmarks(scores_between_all_ionmodes.list_of_predictions_and_tanimoto_scores(),
                                           loss_type="MSE")
-    plt.show()
     plot_loss_per_bin_multiple_benchmarks(scores_between_all_ionmodes.list_of_predictions_and_tanimoto_scores(),
                                           loss_type="RMSE")
-    plt.show()
     plot_loss_per_bin_multiple_benchmarks(scores_between_all_ionmodes.list_of_predictions_and_tanimoto_scores(),
                                           loss_type="MAE")
-    plt.show()
 
 
 def test_plot_loss_per_bin():
     predictions_and_tanimoto_scores = create_dummy_predictions_and_tanimoto_scores(26, 14)
     plot_loss_per_bin(predictions_and_tanimoto_scores, loss_type="MSE")
-    plt.show()
     plot_loss_per_bin(predictions_and_tanimoto_scores, loss_type="RMSE")
-    plt.show()
     plot_loss_per_bin(predictions_and_tanimoto_scores, loss_type="MAE")
-    plt.show()
