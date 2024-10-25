@@ -33,7 +33,7 @@ def test_train_wrapper_ms2ds_model(tmp_path):
     model_file_name = os.path.join(tmp_path, expected_file_names.trained_models_folder,
                                        model_directory_name, settings.model_file_name)
     assert os.path.isfile(model_file_name)
-    model = load_model(model_file_name)
+    load_model(model_file_name)
     assert os.path.isfile(expected_file_names.negative_mode_spectra_file)
     assert os.path.isfile(expected_file_names.negative_validation_spectra_file)
     assert os.path.isfile(os.path.join(tmp_path, expected_file_names.trained_models_folder,
