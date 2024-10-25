@@ -1,10 +1,10 @@
 from ms2deepscore.benchmarking.CalculateScoresBetweenAllIonmodes import CalculateScoresBetweenAllIonmodes
-from tests.test_user_worfklow import load_processed_spectrums, TEST_RESOURCES_PATH
+from tests.create_test_spectra import pesticides_test_spectra, TEST_RESOURCES_PATH
 
 
 def test_calculate_scores_between_all_ionmodes():
     """Test that all dfs are created and have the correct shape"""
-    spectra = load_processed_spectrums()
+    spectra = pesticides_test_spectra()
     positive_mode_spectra = [spectrum.set("ionmode", "positive") for spectrum in spectra[:40]]
     negative_mode_spectra = [spectrum.set("ionmode", "negative") for spectrum in spectra[40:]]
     # Load pretrained model

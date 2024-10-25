@@ -3,7 +3,7 @@ import numpy as np
 from ms2deepscore import MS2DeepScoreEvaluated
 from ms2deepscore.SettingsMS2Deepscore import SettingsEmbeddingEvaluator
 from ms2deepscore.models import load_model, LinearModel, EmbeddingEvaluationModel
-from tests.test_user_worfklow import load_processed_spectrums
+from tests.create_test_spectra import pesticides_test_spectra
 
 
 TEST_RESOURCES_PATH = Path(__file__).parent / 'resources'
@@ -11,7 +11,7 @@ TEST_RESOURCES_PATH = Path(__file__).parent / 'resources'
 
 def get_test_ms2deepscore_evaluated_instance():
     """Load data and models for MS2DeepScore unit tests."""
-    spectrums = load_processed_spectrums()
+    spectrums = pesticides_test_spectra()
 
     # Load pretrained model
     model_file = TEST_RESOURCES_PATH / "testmodel.pt"
