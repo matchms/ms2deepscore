@@ -51,8 +51,8 @@ def plot_loss_per_bin_multiple_benchmarks(list_of_predictions_and_tanimoto_score
     ax1.set_ylabel(loss_type)
     ax1.grid(True)
 
-    ax2.set_title('# of spectrum pairs')
-    ax2.set_ylabel("# of spectrum pairs")
+    ax2.set_title('# of compound pairs')
+    ax2.set_ylabel("# of compound pairs")
     ax2.set_xlabel("Tanimoto score bin")
     ax2.set_ylim(bottom=0)
     plt.xticks(np.arange(len(ref_score_bins)),
