@@ -1,6 +1,6 @@
 import numpy as np
 import pandas as pd
-
+from tqdm import tqdm
 from ms2deepscore.utils import validate_bin_order
 
 
@@ -78,8 +78,7 @@ class PredictionsAndTanimotoScores:
                              f"rmse, mae, risk_mse and risk_mae")
         average_losses_per_inchikey_pair = get_average_per_inchikey_pair(losses_per_spectrum_pair)
 
-        bin_content, average_loss_per_bin = self._get_average_loss_per_bin(average_losses_per_inchikey_pair,
-                                                                           tanimoto_bins)
+        bin_content, average_loss_per_bin = self._get_average_per_bin(average_losses_per_inchikey_pair, tanimoto_bins)
         if loss_type == "rmse":
             average_loss_per_bin = [average_loss ** 0.5 for average_loss in average_loss_per_bin]
         return bin_content, average_loss_per_bin
@@ -120,33 +119,40 @@ class PredictionsAndTanimotoScores:
                                                  columns=lowers.columns)
         return risk_aware_absolute_error
 
-    def _get_average_loss_per_bin(self,
-                                 average_loss_per_inchikey_pair: pd.DataFrame,
-                                 ref_score_bins: np.ndarray):
+    def _get_average_per_bin(self,
+                             average_per_inchikey_pair: pd.DataFrame,
+                             tanimoto_bins: np.ndarray):
         """Compute average loss per tanimoto score bin
 
         Parameters
         ----------
-        average_loss_per_inchikey_pair
-            Precalculated average loss per inchikey pair (this can be any loss type)
+        average_per_inchikey_pair
+            Precalculated average (prediction or loss) per inchikey pair
         ref_score_bins
             Bins for the reference score to evaluate the performance of scores. in the form [(0.0, 0.1), (0.1, 0.2) ...]
         """
-        bin_content = []
-        losses = []
-        validate_bin_order(ref_score_bins)
-        ref_score_bins.sort()
-        for low, high in ref_score_bins:
-            idx = np.where((self.tanimoto_df > low) & (self.tanimoto_df <= high))
-            if idx[0].shape[0] == 0:
-                bin_content.append(0)
-                losses.append(0)
-                print(f"There are no scores within the bin {low} - {high}")
+        average_predictions = average_per_inchikey_pair.to_numpy()
+        validate_bin_order(tanimoto_bins)
+
+        sorted_bins = sorted(tanimoto_bins, key=lambda b: b[0])
+
+        bins = [bin_pair[0] for bin_pair in sorted_bins]
+        bins.append(sorted_bins[-1][1])
+
+        digitized = np.digitize(self.tanimoto_df, bins, right=True)
+        average_per_bin = []
+        nr_of_pairs_in_bin = []
+        for i, bin_edges in tqdm(enumerate(sorted_bins), desc="Selecting available inchikey pairs per bin"):
+            row_idxs, col_idxs = np.where(digitized == i+ 1)
+
+            predictions_in_this_bin = average_predictions[row_idxs, col_idxs]
+            nr_of_pairs_in_bin.append(len(predictions_in_this_bin))
+            if len(predictions_in_this_bin) == 0:
+                average_per_bin.append(0)
+                print(f"The bin between {bin_edges[0]} - {bin_edges[1]}does not have any pairs")
             else:
-                bin_content.append(idx[0].shape[0])
-                # Add values
-                losses.append(average_loss_per_inchikey_pair.iloc[idx].mean().mean())
-        return bin_content, losses
+                average_per_bin.append(np.nanmean(predictions_in_this_bin))
+        return nr_of_pairs_in_bin, average_per_bin
 
 
 def get_average_per_inchikey_pair(df: pd.DataFrame):
