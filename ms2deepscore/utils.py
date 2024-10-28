@@ -10,7 +10,7 @@ from tqdm import tqdm
 
 def save_pickled_file(obj, filename: str):
     if os.path.exists(filename):
-        raise ValueError("File already exists")
+        raise FileExistsError("File already exists")
     with open(filename, "wb") as f:
         pickle.dump(obj, f)
 

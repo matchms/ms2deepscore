@@ -12,7 +12,7 @@ def test_save_and_load_pickled_file(tmpdir):
     assert data == loaded_data
 
     # Asserting that save_pickled_file raises an exception if file already exists
-    with pytest.raises(AssertionError, match="File already exists"):
+    with pytest.raises(FileExistsError, match="File already exists"):
         utils.save_pickled_file(data, temp_file.strpath)
 
 
