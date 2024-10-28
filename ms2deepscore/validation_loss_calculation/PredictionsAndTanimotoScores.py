@@ -7,7 +7,8 @@ from ms2deepscore.utils import validate_bin_order
 
 
 class PredictionsAndTanimotoScores:
-    """Stores predictions and tanimoto scores and can calculate losses and averages per inchikey pair"""
+    """Stores predictions and Tanimoto scores and can calculate losses and averages per inchikey pair.
+    """
     def __init__(self, predictions_df: pd.DataFrame,
                  tanimoto_df: pd.DataFrame,
                  symmetric: bool, label=""):
@@ -35,17 +36,20 @@ class PredictionsAndTanimotoScores:
             np.fill_diagonal(self.predictions_df.values, np.nan)
 
     def _check_input_data(self):
-        """Checks that the prediction df and tanimoto df have the expected format"""
+        """Checks that the prediction_df and tanimoto_df have the expected format.
+        """
         if not isinstance(self.predictions_df, pd.DataFrame) or not isinstance(self.tanimoto_df, pd.DataFrame):
             raise TypeError("Expected a pandas DF as input")
 
         if not len(np.unique(self.tanimoto_df.index)) == len(self.tanimoto_df.index):
             raise ValueError("The tanimoto df should have unique indices representing the inchikeys")
+
         if not len(np.unique(self.tanimoto_df.columns)) == len(self.tanimoto_df.columns):
             raise ValueError("The tanimoto df should have unique column indexes representing the inchikeys")
 
         if np.all(np.unique(self.predictions_df.index).sort() == self.tanimoto_df.index.sort_values()):
             raise ValueError("All predicition indexes should appear at least once in tanimoto df indexes")
+
         if np.all(np.unique(self.predictions_df.columns).sort() == self.tanimoto_df.columns.sort_values()):
             raise ValueError("All predicition columns should appear at least once in tanimoto df columns")
 
@@ -56,24 +60,26 @@ class PredictionsAndTanimotoScores:
                 raise ValueError("If the setting is symmetric, indexes and columns are expected to be equal")
 
     def get_average_prediction_per_inchikey_pair(self) -> pd.DataFrame:
-        """Gets the average prediction per unique inchikey pair (instead of per spectrum pair)"""
+        """Gets the average prediction per unique inchikey pair (instead of per spectrum pair).
+        """
         return get_average_per_inchikey_pair(self.predictions_df)
 
     def get_average_loss_per_bin_per_inchikey_pair(self,
                                                    loss_type: str,
                                                    tanimoto_bins: np.ndarray):
-        """Calculates the loss per tanimoto bin.
+        """Calculates the loss per Tanimoto bin.
 
         First the average prediction for each inchikey pair is calculated,
-        by taking the average over all predictions between spectra matching these inchikeys"""
+        by taking the average of all predictions between spectra matching these inchikeys.
+        """
         loss_type = loss_type.lower()
         if loss_type == "mse" or loss_type == "rmse":
             losses_per_spectrum_pair = self._get_squared_error_per_spectrum_pair()
         elif loss_type == "mae":
             losses_per_spectrum_pair = self._get_absolute_error_per_spectrum_pair()
-        elif loss_type == 'risk_mse':
+        elif loss_type == "risk_mse":
             losses_per_spectrum_pair = self._get_risk_aware_squared_error_per_spectrum_pair()
-        elif loss_type == 'risk_mae':
+        elif loss_type == "risk_mae":
             losses_per_spectrum_pair = self._get_risk_aware_absolute_error_per_spectrum_pair()
         else:
             raise ValueError(f"The given loss type: {loss_type} is not a valid loss type, choose from mse, "
@@ -88,14 +94,16 @@ class PredictionsAndTanimotoScores:
     def _get_absolute_error_per_spectrum_pair(self):
         """Calculates the absolute error
 
-        Used to get the MAE, but the mean is taken after binning over the tanimoto bins."""
+        Used to get the MAE, but the mean is taken after binning over the tanimoto bins.
+        """
         losses = abs(self.predictions_df - self.tanimoto_df)
         return losses
 
     def _get_squared_error_per_spectrum_pair(self):
         """Calculates the squared errors
 
-        Used to get the MSE or RMSE, but the mean is taken after binning over the tanimoto bins."""
+        Used to get the MSE or RMSE, but the mean is taken after binning over the Tanimoto bins.
+        """
         losses = (self.predictions_df - self.tanimoto_df) ** 2
         return losses
 
@@ -124,7 +132,7 @@ class PredictionsAndTanimotoScores:
     def get_average_per_bin(self,
                             average_per_inchikey_pair: pd.DataFrame,
                             tanimoto_bins: np.ndarray) -> Tuple[List[float], List[float]]:
-        """Compute average loss per tanimoto score bin
+        """Compute average loss per Tanimoto score bin
 
         Parameters
         ----------
@@ -164,6 +172,7 @@ def get_average_per_inchikey_pair(df: pd.DataFrame):
     """
     # Group the same inchikeys per index and get the mean
     indexes_grouped = df.groupby(df.index).mean()
+
     # Group the same inchikeys per column and get the mean
     average_per_inchikey_pair = indexes_grouped.T.groupby(df.columns).mean().T
     return average_per_inchikey_pair
