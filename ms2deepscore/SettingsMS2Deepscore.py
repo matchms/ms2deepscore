@@ -177,13 +177,14 @@ class SettingsMS2Deepscore:
             np.random.seed(self.random_seed)
 
     def validate_settings(self):
-        assert self.ionisation_mode in ("positive", "negative", "both")
-        assert 0.0 <= self.augment_removal_max <= 1.0, "Expected value within [0,1]"
-        assert 0.0 <= self.augment_removal_intensity <= 1.0, "Expected value within [0,1]"
+        if self.ionisation_mode not in ("positive", "negative", "both"):
+            raise ValueError("Expected ionisation mode to be 'positive' , 'negative', or 'both'.")
+        if not (0.0 <= self.augment_removal_max <= 1.0) or (not 0.0 <= self.augment_removal_intensity <= 1.0):
+            raise ValueError("Expected value within [0,1]")
         if self.use_fixed_set and self.shuffle:
             warnings.warn('When using a fixed set, data will not be shuffled')
-        if self.random_seed is not None:
-            assert isinstance(self.random_seed, int), "Random seed must be integer number."
+        if (self.random_seed is not None) and not isinstance(self.random_seed, int):
+            raise ValueError("Random seed must be integer number.")
         if self.loss_function.lower() not in LOSS_FUNCTIONS:
             raise ValueError(f"Unknown loss function. Must be one of: {LOSS_FUNCTIONS.keys()}")
         validate_bin_order(self.same_prob_bins)

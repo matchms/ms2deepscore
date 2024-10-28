@@ -9,7 +9,8 @@ from tqdm import tqdm
 
 
 def save_pickled_file(obj, filename: str):
-    assert not os.path.exists(filename), "File already exists"
+    if os.path.exists(filename):
+        raise ValueError("File already exists")
     with open(filename, "wb") as f:
         pickle.dump(obj, f)
 
@@ -21,7 +22,8 @@ def load_pickled_file(filename: str):
 
 
 def return_non_existing_file_name(file_name):
-    """Checks if a path already exists, otherwise creates a new filename with (1)"""
+    """Checks if a path already exists, otherwise creates a new filename with (1).
+    """
     if not os.path.exists(file_name):
         return file_name
     print(f"The file name already exists: {file_name}")
