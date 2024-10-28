@@ -57,6 +57,7 @@ class ValidationLossCalculator:
             )
             losses_per_bin[loss_type] = average_loss_per_bin
 
-            average_losses = {loss_type: np.mean(losses_per_bin[loss_type]) for loss_type in loss_types}
+        # Calculate the average loss per loss type
+        average_losses = {loss_type: np.mean(losses_per_bin[loss_type]) for loss_type in loss_types}
 
         return average_losses, losses_per_bin
