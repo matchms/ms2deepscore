@@ -11,7 +11,7 @@ from ms2deepscore.train_new_model.inchikey_pair_selection import select_inchi_fo
 from ms2deepscore.vector_operations import cosine_similarity_matrix
 
 
-def create_embedding_matrix_symmetric(model, spectra): -> pd.DataFrame
+def create_embedding_matrix_symmetric(model, spectra) -> pd.DataFrame:
     """
     Create a symmetric embedding matrix by calculating the cosine similarity between embeddings.
 
@@ -38,7 +38,7 @@ def create_embedding_matrix_symmetric(model, spectra): -> pd.DataFrame
     return predictions_df
 
 
-def create_embedding_matrix_not_symmetric(model, spectra_1, spectra_2): -> pd.DataFrame
+def create_embedding_matrix_not_symmetric(model, spectra_1, spectra_2) -> pd.DataFrame:
     """
     Create a non-symmetric embedding matrix by calculating the cosine similarity between embeddings of two different sets.
 
@@ -52,7 +52,7 @@ def create_embedding_matrix_not_symmetric(model, spectra_1, spectra_2): -> pd.Da
         A second list of spectra for which embeddings will be generated.
     """
     print("Calculating embeddings")
-    embeddings1 = model.get_embedding_array(spectra)
+    embeddings1 = model.get_embedding_array(spectra_1)
     embeddings2 = model.get_embedding_array(spectra_2)
 
     print("Calculating similarity between embeddings")
@@ -72,7 +72,7 @@ def calculate_tanimoto_scores_unique_inchikey(
     list_of_spectra_2: List[Spectrum],
     fingerprint_type="daylight",
     nbits=2048
-    ): -> pd.DataFrame
+    ) -> pd.DataFrame:
     """
     Calculate the Tanimoto scores between unique InChIKeys in two lists of spectra.
 
