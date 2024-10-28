@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- New plotting functions for benchmarking [#244](https://github.com/matchms/ms2deepscore/pull/244)
+
+### Changed
+- Integrated new plotting functions in automated training pipeline [#244](https://github.com/matchms/ms2deepscore/pull/244)
+- Removed automatic storing of benchmarking scores [#244](https://github.com/matchms/ms2deepscore/pull/244)
+- Integrated loss calculation for validation loss and plots [#244](https://github.com/matchms/ms2deepscore/pull/244)
+- Validation loss uses all spectrum pairs instead of only 1 spectrum per inchikey [#244](https://github.com/matchms/ms2deepscore/pull/244)
+
 ### removed
 - Removed version warning
 

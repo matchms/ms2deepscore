@@ -9,13 +9,12 @@ from datetime import datetime
 from matchms import Spectrum
 from matchms.exporting import save_spectra
 from matchms.importing import load_spectra
+
+from ms2deepscore.benchmarking.CalculateScoresBetweenAllIonmodes import CalculateScoresBetweenAllIonmodes
 from ms2deepscore.models.SiameseSpectralModel import (SiameseSpectralModel,
                                                       train)
-from ms2deepscore.models.loss_functions import bin_dependent_losses
-from ms2deepscore.benchmarking.calculate_scores_for_validation import \
-    calculate_true_values_and_predictions_for_validation_spectra
 from ms2deepscore.SettingsMS2Deepscore import SettingsMS2Deepscore
-from ms2deepscore.train_new_model.ValidationLossCalculator import ValidationLossCalculator
+from ms2deepscore.validation_loss_calculation.ValidationLossCalculator import ValidationLossCalculator
 from ms2deepscore.train_new_model.data_generators import create_data_generator
 from ms2deepscore.train_new_model.split_positive_and_negative_mode import \
     split_by_ionmode
@@ -25,7 +24,7 @@ from ms2deepscore.train_new_model.validation_and_test_split import \
     split_spectra_in_random_inchikey_sets
 from ms2deepscore.utils import load_spectra_as_list
 from ms2deepscore.wrapper_functions.plotting_wrapper_functions import \
-    create_plots_between_all_ionmodes
+    create_plots_between_ionmodes
 
 
 def train_ms2deepscore_wrapper(spectra_file_path,
@@ -60,27 +59,20 @@ def train_ms2deepscore_wrapper(spectra_file_path,
         training_spectra, validation_spectra,
         results_folder,
         settings
-        )
-    
+    )
+
     ms2ds_history_plot_file_name = os.path.join(results_folder, settings.history_plot_file_name)
     plot_history(history["losses"], history["val_losses"], ms2ds_history_plot_file_name)
 
     # Create performance plots for validation spectra
-    ms2deepsore_model_file_name = os.path.join(stored_training_data.trained_models_folder,
-                                               model_directory_name,
-                                               settings.model_file_name)
-    calculate_true_values_and_predictions_for_validation_spectra(
-        positive_validation_spectra=stored_training_data.load_positive_train_split("validation"),
-        negative_validation_spectra=stored_training_data.load_negative_train_split("validation"),
-        ms2deepsore_model_file_name=ms2deepsore_model_file_name,
-        computed_scores_directory=os.path.join(
-            stored_training_data.trained_models_folder,
-            model_directory_name, "benchmarking_results"))
-
-    create_plots_between_all_ionmodes(model_directory=os.path.join(stored_training_data.trained_models_folder,
-                                                                   model_directory_name),
-                                      ref_score_bins=settings.same_prob_bins)
-
+    create_plots_between_ionmodes(positive_validation_spectra=stored_training_data.load_training_data("positive", "validation"),
+                                  negative_validation_spectra=stored_training_data.load_training_data("negative", "validation"),
+                                  results_folder=os.path.join(stored_training_data.trained_models_folder,
+                                                              model_directory_name, "benchmarking_results"),
+                                  model_file_name=os.path.join(stored_training_data.trained_models_folder,
+                                                               model_directory_name,
+                                                               settings.model_file_name),
+                                  nr_of_bins=50)
     return model_directory_name
 
 
@@ -91,7 +83,7 @@ def parameter_search(
         validation_split_fraction=20,
         loss_types=("mse",),
         path_checkpoint="results_checkpoint.pkl"
-        ):
+):
     """Runs a grid search.
 
     If the data split was already done, the data split will be reused.
@@ -177,7 +169,7 @@ def parameter_search(
                 loss_function=settings.loss_function,
                 checkpoint_filename=output_model_file_name,
                 lambda_l1=0, lambda_l2=0
-                )
+            )
         except Exception as error:
             print("An exception occurred:", error)
             print("---- Model training failed! ----")
@@ -185,32 +177,25 @@ def parameter_search(
             print(settings.get_dict())
             continue
 
-        ms2deepsore_model_file_name = os.path.join(stored_training_data.trained_models_folder,
+        scores_between_all_ionmodes = CalculateScoresBetweenAllIonmodes(
+            model_file_name=os.path.join(stored_training_data.trained_models_folder,
                                                    model_directory_name,
-                                                   settings.model_file_name)
-        # Evaluate model
-        true_values_collection, predictions_collection = calculate_true_values_and_predictions_for_validation_spectra(
-            positive_validation_spectra,
-            negative_validation_spectra,
-            ms2deepsore_model_file_name,
-            computed_scores_directory=None,
-        )
+                                                   settings.model_file_name),
+            positive_validation_spectra=positive_validation_spectra,
+            negative_validation_spectra=negative_validation_spectra)
 
         combination_results = {
             "params": params,
             "history": history,
             "losses": {}
         }
-
-        for condition, true_values in true_values_collection.items():
-            predictions = predictions_collection[condition]
-            _, _, losses = bin_dependent_losses(
-                predictions,
-                true_values,
-                settings.same_prob_bins,
-                loss_types=loss_types
-            )
-            combination_results["losses"][condition] = losses
+        for loss_type in loss_types:
+            losses_per_ionmode = {}
+            for predictions_and_tanimoto_scores in scores_between_all_ionmodes.list_of_predictions_and_tanimoto_scores():
+                    _, losses = predictions_and_tanimoto_scores.get_average_loss_per_bin_per_inchikey_pair(loss_type,
+                                                                                                           settings.same_prob_bins)
+                    losses_per_ionmode[predictions_and_tanimoto_scores.label] = losses
+            combination_results["losses"][loss_type] = losses_per_ionmode
 
         # Store results
         combination_key = tuple(params.items())
@@ -219,7 +204,7 @@ def parameter_search(
         # Store checkpoint
         with open(path_checkpoint, 'wb') as f:
             pickle.dump(results, f, pickle.HIGHEST_PROTOCOL)
-    
+
     return results
 
 
@@ -284,10 +269,12 @@ class StoreTrainingData:
         # Spectrum file paths for splits
         self.positive_mode_spectra_file = os.path.join(self.positive_negative_split_dir, "positive_spectra.mgf")
         self.negative_mode_spectra_file = os.path.join(self.positive_negative_split_dir, "negative_spectra.mgf")
-        self.positive_validation_spectra_file = os.path.join(self.training_and_val_dir, "positive_validation_spectra.mgf")
+        self.positive_validation_spectra_file = os.path.join(self.training_and_val_dir,
+                                                             "positive_validation_spectra.mgf")
         self.positive_training_spectra_file = os.path.join(self.training_and_val_dir, "positive_training_spectra.mgf")
         self.positive_testing_spectra_file = os.path.join(self.training_and_val_dir, "positive_testing_spectra.mgf")
-        self.negative_validation_spectra_file = os.path.join(self.training_and_val_dir, "negative_validation_spectra.mgf")
+        self.negative_validation_spectra_file = os.path.join(self.training_and_val_dir,
+                                                             "negative_validation_spectra.mgf")
         self.negative_training_spectra_file = os.path.join(self.training_and_val_dir, "negative_training_spectra.mgf")
         self.negative_testing_spectra_file = os.path.join(self.training_and_val_dir, "negative_testing_spectra.mgf")
 

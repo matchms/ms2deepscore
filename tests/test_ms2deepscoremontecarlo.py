@@ -3,7 +3,7 @@ import numpy as np
 import pytest
 from ms2deepscore import MS2DeepScoreMonteCarlo
 from ms2deepscore.models import load_model
-from tests.test_user_worfklow import load_processed_spectrums
+from tests.create_test_spectra import pesticides_test_spectra
 
 
 TEST_RESOURCES_PATH = Path(__file__).parent / 'resources'
@@ -14,7 +14,7 @@ def ms2_deep_score_instance():
     n_ensembles = 5
     average_type = "median"
     """Load data and models for MS2DeepScore unit tests."""
-    spectrums = load_processed_spectrums()
+    spectrums = pesticides_test_spectra()
 
     # Load pretrained model
     model_file = TEST_RESOURCES_PATH / "testmodel.pt"

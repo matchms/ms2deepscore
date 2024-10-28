@@ -32,7 +32,8 @@ def cosine_similarity_matrix(vectors_1: np.ndarray, vectors_2: np.ndarray) -> np
         Numpy array of vectors. vectors_2.shape[0] is number of vectors, vectors_2.shape[1]
         is vector dimension.
     """
-    assert vectors_1.shape[1] == vectors_2.shape[1], "Input vectors must have same shape."
+    if vectors_1.shape[1] != vectors_2.shape[1]:
+        raise ValueError("Input vectors must have same shape.")
     vectors_1 = vectors_1.astype(np.float64)  # Numba dot only accepts float or complex arrays
     vectors_2 = vectors_2.astype(np.float64)
     norm_1 = np.sqrt(np.sum(vectors_1**2, axis=1))
@@ -72,7 +73,8 @@ def cosine_similarity(vector1: np.ndarray, vector2: np.ndarray) -> np.float64:
     vector2
         Input vector. Can be array of integers or floats.
     """
-    assert vector1.shape[0] == vector2.shape[0], "Input vector must have same shape."
+    if vector1.shape[0] != vector2.shape[0]:
+        raise ValueError("Input vector must have same shape.")
     prod12 = 0
     prod11 = 0
     prod22 = 0

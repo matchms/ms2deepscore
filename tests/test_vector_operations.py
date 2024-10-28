@@ -100,7 +100,7 @@ def test_different_input_vector_lengths():
     vector1 = np.array([0, 0, 0, 0])
     vector2 = np.array([1, 1, 1, 1, 1])
 
-    with pytest.raises(AssertionError) as msg:
+    with pytest.raises(ValueError) as msg:
         _ = cosine_similarity(vector1, vector2)
 
     expected_message = "Input vector must have same shape."
