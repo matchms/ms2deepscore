@@ -96,7 +96,7 @@ class PredictionsAndTanimotoScores:
 
         Used to get the MAE, but the mean is taken after binning over the tanimoto bins.
         """
-        losses = abs(self.predictions_df - self.tanimoto_df)
+        losses = np.abs(self.predictions_df - self.tanimoto_df)
         return losses
 
     def _get_squared_error_per_spectrum_pair(self):
