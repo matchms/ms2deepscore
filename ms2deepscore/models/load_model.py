@@ -32,9 +32,6 @@ def load_model(filename: Union[str, Path]) -> SiameseSpectralModel:
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     model_settings = torch.load(filename, map_location=device)
-    if model_settings["version"] != __version__:
-        print(f"The model version ({model_settings['version']}) does not match the version of MS2Deepscore "
-              f"({__version__}), consider downloading a new model or changing the MS2Deepscore version")
     # Extract model parameters from the checkpoint
     model_params = model_settings["model_params"]
 
@@ -81,7 +78,6 @@ def load_embedding_evaluator(filename: Union[str, Path]) -> EmbeddingEvaluationM
 def load_linear_model(filepath):
     """Load a LinearModel from json.
     """
-    # pylint: disable=protected-access
     with open(filepath, "r", encoding="utf-8") as f:
         model_params = json.load(f)
 

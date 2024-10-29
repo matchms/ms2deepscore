@@ -202,7 +202,6 @@ def train(model: SiameseSpectralModel,
     lambda_l2 
         L2 regularization strength.
     """
-    # pylint: disable=too-many-arguments, too-many-locals
     device = initialize_device()
     model.to(device)
 

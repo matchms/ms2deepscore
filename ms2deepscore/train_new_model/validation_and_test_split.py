@@ -29,7 +29,8 @@ def select_spectra_belonging_to_inchikey(
 def split_spectra_in_random_inchikey_sets(
     spectra: List[Spectrum], k: int, random_seed
 ) -> Tuple[List[Spectrum], List[Spectrum], List[Spectrum]]:
-    """Splits a set of spectra into a val, test and train set. The size of the val and test set are n/k"""
+    """Splits a set of spectra into a val, test and train set. The size of the val and test set are n/k.
+    """
     unique_inchikeys = select_unique_inchikeys(spectra)
     random.seed(random_seed)
     random.shuffle(unique_inchikeys)
@@ -38,15 +39,15 @@ def split_spectra_in_random_inchikey_sets(
     validation_inchikeys = unique_inchikeys[-fraction_size:]
     test_inchikeys = unique_inchikeys[:fraction_size]
     train_inchikeys = unique_inchikeys[fraction_size:-fraction_size]
-    assert len(unique_inchikeys) == len(
-        validation_inchikeys + test_inchikeys + train_inchikeys
-    )
+    if len(unique_inchikeys) != (len(validation_inchikeys) + len(test_inchikeys) + len(train_inchikeys)):
+        raise ValueError("Unexpected number of unique inchikeys.")
 
     validation_spectra = select_spectra_belonging_to_inchikey(
         spectra, validation_inchikeys
     )
     test_spectra = select_spectra_belonging_to_inchikey(spectra, test_inchikeys)
     train_spectra = select_spectra_belonging_to_inchikey(spectra, train_inchikeys)
-    assert len(spectra) == len(validation_spectra + test_spectra + train_spectra)
+    if len(spectra) != (len(validation_spectra) + len(test_spectra) + len(train_spectra)):
+        raise ValueError("Unexpected number of unique inchikeys.")
 
     return validation_spectra, test_spectra, train_spectra

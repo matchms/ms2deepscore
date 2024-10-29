@@ -5,6 +5,7 @@ from json import JSONEncoder
 from typing import Optional
 import numpy as np
 from ms2deepscore.models.loss_functions import LOSS_FUNCTIONS
+from ms2deepscore.utils import validate_bin_order
 
 
 class SettingsMS2Deepscore:
@@ -157,7 +158,7 @@ class SettingsMS2Deepscore:
         if settings:
             for key, value in settings.items():
                 if hasattr(self, key):
-                    if not isinstance(value, type(getattr(self, key))) and not getattr(self, key) is None:
+                    if not isinstance(value, type(getattr(self, key))) and getattr(self, key) is not None:
                         raise TypeError(f"An unexpected type is given for the setting: {key}. "
                                         f"The expected type is {type(getattr(self, key))}, "
                                         f"the type given is {type(value)}, the value given is {value}")
@@ -176,13 +177,14 @@ class SettingsMS2Deepscore:
             np.random.seed(self.random_seed)
 
     def validate_settings(self):
-        assert self.ionisation_mode in ("positive", "negative", "both")
-        assert 0.0 <= self.augment_removal_max <= 1.0, "Expected value within [0,1]"
-        assert 0.0 <= self.augment_removal_intensity <= 1.0, "Expected value within [0,1]"
+        if self.ionisation_mode not in ("positive", "negative", "both"):
+            raise ValueError("Expected ionisation mode to be 'positive' , 'negative', or 'both'.")
+        if not (0.0 <= self.augment_removal_max <= 1.0) or (not 0.0 <= self.augment_removal_intensity <= 1.0):
+            raise ValueError("Expected value within [0,1]")
         if self.use_fixed_set and self.shuffle:
             warnings.warn('When using a fixed set, data will not be shuffled')
-        if self.random_seed is not None:
-            assert isinstance(self.random_seed, int), "Random seed must be integer number."
+        if (self.random_seed is not None) and not isinstance(self.random_seed, int):
+            raise ValueError("Random seed must be integer number.")
         if self.loss_function.lower() not in LOSS_FUNCTIONS:
             raise ValueError(f"Unknown loss function. Must be one of: {LOSS_FUNCTIONS.keys()}")
         validate_bin_order(self.same_prob_bins)
@@ -202,40 +204,6 @@ class SettingsMS2Deepscore:
                 return JSONEncoder.default(self, o)
         with open(file_path, 'w', encoding="utf-8") as file:
             json.dump(self.__dict__, file, indent=4, cls=NumpyArrayEncoder)
-
-
-def validate_bin_order(score_bins):
-    """
-    Checks that the given bins are of the correct format:
-    - Each bin is a tuple/list of two numbers [low, high], with low <= high
-    - Bins cover the entire interval from 0 to 1, with no gaps or overlaps
-    - The lowest bin starts below 0 (since pairs >=0 are selected and we want to include zero)
-    """
-
-    # Sort bins by their lower bound
-    sorted_bins = sorted(score_bins, key=lambda b: b[0])
-
-    # Check upper and lower bound
-    if sorted_bins[0][0] >= 0:
-        raise ValueError(f"The first bin should start below 0, but starts at {sorted_bins[0][0]}")
-
-    if sorted_bins[-1][1] != 1:
-        raise ValueError(f"The last bin should end at 1, but ends at {sorted_bins[-1][1]}")
-
-    # Check order, format, and overlaps
-    previous_high = None
-    for score_bin in sorted_bins:
-        if len(score_bin) != 2:
-            raise ValueError("Each bin should have exactly two elements")
-        low, high = score_bin
-        if low > high:
-            raise ValueError("The first number in the bin should be smaller than or equal to the second")
-        if high < 0:
-            raise ValueError("No bin should be entirely below 0.")
-        if previous_high is not None:
-            if low != previous_high:
-                raise ValueError("There is a gap or overlap between bins; The bins should cover everything between 0 and 1.")
-        previous_high = high
 
 
 class SettingsEmbeddingEvaluator:

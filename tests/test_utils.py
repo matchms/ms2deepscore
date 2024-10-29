@@ -12,7 +12,7 @@ def test_save_and_load_pickled_file(tmpdir):
     assert data == loaded_data
 
     # Asserting that save_pickled_file raises an exception if file already exists
-    with pytest.raises(AssertionError, match="File already exists"):
+    with pytest.raises(FileExistsError, match="File already exists"):
         utils.save_pickled_file(data, temp_file.strpath)
 
 
@@ -30,3 +30,21 @@ def test_return_non_existing_file_name(tmpdir):
     # Create the first duplicate and test again
     open(first_duplicate, "w").close()
     assert utils.return_non_existing_file_name(base_filename) == tmpdir.join("test_file(2).txt")
+
+@pytest.mark.parametrize("bins,correct", [
+    ([(-0.01, 1)], True),
+    ([(0.8, 0.9), (0.7, 0.8), (0.9, 1.0), (0.6, 0.7), (0.5, 0.6),
+      (0.4, 0.5), (0.3, 0.4), (0.2, 0.3), (0.1, 0.2), (-0.01, 0.1)], True),
+    ([(-0.01, 0.6), (0.7, 1.0)], False),  # Test a gap in bins is detected
+    ([(0.0, 0.6), (0.7, 1.0)], False),  # Test that the lowest values is below 0.
+    ([(-0.3, -0.1), (-0.1, 1.0)], False),  # Test that no bin is entirely below 0.
+    ([(0.0, 0.6), (0.6, 0.6), (0.6, 1.0)], False),  # Test no repeating bin borders
+    ([(0.0, 0.6), (0.7, 0.6), (0.7, 1.0)], False),  # Test correct order of bin borders
+    ([(0.0, 0.5, 1.), (0.5, 0.7, 1.), (0.7, 1.0)], False),  # Test all bins have two elements
+])
+def test_validate_bin_order(bins, correct):
+    if correct:
+        utils.validate_bin_order(bins)
+    else:
+        with pytest.raises(ValueError):
+            utils.validate_bin_order(bins)
