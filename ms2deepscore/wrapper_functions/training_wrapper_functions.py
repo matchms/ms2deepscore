@@ -64,14 +64,16 @@ def train_ms2deepscore_wrapper(spectra_file_path,
     ms2ds_history_plot_file_name = os.path.join(results_folder, settings.history_plot_file_name)
     plot_history(history["losses"], history["val_losses"], ms2ds_history_plot_file_name)
 
+    scores_between_all_ionmodes = CalculateScoresBetweenAllIonmodes(
+        os.path.join(stored_training_data.trained_models_folder, model_directory_name, settings.model_file_name),
+        stored_training_data.load_training_data("positive", "validation"),
+        stored_training_data.load_training_data("negative", "validation"),
+        settings.fingerprint_type, settings.fingerprint_nbits)
+
     # Create performance plots for validation spectra
-    create_plots_between_ionmodes(positive_validation_spectra=stored_training_data.load_training_data("positive", "validation"),
-                                  negative_validation_spectra=stored_training_data.load_training_data("negative", "validation"),
+    create_plots_between_ionmodes(scores_between_all_ionmodes,
                                   results_folder=os.path.join(stored_training_data.trained_models_folder,
                                                               model_directory_name, "benchmarking_results"),
-                                  model_file_name=os.path.join(stored_training_data.trained_models_folder,
-                                                               model_directory_name,
-                                                               settings.model_file_name),
                                   nr_of_bins=50)
     return model_directory_name
 
@@ -179,8 +181,8 @@ def parameter_search(
 
         scores_between_all_ionmodes = CalculateScoresBetweenAllIonmodes(
             model_file_name=os.path.join(stored_training_data.trained_models_folder,
-                                                   model_directory_name,
-                                                   settings.model_file_name),
+                                         model_directory_name,
+                                         settings.model_file_name),
             positive_validation_spectra=positive_validation_spectra,
             negative_validation_spectra=negative_validation_spectra)
 
@@ -192,9 +194,9 @@ def parameter_search(
         for loss_type in loss_types:
             losses_per_ionmode = {}
             for predictions_and_tanimoto_scores in scores_between_all_ionmodes.list_of_predictions_and_tanimoto_scores():
-                    _, losses = predictions_and_tanimoto_scores.get_average_loss_per_bin_per_inchikey_pair(loss_type,
-                                                                                                           settings.same_prob_bins)
-                    losses_per_ionmode[predictions_and_tanimoto_scores.label] = losses
+                _, losses = predictions_and_tanimoto_scores.get_average_loss_per_bin_per_inchikey_pair(loss_type,
+                                                                                                       settings.same_prob_bins)
+                losses_per_ionmode[predictions_and_tanimoto_scores.label] = losses
             combination_results["losses"][loss_type] = losses_per_ionmode
 
         # Store results
