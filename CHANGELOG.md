@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.3.0] - 2024-10-30
+
 ### Added
 - New plotting functions for benchmarking [#244](https://github.com/matchms/ms2deepscore/pull/244)
 
@@ -16,7 +18,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Integrated loss calculation for validation loss and plots [#244](https://github.com/matchms/ms2deepscore/pull/244)
 - Validation loss uses all spectrum pairs instead of only 1 spectrum per inchikey [#244](https://github.com/matchms/ms2deepscore/pull/244)
 
-### removed
+### Fixed
+- Fingerprint type and number of bits specified in the settings is now correctly used in training and validation (before was set to default values in some instances) [#244](https://github.com/matchms/ms2deepscore/pull/244) and [#251](https://github.com/matchms/ms2deepscore/pull/251)
+
+### Removed
 - Removed version warning
 
 ## [2.2.0] - 2024-10-17
@@ -201,7 +206,8 @@ Last version using Tensorflow. Next versions will be using PyTorch.
 
 - This is the initial version of MS2DeepScore
 
-[Unreleased]: https://github.com/matchms/ms2deepscore/compare/2.2.0...HEAD
+[Unreleased]: https://github.com/matchms/ms2deepscore/compare/2.3.0...HEAD
+[2.3.0]: https://github.com/matchms/ms2deepscore/compare/2.2.0...2.3.0
 [2.2.0]: https://github.com/matchms/ms2deepscore/compare/2.1.0...2.2.0
 [2.1.0]: https://github.com/matchms/ms2deepscore/compare/2.0.0...2.1.0
 [2.0.0]: https://github.com/matchms/ms2deepscore/compare/1.0.0...2.0.0
