@@ -136,6 +136,8 @@ class SettingsMS2Deepscore:
 
         # Compound pairs selection settings
         self.average_pairs_per_bin = 20
+        # todo replace average pairs per bin to. Average nr of sampling per inchikey
+        self.max_inchikey_sampling = 400
         self.max_pairs_per_bin = 100
         self.same_prob_bins = np.array([(0.8, 0.9), (0.7, 0.8), (0.9, 1.0), (0.6, 0.7), (0.5, 0.6),
                                         (0.4, 0.5), (0.3, 0.4), (0.2, 0.3), (0.1, 0.2), (-0.01, 0.1)])

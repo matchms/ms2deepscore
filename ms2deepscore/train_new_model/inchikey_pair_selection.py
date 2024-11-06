@@ -52,7 +52,8 @@ def select_compound_pairs_wrapper(
     pair_frequency_matrixes = balanced_selection_of_pairs_per_bin(
         available_pairs_per_bin_matrix,
         settings.max_pair_resampling,
-        aimed_nr_of_pairs_per_bin
+        aimed_nr_of_pairs_per_bin,
+        settings.max_inchikey_sampling
         )
 
     selected_pairs_per_bin = convert_to_selected_pairs_list(
@@ -194,7 +195,8 @@ def determine_aimed_nr_of_pairs_per_bin(available_pairs_per_bin_matrix, settings
 def balanced_selection_of_pairs_per_bin(
         available_pairs_per_bin_matrix: np.ndarray,
         max_pair_resampling: int,
-        nr_of_pairs_per_bin: int
+        nr_of_pairs_per_bin: int,
+        max_inchikey_count: int
         ) -> np.ndarray:
     """From the available_pairs_per_bin_matrix a balanced selection is made to have a balanced distribution.
 
@@ -229,7 +231,7 @@ def balanced_selection_of_pairs_per_bin(
             inchikey_count,
             nr_of_pairs_per_bin,
             max_pair_resampling,
-            )
+            max_inchikey_count)
         pair_frequency_matrixes.append(pair_frequencies)
 
     pair_frequency_matrixes = np.array(pair_frequency_matrixes)
@@ -282,7 +284,8 @@ def convert_to_selected_pairs_list(pair_frequency_matrixes: np.ndarray,
 def select_balanced_pairs(available_pairs_for_bin_matrix: np.ndarray,
                           inchikey_counts: np.ndarray,
                           required_number_of_pairs: int,
-                          max_resampling: int):
+                          max_resampling: int,
+                          max_inchikey_count: int):
     """Determines how frequently each available pair should be sampled.
 
     Inchikey pairs are selected by first selecting the least frequent inchikey. For this inchikey, all available pairs
@@ -358,6 +361,8 @@ def select_balanced_pairs(available_pairs_for_bin_matrix: np.ndarray,
             # Get counts for second inchikeys
             second_inchikey_counts = inchikey_counts[second_inchikeys]
 
+            if min(second_inchikey_counts) > max_inchikey_count:
+                continue # no inchikey with less than max inchikey count
             # Select the second inchikey with the lowest count
             min_count_idx = np.argmin(second_inchikey_counts)
             second_inchikey_with_lowest_count = second_inchikeys[min_count_idx]
