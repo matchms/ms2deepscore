@@ -36,6 +36,9 @@ def select_compound_pairs_wrapper(
         settings.fingerprint_nbits
         )
 
+    if len(inchikeys14_unique) < settings.batch_size:
+        raise ValueError("The number of unique inchikeys must be larger than the batch size.")
+
     available_pairs_per_bin_matrix, available_scores_per_bin_matrix = compute_jaccard_similarity_per_bin(
         fingerprints,
         settings.max_pairs_per_bin,
@@ -176,19 +179,21 @@ def determine_aimed_nr_of_pairs_per_bin(available_pairs_per_bin_matrix, settings
         The total number of InChIKeys.
     """
 
+    # Calculate initial target number of pairs per bin
+    average_inchikey_sampling_per_bin = settings.average_inchikey_sampling_count/len(settings.same_prob_bins)
+    nr_of_inchikeys_sampled_per_bin = average_inchikey_sampling_per_bin * nr_of_inchikeys
+    aimed_nr_of_pairs_per_bin = int(nr_of_inchikeys_sampled_per_bin / 2) # Each pair consists of 2 inchikeys
+
     # Get the number of available pairs per bin
     nr_of_available_pairs_per_bin = get_nr_of_available_pairs_in_bin(available_pairs_per_bin_matrix)
     lowest_max_number_of_pairs = min(nr_of_available_pairs_per_bin) * settings.max_pair_resampling
     print(f"The available nr of pairs per bin are: {nr_of_available_pairs_per_bin}")
 
-    # Calculate initial target number of pairs per bin
-    aimed_nr_of_pairs_per_bin = settings.average_pairs_per_bin * nr_of_inchikeys
     if lowest_max_number_of_pairs < aimed_nr_of_pairs_per_bin:
-        print(f"Warning: The target average_pairs_per_bin ({settings.average_pairs_per_bin}) cannot be reached, "
-              f"as it requires {aimed_nr_of_pairs_per_bin} pairs. However, one of the bins has only "
+        print(f"Warning: The target average_inchikey_sampling_count ({settings.average_inchikey_sampling_count}) cannot"
+              f" be reached, as it requires {aimed_nr_of_pairs_per_bin} pairs. However, one of the bins has only "
               f"{lowest_max_number_of_pairs} pairs available. The number will be adjusted to this limit.")
         aimed_nr_of_pairs_per_bin = lowest_max_number_of_pairs
-
     return aimed_nr_of_pairs_per_bin
 
 
@@ -334,13 +339,20 @@ def select_balanced_pairs(available_pairs_for_bin_matrix: np.ndarray,
               desc="Balanced sampling of inchikey pairs (per bin)") as progress_bar:
         while nr_of_pairs_selected < required_number_of_pairs:
             if not available_inchikey_indexes:
-                raise ValueError("The number of pairs available is less than required_number_of_pairs.")
+                raise ValueError("The number of pairs available is less than required_number_of_pairs. "
+                                 f"Only {nr_of_pairs_selected} pairs could be selected in this bin, "
+                                 f"but {required_number_of_pairs} pairs are required. "
+                                 "Increase max_pair_resampling or decrease average_inchikey_sampling_count.")
 
             # Pop the inchikey with the lowest count
             _, inchikey_with_lowest_count = heapq.heappop(available_inchikey_indexes)
 
             if inchikey_counts[inchikey_with_lowest_count] > max_inchikey_count:
-                raise ValueError("There are not enough inchikeys with a pair in the current bin that have less than max_inchikey_count")
+                raise ValueError("There are not enough inchikeys with a pair in the current bin "
+                                 "that have less than max_inchikey_count"
+                                 f"Only {nr_of_pairs_selected} pairs could be selected in this bin, "
+                                 f"but {required_number_of_pairs} pairs are required"
+                                 "Increase max_inchikey_count or decrease average_inchikey_sampling_count")
 
             # Get pair frequencies
             pair_freq_row = pair_frequency[inchikey_with_lowest_count]

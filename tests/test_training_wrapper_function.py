@@ -22,7 +22,7 @@ def test_train_wrapper_ms2ds_model(tmp_path):
         "base_dims": (200, 200),  # to speed up tests --> usually larger
         "embedding_dim": 100,  # to speed up tests --> usually larger
         "same_prob_bins": np.array([(-0.01, 0.2), (0.2, 1.0)]),
-        "average_pairs_per_bin": 2,
+        "average_inchikey_sampling_count": 8,
         "batch_size": 2,  # to speed up tests --> usually larger
         "random_seed": 42
         })
@@ -79,7 +79,7 @@ def test_parameter_search_wrapper(tmp_path):
         "patience": 1,
         "embedding_dim": 100,
         "same_prob_bins": np.array([(-0.01, 0.2), (0.2, 1.0)]),
-        "average_pairs_per_bin": 2,
+        "average_inchikey_sampling_count": 8,
         "batch_size": 2,
         "random_seed": 42
     })
