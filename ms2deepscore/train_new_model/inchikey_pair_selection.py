@@ -46,11 +46,8 @@ def select_compound_pairs_wrapper(
         settings.include_diagonal
         )
 
-    aimed_nr_of_pairs_per_bin = determine_aimed_nr_of_pairs_per_bin(
-        available_pairs_per_bin_matrix,
-        settings,
-        nr_of_inchikeys=len(inchikeys14_unique)
-        )
+    aimed_nr_of_pairs_per_bin = determine_aimed_nr_of_pairs_per_bin(settings,
+                                                                    nr_of_inchikeys=len(inchikeys14_unique))
 
     pair_frequency_matrixes = balanced_selection_of_pairs_per_bin(
         available_pairs_per_bin_matrix,
@@ -157,24 +154,16 @@ def compute_jaccard_similarity_per_bin(
     return selected_pairs_per_bin, selected_scores_per_bin
 
 
-def determine_aimed_nr_of_pairs_per_bin(available_pairs_per_bin_matrix, settings, nr_of_inchikeys):
-    """Calculate the target number of pairs per bin based on available pairs and given settings.
-
-    This function determines the desired number of pairs per bin based on the `average_pairs_per_bin` 
-    setting and the total number of InChIKeys. If the calculated number exceeds the maximum possible 
-    number of pairs, it is adjusted to the feasible limit.
+def determine_aimed_nr_of_pairs_per_bin(settings, nr_of_inchikeys):
+    """Calculate the target number of pairs per bin based on nr of unique inchikeys and given settings.
 
     Parameters:
     -----------
-    available_pairs_per_bin_matrix
-        A matrix containing the available number of pairs for each bin.
-        
     settings:
         Settings object containing configuration options. 
         Required attributes:
-            - max_pair_resampling: Factor to resample pairs per bin.
-            - average_pairs_per_bin: Desired average number of pairs per bin.
-        
+            - average_inchikey_sampling_count: The desired average number of inchikeys selected
+            - same_prob_bins: The probability bins used
     nr_of_inchikeys:
         The total number of InChIKeys.
     """
@@ -182,18 +171,7 @@ def determine_aimed_nr_of_pairs_per_bin(available_pairs_per_bin_matrix, settings
     # Calculate initial target number of pairs per bin
     average_inchikey_sampling_per_bin = settings.average_inchikey_sampling_count/len(settings.same_prob_bins)
     nr_of_inchikeys_sampled_per_bin = average_inchikey_sampling_per_bin * nr_of_inchikeys
-    aimed_nr_of_pairs_per_bin = int(nr_of_inchikeys_sampled_per_bin / 2) # Each pair consists of 2 inchikeys
-
-    # Get the number of available pairs per bin
-    nr_of_available_pairs_per_bin = get_nr_of_available_pairs_in_bin(available_pairs_per_bin_matrix)
-    lowest_max_number_of_pairs = min(nr_of_available_pairs_per_bin) * settings.max_pair_resampling
-    print(f"The available nr of pairs per bin are: {nr_of_available_pairs_per_bin}")
-
-    if lowest_max_number_of_pairs < aimed_nr_of_pairs_per_bin:
-        print(f"Warning: The target average_inchikey_sampling_count ({settings.average_inchikey_sampling_count}) cannot"
-              f" be reached, as it requires {aimed_nr_of_pairs_per_bin} pairs. However, one of the bins has only "
-              f"{lowest_max_number_of_pairs} pairs available. The number will be adjusted to this limit.")
-        aimed_nr_of_pairs_per_bin = lowest_max_number_of_pairs
+    aimed_nr_of_pairs_per_bin = int(nr_of_inchikeys_sampled_per_bin / 2)  # Each pair consists of 2 inchikeys
     return aimed_nr_of_pairs_per_bin
 
 
