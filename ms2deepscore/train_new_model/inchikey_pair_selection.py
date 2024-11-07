@@ -46,22 +46,13 @@ def select_compound_pairs_wrapper(
         settings.include_diagonal
         )
 
-    aimed_nr_of_pairs_per_bin = determine_aimed_nr_of_pairs_per_bin(settings,
-                                                                    nr_of_inchikeys=len(inchikeys14_unique))
-
     pair_frequency_matrixes = balanced_selection_of_pairs_per_bin(
-        available_pairs_per_bin_matrix,
-        settings.max_pair_resampling,
-        aimed_nr_of_pairs_per_bin,
-        settings.max_inchikey_sampling
-        )
+        available_pairs_per_bin_matrix, settings)
 
     selected_pairs_per_bin = convert_to_selected_pairs_list(
-        pair_frequency_matrixes,
-        available_pairs_per_bin_matrix,
-        available_scores_per_bin_matrix,
-        inchikeys14_unique
-        )
+        pair_frequency_matrixes, available_pairs_per_bin_matrix,
+        available_scores_per_bin_matrix, inchikeys14_unique)
+
     return [pair for pairs in selected_pairs_per_bin for pair in pairs]
 
 
@@ -154,7 +145,7 @@ def compute_jaccard_similarity_per_bin(
     return selected_pairs_per_bin, selected_scores_per_bin
 
 
-def determine_aimed_nr_of_pairs_per_bin(settings, nr_of_inchikeys):
+def determine_nr_of_pairs_per_bin(settings, nr_of_inchikeys):
     """Calculate the target number of pairs per bin based on nr of unique inchikeys and given settings.
 
     Parameters:
@@ -177,9 +168,7 @@ def determine_aimed_nr_of_pairs_per_bin(settings, nr_of_inchikeys):
 
 def balanced_selection_of_pairs_per_bin(
         available_pairs_per_bin_matrix: np.ndarray,
-        max_pair_resampling: int,
-        nr_of_pairs_per_bin: int,
-        max_inchikey_count: int
+        settings: SettingsMS2Deepscore,
         ) -> np.ndarray:
     """From the available_pairs_per_bin_matrix a balanced selection is made to have a balanced distribution.
 
@@ -200,25 +189,25 @@ def balanced_selection_of_pairs_per_bin(
         For each tanimoto bin a matrix is stored with pairs. The indexes of the rows are the indexes of the first
         inchikey of the pair and the value given in the rows are the indexes of the second inchikey of the pair.
         If the value is -1 it indicates that there were no more pairs available for this inchikey in this bin.
-    max_pair_resampling:
-        The maximum number of times a pair can be resampled.
-        Resampling means that the exact same inchikey pair is added multiple times to the list of pairs.
-    nr_of_pairs_per_bin:
-        The number of pairs that should be sampled for each tanimoto bin.
+    settings:
+        A SettingsMS2Deepscore object
     """
+
     inchikey_count = np.zeros(available_pairs_per_bin_matrix.shape[1])
+    nr_of_pairs_per_bin = determine_nr_of_pairs_per_bin(settings, nr_of_inchikeys=len(inchikey_count))
+
     pair_frequency_matrixes = []
     for pairs_in_bin in available_pairs_per_bin_matrix:
         pair_frequencies, inchikey_count = select_balanced_pairs(
             pairs_in_bin,
             inchikey_count,
             nr_of_pairs_per_bin,
-            max_pair_resampling,
-            max_inchikey_count)
+            settings.max_pair_resampling,
+            settings.max_inchikey_sampling)
         pair_frequency_matrixes.append(pair_frequencies)
 
     pair_frequency_matrixes = np.array(pair_frequency_matrixes)
-    pair_frequency_matrixes[pair_frequency_matrixes == 2 * max_pair_resampling] = 0
+    pair_frequency_matrixes[pair_frequency_matrixes == 2 * settings.max_pair_resampling] = 0
     return pair_frequency_matrixes
 
 
