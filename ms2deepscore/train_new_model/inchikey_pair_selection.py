@@ -339,33 +339,34 @@ def select_balanced_pairs(available_pairs_for_bin_matrix: np.ndarray,
             # Pop the inchikey with the lowest count
             _, inchikey_with_lowest_count = heapq.heappop(available_inchikey_indexes)
 
+            if inchikey_counts[inchikey_with_lowest_count] > max_inchikey_count:
+                raise ValueError("There are not enough inchikeys with a pair in the current bin that have less than max_inchikey_count")
+
             # Get pair frequencies
             pair_freq_row = pair_frequency[inchikey_with_lowest_count]
-
-            # Find indices where pair frequency is less than max_resampling
-            valid_pairs_mask = pair_freq_row < max_resampling
-
-            if not np.any(valid_pairs_mask):
-                continue  # No valid pairs left for this inchikey
-
-            # Among valid pairs, find those with the lowest pair frequency
-            min_pair_freq = np.min(pair_freq_row[valid_pairs_mask])
-            min_freq_mask = pair_freq_row == min_pair_freq
 
             # Get available second inchikeys
             available_pairs_row = available_pairs_for_bin_matrix[inchikey_with_lowest_count]
 
-            # Get second inchikeys for pairs with minimal pair frequency
-            second_inchikeys = available_pairs_row[min_freq_mask]
-
             # Get counts for second inchikeys
-            second_inchikey_counts = inchikey_counts[second_inchikeys]
+            second_inchikey_counts = inchikey_counts[available_pairs_row]
 
-            if min(second_inchikey_counts) > max_inchikey_count:
-                continue # no inchikey with less than max inchikey count
-            # Select the second inchikey with the lowest count
-            min_count_idx = np.argmin(second_inchikey_counts)
-            second_inchikey_with_lowest_count = second_inchikeys[min_count_idx]
+            # Select inchikeys that have an inchikey count below max_inchikey_count
+            valid_inchikeys_mask = second_inchikey_counts < max_inchikey_count
+
+            # Find inchikey indices where pair frequency is less than max_resampling
+            valid_pairs_mask = pair_freq_row < max_resampling
+
+            if not np.any(valid_pairs_mask & valid_inchikeys_mask):
+                continue  # No valid pairs left for this inchikey
+
+            # Among valid pairs, find those with the lowest pair frequency
+            min_pair_freq = np.min(pair_freq_row[valid_pairs_mask & valid_inchikeys_mask])
+            min_freq_mask = pair_freq_row == min_pair_freq
+
+            # From the least resampled inchikey select the leas sampled inchikey
+            min_inchikey_count_idx = np.argmin(second_inchikey_counts[min_freq_mask])
+            second_inchikey_with_lowest_count = available_pairs_row[min_freq_mask][min_inchikey_count_idx]
 
             # Update pair frequency
             pair_indices = np.where(available_pairs_row == second_inchikey_with_lowest_count)[0]
