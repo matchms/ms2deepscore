@@ -216,6 +216,25 @@ def test_select_compound_pairs_wrapper_with_resampling():
     print_balanced_bins_per_inchikey(inchikey_pair_generator, settings, spectrums)
 
 
+def test_select_compound_pairs_wrapper_maximum_inchikey_count():
+    spectrums = create_test_spectra(num_of_unique_inchikeys=26, num_of_spectra_per_inchikey=1)
+    bins = [(0.8, 0.9), (0.7, 0.8), (0.9, 1.0), (0.6, 0.7), (0.5, 0.6),
+            (0.4, 0.5), (0.3, 0.4), (0.2, 0.3), (0.1, 0.2), (-0.01, 0.1)]
+    max_pair_resampling = 1000
+    max_inchikey_sampling = 280
+    settings = SettingsMS2Deepscore(same_prob_bins=np.array(bins, dtype="float32"),
+                                    average_pairs_per_bin=10,
+                                    batch_size=8,
+                                    max_pair_resampling=max_pair_resampling,
+                                    max_inchikey_sampling=max_inchikey_sampling
+                                    )
+    selected_inchikey_pairs = select_compound_pairs_wrapper(spectrums, settings)
+    inchikey_pair_generator = InchikeyPairGenerator(selected_inchikey_pairs)
+
+    highest_inchikey_count = max(inchikey_pair_generator.get_inchikey_counts().values())
+    assert highest_inchikey_count <= max_inchikey_sampling
+
+
 def check_correct_oversampling(selected_inchikey_pairs: InchikeyPairGenerator, max_resampling: int):
     pair_counts = Counter(selected_inchikey_pairs.selected_inchikey_pairs)
     for count in pair_counts.values():
