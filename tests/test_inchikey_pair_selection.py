@@ -232,7 +232,7 @@ def test_select_compound_pairs_wrapper_maximum_inchikey_count():
     inchikey_pair_generator = InchikeyPairGenerator(selected_inchikey_pairs)
 
     highest_inchikey_count = max(inchikey_pair_generator.get_inchikey_counts().values())
-    assert highest_inchikey_count <= max_inchikey_sampling
+    assert highest_inchikey_count <= max_inchikey_sampling + 1 # +1 because there is a chance that the last added inchikey is a pair to itself...
 
 
 def check_correct_oversampling(selected_inchikey_pairs: InchikeyPairGenerator, max_resampling: int):
