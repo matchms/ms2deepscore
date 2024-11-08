@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.4.0] - 2024-11-08
+
+## Changed
+- Adapted sampling strategy to avoid biases even further [#253](https://github.com/matchms/ms2deepscore/pull/253)
+
 ## [2.3.0] - 2024-10-30
 
 ### Added
@@ -206,7 +211,8 @@ Last version using Tensorflow. Next versions will be using PyTorch.
 
 - This is the initial version of MS2DeepScore
 
-[Unreleased]: https://github.com/matchms/ms2deepscore/compare/2.3.0...HEAD
+[Unreleased]: https://github.com/matchms/ms2deepscore/compare/2.4.0...HEAD
+[2.4.0]: https://github.com/matchms/ms2deepscore/compare/2.3.0...2.4.0
 [2.3.0]: https://github.com/matchms/ms2deepscore/compare/2.2.0...2.3.0
 [2.2.0]: https://github.com/matchms/ms2deepscore/compare/2.1.0...2.2.0
 [2.1.0]: https://github.com/matchms/ms2deepscore/compare/2.0.0...2.1.0
