@@ -30,7 +30,7 @@ setup(
     install_requires=[
         "matchms>=0.18.0",
         "numba",
-        "numpy>=1.20.3",
+        "numpy>=1.20.3,<2.0",
         "pandas",
         "scikit-learn",
         "tensorboard",

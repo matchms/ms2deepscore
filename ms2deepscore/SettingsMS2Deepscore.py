@@ -135,14 +135,15 @@ class SettingsMS2Deepscore:
         self.use_fixed_set = False
 
         # Compound pairs selection settings
-        self.average_pairs_per_bin = 20
+        self.average_inchikey_sampling_count = 400
+        self.max_inchikey_sampling = 440
         self.max_pairs_per_bin = 100
         self.same_prob_bins = np.array([(0.8, 0.9), (0.7, 0.8), (0.9, 1.0), (0.6, 0.7), (0.5, 0.6),
                                         (0.4, 0.5), (0.3, 0.4), (0.2, 0.3), (0.1, 0.2), (-0.01, 0.1)])
         self.include_diagonal = True
         self.val_spectra_per_inchikey = 1
         self.random_seed: Optional[int] = None
-        self.max_pair_resampling = 1
+        self.max_pair_resampling = 10000
 
         # Tanimioto score setings
         self.fingerprint_type: str = "daylight"

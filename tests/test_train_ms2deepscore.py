@@ -21,7 +21,7 @@ def test_train_ms2ds_model(tmp_path):
         "base_dims": (100, 100),  # to speed up tests --> usually larger
         "embedding_dim": 50,  # to speed up tests --> usually larger
         "same_prob_bins": np.array([(-0.01, 0.5), (0.5, 1.0)]),
-        "average_pairs_per_bin": 2,
+        "average_inchikey_sampling_count": 8,
         "batch_size": 8
         })
     _, history = train_ms2ds_model(spectra, pesticides_test_spectra(), tmp_path, settings)
@@ -50,7 +50,7 @@ def test_too_little_spectra(tmp_path):
     spectra = create_test_spectra(4)
     settings = SettingsMS2Deepscore(**{
         "epochs": 2,
-        "average_pairs_per_bin": 2,
+        "average_inchikey_sampling_count": 40,
         "batch_size": 8
         })
     with pytest.raises(ValueError, match="The number of unique inchikeys must be larger than the batch size."):

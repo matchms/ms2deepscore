@@ -126,7 +126,7 @@ def test_model_training(simple_training_spectra):
                                     embedding_dim=100,
                                     train_binning_layer=False,
                                     same_prob_bins=np.array([(-0.01, 0.5), (0.5, 1.0)]),
-                                    average_pairs_per_bin=20,
+                                    average_inchikey_sampling_count=80,
                                     batch_size=2,
                                     num_turns=20,
                                     )

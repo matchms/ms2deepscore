@@ -181,7 +181,7 @@ def test_select_compound_pairs_wrapper_no_resampling():
     bins = [(0.5, 0.75), (0.25, 0.5), (0.75, 1), (-0.000001, 0.25)]
     max_pair_resampling = 1
     settings = SettingsMS2Deepscore(same_prob_bins=np.array(bins),
-                                    average_pairs_per_bin=5,
+                                    average_inchikey_sampling_count=10,
                                     batch_size=8,
                                     max_pair_resampling=max_pair_resampling)
     selected_inchikey_pairs = select_compound_pairs_wrapper(spectrums, settings)
@@ -202,7 +202,7 @@ def test_select_compound_pairs_wrapper_with_resampling():
             (0.4, 0.5), (0.3, 0.4), (0.2, 0.3), (0.1, 0.2), (-0.01, 0.1)]
     max_pair_resampling = 10
     settings = SettingsMS2Deepscore(same_prob_bins=np.array(bins, dtype="float32"),
-                                    average_pairs_per_bin=10,
+                                    average_inchikey_sampling_count=10,
                                     batch_size=8,
                                     max_pair_resampling=max_pair_resampling)
     selected_inchikey_pairs = select_compound_pairs_wrapper(spectrums, settings)
@@ -214,6 +214,25 @@ def test_select_compound_pairs_wrapper_with_resampling():
     # a good test, since the balancing behaviour we would like to see only happens when you have a lot more pairs
     # (and inchikeys) which is not suitable for a test.
     print_balanced_bins_per_inchikey(inchikey_pair_generator, settings, spectrums)
+
+
+def test_select_compound_pairs_wrapper_maximum_inchikey_count():
+    spectrums = create_test_spectra(num_of_unique_inchikeys=26, num_of_spectra_per_inchikey=1)
+    bins = [(0.8, 0.9), (0.7, 0.8), (0.9, 1.0), (0.6, 0.7), (0.5, 0.6),
+            (0.4, 0.5), (0.3, 0.4), (0.2, 0.3), (0.1, 0.2), (-0.01, 0.1)]
+    max_pair_resampling = 1000
+    max_inchikey_sampling = 280
+    settings = SettingsMS2Deepscore(same_prob_bins=np.array(bins, dtype="float32"),
+                                    average_inchikey_sampling_count=200,
+                                    batch_size=8,
+                                    max_pair_resampling=max_pair_resampling,
+                                    max_inchikey_sampling=max_inchikey_sampling
+                                    )
+    selected_inchikey_pairs = select_compound_pairs_wrapper(spectrums, settings)
+    inchikey_pair_generator = InchikeyPairGenerator(selected_inchikey_pairs)
+
+    highest_inchikey_count = max(inchikey_pair_generator.get_inchikey_counts().values())
+    assert highest_inchikey_count <= max_inchikey_sampling + 1 # +1 because there is a chance that the last added inchikey is a pair to itself...
 
 
 def check_correct_oversampling(selected_inchikey_pairs: InchikeyPairGenerator, max_resampling: int):
