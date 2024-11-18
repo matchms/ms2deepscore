@@ -44,6 +44,8 @@ class ValidationLossCalculator:
         """
         ms2deepscore_model = MS2DeepScore(model)
         ms2ds_scores = create_embedding_matrix_symmetric(ms2deepscore_model, self.val_spectrums)
+        if self.settings.normalize_cosine is not None:
+            ms2ds_scores = (ms2ds_scores / self.settings.normalize_cosine)+0.5
         predictions_and_tanimoto_scores = PredictionsAndTanimotoScores(
             predictions_df=ms2ds_scores,
             tanimoto_df=self.tanimoto_scores,

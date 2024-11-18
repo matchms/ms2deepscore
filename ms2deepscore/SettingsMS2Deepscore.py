@@ -101,6 +101,7 @@ class SettingsMS2Deepscore:
         self.embedding_dim = 400
         self.ionisation_mode = "positive"
         self.activation_function = "relu"
+        self.normalize_cosine = 2.0
 
         # additional model structure options
         self.train_binning_layer: bool = False
@@ -141,7 +142,6 @@ class SettingsMS2Deepscore:
         self.same_prob_bins = np.array([(0.8, 0.9), (0.7, 0.8), (0.9, 1.0), (0.6, 0.7), (0.5, 0.6),
                                         (0.4, 0.5), (0.3, 0.4), (0.2, 0.3), (0.1, 0.2), (-0.01, 0.1)])
         self.include_diagonal = True
-        self.val_spectra_per_inchikey = 1
         self.random_seed: Optional[int] = None
         self.max_pair_resampling = 10000
 

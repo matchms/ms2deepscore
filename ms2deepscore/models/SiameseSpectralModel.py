@@ -35,6 +35,8 @@ class SiameseSpectralModel(nn.Module):
 
         # Calculate cosine similarity
         cos_sim = nn.CosineSimilarity(dim=1, eps=1e-6)(encoded_x1, encoded_x2)
+        if self.model_settings.normalize_cosine is not None:
+            cos_sim = (cos_sim/self.model_settings.normalize_cosine) + 0.5
         return cos_sim
 
     def save(self, filepath):
