@@ -19,7 +19,7 @@ from ms2deepscore.train_new_model.data_generators import create_data_generator
 from ms2deepscore.train_new_model.split_positive_and_negative_mode import \
     split_by_ionmode
 from ms2deepscore.train_new_model.train_ms2deepscore import \
-    train_ms2ds_model, plot_history
+    train_ms2ds_model, plot_history, save_history
 from ms2deepscore.train_new_model.validation_and_test_split import \
     split_spectra_in_random_inchikey_sets
 from ms2deepscore.utils import load_spectra_as_list
@@ -63,6 +63,7 @@ def train_ms2deepscore_wrapper(spectra_file_path,
 
     ms2ds_history_plot_file_name = os.path.join(results_folder, settings.history_plot_file_name)
     plot_history(history["losses"], history["val_losses"], ms2ds_history_plot_file_name)
+    save_history(os.path.join(results_folder, "history.json"), history)
 
     scores_between_all_ionmodes = CalculateScoresBetweenAllIonmodes(
         os.path.join(stored_training_data.trained_models_folder, model_directory_name, settings.model_file_name),

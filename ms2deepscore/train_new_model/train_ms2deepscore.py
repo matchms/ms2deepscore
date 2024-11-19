@@ -1,9 +1,11 @@
 """A script that trains a MS2Deepscore model with default settings
 This script is not needed for normally running MS2Deepscore, it is only needed to to train new models
 """
-
+import json
 import os
 from typing import Optional
+
+import numpy as np
 from matplotlib import pyplot as plt
 from ms2deepscore.models.SiameseSpectralModel import (SiameseSpectralModel,
                                                       train)
@@ -62,3 +64,14 @@ def plot_history(losses, val_losses, file_name: Optional[str] = None):
         plt.savefig(file_name)
     else:
         plt.show()
+
+
+def save_history(file_name, history):
+    def convert_np_to_list(obj):
+        if isinstance(obj, np.ndarray):
+            return obj.tolist()
+        if isinstance(obj, np.float32):  # If there are any individual float32 items
+            return float(obj)
+        raise TypeError("Object not serializable")
+    with open(file_name, "w") as file:
+        json.dump(history, file, default=convert_np_to_list)
