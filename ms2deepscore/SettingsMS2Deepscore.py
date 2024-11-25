@@ -36,7 +36,7 @@ class SettingsMS2Deepscore:
             one dense micro-network.
         train_binning_layer_output_per_group
             This sets the number of next layer bins each group_size group of inputs shares.
-                batch_size
+        batch_size
             Number of pairs per batch. Default=32.
         num_turns
             Number of pairs for each InChiKey14 during each epoch. Default=1
