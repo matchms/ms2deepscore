@@ -55,7 +55,7 @@ def remove_diagonal(matrix):
     strided = np.lib.stride_tricks.as_strided
     s0, s1 = nrows.strides
 
-    return strided(matrix.ravel()[1:], shape(nrows-1, nrows), strides=(s0 + s1, s1)).reshape(nrows, -w)
+    return strided(matrix.ravel()[1:], shape=(nrows-1, nrows), strides=(s0 + s1, s1)).reshape(nrows, -1)
 
 
 @numba.jit(nopython=True)
