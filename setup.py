@@ -34,7 +34,7 @@ setup(
         "pandas",
         "scikit-learn",
         "tensorboard",
-        "torch",
+        "torch<2.6",
         "torchvision",
         "tqdm",
         "matplotlib==3.7.2"
