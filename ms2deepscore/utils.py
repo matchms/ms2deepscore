@@ -45,20 +45,17 @@ def load_spectra_as_list(file_name) -> List[Spectrum]:
 
 
 def remove_diagonal(matrix):
-    """Removes the diagonal from a matrix
+    """Removes the diagonal from a square matrix.
+    """
+    nrows, ncols = matrix.shape
+    
+    if nrows != ncols:
+        raise ValueError("Expected a square matrix")
 
-    meant for removing matches of spectra against itself. """
-    # Get the number of rows and columns
-    nr_of_rows, nr_of_cols = matrix.shape
-    if nr_of_rows != nr_of_cols:
-        raise ValueError("Expected predictions against itself")
+    strided = np.lib.stride_tricks.as_strided
+    s0, s1 = nrows.strides
 
-    # Create a mask for the diagonal elements
-    diagonal_mask = np.eye(nr_of_rows, dtype=bool)
-
-    # Use the mask to remove the diagonal elements
-    matrix_without_diagonal = matrix[~diagonal_mask].reshape(nr_of_rows, nr_of_cols - 1)
-    return matrix_without_diagonal
+    return strided(matrix.ravel()[1:], shape=(nrows-1, nrows), strides=(s0 + s1, s1)).reshape(nrows, -1)
 
 
 @numba.jit(nopython=True)
