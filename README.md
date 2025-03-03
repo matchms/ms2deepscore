@@ -33,10 +33,11 @@ bioRxiv 2024.03.25.586580; doi: https://doi.org/10.1101/2024.03.25.586580
 ## Setup
 ### Requirements
 
-Python 3.9, 3.10, 3.11 (higher will likely work but is not tested systematically).  
+Python 3.9, 3.10, 3.11 (higher will likely work but is not tested systematically).
 
 ### Installation
 Simply install using pip: `pip install ms2deepscore`
+Installation is expected to take 10-20 minutes.
 
 ### Prepare environment
 We recommend to create an Anaconda environment with
