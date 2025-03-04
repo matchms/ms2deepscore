@@ -70,13 +70,13 @@ We provide a model which was trained on > 500,000 MS/MS combined spectra from [G
 To then compute the similarities between spectra of your choice you can run:
 ```python
 from matchms import calculate_scores
-from matchms.importing import load_from_msp
+from matchms.importing import load_spectra
 from ms2deepscore import MS2DeepScore
 from ms2deepscore.models import load_model
 
 # Import data
-references = load_from_msp("my_reference_spectra.msp")
-queries = load_from_msp("my_query_spectra.msp")
+references = load_spectra("my_reference_spectra.msp")
+queries = load_spectra("my_query_spectra.msp")
 
 # Load pretrained model
 model = load_model("ms2deepscore_model.pt")
