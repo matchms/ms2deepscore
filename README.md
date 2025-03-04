@@ -96,7 +96,16 @@ The resulting similarity matrix, is a numpy array containing all the MS2DeepScor
 To calculate chemical similarity scores MS2DeepScore first calculates an embedding (vector) representing each spectrum. 
 This intermediate product can also be used to visualize spectra in "chemical space" by using a dimensionality reduction technique, like UMAP.
 
-## 3) Train an own MS2DeepScore model
+```python
+cleaned_spectra = pipeline.spectra_queries
+
+ms2ds_model = MS2DeepScore(model)
+ms2ds_embeddings = ms2ds_model.get_embedding_array(cleaned_spectra)
+```
+The [tutorial](https://github.com/matchms/ms2deepscore/blob/main/notebooks/MS2DeepScore_tutorial.ipynb) shows how to use these embeddings to create an interactive UMAP with overlaying smiles.
+<img src="https://github.com/matchms/ms2deepscore/blob/main/materials/umap_example.png" width="400"/>
+
+## 3) Train your own MS2DeepScore model
 Training your own model is only recommended if you have some familiarity with machine learning. 
 You can train a new model on a dataset of your choice. That, however, should preferentially contain a substantial amount of spectra to learn relevant features, say > 100,000 spectra of sufficiently diverse types.
 Alternatively you can add your in house spectra to an already available public library, for instance the [data](https://zenodo.org/records/13934470) used for training the default MS2DeepScore model. 
