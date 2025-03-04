@@ -72,24 +72,24 @@ To compute the similarities between spectra of your choice you can run the code 
 There is a small example dataset available in the folder "./tests/resources/pesticides_processed.mgf". 
 Alternatively you can of course use your own spectra, most common formats are supported, e.g. msp, mzml, mgf, mzxml, json, usi.
 ```python
-from matchms import calculate_scores
-from matchms.importing import load_spectra
-from ms2deepscore import MS2DeepScore
 from ms2deepscore.models import load_model
+from matchms.Pipeline import Pipeline, create_workflow
+from matchms.filtering.default_pipelines import DEFAULT_FILTERS
+from ms2deepscore import MS2DeepScore
 
-# Import data
-references = load_spectra("pesticided_processed.mgf")
-queries = load_spectra("pesticided_processed.mgf")
+model_file_name = "ms2deepscore_model.pt"
+spectrum_file_name = "pesticides.mgf"
 
-# Load pretrained model
-model = load_model("ms2deepscore_model.pt")
+# load in the ms2deepscore model
+model = load_model(model_file_name)
 
-similarity_measure = MS2DeepScore(model)
-# Calculate scores and get matchms.Scores object
-scores = calculate_scores(references, queries, similarity_measure,
-                          is_symmetric=True # Set to False if you match to a library
-                          )
+pipeline = Pipeline(create_workflow(query_filters=DEFAULT_FILTERS,
+                                    score_computations=[[MS2DeepScore, {"model": model}]]))
+report = pipeline.run(spectrum_file_name)
+similarity_matrix = pipeline.scores.to_array()
 ```
+The resulting similarity matrix, is a numpy array containing all the MS2DeepScore predicitons between all spectra.
+
 
 ## 2 Create embeddings
 
