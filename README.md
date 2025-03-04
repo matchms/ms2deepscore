@@ -66,8 +66,8 @@ There are two different ways to use MS2DeepScore to compute spectral similaritie
 The second way is much simpler: Use a model that was pretrained on a large dataset. 
 
 ## 1) Use a pretrained model to compute spectral similarities
-We provide a model which was trained on > 200,000 MS/MS spectra from [GNPS](https://gnps.ucsd.edu/), which can simply be downloaded [from zenodo here](https://zenodo.org/records/13897744). Only the ms2deepscore_model.pt is needed. 
-To then compute the similarities between spectra of your choice you can run something like:
+We provide a model which was trained on > 500,000 MS/MS combined spectra from [GNPS](https://gnps.ucsd.edu/), [Mona](https://mona.fiehnlab.ucdavis.edu/), MassBank and MSnLib, which can simply be downloaded [from zenodo here](https://zenodo.org/records/13897744). Only the ms2deepscore_model.pt is needed. 
+To then compute the similarities between spectra of your choice you can run:
 ```python
 from matchms import calculate_scores
 from matchms.importing import load_from_msp
@@ -93,7 +93,7 @@ scores = calculate_scores(references, references, similarity_measure, is_symmetr
 
 To use Monte-Carlo Dropout to also get a uncertainty measure with each score, run the following:
 ```python
-from matchms import calculate_scores()
+from matchms import calculate_scores
 from matchms.importing import load_from_msp
 from ms2deepscore import MS2DeepScoreMonteCarlo
 from ms2deepscore.models import load_model
