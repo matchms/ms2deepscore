@@ -58,8 +58,8 @@ pip install ms2deepscore
 Alternatively, simply install in the environment of your choice by `pip install ms2deepscore`
 
 ## Getting started: How to prepare data, train a model, and compute similarities.
-See [notebooks/MS2DeepScore_tutorial.ipynb](https://github.com/matchms/ms2deepscore/blob/main/notebooks/MS2DeepScore_tutorial.ipynb) 
-for a more extensive fully-working example on test data.
+We recommend to run the complete tutorial in [notebooks/MS2DeepScore_tutorial.ipynb](https://github.com/matchms/ms2deepscore/blob/main/notebooks/MS2DeepScore_tutorial.ipynb) 
+for a more extensive fully-working example on test data. Alternatively there are some example scripts below.
 If you are not familiar with `matchms` yet, then we also recommand our [tutorial on how to get started using matchms](https://blog.esciencecenter.nl/build-your-own-mass-spectrometry-analysis-pipeline-in-python-using-matchms-part-i-d96c718c68ee).
 
 There are two different ways to use MS2DeepScore to compute spectral similarities. You can train a new model on a dataset of your choice. That, however, should preferentially contain a substantial amount of spectra to learn relevant features, say > 10,000 spectra of sufficiently diverse types.
@@ -92,7 +92,6 @@ If you want to calculate all-vs-all spectral similarities, e.g. to build a netwo
 ```python
 scores = calculate_scores(references, references, similarity_measure, is_symmetric=True)
 ```
-
 
 ## 2) Train an own MS2DeepScore model
 Training your own model is only recommended if you have some familiarity with machine learning. 
