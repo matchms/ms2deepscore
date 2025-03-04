@@ -36,7 +36,6 @@ bioRxiv 2024.03.25.586580; doi: https://doi.org/10.1101/2024.03.25.586580
 Python 3.9, 3.10, 3.11 (higher will likely work but is not tested systematically).
 
 ### Installation
-Simply install using pip: `pip install ms2deepscore`
 Installation is expected to take 10-20 minutes.
 
 ### Prepare environment
@@ -47,7 +46,6 @@ conda create --name ms2deepscore python=3.9
 conda activate ms2deepscore
 pip install ms2deepscore
 ```
-Alternatively, simply install in the environment of your choice by .
 
 Or, via conda:
 ```
@@ -56,6 +54,8 @@ conda activate ms2deepscore
 conda install --channel bioconda --channel conda-forge matchms
 pip install ms2deepscore
 ```
+
+Alternatively, simply install in the environment of your choice by `pip install ms2deepscore`
 
 ## Getting started: How to prepare data, train a model, and compute similarities.
 See [notebooks/MS2DeepScore_tutorial.ipynb](https://github.com/matchms/ms2deepscore/blob/main/notebooks/MS2DeepScore_tutorial.ipynb) 
