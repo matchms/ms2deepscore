@@ -97,8 +97,8 @@ class SettingsMS2Deepscore:
         """
     def __init__(self, validate_settings=True, **settings):
         # model structure
-        self.base_dims = (2000, 2000, 2000)
-        self.embedding_dim = 400
+        self.base_dims = (10000,)
+        self.embedding_dim = 500
         self.ionisation_mode = "positive"
         self.activation_function = "relu"
 
@@ -135,19 +135,19 @@ class SettingsMS2Deepscore:
         self.use_fixed_set = False
 
         # Compound pairs selection settings
-        self.average_inchikey_sampling_count = 400
-        self.max_inchikey_sampling = 440
-        self.max_pairs_per_bin = 100
+        self.average_inchikey_sampling_count = 100
+        self.max_inchikey_sampling = 110
+        self.max_pairs_per_bin = 300
         self.same_prob_bins = np.array([(0.8, 0.9), (0.7, 0.8), (0.9, 1.0), (0.6, 0.7), (0.5, 0.6),
                                         (0.4, 0.5), (0.3, 0.4), (0.2, 0.3), (0.1, 0.2), (-0.01, 0.1)])
         self.include_diagonal = True
         self.val_spectra_per_inchikey = 1
         self.random_seed: Optional[int] = None
-        self.max_pair_resampling = 10000
+        self.max_pair_resampling = 10000000
 
         # Tanimioto score setings
         self.fingerprint_type: str = "daylight"
-        self.fingerprint_nbits: int = 2048
+        self.fingerprint_nbits: int = 4096
 
         # Data augmentation
         self.augment_removal_max = 0.2
