@@ -93,25 +93,6 @@ If you want to calculate all-vs-all spectral similarities, e.g. to build a netwo
 scores = calculate_scores(references, references, similarity_measure, is_symmetric=True)
 ```
 
-To use Monte-Carlo Dropout to also get a uncertainty measure with each score, run the following:
-```python
-from matchms import calculate_scores
-from matchms.importing import load_from_msp
-from ms2deepscore import MS2DeepScoreMonteCarlo
-from ms2deepscore.models import load_model
-
-# Import data
-references = load_from_msp("my_reference_spectra.msp")
-queries = load_from_msp("my_query_spectra.msp")
-
-# Load pretrained model
-model = load_model("ms2deepscore_model.pt")
-
-similarity_measure = MS2DeepScoreMonteCarlo(model, n_ensembles=10)
-# Calculate scores and get matchms.Scores object
-scores = calculate_scores(references, queries, similarity_measure)
-```
-In that scenario, `scores["score"]` contains the similarity scores (median of the ensemble of 10x10 scores) and `scores["uncertainty"]` give an uncertainty estimate (interquartile range of ensemble of 10x10 scores.
 
 ## 2) Train an own MS2DeepScore model
 Training your own model is only recommended if you have some familiarity with machine learning. 
