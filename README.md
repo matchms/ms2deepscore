@@ -59,7 +59,8 @@ Alternatively, simply install in the environment of your choice by `pip install 
 
 ## Getting started: How to prepare data, train a model, and compute similarities.
 We recommend to run the complete tutorial in [notebooks/MS2DeepScore_tutorial.ipynb](https://github.com/matchms/ms2deepscore/blob/main/notebooks/MS2DeepScore_tutorial.ipynb) 
-for a more extensive fully-working example on test data. Alternatively there are some example scripts below.
+for a more extensive fully-working example on test data. The expected run time on a laptop is less than 5 minutes, including automatic model and dummy data download. 
+Alternatively there are some example scripts below.
 If you are not familiar with `matchms` yet, then we also recommand our [tutorial on how to get started using matchms](https://blog.esciencecenter.nl/build-your-own-mass-spectrometry-analysis-pipeline-in-python-using-matchms-part-i-d96c718c68ee).
 
 ## 1) Compute spectral similarities
