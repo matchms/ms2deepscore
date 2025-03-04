@@ -31,7 +31,7 @@ def test_save_settings(tmp_path):
         result = json.load(file)
     assert result["epochs"] == 200
     assert result["base_dims"] == [200, 200]
-    assert result["embedding_dim"] == 400
+    assert result["embedding_dim"] == 500
 
 
 def test_get_dict():
