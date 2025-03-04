@@ -62,14 +62,14 @@ We recommend to run the complete tutorial in [notebooks/MS2DeepScore_tutorial.ip
 for a more extensive fully-working example on test data. Alternatively there are some example scripts below.
 If you are not familiar with `matchms` yet, then we also recommand our [tutorial on how to get started using matchms](https://blog.esciencecenter.nl/build-your-own-mass-spectrometry-analysis-pipeline-in-python-using-matchms-part-i-d96c718c68ee).
 
-There are two different ways to use MS2DeepScore to compute spectral similarities. You can train a new model on a dataset of your choice. That, however, should preferentially contain a substantial amount of spectra to learn relevant features, say > 10,000 spectra of sufficiently diverse types.
-The second way is much simpler: Use a model that was pretrained on a large dataset. 
-
-## 1) Use a pretrained model to compute spectral similarities
+## 1) Compute spectral similarities
 We provide a model which was trained on > 500,000 MS/MS combined spectra from [GNPS](https://gnps.ucsd.edu/), [Mona](https://mona.fiehnlab.ucdavis.edu/), MassBank and MSnLib. 
 This model can be downloaded from [from zenodo here](https://zenodo.org/records/13897744). Only the ms2deepscore_model.pt is needed.
-To then compute the similarities between spectra of your choice you can run the code below.
-There is a small example dataset available in the folder "./tests/resources/pesticides_processed.mgf". Alternatively you can of course use your own spectra, most common formats are supported, e.g. msp, mzml, mgf, mzxml, json, usi.
+The model works for spectra in both positive and negative ionization modes and even predictions across ionization modes can be made by this model. 
+
+To compute the similarities between spectra of your choice you can run the code below.
+There is a small example dataset available in the folder "./tests/resources/pesticides_processed.mgf". 
+Alternatively you can of course use your own spectra, most common formats are supported, e.g. msp, mzml, mgf, mzxml, json, usi.
 ```python
 from matchms import calculate_scores
 from matchms.importing import load_spectra
@@ -85,16 +85,20 @@ model = load_model("ms2deepscore_model.pt")
 
 similarity_measure = MS2DeepScore(model)
 # Calculate scores and get matchms.Scores object
-scores = calculate_scores(references, queries, similarity_measure)
+scores = calculate_scores(references, queries, similarity_measure,
+                          is_symmetric=True # Set to False if you match to a library
+                          )
 ```
 
-If you want to calculate all-vs-all spectral similarities, e.g. to build a network, than you can run:
-```python
-scores = calculate_scores(references, references, similarity_measure, is_symmetric=True)
-```
+## 2 Create embeddings
 
-## 2) Train an own MS2DeepScore model
+To calculate chemical similarity scores MS2DeepScore first calculates an embedding (vector) representing each spectrum. 
+This intermediate product can also be used to visualize spectra in "chemical space" by using a dimensionality reduction technique, like UMAP.
+
+## 3) Train an own MS2DeepScore model
 Training your own model is only recommended if you have some familiarity with machine learning. 
+You can train a new model on a dataset of your choice. That, however, should preferentially contain a substantial amount of spectra to learn relevant features, say > 100,000 spectra of sufficiently diverse types.
+Alternatively you can add your in house spectra to an already available public library, for instance the [data](https://zenodo.org/records/13934470) used for training the default MS2DeepScore model. 
 To train your own model you can run the code below.
 Please first ensure cleaning your spectra. We recommend using the cleaning pipeline in [matchms](https://github.com/matchms/matchms).
 
