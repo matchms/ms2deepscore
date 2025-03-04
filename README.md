@@ -66,8 +66,10 @@ There are two different ways to use MS2DeepScore to compute spectral similaritie
 The second way is much simpler: Use a model that was pretrained on a large dataset. 
 
 ## 1) Use a pretrained model to compute spectral similarities
-We provide a model which was trained on > 500,000 MS/MS combined spectra from [GNPS](https://gnps.ucsd.edu/), [Mona](https://mona.fiehnlab.ucdavis.edu/), MassBank and MSnLib, which can simply be downloaded [from zenodo here](https://zenodo.org/records/13897744). Only the ms2deepscore_model.pt is needed. 
-To then compute the similarities between spectra of your choice you can run:
+We provide a model which was trained on > 500,000 MS/MS combined spectra from [GNPS](https://gnps.ucsd.edu/), [Mona](https://mona.fiehnlab.ucdavis.edu/), MassBank and MSnLib. 
+This model can be downloaded from [from zenodo here](https://zenodo.org/records/13897744). Only the ms2deepscore_model.pt is needed.
+To then compute the similarities between spectra of your choice you can run the code below.
+There is a small example dataset available in the folder "./tests/resources/pesticides_processed.mgf". Alternatively you can of course use your own spectra, most common formats are supported, e.g. msp, mzml, mgf, mzxml, json, usi.
 ```python
 from matchms import calculate_scores
 from matchms.importing import load_spectra
@@ -75,8 +77,8 @@ from ms2deepscore import MS2DeepScore
 from ms2deepscore.models import load_model
 
 # Import data
-references = load_spectra("my_reference_spectra.msp")
-queries = load_spectra("my_query_spectra.msp")
+references = load_spectra("pesticided_processed.mgf")
+queries = load_spectra("pesticided_processed.mgf")
 
 # Load pretrained model
 model = load_model("ms2deepscore_model.pt")
