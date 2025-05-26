@@ -37,7 +37,7 @@ setup(
         "torch<2.6",
         "torchvision",
         "tqdm",
-        "matplotlib==3.7.2"
+        "matplotlib>=3.8.3"
     ],
     extras_require={"train": ["rdkit"],
                     "dev": ["bump2version",
