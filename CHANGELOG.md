@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.5.1] - 2024-02-12
+### Changed
+* Alternative remove_diagonal implementation by @florian-huber in https://github.com/matchms/ms2deepscore/pull/264
+* Restrict torch until new model load/save is implemented by @florian-huber in https://github.com/matchms/ms2deepscore/pull/265
+
+## [2.5.0] - 2024-12-20
+### Changed
+* Remove outdated notebooks and update notebooks for ms2deepscore 2 by @niekdejonge in https://github.com/matchms/ms2deepscore/pull/238
+* Add notebook for optimizing sampling algorithm by @niekdejonge in https://github.com/matchms/ms2deepscore/pull/256
+* Added saving history as json file (instead of only plotting) by @niekdejonge in https://github.com/matchms/ms2deepscore/pull/257
+* Add notebook hyperparameter optimization by @niekdejonge in https://github.com/matchms/ms2deepscore/pull/258
+* Add notebooks benchmarking by @niekdejonge in https://github.com/matchms/ms2deepscore/pull/259
+* Add notebooks benchmarking by @niekdejonge in https://github.com/matchms/ms2deepscore/pull/261
+* Added notebook for comparison with modified cosine scores by @niekdejonge in https://github.com/matchms/ms2deepscore/pull/262
+* Add notebooks analyzing the case studies by @niekdejonge in https://github.com/matchms/ms2deepscore/pull/255
+
 ## [2.4.0] - 2024-11-08
 
 ## Changed
@@ -211,7 +227,9 @@ Last version using Tensorflow. Next versions will be using PyTorch.
 
 - This is the initial version of MS2DeepScore
 
-[Unreleased]: https://github.com/matchms/ms2deepscore/compare/2.4.0...HEAD
+[Unreleased]: https://github.com/matchms/ms2deepscore/compare/2.5.1...HEAD
+[2.5.1]: https://github.com/matchms/ms2deepscore/compare/2.5.0...2.5.1
+[2.5.0]: https://github.com/matchms/ms2deepscore/compare/2.4.0...2.5.0
 [2.4.0]: https://github.com/matchms/ms2deepscore/compare/2.3.0...2.4.0
 [2.3.0]: https://github.com/matchms/ms2deepscore/compare/2.2.0...2.3.0
 [2.2.0]: https://github.com/matchms/ms2deepscore/compare/2.1.0...2.2.0
