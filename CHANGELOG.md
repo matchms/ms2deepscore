@@ -7,7 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [2.5.1] - 2024-02-12
+## [2.5.2] - 2025-05-26
+### Changed
+- Switch to Numpy>=2.0 (which means Python >=3.10)
+
+## [2.5.1] - 2025-02-12
 ### Changed
 * Alternative remove_diagonal implementation by @florian-huber in https://github.com/matchms/ms2deepscore/pull/264
 * Restrict torch until new model load/save is implemented by @florian-huber in https://github.com/matchms/ms2deepscore/pull/265
@@ -227,7 +231,8 @@ Last version using Tensorflow. Next versions will be using PyTorch.
 
 - This is the initial version of MS2DeepScore
 
-[Unreleased]: https://github.com/matchms/ms2deepscore/compare/2.5.1...HEAD
+[Unreleased]: https://github.com/matchms/ms2deepscore/compare/2.5.2...HEAD
+[2.5.2]: https://github.com/matchms/ms2deepscore/compare/2.5.1...2.5.2
 [2.5.1]: https://github.com/matchms/ms2deepscore/compare/2.5.0...2.5.1
 [2.5.0]: https://github.com/matchms/ms2deepscore/compare/2.4.0...2.5.0
 [2.4.0]: https://github.com/matchms/ms2deepscore/compare/2.3.0...2.4.0
