@@ -12,11 +12,11 @@
 `ms2deepscore` provides a Siamese neural network that is trained to predict molecular structural similarities (Tanimoto scores) 
 from pairs of mass spectrometry spectra. 
 
-The library provides an intuitive classes to prepare data, train a siamese model,
+The library provides intuitive classes to prepare data, train a Siamese model,
 and compute similarities between pairs of spectra.
 
 In addition to the prediction of a structural similarity, 
-MS2DeepScore can also make use of Monte-Carlo dropout to assess the model uncertainty.
+MS2DeepScore can also make use of Monte-Carlo dropout to assess the model's uncertainty.
 
 ## Reference
 If you use MS2DeepScore for your research, please cite the following:
@@ -33,13 +33,13 @@ bioRxiv 2024.03.25.586580; doi: https://doi.org/10.1101/2024.03.25.586580
 ## Setup
 ### Requirements
 
-Python 3.9, 3.10, 3.11 (higher will likely work but is not tested systematically).
+Python 3.10, 3.11, 3.12 (higher will likely work but is not tested systematically).
 
 ### Installation
 Installation is expected to take 10-20 minutes.
 
 ### Prepare environment
-We recommend to create an Anaconda environment with
+We recommend creating an Anaconda environment with
 
 ```
 conda create --name ms2deepscore python=3.9
