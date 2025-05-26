@@ -26,11 +26,11 @@ setup(
     license="Apache Software License 2.0",
     zip_safe=False,
     test_suite="tests",
-    python_requires='>=3.9',
+    python_requires='>=3.10',
     install_requires=[
         "matchms>=0.18.0",
         "numba",
-        "numpy>=1.20.3,<2.0",
+        "numpy>=2.0",
         "pandas",
         "scikit-learn",
         "tensorboard",
