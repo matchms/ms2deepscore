@@ -1,0 +1,41 @@
+﻿Spectrum number;m/z;RT, min;ionization mode;Name;SMILES;Confidence level of annotation* ;Method of confirmation;Cluster number
+neg_157;181,0379;1,83;negative;1-Methyluric acid;CN1C(=O)C2=C(NC(=O)N2)NC1=O;1;Confirmed with in-house standard;1
+neg_316;181,0366;1,82;negative;1-Methyluric acid;CN1C(=O)C2=C(NC(=O)N2)NC1=O;1;Confirmed with in-house standard;1
+neg_366;181,0385;1,83;negative;1-Methyluric acid;CN1C(=O)C2=C(NC(=O)N2)NC1=O;1;Confirmed with in-house standard;1
+neg_380;195,0569;2,29;negative;1,3-Dimethyluric acid;CN1C2=C(C(=O)N(C1=O)C)NC(=O)N2;2;Comparison to NIST 23 (2023) mass spectral library;1
+neg_536;195,0524;2,61;negative;1,7-Dimethyluric acid;CN1C2=C(NC1=O)NC(=O)N(C2=O)C;1;Confirmed with in-house standard;1
+neg_83;195,0525;2,29;negative;1,3-Dimethyluric acid;CN1C2=C(C(=O)N(C1=O)C)NC(=O)N2;2;Comparison to NIST 23 (2023) mass spectral library;1
+pos_1129;181,0727;2,86;positive;Theophylline;CN1C2=C(C(=O)N(C1=O)C)NC=N2;1;Confirmed with in-house standard;1
+pos_113;181,0725;1,11;positive;5-Acetylamino-6-amino-3-methyluracil;CC(=O)NC1=C(NC(=O)N(C1=O)C)N;2;Comparison to NIST 23 (2023) mass spectral library;1
+pos_1198;195,091;3,61;positive;Caffeine;CN1C=NC2=C1C(=O)N(C(=O)N2C)C;1;Confirmed with in-house standard;1
+pos_1314;195,0993;3,6;positive;Caffeine;CN1C=NC2=C1C(=O)N(C(=O)N2C)C;1;Confirmed with in-house standard;1
+pos_173;181,074;1,11;positive;5-Acetylamino-6-amino-3-methyluracil;CC(=O)NC1=C(NC(=O)N(C1=O)C)N;2;Comparison to NIST 23 (2023) mass spectral library;1
+pos_332;181,0727;2,86;positive;Theophylline;CN1C2=C(C(=O)N(C1=O)C)NC=N2;1;Confirmed with in-house standard;1
+pos_401;195,091;3,61;positive;Caffeine;CN1C=NC2=C1C(=O)N(C(=O)N2C)C;1;Confirmed with in-house standard;1
+pos_517;195,0993;3,6;positive;Caffeine;CN1C=NC2=C1C(=O)N(C(=O)N2C)C;1;Confirmed with in-house standard;1
+pos_910;181,0725;1,11;positive;5-Acetylamino-6-amino-3-methyluracil;CC(=O)NC1=C(NC(=O)N(C1=O)C)N;2;Comparison to NIST 23 (2023) mass spectral library;1
+pos_970;181,074;1,11;positive;5-Acetylamino-6-amino-3-methyluracil;CC(=O)NC1=C(NC(=O)N(C1=O)C)N;2;Comparison to NIST 23 (2023) mass spectral library;1
+neg_398;158,0820;3,01;negative;N-Acetyl-L-valine;CC(C)[C@@H](C(=O)O)NC(=O)C;3;Putative annotation based on the MS/MS spectra interpretation;2
+neg_834;160,0395;5,07;negative;Indole-3-carboxylic acid;C1=CC=C2C(=C1)C(=CN2)C(=O)O;2;Comparison to NIST 23 (2023) mass spectral library;2
+pos_1134;190,0499;3,20;positive;Kynurenic acid;C1=CC=C2C(=C1)C(=O)C=C(N2)C(=O)O ;1;Confirmed with in-house standard;2
+pos_1271;162,0557;4,11;positive;2,8-Quinolinediol;Oc1ccc2cccc(O)c2n1;2;Comparison to NIST 23 (2023) mass spectral library;2
+pos_1272;162,0564;4,11;positive;2,8-Quinolinediol;Oc1ccc2cccc(O)c2n1;2;Comparison to NIST 23 (2023) mass spectral library;2
+pos_1363;162,0538;5,15;positive;Indole-3-carboxylic acid;C1=CC=C2C(=C1)C(=CN2)C(=O)O;2;Comparison to NIST 23 (2023) mass spectral library;2
+pos_145;190,0520;3,21;positive;Kynurenic acid;C1=CC=C2C(=C1)C(=O)C=C(N2)C(=O)O ;1;Confirmed with in-house standard;2
+pos_337;190,0499;3,20;positive;Kynurenic acid;C1=CC=C2C(=C1)C(=O)C=C(N2)C(=O)O ;1;Confirmed with in-house standard;2
+pos_474;162,0557;4,11;positive;2,8-Quinolinediol;C1=CC2=C(C(=C1)O)NC(=O)C=C2 ;2;Comparison to NIST 23 (2023) mass spectral library;2
+pos_475;162,0564;4,11;positive;2,8-Quinolinediol;C1=CC2=C(C(=C1)O)NC(=O)C=C2 ;2;Comparison to NIST 23 (2023) mass spectral library;2
+pos_566;162,0538;5,15;positive;Indole-3-carboxylic acid;C1=CC=C2C(=C1)C(=CN2)C(=O)O;2;Comparison to NIST 23 (2023) mass spectral library;2
+pos_88;190,0468;3,11;positive;Kynurenic acid;C1=CC=C2C(=C1)C(=O)C=C(N2)C(=O)O ;1;Confirmed with in-house standard;2
+pos_885;190,0468;3,11;positive;Kynurenic acid;C1=CC=C2C(=C1)C(=O)C=C(N2)C(=O)O ;1;Confirmed with in-house standard;2
+pos_887;190,0498;3,15;positive;Kynurenic acid;C1=CC=C2C(=C1)C(=O)C=C(N2)C(=O)O ;1;Confirmed with in-house standard;2
+pos_90;190,0498;3,15;positive;Kynurenic acid;C1=CC=C2C(=C1)C(=O)C=C(N2)C(=O)O ;1;Confirmed with in-house standard;2
+pos_942;190,0520;3,21;positive;Kynurenic acid;C1=CC=C2C(=C1)C(=O)C=C(N2)C(=O)O ;1;Confirmed with in-house standard;2
+pos_1131;151,0349;2,95;positive;Homogentisic acid;C1=CC(=C(C=C1O)CC(=O)O)O;2;Comparison to NIST 23 (2023) mass spectral library;3
+pos_334;151,0349;2,95;positive;Homogentisic acid;C1=CC(=C(C=C1O)CC(=O)O)O;2;Comparison to NIST 23 (2023) mass spectral library;3
+neg_144;151,0351;1,33;negative;3,4-Dihydroxyphenylglycol;C1=CC(=C(C=C1C(CO)O)O)O  ;2;Comparison to NIST 23 (2023) mass spectral library;3
+pos_1123;181,0727;2,86;positive;Theophylline;CN1C2=C(C(=O)N(C1=O)C)NC=N2;1;Confirmed with in-house standard;-
+pos_326;181,0727;2,86;positive;Theophylline;CN1C2=C(C(=O)N(C1=O)C)NC=N2;1;Confirmed with in-house standard;-
+pos_761;355,2637;9,73;positive;Cholic acid;C[C@H](CCC(=O)O)[C@H]1CC[C@@H]2[C@@]1([C@H](C[C@H]3[C@H]2[C@@H](C[C@H]4[C@@]3(CC[C@H](C4)O)C)O)O)C;1;Confirmed with in-house standard;-
+neg_1231;407,2797;9,7245;negative;Cholic acid;C[C@H](CCC(=O)O)[C@H]1CC[C@@H]2[C@@]1([C@H](C[C@H]3[C@H]2[C@@H](C[C@H]4[C@@]3(CC[C@H](C4)O)C)O)O)C;1;Confirmed with in-house standard;UMAP
+pos_1558;355,2637;9,73;positive;Cholic acid;C[C@H](CCC(=O)O)[C@H]1CC[C@@H]2[C@@]1([C@H](C[C@H]3[C@H]2[C@@H](C[C@H]4[C@@]3(CC[C@H](C4)O)C)O)O)C;1;Confirmed with in-house standard;UMAP
