@@ -25,13 +25,14 @@ class PredictionsAndTanimotoScores:
         label:
             A label that can be used by plotting functions. For instance "Positive vs Negative".
         """
-        self.predictions_df = predictions_df
+        # Set every negative prediction to 0
+        self.predictions_df = predictions_df.mask(predictions_df < 0, 0)
         self.tanimoto_df = tanimoto_df
         self.symmetric = symmetric
         self.label = label
 
         self._check_input_data()
-        # remove predicitons between the same spectrum
+        # remove predictions between the same spectrum
         if self.symmetric:
             np.fill_diagonal(self.predictions_df.values, np.nan)
 
