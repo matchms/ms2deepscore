@@ -1,10 +1,12 @@
 import os
 import numpy as np
 from matchms.exporting import save_as_mgf
+from matchms.importing import load_spectra
+
 from ms2deepscore.SettingsMS2Deepscore import SettingsMS2Deepscore
 from ms2deepscore.models import load_model
-from ms2deepscore.wrapper_functions.training_wrapper_functions import (
-    StoreTrainingData, train_ms2deepscore_wrapper, parameter_search)
+from ms2deepscore.wrapper_functions.training_wrapper_functions import (train_ms2deepscore_wrapper, parameter_search,
+                                                                       split_data_if_necessary)
 from tests.create_test_spectra import pesticides_test_spectra
 
 
@@ -17,6 +19,7 @@ def test_train_wrapper_ms2ds_model(tmp_path):
     save_as_mgf(positive_mode_spectra+negative_mode_spectra,
                 filename=spectra_file_name)
     settings = SettingsMS2Deepscore(**{
+        "spectrum_file_path": spectra_file_name,
         "epochs": 2,  # to speed up tests --> usually many more
         "ionisation_mode": "negative",
         "base_dims": (200, 200),  # to speed up tests --> usually larger
@@ -24,21 +27,19 @@ def test_train_wrapper_ms2ds_model(tmp_path):
         "same_prob_bins": np.array([(-0.01, 0.2), (0.2, 1.0)]),
         "average_inchikey_sampling_count": 8,
         "batch_size": 2,  # to speed up tests --> usually larger
-        "random_seed": 42
+        "random_seed": 42,
+        "train_test_split_fraction": 5,
         })
 
-    model_directory_name = train_ms2deepscore_wrapper(spectra_file_name, settings, validation_split_fraction=5)
-    expected_file_names = StoreTrainingData(spectra_file_name)
+    model_directory_name = train_ms2deepscore_wrapper(settings)
     # Test model is created and can be loaded
-    model_file_name = os.path.join(tmp_path, expected_file_names.trained_models_folder,
-                                       model_directory_name, settings.model_file_name)
+    model_file_name = os.path.join(model_directory_name, settings.model_file_name)
     assert os.path.isfile(model_file_name)
     load_model(model_file_name)
-    assert os.path.isfile(expected_file_names.negative_mode_spectra_file)
-    assert os.path.isfile(expected_file_names.negative_validation_spectra_file)
-    assert os.path.isfile(os.path.join(tmp_path, expected_file_names.trained_models_folder,
+
+    assert os.path.isfile(os.path.join(tmp_path, settings.results_folder,
                                        model_directory_name, "benchmarking_results", "average_per_bin.svg"))
-    assert os.path.isfile(os.path.join(tmp_path, expected_file_names.trained_models_folder,
+    assert os.path.isfile(os.path.join(tmp_path, settings.results_folder,
                                        model_directory_name, "settings.json"))
 
 
@@ -51,16 +52,19 @@ def test_store_training_data_with_spectra_file(tmp_path):
     spectra_file_name = os.path.join(tmp_path, "clean_spectra.mgf")
     save_as_mgf(positive_mode_spectra + negative_mode_spectra, filename=spectra_file_name)
 
-    stored_data = StoreTrainingData(spectra_file_name, split_fraction=20, random_seed=42)
+    settings = SettingsMS2Deepscore(**{
+        "spectrum_file_path": spectra_file_name,
+        "random_seed": 42,
+        "train_test_split_fraction": 20,
+        })
+    split_data_if_necessary(settings)
 
-    # Test loading positive and negative mode spectra
-    positive_spectra = stored_data.load_positive_mode_spectra()
-    negative_spectra = stored_data.load_negative_mode_spectra()
-
-    assert len(positive_spectra) == 35
-    assert len(negative_spectra) == 41
-    assert os.path.isfile(stored_data.positive_mode_spectra_file)
-    assert os.path.isfile(stored_data.negative_mode_spectra_file)
+    assert os.path.isfile(settings.training_spectra_file_name)
+    assert os.path.isfile(settings.validation_spectra_file_name)
+    assert os.path.isfile(settings.testing_spectra_file_name)
+    assert len(list(load_spectra(settings.training_spectra_file_name))) > 0
+    assert len(list(load_spectra(settings.validation_spectra_file_name))) > 0
+    assert len(list(load_spectra(settings.testing_spectra_file_name))) > 0
 
 
 def test_parameter_search_wrapper(tmp_path):
@@ -73,6 +77,7 @@ def test_parameter_search_wrapper(tmp_path):
     save_as_mgf(positive_mode_spectra + negative_mode_spectra, filename=spectra_file_name)
 
     base_settings = SettingsMS2Deepscore(**{
+        "spectrum_file_path": spectra_file_name,
         "epochs": 2,  # to speed up tests
         "ionisation_mode": "negative",
         "base_dims": (200, 200),
@@ -81,7 +86,8 @@ def test_parameter_search_wrapper(tmp_path):
         "same_prob_bins": np.array([(-0.01, 0.2), (0.2, 1.0)]),
         "average_inchikey_sampling_count": 8,
         "batch_size": 2,
-        "random_seed": 42
+        "random_seed": 42,
+        "train_test_split_fraction": 5,
     })
 
     setting_variations = {
@@ -90,10 +96,8 @@ def test_parameter_search_wrapper(tmp_path):
     }
 
     results = parameter_search(
-        spectra_file_path_or_dir=spectra_file_name,
         base_settings=base_settings,
         setting_variations=setting_variations,
-        validation_split_fraction=5,
         path_checkpoint=os.path.join(tmp_path, "results_checkpoint.pkl")
     )
 
