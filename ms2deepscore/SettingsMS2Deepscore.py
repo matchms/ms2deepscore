@@ -240,7 +240,7 @@ class SettingsMS2Deepscore:
                                  f"{neural_net_structure_label}_{self.time_stamp}"
         print(f"The model will be stored in the folder: {model_folder_file_name}")
 
-        return os.path.join(self.results_folder, model_folder_file_name)
+        return model_folder_file_name
 
     def number_of_bins(self):
         return int((self.max_mz - self.min_mz) / self.mz_bin_width)
