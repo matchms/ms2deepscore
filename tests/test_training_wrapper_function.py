@@ -61,10 +61,10 @@ def test_store_training_data_with_spectra_file(tmp_path):
 
     assert os.path.isfile(settings.training_spectra_file_name)
     assert os.path.isfile(settings.validation_spectra_file_name)
-    assert os.path.isfile(settings.testing_spectra_file_name)
+    assert os.path.isfile(settings.test_spectra_file_name)
     assert len(list(load_spectra(settings.training_spectra_file_name))) > 0
     assert len(list(load_spectra(settings.validation_spectra_file_name))) > 0
-    assert len(list(load_spectra(settings.testing_spectra_file_name))) > 0
+    assert len(list(load_spectra(settings.test_spectra_file_name))) > 0
 
 
 def test_parameter_search_wrapper(tmp_path):

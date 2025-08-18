@@ -103,7 +103,7 @@ class SettingsMS2Deepscore:
         self.root_dir = None # Will be derived from the spectrum file path
         self.spectrum_file_name = None # Will be derived from the spectrum file path
         self.validation_spectra_file_name = None  # If None it will be auto set to val_{spectrum file}
-        self.testing_spectra_file_name = None # If None it will be auto set to test_{spectrum file}
+        self.test_spectra_file_name = None # If None it will be auto set to test_{spectrum file}
         self.training_spectra_file_name = None # If None it will be auto set to train_{spectrum file}
         self.results_folder = None # If None it will be auto set to {root_folder}/trained_models
         self.model_directory_name = None # A unique folder name is created including settings and a time stamp
@@ -193,18 +193,18 @@ class SettingsMS2Deepscore:
         if self.spectrum_file_path is not None:
             if not os.path.isfile(self.spectrum_file_path):
                 raise ValueError("The spectrum file specified is not an existing file")
-            self.root_dir = os.path.dirname(self.spectrum_file_path)
-            self.spectrum_file_name = os.path.basename(self.spectrum_file_path)
+            root_dir = os.path.dirname(self.spectrum_file_path)
+            spectrum_file_name = os.path.basename(self.spectrum_file_path)
 
-            # Auto set the validation, test and train file names, if not set already.
-            if self.validation_spectra_file_name is None:
-                self.validation_spectra_file_name = self.root_dir + "val_" + self.spectrum_file_name
-            if self.testing_spectra_file_name is None:
-                self.testing_spectra_file_name = self.root_dir + "test_" + self.spectrum_file_name
-            if self.training_spectra_file_name is None:
-                self.training_spectra_file_name = self.root_dir + "train_" + self.spectrum_file_name
+            # Auto set the validation, test and train file names, if not set already
             if self.results_folder is None:
-                self.results_folder = os.path.join(self.root_dir, "trained_models")
+                self.results_folder = os.path.join(root_dir, "trained_models")
+            if self.validation_spectra_file_name is None:
+                self.validation_spectra_file_name = os.path.join(self.results_folder, "val_" + spectrum_file_name)
+            if self.test_spectra_file_name is None:
+                self.test_spectra_file_name = os.path.join(self.results_folder, "test_" + spectrum_file_name)
+            if self.training_spectra_file_name is None:
+                self.training_spectra_file_name = os.path.join(self.results_folder, "train_" + spectrum_file_name)
             if self.model_directory_name is None:
                 self.model_directory_name = os.path.join(self.results_folder, self.create_model_directory_name())
 

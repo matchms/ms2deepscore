@@ -194,7 +194,7 @@ def split_data_if_necessary(settings: SettingsMS2Deepscore):
     if settings.spectrum_file_path is None:
         raise ValueError("Please specify a spectrum_file_path in SettingsMS2DeepScore")
     nr_of_files_existing = sum(os.path.exists(f) for f in (settings.validation_spectra_file_name,
-                                                     settings.testing_spectra_file_name,
+                                                     settings.test_spectra_file_name,
                                                      settings.training_spectra_file_name))
     if nr_of_files_existing == 3:
         # all files already exist
@@ -207,7 +207,7 @@ def split_data_if_necessary(settings: SettingsMS2Deepscore):
             spectra, k=settings.train_test_split_fraction, random_seed=settings.random_seed)
 
         save_spectra(validation_spectra, settings.validation_spectra_file_name)
-        save_spectra(test_spectra, settings.testing_spectra_file_name)
+        save_spectra(test_spectra, settings.test_spectra_file_name)
         save_spectra(train_spectra, settings.training_spectra_file_name)
     else:
         raise ValueError("Some of the validation files do exist and some don't")
