@@ -321,7 +321,8 @@ def compute_embedding_array(model: SiameseSpectralModel,
                             spectra,
                             datatype="numpy",
                             device=None):
-    """Compute the embeddings of all spectra in spectrums.
+    """
+    Compute the embeddings of all given spectra (list of matchms Spectrum objects).
 
     Parameters
     ----------
@@ -340,9 +341,9 @@ def compute_embedding_array(model: SiameseSpectralModel,
     if datatype.lower() not in ["numpy", "pytorch"]:
         raise ValueError("datatype can only be 'numpy' or 'pytorch'.")
     if datatype.lower() == "numpy":
-        embeddings = np.zeros((len(spectrums), model.model_settings.embedding_dim))
+        embeddings = np.zeros((len(spectra), model.model_settings.embedding_dim))
     else:
-        embeddings = torch.zeros((len(spectrums), model.model_settings.embedding_dim))
+        embeddings = torch.zeros((len(spectra), model.model_settings.embedding_dim))
 
     if device is None:
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
