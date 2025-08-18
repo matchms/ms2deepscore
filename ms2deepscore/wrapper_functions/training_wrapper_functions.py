@@ -193,6 +193,7 @@ def split_data_if_necessary(settings: SettingsMS2Deepscore):
     """Splits and saves spectra into train, val and test"""
     if settings.spectrum_file_path is None:
         raise ValueError("Please specify a spectrum_file_path in SettingsMS2DeepScore")
+    os.makedirs(settings.results_folder, exist_ok=True)
     nr_of_files_existing = sum(os.path.exists(f) for f in (settings.validation_spectra_file_name,
                                                      settings.test_spectra_file_name,
                                                      settings.training_spectra_file_name))
