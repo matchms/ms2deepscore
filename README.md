@@ -42,14 +42,14 @@ Installation is expected to take 10-20 minutes.
 We recommend creating an Anaconda environment with
 
 ```
-conda create --name ms2deepscore python=3.9
+conda create --name ms2deepscore python=3.12
 conda activate ms2deepscore
 pip install ms2deepscore
 ```
 
 Or, via conda:
 ```
-conda create --name ms2deepscore python=3.9
+conda create --name ms2deepscore python=3.12
 conda activate ms2deepscore
 conda install --channel bioconda --channel conda-forge matchms
 pip install ms2deepscore
