@@ -120,13 +120,15 @@ spectrum_file = "./combined_libraries.mgf"
 # The settins below use default training settings and use precursor mz and ionmode as additional metadata input. 
 # Have a look in the SettingsMS2Deepscore class to check other hyperparameters.
 settings = SettingsMS2Deepscore(
+    spectrum_file_path=spectrum_file,
     additional_metadata=[("CategoricalToBinary", {"metadata_field": "ionmode",
                                                   "entries_becoming_one": "positive",
                                                   "entries_becoming_zero": "negative"}),
                          ("StandardScaler", {"metadata_field": "precursor_mz", 
-                                             "mean": 0, "standard_deviation": 1000})],)
+                                             "mean": 0, "standard_deviation": 1000})], 
+    validation_split_fraction=20)
 
-train_ms2deepscore_wrapper(spectrum_file, settings, validation_split_fraction=20)
+train_ms2deepscore_wrapper(settings)
 ```
 ## Contributing
 We welcome contributions to the development of ms2deepscore! Have a look at the [contribution guidelines](https://github.com/matchms/ms2deepscore/blob/main/CONTRIBUTING.md).
