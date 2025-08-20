@@ -126,7 +126,8 @@ def compute_jaccard_similarity_per_bin(
     selected_scores_per_bin = np.zeros((num_bins, size, max_pairs_per_bin), dtype=np.float32)
 
     for idx_fingerprint_i in prange(size):
-        tanimoto_scores = tanimoto_scores_row(fingerprints, idx_fingerprint_i)
+        fingerprint_i = fingerprints[idx_fingerprint_i, :]
+        tanimoto_scores = tanimoto_scores_row(fingerprint_i, fingerprints)
 
         for bin_number in range(num_bins):
             selection_bin = selection_bins[bin_number]
@@ -238,16 +239,16 @@ def convert_to_selected_pairs_list(pair_frequency_matrixes: np.ndarray,
     selected_pairs_per_bin = []
     for bin_id, bin_pair_frequency_matrix in enumerate(tqdm(pair_frequency_matrixes)):
         selected_pairs = []
-        for inchikey1, pair_frequency_row in enumerate(bin_pair_frequency_matrix):
+        for inchikey1_index, pair_frequency_row in enumerate(bin_pair_frequency_matrix):
             for inchikey2_index, pair_frequency in enumerate(pair_frequency_row):
                 if pair_frequency > 0:
-                    inchikey2 = available_pairs_per_bin_matrix[bin_id][inchikey1][inchikey2_index]
-                    score = scores_matrix[bin_id][inchikey1][inchikey2_index]
+                    inchikey2 = available_pairs_per_bin_matrix[bin_id][inchikey1_index][inchikey2_index]
+                    score = scores_matrix[bin_id][inchikey1_index][inchikey2_index]
                     selected_pairs.extend(
-                        [(inchikeys14_unique[inchikey1], inchikeys14_unique[inchikey2], score)] * pair_frequency)
+                        [(inchikeys14_unique[inchikey1_index], inchikeys14_unique[inchikey2], score)] * pair_frequency)
                     # remove duplicate pairs
                     position_of_first_inchikey_in_matrix = available_pairs_per_bin_matrix[bin_id][
-                                                               inchikey2] == inchikey1
+                                                               inchikey2] == inchikey1_index
                     bin_pair_frequency_matrix[inchikey2][position_of_first_inchikey_in_matrix] = 0
         selected_pairs_per_bin.append(selected_pairs)
     return selected_pairs_per_bin
@@ -392,16 +393,16 @@ def get_nr_of_available_pairs_in_bin(selected_pairs_per_bin_matrix: np.ndarray) 
 
 
 @jit(nopython=True)
-def tanimoto_scores_row(fingerprints, idx):
-    size = fingerprints.shape[0]
+def tanimoto_scores_row(single_fingerprint, list_of_fingerprints):
+    size = list_of_fingerprints.shape[0]
     tanimoto_scores = np.zeros(size)
 
-    fingerprint_i = fingerprints[idx, :]
     for idx_fingerprint_j in range(size):
-        fingerprint_j = fingerprints[idx_fingerprint_j, :]
-        tanimoto_score = jaccard_index(fingerprint_i, fingerprint_j)
+        fingerprint_j = list_of_fingerprints[idx_fingerprint_j, :]
+        tanimoto_score = jaccard_index(single_fingerprint, fingerprint_j)
         tanimoto_scores[idx_fingerprint_j] = tanimoto_score
     return tanimoto_scores
+
 
 
 def select_inchi_for_unique_inchikeys(
