@@ -1,0 +1,17 @@
+import numpy as np
+import torch
+from matchms import Spectrum
+
+from ms2deepscore import SettingsMS2Deepscore
+from ms2deepscore.tensorize_spectra import tensorize_spectra
+from ms2deepscore.train_new_model.data_augmentation import (data_augmentation, data_augmentation_spectrum,
+                                                            peak_addition_for_data_augmentation,
+                                                            peak_removal_for_data_augmentation, change_peak_intensity)
+
+def test_peak_removal_for_data_augmentation():
+    spectrum_tensor = torch.tensor([0.0, 0.12, 0.05, 0.78, 0.0, 0.34, 1.0, 0.0, 0.27, 0.65])
+    peak_removal_for_data_augmentation(spectrum_tensor,
+                                       augment_removal_max=0.5 ,
+                                       augment_removal_intensity=0.3,
+                                       random_number_generator= np.random.default_rng(42))
+    assert torch.equal(spectrum_tensor, torch.tensor([0.0, 0.12, 0.0, 0.78, 0.0, 0.34, 1.0, 0.0, 0.0, 0.65]))
