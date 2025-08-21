@@ -15,3 +15,15 @@ def test_peak_removal_for_data_augmentation():
                                        augment_removal_intensity=0.3,
                                        random_number_generator= np.random.default_rng(42))
     assert torch.equal(spectrum_tensor, torch.tensor([0.0, 0.12, 0.0, 0.78, 0.0, 0.34, 1.0, 0.0, 0.0, 0.65]))
+
+def test_peak_addition_for_data_augmentation():
+    spectrum_tensor = torch.tensor([0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.27, 0.0])
+    peak_addition_for_data_augmentation(spectrum_tensor,
+                                       4,
+                                       0.02,
+                                       random_number_generator= np.random.default_rng(0))
+    assert spectrum_tensor[6] == 1.0
+    assert spectrum_tensor[8] == 0.27
+    assert spectrum_tensor[0] == 0.0
+    assert spectrum_tensor[2] != 0.0 # we know this one is changed because of the random number generator
+
