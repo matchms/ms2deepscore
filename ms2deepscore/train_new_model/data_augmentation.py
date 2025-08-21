@@ -32,7 +32,8 @@ def data_augmentation_spectrum(spectrum_tensor,
     if model_settings.augment_intensity:
         spectrum_tensor = change_peak_intensity(spectrum_tensor, model_settings)
 
-    peak_addition_for_data_augmentation(spectrum_tensor, model_settings, random_number_generator)
+    peak_addition_for_data_augmentation(spectrum_tensor, model_settings.augment_noise_max,
+                                        model_settings.augment_noise_intensity, random_number_generator)
     return spectrum_tensor
 
 def peak_removal_for_data_augmentation(spectrum_tensor, augment_removal_max,
@@ -64,11 +65,25 @@ def peak_removal_for_data_augmentation(spectrum_tensor, augment_removal_max,
 def change_peak_intensity(spectrum_tensor, model_settings):
     return spectrum_tensor * (1 - model_settings.augment_intensity * 2 * (torch.rand(spectrum_tensor.shape) - 0.5))
 
-def peak_addition_for_data_augmentation(spectrum_tensor, model_settings, random_number_generator):
-    if model_settings.augment_noise_max and model_settings.augment_noise_max > 0:
-        indices_select = torch.where(spectrum_tensor == 0)[0]
-        if len(indices_select) > model_settings.augment_noise_max:
-            indices_noise = random_number_generator.choice(
-                indices_select,
-                random_number_generator.integers(0, model_settings.augment_noise_max), replace=False,)
-        spectrum_tensor[indices_noise] = model_settings.augment_noise_intensity * torch.rand(len(indices_noise))
+def peak_addition_for_data_augmentation(spectrum_tensor, augment_noise_max,
+                                        augment_noise_intensity, random_number_generator):
+    """Adds noise to a spectrum tensor
+    spectrum_tensor:
+        Tensorized spectrum
+    augment_noise_max
+        Max number of 'new' noise peaks to add to the spectrum, between 0 to `augment_noise_max`
+        of peaks are added.
+    augment_noise_intensity
+        maximum intensity of the 'new' noise peaks to add to the spectrum,
+    random_number_generator
+        Random number generator used to generate random numbers. Can be generated with np.random.default_rng(42)
+        """
+    if augment_noise_max and augment_noise_max > 0:
+        bin_indices_zero = torch.where(spectrum_tensor == 0)[0]
+        number_of_noise_peaks_to_add = random_number_generator.integers(0, augment_noise_max)
+        if len(bin_indices_zero) > number_of_noise_peaks_to_add:
+            selected_bin_indices_to_add_noise = random_number_generator.choice(
+                bin_indices_zero,number_of_noise_peaks_to_add, replace=False,)
+        else:
+            selected_bin_indices_to_add_noise = bin_indices_zero
+        spectrum_tensor[selected_bin_indices_to_add_noise] = augment_noise_intensity * torch.rand(len(selected_bin_indices_to_add_noise))
