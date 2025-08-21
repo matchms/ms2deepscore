@@ -190,6 +190,7 @@ def create_data_generator(training_spectra,
                           json_save_file=None) -> SpectrumPairGenerator:
     selected_compound_pairs_training = select_compound_pairs_wrapper(training_spectra, settings=settings)
     inchikey_pair_generator = InchikeyPairGenerator(selected_compound_pairs_training)
+
     if json_save_file is not None:
         inchikey_pair_generator.save_as_json(json_save_file)
     # Create generators

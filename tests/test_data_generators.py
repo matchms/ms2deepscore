@@ -5,7 +5,7 @@ from collections import Counter
 from matchms import Spectrum
 from ms2deepscore.SettingsMS2Deepscore import SettingsMS2Deepscore, SettingsEmbeddingEvaluator
 from ms2deepscore.tensorize_spectra import tensorize_spectra
-from ms2deepscore.train_new_model.data_generators import SpectrumPairGenerator, \
+from ms2deepscore.train_new_model.SpectrumPairGenerator import SpectrumPairGenerator, \
     create_data_generator
 from ms2deepscore.train_new_model.DataGeneratorEmbeddingEvaluation import DataGeneratorEmbeddingEvaluation
 from ms2deepscore.train_new_model import InchikeyPairGenerator

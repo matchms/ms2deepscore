@@ -14,7 +14,7 @@ from ms2deepscore.models.SiameseSpectralModel import (SiameseSpectralModel,
                                                       train)
 from ms2deepscore.SettingsMS2Deepscore import SettingsMS2Deepscore
 from ms2deepscore.validation_loss_calculation.ValidationLossCalculator import ValidationLossCalculator
-from ms2deepscore.train_new_model.data_generators import create_data_generator
+from ms2deepscore.train_new_model.SpectrumPairGenerator import create_data_generator
 from ms2deepscore.train_new_model.train_ms2deepscore import \
     train_ms2ds_model, plot_history, save_history
 from ms2deepscore.train_new_model.validation_and_test_split import \
