@@ -6,7 +6,7 @@ from ms2deepscore import SettingsMS2Deepscore
 from ms2deepscore.tensorize_spectra import tensorize_spectra
 from ms2deepscore.train_new_model.data_augmentation import (data_augmentation, data_augmentation_spectrum,
                                                             peak_addition_for_data_augmentation,
-                                                            peak_removal_for_data_augmentation, change_peak_intensity)
+                                                            peak_removal_for_data_augmentation, change_peak_intensity_for_data_augmentation)
 
 def test_peak_removal_for_data_augmentation():
     spectrum_tensor = torch.tensor([0.0, 0.12, 0.05, 0.78, 0.0, 0.34, 1.0, 0.0, 0.27, 0.65])
@@ -27,3 +27,9 @@ def test_peak_addition_for_data_augmentation():
     assert spectrum_tensor[0] == 0.0
     assert spectrum_tensor[2] != 0.0 # we know this one is changed because of the random number generator
 
+def test_change_peak_intensity_for_data_augmentation():
+    spectrum_tensor = torch.tensor([0.0, 0.12, 0.05, 0.78, 0.0, 0.34, 1.0, 0.0, 0.27, 0.65])
+    change_peak_intensity_for_data_augmentation(spectrum_tensor,
+                                       0.2)
+    assert spectrum_tensor[0] == 0.0 # Check that zero's are not changed.
+    assert spectrum_tensor[1] != 0.12 # Check that the value is changed.
