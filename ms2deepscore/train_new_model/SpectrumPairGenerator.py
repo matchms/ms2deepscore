@@ -6,7 +6,7 @@ import torch
 from matchms import Spectrum
 from ms2deepscore.SettingsMS2Deepscore import (SettingsMS2Deepscore)
 from ms2deepscore.tensorize_spectra import tensorize_spectra
-from ms2deepscore.train_new_model import InchikeyPairGenerator
+from ms2deepscore.train_new_model.InchikeyPairGenerator import InchikeyPairGenerator
 from ms2deepscore.train_new_model.inchikey_pair_selection import (
     select_compound_pairs_wrapper)
 from ms2deepscore.utils import split_by_ionmode
@@ -27,7 +27,7 @@ class SpectrumPairGenerator:
     """
 
     def __init__(self, spectrums: List[Spectrum],
-                 selected_compound_pairs: "InchikeyPairGenerator",
+                 selected_compound_pairs: InchikeyPairGenerator,
                  settings: SettingsMS2Deepscore):
         """Generates data for training a siamese Pytorch model.
 
