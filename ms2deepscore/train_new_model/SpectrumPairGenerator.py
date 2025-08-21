@@ -1,6 +1,6 @@
 """ Data generators for training/inference with MS2DeepScore model.
 """
-from typing import List
+from typing import List, Tuple, Generator
 import numpy as np
 import torch
 from matchms import Spectrum
@@ -84,7 +84,7 @@ class SpectrumPairGenerator:
         self.current_batch_index = 0  # make generator executable again
         raise StopIteration
 
-    def _spectrum_pair_generator(self):
+    def _spectrum_pair_generator(self) -> Generator[Tuple[Spectrum, Spectrum, float]]:
         """Use the provided SelectedCompoundPairs object to pick pairs."""
         for _ in range(self.model_settings.batch_size):
             try:
@@ -118,7 +118,7 @@ class SpectrumPairGenerator:
             spectra_2 = data_augmentation(spectra_2, self.model_settings, self.rng)
         return spectra_1, spectra_2, meta_1, meta_2, targets
 
-    def _tensorize_all(self, spectrum_pairs):
+    def _tensorize_all(self, spectrum_pairs: Generator[Tuple[Spectrum, Spectrum, float]]):
         spectra_1 = []
         spectra_2 = []
         targets = []
@@ -148,7 +148,7 @@ def create_data_generator(training_spectra,
                           settings,
                           json_save_file=None) -> SpectrumPairGenerator:
     # todo actually create, both between and across ionmodes.
-    pos_spectra, neg_spectra = split_by_ionmode(training_spectra)
+    # pos_spectra, neg_spectra = split_by_ionmode(training_spectra)
 
     selected_compound_pairs_training = select_compound_pairs_wrapper(training_spectra, settings=settings)
     inchikey_pair_generator = InchikeyPairGenerator(selected_compound_pairs_training)
