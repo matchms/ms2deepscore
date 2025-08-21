@@ -29,8 +29,7 @@ def data_augmentation_spectrum(spectrum_tensor,
                                        model_settings.augment_removal_intensity, random_number_generator)
 
     # Augmentation 2: Change peak intensities
-    if model_settings.augment_intensity:
-        spectrum_tensor = change_peak_intensity(spectrum_tensor, model_settings)
+    change_peak_intensity_for_data_augmentation(spectrum_tensor, model_settings.augment_intensity)
 
     peak_addition_for_data_augmentation(spectrum_tensor, model_settings.augment_noise_max,
                                         model_settings.augment_noise_intensity, random_number_generator)
@@ -62,8 +61,9 @@ def peak_removal_for_data_augmentation(spectrum_tensor, augment_removal_max,
         if len(indices) > 0:
             spectrum_tensor[indices] = 0
 
-def change_peak_intensity(spectrum_tensor, model_settings):
-    return spectrum_tensor * (1 - model_settings.augment_intensity * 2 * (torch.rand(spectrum_tensor.shape) - 0.5))
+def change_peak_intensity_for_data_augmentation(spectrum_tensor, augment_intensity):
+    if augment_intensity:
+        spectrum_tensor.mul_(1 - augment_intensity * 2 * (torch.rand(spectrum_tensor.shape) - 0.5))
 
 def peak_addition_for_data_augmentation(spectrum_tensor, augment_noise_max,
                                         augment_noise_intensity, random_number_generator):
