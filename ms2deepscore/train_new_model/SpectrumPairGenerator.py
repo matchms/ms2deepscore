@@ -7,6 +7,7 @@ from matchms import Spectrum
 from ms2deepscore.SettingsMS2Deepscore import (SettingsMS2Deepscore)
 from ms2deepscore.tensorize_spectra import tensorize_spectra
 from ms2deepscore.train_new_model.InchikeyPairGenerator import InchikeyPairGenerator
+from ms2deepscore.train_new_model.data_augmentation import data_augmentation
 from ms2deepscore.train_new_model.inchikey_pair_selection import (
     select_compound_pairs_wrapper)
 from ms2deepscore.utils import split_by_ionmode
@@ -113,8 +114,8 @@ class SpectrumPairGenerator:
             # Store batches for later epochs
             self.fixed_set[batch_index] = (spectra_1, spectra_2, meta_1, meta_2, targets)
         else:
-            spectra_1 = self._data_augmentation(spectra_1)
-            spectra_2 = self._data_augmentation(spectra_2)
+            spectra_1 = data_augmentation(spectra_1, self.model_settings, self.rng)
+            spectra_2 = data_augmentation(spectra_2, self.model_settings, self.rng)
         return spectra_1, spectra_2, meta_1, meta_2, targets
 
     def _tensorize_all(self, spectrum_pairs):
@@ -141,48 +142,6 @@ class SpectrumPairGenerator:
         if len(matching_spectrum_id) <= 0:
             raise ValueError("No matching inchikey found (note: expected first 14 characters)")
         return self.spectrums[self.rng.choice(matching_spectrum_id)]
-
-    def _data_augmentation(self, spectra_tensors):
-        for i in range(spectra_tensors.shape[0]):
-            spectra_tensors[i, :] = self._data_augmentation_spectrum(spectra_tensors[i, :])
-        return spectra_tensors
-
-    def _data_augmentation_spectrum(self, spectrum_tensor):
-        """Data augmentation.
-
-        Parameters
-        ----------
-        spectrum_tensor
-            Spectrum in Pytorch tensor form.
-        """
-        # Augmentation 1: peak removal (peaks < augment_removal_max)
-        if self.model_settings.augment_removal_max or self.model_settings.augment_removal_intensity:
-            # TODO: Factor out function with documentation + example?
-
-            indices_select = torch.where((spectrum_tensor > 0)
-                                         & (spectrum_tensor < self.model_settings.augment_removal_intensity))[0]
-            removal_part = self.rng.random(1) * self.model_settings.augment_removal_max
-            indices = self.rng.choice(indices_select, int(np.ceil((1 - removal_part) * len(indices_select))))
-            if len(indices) > 0:
-                spectrum_tensor[indices] = 0
-
-        # Augmentation 2: Change peak intensities
-        if self.model_settings.augment_intensity:
-            # TODO: Factor out function with documentation + example?
-            spectrum_tensor = spectrum_tensor * (
-                        1 - self.model_settings.augment_intensity * 2 * (torch.rand(spectrum_tensor.shape) - 0.5))
-
-        # Augmentation 3: Peak addition
-        if self.model_settings.augment_noise_max and self.model_settings.augment_noise_max > 0:
-            indices_select = torch.where(spectrum_tensor == 0)[0]
-            if len(indices_select) > self.model_settings.augment_noise_max:
-                indices_noise = self.rng.choice(indices_select,
-                                                self.rng.integers(0, self.model_settings.augment_noise_max),
-                                                replace=False,
-                                                )
-            spectrum_tensor[indices_noise] = self.model_settings.augment_noise_intensity * torch.rand(
-                len(indices_noise))
-        return spectrum_tensor
 
 
 def create_data_generator(training_spectra,
