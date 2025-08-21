@@ -5,7 +5,8 @@ from ms2deepscore.models.SiameseSpectralModel import (SiameseSpectralModel,
                                                       train)
 from ms2deepscore.SettingsMS2Deepscore import SettingsMS2Deepscore
 from ms2deepscore.tensorize_spectra import tensorize_spectra
-from ms2deepscore.train_new_model.data_generators import SpectrumPairGenerator, InchikeyPairGenerator
+from ms2deepscore.train_new_model.data_generators import SpectrumPairGenerator
+from ms2deepscore.train_new_model import InchikeyPairGenerator
 from ms2deepscore.train_new_model.inchikey_pair_selection import \
     select_compound_pairs_wrapper
 from ms2deepscore.validation_loss_calculation.ValidationLossCalculator import \
