@@ -147,12 +147,17 @@ class SpectrumPairGenerator:
 def create_data_generator(training_spectra,
                           settings,
                           json_save_file=None) -> SpectrumPairGenerator:
+    # todo actually create, both between and across ionmodes.
+    pos_spectra, neg_spectra = split_by_ionmode(training_spectra)
+
     selected_compound_pairs_training = select_compound_pairs_wrapper(training_spectra, settings=settings)
     inchikey_pair_generator = InchikeyPairGenerator(selected_compound_pairs_training)
 
     if json_save_file is not None:
         inchikey_pair_generator.save_as_json(json_save_file)
+    # todo possibly create a single SpectrumPairGenerator which takes in 3 generators and pos and neg spectra to iteratively select each one.
     # Create generators
+    # todo also make sure that the SpectrumPairGenerator can work across ionmodes.
     train_generator = SpectrumPairGenerator(spectrums=training_spectra,
                                             selected_compound_pairs=inchikey_pair_generator,
                                             settings=settings)
