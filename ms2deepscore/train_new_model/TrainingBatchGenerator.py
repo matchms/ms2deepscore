@@ -4,7 +4,7 @@ import numpy as np
 import torch
 from ms2deepscore.SettingsMS2Deepscore import (SettingsMS2Deepscore)
 from ms2deepscore.tensorize_spectra import tensorize_spectra
-from ms2deepscore.train_new_model.InchikeyPairGenerator import InchikeyPairGenerator
+from ms2deepscore.train_new_model.SpectrumPairGenerator import SpectrumPairGenerator
 from ms2deepscore.train_new_model.data_augmentation import data_augmentation
 from ms2deepscore.train_new_model.inchikey_pair_selection import (
     select_compound_pairs_wrapper)
@@ -14,18 +14,18 @@ class TrainingBatchGenerator:
     """Generates data for training a siamese Pytorch model.
 
     This class provides a data generator specifically designed for training a Siamese Pytorch model with a curated set
-    of compound pairs. It takes a InchikeyPairGenerator and randomly selects, augments and tensorizes spectra for each
-    inchikey pair.
+    of compound pairs. It takes a SpectrumPairGenerator and augments and tensorizes spectra and combines them into
+    batches.
 
-    By using pre-selected compound pairs (in the InchikeyPairGenerator), this allows more control over the training
-    process. The selection of inchikey pairs does not happen in TrainingBatchGenerator (only spectrum selection), but in
-    inchikey_pair_selection.py. In inchikey_pair_selection inchikey pairs are picked to balance selected pairs equally
+    By using pre-selected compound pairs (in the SpectrumPairGenerator), this allows more control over the training
+    process. The selection of inchikey pairs does not happen in SpectrumPairGenerator, but in
+    inchikey_pair_selection.py. In inchikey_pair_selection.py inchikey pairs are picked to balance selected pairs equally
     over different tanimoto score bins to make sure both pairs of similar and dissimilar compounds are sampled.
     In addition inchikeys are selected to occur equally for each pair.
     """
 
     def __init__(self,
-                 selected_compound_pairs: InchikeyPairGenerator,
+                 selected_compound_pairs: SpectrumPairGenerator,
                  settings: SettingsMS2Deepscore):
         """Generates data for training a siamese Pytorch model.
 
@@ -126,7 +126,7 @@ def create_data_generator(training_spectra,
     # pos_spectra, neg_spectra = split_by_ionmode(training_spectra)
 
     selected_compound_pairs_training = select_compound_pairs_wrapper(training_spectra, settings=settings)
-    inchikey_pair_generator = InchikeyPairGenerator(selected_compound_pairs_training, training_spectra)
+    inchikey_pair_generator = SpectrumPairGenerator(selected_compound_pairs_training, training_spectra)
 
     if json_save_file is not None:
         inchikey_pair_generator.save_as_json(json_save_file)

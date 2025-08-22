@@ -8,7 +8,7 @@ from ms2deepscore.tensorize_spectra import tensorize_spectra
 from ms2deepscore.train_new_model.TrainingBatchGenerator import TrainingBatchGenerator, \
     create_data_generator
 from ms2deepscore.train_new_model.DataGeneratorEmbeddingEvaluation import DataGeneratorEmbeddingEvaluation
-from ms2deepscore.train_new_model import InchikeyPairGenerator
+from ms2deepscore.train_new_model import SpectrumPairGenerator
 from tests.create_test_spectra import create_test_spectra
 
 
@@ -63,7 +63,7 @@ def test_tensorize_spectra():
 @pytest.fixture()
 def dummy_data_generator():
     spectrums = create_test_spectra(4, 3)
-    selected_pairs = InchikeyPairGenerator([('CCCCCCCCCCCCCC', 'DDDDDDDDDDDDDD', 0.25),
+    selected_pairs = SpectrumPairGenerator([('CCCCCCCCCCCCCC', 'DDDDDDDDDDDDDD', 0.25),
                                             ('BBBBBBBBBBBBBB', 'DDDDDDDDDDDDDD', 0.6666667),
                                             ('AAAAAAAAAAAAAA', 'CCCCCCCCCCCCCC', 1.0),
                                             ('AAAAAAAAAAAAAA', 'BBBBBBBBBBBBBB', 0.33333334)],

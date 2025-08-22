@@ -12,7 +12,7 @@ def select_compound_pairs_wrapper_across_ionmode(
         spectra_2: List[Spectrum],
         settings: SettingsMS2Deepscore,
 ) -> List[Tuple[str, str, float]]:
-    """Returns a InchikeyPairGenerator object containing equally balanced pairs over the different bins
+    """Returns a SpectrumPairGenerator object containing equally balanced pairs over the different bins
 
     spectra:
         A list of spectra
@@ -22,8 +22,8 @@ def select_compound_pairs_wrapper_across_ionmode(
 
     Returns
     -------
-    InchikeyPairGenerator
-        InchikeyPairGenerator containing balanced pairs. The pairs are stored as [(inchikey1, inchikey2, score)]
+    SpectrumPairGenerator
+        SpectrumPairGenerator containing balanced pairs. The pairs are stored as [(inchikey1, inchikey2, score)]
     """
     if settings.random_seed is not None:
         np.random.seed(settings.random_seed)

@@ -6,7 +6,7 @@ import numpy as np
 from matchms import Spectrum
 
 
-class InchikeyPairGenerator:
+class SpectrumPairGenerator:
     def __init__(self, selected_inchikey_pairs: List[Tuple[str, str, float]], spectra):
         """
         Parameters
@@ -35,7 +35,7 @@ class InchikeyPairGenerator:
         return len(self.selected_inchikey_pairs)
 
     def __str__(self):
-        return f"InchikeyPairGenerator with {len(self.selected_inchikey_pairs)} pairs available"
+        return f"SpectrumPairGenerator with {len(self.selected_inchikey_pairs)} pairs available"
 
     def get_scores(self):
         return [score for _, _, score in self.selected_inchikey_pairs]
