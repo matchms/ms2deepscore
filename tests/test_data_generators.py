@@ -6,9 +6,8 @@ from matchms import Spectrum
 from ms2deepscore.SettingsMS2Deepscore import SettingsMS2Deepscore, SettingsEmbeddingEvaluator
 from ms2deepscore.tensorize_spectra import tensorize_spectra
 from ms2deepscore.train_new_model.TrainingBatchGenerator import TrainingBatchGenerator
-from ms2deepscore.train_new_model.train_ms2deepscore import create_data_generator
 from ms2deepscore.train_new_model.DataGeneratorEmbeddingEvaluation import DataGeneratorEmbeddingEvaluation
-from ms2deepscore.train_new_model import SpectrumPairGenerator
+from ms2deepscore.train_new_model import SpectrumPairGenerator, select_compound_pairs_wrapper
 from tests.create_test_spectra import create_test_spectra
 
 
@@ -162,21 +161,20 @@ def test_create_data_generator():
     """tests if a the function create_data_generator creates a datagenerator that samples all input spectra
     correct distributions of inchikeys and scores are tested in other tests"""
     test_spectra = create_test_spectra(8, 3)
-    data_generator = create_data_generator(training_spectra=test_spectra,
-                                           settings=SettingsMS2Deepscore(
-                                               min_mz=10,
-                                               max_mz=1000,
-                                               mz_bin_width=0.1,
-                                               intensity_scaling=0.5,
-                                               additional_metadata=[],
-                                               same_prob_bins=np.array([(-0.000001, 0.25), (0.25, 0.5), (0.5, 0.75),
+    settings = SettingsMS2Deepscore(min_mz=10, max_mz=1000,
+                                    mz_bin_width=0.1,
+                                    intensity_scaling=0.5,
+                                    additional_metadata=[],
+                                    same_prob_bins=np.array([(-0.000001, 0.25), (0.25, 0.5), (0.5, 0.75),
                                                                         (0.75, 1)]),
-                                               batch_size=2,
+                                    batch_size=2,
                                                num_turns=4,
                                                augment_removal_max=0.0,
                                                augment_removal_intensity=0.0,
                                                augment_intensity=0.0,
-                                               augment_noise_max=0))
+                                               augment_noise_max=0)
+    spectrum_pair_generator = select_compound_pairs_wrapper(test_spectra, settings=settings)
+    data_generator = TrainingBatchGenerator(spectrum_pair_generator=spectrum_pair_generator, settings=settings)
     tensorized_spectra = []
     epochs = 20
     for _ in range(epochs):

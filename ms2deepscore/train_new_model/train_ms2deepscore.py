@@ -29,11 +29,9 @@ def train_ms2ds_model(
     settings.save_to_file(os.path.join(results_folder, "settings.json"))
 
     # Create a training generator
-    if inchikey_pairs_file is None:
-        train_generator = create_data_generator(training_spectra, settings, None)
-    else:
-        train_generator = create_data_generator(training_spectra, settings,
-                                                os.path.join(results_folder, inchikey_pairs_file))
+    spectrum_pair_generator = select_compound_pairs_wrapper(training_spectra, settings=settings)
+    train_generator = TrainingBatchGenerator(spectrum_pair_generator=spectrum_pair_generator, settings=settings)
+
     # Create a validation loss calculator
     validation_loss_calculator = ValidationLossCalculator(validation_spectra,
                                                           settings=settings)
@@ -70,15 +68,6 @@ def train_ms2ds_model(
 #     train_generator = TrainingBatchGenerator(spectrum_pair_generator=inchikey_pair_generator, settings=settings)
 #     return train_generator
 
-def create_data_generator(training_spectra,
-                          settings: SettingsMS2Deepscore,
-                          json_save_file=None) -> TrainingBatchGenerator:
-    spectrum_pair_generator = select_compound_pairs_wrapper(training_spectra, settings=settings)
-    if json_save_file is not None:
-        spectrum_pair_generator.save_as_json(json_save_file)
-    # Create generators
-    train_generator = TrainingBatchGenerator(spectrum_pair_generator=spectrum_pair_generator, settings=settings)
-    return train_generator
 
 
 def plot_history(losses, val_losses, file_name: Optional[str] = None):
