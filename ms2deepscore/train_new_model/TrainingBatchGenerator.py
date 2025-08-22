@@ -25,13 +25,13 @@ class TrainingBatchGenerator:
     """
 
     def __init__(self,
-                 selected_compound_pairs: SpectrumPairGenerator,
+                 spectrum_pair_generator: SpectrumPairGenerator,
                  settings: SettingsMS2Deepscore):
         """Generates data for training a siamese Pytorch model.
 
         Parameters
         ----------
-        selected_compound_pairs
+        spectrum_pair_generator
             SelectedCompoundPairs object which contains selected compounds pairs and the
             respective similarity scores.
         settings
@@ -50,8 +50,8 @@ class TrainingBatchGenerator:
             if self.model_settings.random_seed is None:
                 self.model_settings.random_seed = 0
         self.rng = np.random.default_rng(self.model_settings.random_seed)
-        self.inchikey_pair_generator = selected_compound_pairs
-        unique_inchikeys = np.unique(selected_compound_pairs.spectrum_inchikeys)
+        self.spectrum_pair_generator = spectrum_pair_generator
+        unique_inchikeys = np.unique(spectrum_pair_generator.spectrum_inchikeys)
         if len(unique_inchikeys) < self.model_settings.batch_size:
             raise ValueError("The number of unique inchikeys must be larger than the batch size.")
         self.fixed_set = {}
@@ -77,7 +77,7 @@ class TrainingBatchGenerator:
         """Use the provided SelectedCompoundPairs object to pick pairs."""
         for _ in range(self.model_settings.batch_size):
             try:
-                spectrum1, spectrum2, score = next(self.inchikey_pair_generator)
+                spectrum1, spectrum2, score = next(self.spectrum_pair_generator)
                 yield spectrum1, spectrum2, score
             except StopIteration as exc:
                 raise RuntimeError("The inchikey pair generator is not expected to end, "
@@ -134,6 +134,5 @@ def create_data_generator(training_spectra,
     # todo possibly create a single TrainingBatchGenerator which takes in 3 generators and pos and neg spectra to iteratively select each one.
     # Create generators
     # todo also make sure that the TrainingBatchGenerator can work across ionmodes.
-    train_generator = TrainingBatchGenerator(selected_compound_pairs=inchikey_pair_generator,
-                                             settings=settings)
+    train_generator = TrainingBatchGenerator(spectrum_pair_generator=inchikey_pair_generator, settings=settings)
     return train_generator

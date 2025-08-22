@@ -134,8 +134,7 @@ def test_model_training(simple_training_spectra):
     scp_train = select_compound_pairs_wrapper(simple_training_spectra, settings)
     inchikey_pair_generator = SpectrumPairGenerator(scp_train, simple_training_spectra)
     # Create generators
-    train_generator_simple = TrainingBatchGenerator(selected_compound_pairs=inchikey_pair_generator,
-                                                    settings=settings)
+    train_generator_simple = TrainingBatchGenerator(spectrum_pair_generator=inchikey_pair_generator, settings=settings)
     settings.same_prob_bins = np.array([(-0.01, 1.0)])
     validation_loss_calculator = ValidationLossCalculator(
         simple_training_spectra,
