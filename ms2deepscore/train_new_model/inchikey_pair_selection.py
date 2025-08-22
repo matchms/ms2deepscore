@@ -242,16 +242,22 @@ def convert_to_selected_pairs_list(pair_frequency_matrixes: np.ndarray,
     for bin_id, bin_pair_frequency_matrix in enumerate(tqdm(pair_frequency_matrixes)):
         selected_pairs = []
         for inchikey1_index, pair_frequency_row in enumerate(bin_pair_frequency_matrix):
-            for inchikey2_index, pair_frequency in enumerate(pair_frequency_row):
+            for column_index, pair_frequency in enumerate(pair_frequency_row):
                 if pair_frequency > 0:
-                    inchikey2 = available_pairs_per_bin_matrix[bin_id][inchikey1_index][inchikey2_index]
+                    inchikey2_index = available_pairs_per_bin_matrix[bin_id][inchikey1_index][column_index]
                     score = scores_matrix[bin_id][inchikey1_index][inchikey2_index]
-                    selected_pairs.extend(
-                        [(inchikeys14_unique[inchikey1_index], inchikeys14_unique[inchikey2], score)] * pair_frequency)
+                    # This ensures that the order is the same.
+                    # This is important for the cross ionization mode selection.
+                    if inchikey1_index < inchikey2_index:
+                        selected_pairs.extend(
+                            [(inchikeys14_unique[inchikey1_index], inchikeys14_unique[inchikey2_index], score)] * pair_frequency)
+                    else:
+                        selected_pairs.extend(
+                            [(inchikeys14_unique[inchikey2_index], inchikeys14_unique[inchikey1_index], score)] * pair_frequency)
                     # remove duplicate pairs
                     position_of_first_inchikey_in_matrix = available_pairs_per_bin_matrix[bin_id][
-                                                               inchikey2] == inchikey1_index
-                    bin_pair_frequency_matrix[inchikey2][position_of_first_inchikey_in_matrix] = 0
+                                                               inchikey2_index] == inchikey1_index
+                    bin_pair_frequency_matrix[inchikey2_index][position_of_first_inchikey_in_matrix] = 0
         selected_pairs_per_bin.append(selected_pairs)
     return selected_pairs_per_bin
 
