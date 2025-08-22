@@ -2,9 +2,12 @@ import json
 from collections import Counter
 from typing import List, Tuple
 
+import numpy as np
+from matchms import Spectrum
+
 
 class InchikeyPairGenerator:
-    def __init__(self, selected_inchikey_pairs: List[Tuple[str, str, float]]):
+    def __init__(self, selected_inchikey_pairs: List[Tuple[str, str, float]], spectra):
         """
         Parameters
         ----------
@@ -12,6 +15,8 @@ class InchikeyPairGenerator:
             A list with tuples encoding inchikey pairs like: (inchikey1, inchikey2, tanimoto_score)
         """
         self.selected_inchikey_pairs = selected_inchikey_pairs
+        self.spectra = spectra
+        self.spectrum_inchikeys = np.array([s.get("inchikey")[:14] for s in self.spectra])
 
     def generator(self, shuffle: bool, random_nr_generator):
         """Infinite generator to loop through all inchikeys.
@@ -22,7 +27,9 @@ class InchikeyPairGenerator:
                 random_nr_generator.shuffle(self.selected_inchikey_pairs)
 
             for inchikey1, inchikey2, tanimoto_score in self.selected_inchikey_pairs:
-                yield inchikey1, inchikey2, tanimoto_score
+                spectrum1 = self._get_spectrum_with_inchikey(inchikey1, random_nr_generator)
+                spectrum2 = self._get_spectrum_with_inchikey(inchikey2, random_nr_generator)
+                yield spectrum1, spectrum2, tanimoto_score
 
     def __len__(self):
         return len(self.selected_inchikey_pairs)
@@ -59,3 +66,15 @@ class InchikeyPairGenerator:
 
         with open(file_name, "w", encoding="utf-8") as f:
             json.dump(data_for_json, f)
+
+    def _get_spectrum_with_inchikey(self, inchikey: str, random_number_generator) -> Spectrum:
+        """
+        Get a random spectrum matching the `inchikey` argument.
+
+        NB: A compound (identified by an
+        inchikey) can have multiple measured spectrums in a binned spectrum dataset.
+        """
+        matching_spectrum_id = np.where(self.spectrum_inchikeys == inchikey)[0]
+        if len(matching_spectrum_id) <= 0:
+            raise ValueError("No matching inchikey found (note: expected first 14 characters)")
+        return self.spectra[random_number_generator.choice(matching_spectrum_id)]

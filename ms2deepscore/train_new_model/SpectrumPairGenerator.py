@@ -1,6 +1,6 @@
 """ Data generators for training/inference with MS2DeepScore model.
 """
-from typing import List, Tuple, Generator
+from typing import List, Tuple
 import numpy as np
 import torch
 from matchms import Spectrum
@@ -27,15 +27,13 @@ class SpectrumPairGenerator:
     In addition inchikeys are selected to occur equally for each pair.
     """
 
-    def __init__(self, spectrums: List[Spectrum],
+    def __init__(self,
                  selected_compound_pairs: InchikeyPairGenerator,
                  settings: SettingsMS2Deepscore):
         """Generates data for training a siamese Pytorch model.
 
         Parameters
         ----------
-        spectrums
-            List of matchms Spectrum objects.
         selected_compound_pairs
             SelectedCompoundPairs object which contains selected compounds pairs and the
             respective similarity scores.
@@ -43,10 +41,6 @@ class SpectrumPairGenerator:
             The available settings can be found in SettignsMS2Deepscore
         """
         self.current_batch_index = 0
-        self.spectrums = spectrums
-
-        # Collect all inchikeys
-        self.spectrum_inchikeys = np.array([s.get("inchikey")[:14] for s in self.spectrums])
 
         # Set all other settings to input (or otherwise to defaults):
         self.model_settings = settings
@@ -59,14 +53,12 @@ class SpectrumPairGenerator:
             if self.model_settings.random_seed is None:
                 self.model_settings.random_seed = 0
         self.rng = np.random.default_rng(self.model_settings.random_seed)
-
-        unique_inchikeys = np.unique(self.spectrum_inchikeys)
+        self.inchikey_pair_generator = selected_compound_pairs.generator(self.model_settings.shuffle, self.rng)
+        unique_inchikeys = np.unique(selected_compound_pairs.spectrum_inchikeys)
         if len(unique_inchikeys) < self.model_settings.batch_size:
             raise ValueError("The number of unique inchikeys must be larger than the batch size.")
         self.fixed_set = {}
 
-        self.selected_compound_pairs = selected_compound_pairs
-        self.inchikey_pair_generator = self.selected_compound_pairs.generator(self.model_settings.shuffle, self.rng)
         self.nr_of_batches = int(self.model_settings.num_turns) * int(np.ceil(len(unique_inchikeys) /
                                                                               self.model_settings.batch_size))
 
@@ -84,18 +76,16 @@ class SpectrumPairGenerator:
         self.current_batch_index = 0  # make generator executable again
         raise StopIteration
 
-    def _spectrum_pair_generator(self) -> Generator[Tuple[Spectrum, Spectrum, float]]:
+    def _spectrum_pair_generator(self):
         """Use the provided SelectedCompoundPairs object to pick pairs."""
         for _ in range(self.model_settings.batch_size):
             try:
-                inchikey1, inchikey2, score = next(self.inchikey_pair_generator)
+                spectrum1, spectrum2, score = next(self.inchikey_pair_generator)
+                yield spectrum1, spectrum2, score
             except StopIteration as exc:
                 raise RuntimeError("The inchikey pair generator is not expected to end, "
                                    "but should instead generate infinite pairs") from exc
 
-            spectrum1 = self._get_spectrum_with_inchikey(inchikey1)
-            spectrum2 = self._get_spectrum_with_inchikey(inchikey2)
-            yield spectrum1, spectrum2, score
 
     def __getitem__(self, batch_index: int):
         """Generate one batch of data.
@@ -118,7 +108,7 @@ class SpectrumPairGenerator:
             spectra_2 = data_augmentation(spectra_2, self.model_settings, self.rng)
         return spectra_1, spectra_2, meta_1, meta_2, targets
 
-    def _tensorize_all(self, spectrum_pairs: Generator[Tuple[Spectrum, Spectrum, float]]):
+    def _tensorize_all(self, spectrum_pairs):
         spectra_1 = []
         spectra_2 = []
         targets = []
@@ -131,18 +121,6 @@ class SpectrumPairGenerator:
         binned_spectra_2, metadata_2 = tensorize_spectra(spectra_2, self.model_settings)
         return binned_spectra_1, binned_spectra_2, metadata_1, metadata_2, torch.tensor(targets, dtype=torch.float32)
 
-    def _get_spectrum_with_inchikey(self, inchikey: str) -> Spectrum:
-        """
-        Get a random spectrum matching the `inchikey` argument.
-
-        NB: A compound (identified by an
-        inchikey) can have multiple measured spectrums in a binned spectrum dataset.
-        """
-        matching_spectrum_id = np.where(self.spectrum_inchikeys == inchikey)[0]
-        if len(matching_spectrum_id) <= 0:
-            raise ValueError("No matching inchikey found (note: expected first 14 characters)")
-        return self.spectrums[self.rng.choice(matching_spectrum_id)]
-
 
 def create_data_generator(training_spectra,
                           settings,
@@ -151,14 +129,13 @@ def create_data_generator(training_spectra,
     # pos_spectra, neg_spectra = split_by_ionmode(training_spectra)
 
     selected_compound_pairs_training = select_compound_pairs_wrapper(training_spectra, settings=settings)
-    inchikey_pair_generator = InchikeyPairGenerator(selected_compound_pairs_training)
+    inchikey_pair_generator = InchikeyPairGenerator(selected_compound_pairs_training, training_spectra)
 
     if json_save_file is not None:
         inchikey_pair_generator.save_as_json(json_save_file)
     # todo possibly create a single SpectrumPairGenerator which takes in 3 generators and pos and neg spectra to iteratively select each one.
     # Create generators
     # todo also make sure that the SpectrumPairGenerator can work across ionmodes.
-    train_generator = SpectrumPairGenerator(spectrums=training_spectra,
-                                            selected_compound_pairs=inchikey_pair_generator,
+    train_generator = SpectrumPairGenerator(selected_compound_pairs=inchikey_pair_generator,
                                             settings=settings)
     return train_generator
