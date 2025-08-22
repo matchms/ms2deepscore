@@ -67,7 +67,7 @@ def dummy_data_generator():
                                             ('BBBBBBBBBBBBBB', 'DDDDDDDDDDDDDD', 0.6666667),
                                             ('AAAAAAAAAAAAAA', 'CCCCCCCCCCCCCC', 1.0),
                                             ('AAAAAAAAAAAAAA', 'BBBBBBBBBBBBBB', 0.33333334)],
-                                           spectrums)
+                                           spectrums, True, 0)
     batch_size = 2
     settings = SettingsMS2Deepscore(min_mz=10,
                                     max_mz=1000,

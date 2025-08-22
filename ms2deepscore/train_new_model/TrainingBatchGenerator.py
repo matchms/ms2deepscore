@@ -50,7 +50,7 @@ class TrainingBatchGenerator:
             if self.model_settings.random_seed is None:
                 self.model_settings.random_seed = 0
         self.rng = np.random.default_rng(self.model_settings.random_seed)
-        self.inchikey_pair_generator = selected_compound_pairs.generator(self.model_settings.shuffle, self.rng)
+        self.inchikey_pair_generator = selected_compound_pairs
         unique_inchikeys = np.unique(selected_compound_pairs.spectrum_inchikeys)
         if len(unique_inchikeys) < self.model_settings.batch_size:
             raise ValueError("The number of unique inchikeys must be larger than the batch size.")
@@ -120,13 +120,14 @@ class TrainingBatchGenerator:
 
 
 def create_data_generator(training_spectra,
-                          settings,
+                          settings: SettingsMS2Deepscore,
                           json_save_file=None) -> TrainingBatchGenerator:
     # todo actually create, both between and across ionmodes.
     # pos_spectra, neg_spectra = split_by_ionmode(training_spectra)
 
     selected_compound_pairs_training = select_compound_pairs_wrapper(training_spectra, settings=settings)
-    inchikey_pair_generator = SpectrumPairGenerator(selected_compound_pairs_training, training_spectra)
+    inchikey_pair_generator = SpectrumPairGenerator(selected_compound_pairs_training, training_spectra,
+                                                    settings.shuffle, settings.random_seed)
 
     if json_save_file is not None:
         inchikey_pair_generator.save_as_json(json_save_file)

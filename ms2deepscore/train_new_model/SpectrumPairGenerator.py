@@ -7,7 +7,8 @@ from matchms import Spectrum
 
 
 class SpectrumPairGenerator:
-    def __init__(self, selected_inchikey_pairs: List[Tuple[str, str, float]], spectra):
+    def __init__(self, selected_inchikey_pairs: List[Tuple[str, str, float]], spectra,
+                 shuffle: bool = True, random_seed: int = 0):
         """
         Parameters
         ----------
@@ -17,19 +18,27 @@ class SpectrumPairGenerator:
         self.selected_inchikey_pairs = selected_inchikey_pairs
         self.spectra = spectra
         self.spectrum_inchikeys = np.array([s.get("inchikey")[:14] for s in self.spectra])
+        self.shuffle = shuffle
+        self.random_nr_generator = np.random.default_rng(random_seed)
+        self._idx = 0
+        if self.shuffle:
+            self.random_nr_generator.shuffle(self.selected_inchikey_pairs)
 
-    def generator(self, shuffle: bool, random_nr_generator):
-        """Infinite generator to loop through all inchikeys.
-        After looping through all inchikeys the order is shuffled.
-        """
-        while True:
-            if shuffle:
-                random_nr_generator.shuffle(self.selected_inchikey_pairs)
+    def __iter__(self):
+        return self
 
-            for inchikey1, inchikey2, tanimoto_score in self.selected_inchikey_pairs:
-                spectrum1 = self._get_spectrum_with_inchikey(inchikey1, random_nr_generator)
-                spectrum2 = self._get_spectrum_with_inchikey(inchikey2, random_nr_generator)
-                yield spectrum1, spectrum2, tanimoto_score
+    def __next__(self):
+        # reshuffle when we've gone through everything
+        if self._idx >= len(self.selected_inchikey_pairs):
+            self._idx = 0
+            if self.shuffle:
+                self.random_nr_generator.shuffle(self.selected_inchikey_pairs)
+
+        inchikey1, inchikey2, tanimoto_score = self.selected_inchikey_pairs[self._idx]
+        spectrum1 = self._get_spectrum_with_inchikey(inchikey1, self.random_nr_generator)
+        spectrum2 = self._get_spectrum_with_inchikey(inchikey2, self.random_nr_generator)
+        self._idx += 1
+        return spectrum1, spectrum2, tanimoto_score
 
     def __len__(self):
         return len(self.selected_inchikey_pairs)
