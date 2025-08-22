@@ -21,7 +21,6 @@ def train_ms2ds_model(
         validation_spectra,
         results_folder,
         settings: SettingsMS2Deepscore,
-        inchikey_pairs_file: str = None,
         ):
     """Full workflow to train a MS2DeepScore model.
     """

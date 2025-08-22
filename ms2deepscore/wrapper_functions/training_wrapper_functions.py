@@ -42,10 +42,7 @@ def train_ms2deepscore_wrapper(settings: SettingsMS2Deepscore,
     validation_spectra = load_spectra_in_ionmode(settings.validation_spectra_file_name, settings.ionisation_mode)
 
     # Train model
-    _, history = train_ms2ds_model(
-        training_spectra, validation_spectra, settings.model_directory_name,
-        settings,
-    )
+    _, history = train_ms2ds_model(training_spectra, validation_spectra, settings.model_directory_name, settings)
 
     ms2ds_history_plot_file_name = os.path.join(settings.model_directory_name, settings.history_plot_file_name)
     plot_history(history["losses"], history["val_losses"], ms2ds_history_plot_file_name)
