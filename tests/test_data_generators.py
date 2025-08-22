@@ -66,7 +66,8 @@ def dummy_data_generator():
     selected_pairs = InchikeyPairGenerator([('CCCCCCCCCCCCCC', 'DDDDDDDDDDDDDD', 0.25),
                                             ('BBBBBBBBBBBBBB', 'DDDDDDDDDDDDDD', 0.6666667),
                                             ('AAAAAAAAAAAAAA', 'CCCCCCCCCCCCCC', 1.0),
-                                            ('AAAAAAAAAAAAAA', 'BBBBBBBBBBBBBB', 0.33333334)])
+                                            ('AAAAAAAAAAAAAA', 'BBBBBBBBBBBBBB', 0.33333334)],
+                                           spectrums)
     batch_size = 2
     settings = SettingsMS2Deepscore(min_mz=10,
                                     max_mz=1000,
@@ -80,7 +81,7 @@ def dummy_data_generator():
                                     augment_removal_intensity=0.0,
                                     augment_intensity=0.0,
                                     augment_noise_max=0)
-    return SpectrumPairGenerator(spectrums, selected_pairs, settings)
+    return SpectrumPairGenerator(selected_pairs, settings)
 
 
 def test_correct_batch_format_data_generator(dummy_data_generator):
@@ -108,6 +109,8 @@ def test_equal_sampling_of_spectra(dummy_data_generator):
     The sampling is random, but for enough repetitions very likely to always happen.
     This test is mostly to make sure we don't accidentally implement something
     where we just resample the same spectrum every time for one inchikey"""
+    spectrums = create_test_spectra(4, 3) # the same spectra used for the dummy_data_generator
+
     tensorized_spectra = []
     epochs = 20
     for _ in range(epochs):
@@ -128,7 +131,7 @@ def test_equal_sampling_of_spectra(dummy_data_generator):
     # but since we sample 640 spectra from 24 options, it is very unlikely (1 in 28 billion)
     # that this will result in not sampling all at least once.
     # Because we have a fixed seed, this should not result in random failing tests.
-    assert len(unique_tensors) == len(dummy_data_generator.spectrums), "Not all spectra are selected at least once"
+    assert len(unique_tensors) == 12, "Not all spectra are selected at least once"
 
     def reverse_tensorize(tensor, list_of_spectra, settings):
         """Finds the spectrum in a list of spectra based on the tensorized vesion"""
@@ -146,7 +149,7 @@ def test_equal_sampling_of_spectra(dummy_data_generator):
     inchikey_counts = Counter()
     for unique_tensor, count in tensor_counts.items():
         spectrum = reverse_tensorize(unique_tensor,
-                                     dummy_data_generator.spectrums,
+                                     spectrums,
                                      dummy_data_generator.model_settings)
 
         inchikey = spectrum.get("inchikey")[:14]
