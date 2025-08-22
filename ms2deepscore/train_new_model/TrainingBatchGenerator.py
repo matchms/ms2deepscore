@@ -49,12 +49,14 @@ class TrainingBatchGenerator:
                 self.model_settings.random_seed = 0
         self.rng = np.random.default_rng(self.model_settings.random_seed)
         self.spectrum_pair_generator = spectrum_pair_generator
-        unique_inchikeys = np.unique(spectrum_pair_generator.spectrum_inchikeys)
-        if len(unique_inchikeys) < self.model_settings.batch_size:
+        # The number of unique inchikeys derived from the number of spectrum pairs.
+        nr_of_unique_inchikeys = int(len(spectrum_pair_generator) / settings.average_inchikey_sampling_count * 2)
+        # The length of unique inchikeys is len(selected_inchikeys_pairs) / average number of pairs
+        if nr_of_unique_inchikeys < self.model_settings.batch_size:
             raise ValueError("The number of unique inchikeys must be larger than the batch size.")
         self.fixed_set = {}
 
-        self.nr_of_batches = int(self.model_settings.num_turns) * int(np.ceil(len(unique_inchikeys) /
+        self.nr_of_batches = int(self.model_settings.num_turns) * int(np.ceil(nr_of_unique_inchikeys /
                                                                               self.model_settings.batch_size))
 
     def __len__(self):
