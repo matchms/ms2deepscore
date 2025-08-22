@@ -5,7 +5,7 @@ from collections import Counter
 from matchms import Spectrum
 from ms2deepscore.SettingsMS2Deepscore import SettingsMS2Deepscore, SettingsEmbeddingEvaluator
 from ms2deepscore.tensorize_spectra import tensorize_spectra
-from ms2deepscore.train_new_model.SpectrumPairGenerator import SpectrumPairGenerator, \
+from ms2deepscore.train_new_model.TrainingBatchGenerator import TrainingBatchGenerator, \
     create_data_generator
 from ms2deepscore.train_new_model.DataGeneratorEmbeddingEvaluation import DataGeneratorEmbeddingEvaluation
 from ms2deepscore.train_new_model import InchikeyPairGenerator
@@ -81,7 +81,7 @@ def dummy_data_generator():
                                     augment_removal_intensity=0.0,
                                     augment_intensity=0.0,
                                     augment_noise_max=0)
-    return SpectrumPairGenerator(selected_pairs, settings)
+    return TrainingBatchGenerator(selected_pairs, settings)
 
 
 def test_correct_batch_format_data_generator(dummy_data_generator):
