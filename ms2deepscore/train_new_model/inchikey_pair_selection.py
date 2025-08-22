@@ -8,12 +8,13 @@ from matchms.similarity.vector_similarity_functions import jaccard_index
 from numba import jit, prange
 from tqdm import tqdm
 from ms2deepscore.SettingsMS2Deepscore import SettingsMS2Deepscore
+from ms2deepscore.train_new_model import SpectrumPairGenerator
 
 
 def select_compound_pairs_wrapper(
         spectra: List[Spectrum],
         settings: SettingsMS2Deepscore,
-) -> List[Tuple[str, str, float]]:
+) -> SpectrumPairGenerator:
     """Returns a SpectrumPairGenerator object containing equally balanced pairs over the different bins
 
     spectra:
@@ -53,7 +54,8 @@ def select_compound_pairs_wrapper(
         pair_frequency_matrixes, available_pairs_per_bin_matrix,
         available_scores_per_bin_matrix, inchikeys14_unique)
 
-    return [pair for pairs in selected_pairs_per_bin for pair in pairs]
+    return SpectrumPairGenerator([pair for pairs in selected_pairs_per_bin for pair in pairs],
+                                 spectra, settings.shuffle, settings.random_seed)
 
 
 def compute_fingerprints_for_training(

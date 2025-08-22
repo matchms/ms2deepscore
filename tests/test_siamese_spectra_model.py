@@ -131,8 +131,7 @@ def test_model_training(simple_training_spectra):
                                     batch_size=2,
                                     num_turns=20,
                                     )
-    scp_train = select_compound_pairs_wrapper(simple_training_spectra, settings)
-    inchikey_pair_generator = SpectrumPairGenerator(scp_train, simple_training_spectra)
+    inchikey_pair_generator = select_compound_pairs_wrapper(simple_training_spectra, settings)
     # Create generators
     train_generator_simple = TrainingBatchGenerator(spectrum_pair_generator=inchikey_pair_generator, settings=settings)
     settings.same_prob_bins = np.array([(-0.01, 1.0)])

@@ -186,8 +186,7 @@ def test_select_compound_pairs_wrapper_no_resampling():
                                     average_inchikey_sampling_count=10,
                                     batch_size=8,
                                     max_pair_resampling=max_pair_resampling)
-    selected_inchikey_pairs = select_compound_pairs_wrapper(spectrums, settings)
-    inchikey_pair_generator = SpectrumPairGenerator(selected_inchikey_pairs, spectrums, True, 0)
+    inchikey_pair_generator = select_compound_pairs_wrapper(spectrums, settings)
 
     check_balanced_scores_selecting_inchikey_pairs(inchikey_pair_generator, bins)
     check_correct_oversampling(inchikey_pair_generator, max_pair_resampling)
@@ -207,8 +206,7 @@ def test_select_compound_pairs_wrapper_with_resampling():
                                     average_inchikey_sampling_count=10,
                                     batch_size=8,
                                     max_pair_resampling=max_pair_resampling)
-    selected_inchikey_pairs = select_compound_pairs_wrapper(spectrums, settings)
-    inchikey_pair_generator = SpectrumPairGenerator(selected_inchikey_pairs, spectrums)
+    inchikey_pair_generator = select_compound_pairs_wrapper(spectrums, settings)
 
     check_balanced_scores_selecting_inchikey_pairs(inchikey_pair_generator, bins)
     check_correct_oversampling(inchikey_pair_generator, max_pair_resampling)
@@ -230,8 +228,7 @@ def test_select_compound_pairs_wrapper_maximum_inchikey_count():
                                     max_pair_resampling=max_pair_resampling,
                                     max_inchikey_sampling=max_inchikey_sampling
                                     )
-    selected_inchikey_pairs = select_compound_pairs_wrapper(spectrums, settings)
-    inchikey_pair_generator = SpectrumPairGenerator(selected_inchikey_pairs, spectrums)
+    inchikey_pair_generator = select_compound_pairs_wrapper(spectrums, settings)
 
     highest_inchikey_count = max(inchikey_pair_generator.get_inchikey_counts().values())
     assert highest_inchikey_count <= max_inchikey_sampling + 1 # +1 because there is a chance that the last added inchikey is a pair to itself...
