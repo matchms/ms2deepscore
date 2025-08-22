@@ -6,8 +6,6 @@ from ms2deepscore.SettingsMS2Deepscore import (SettingsMS2Deepscore)
 from ms2deepscore.tensorize_spectra import tensorize_spectra
 from ms2deepscore.train_new_model.SpectrumPairGenerator import SpectrumPairGenerator
 from ms2deepscore.train_new_model.data_augmentation import data_augmentation
-from ms2deepscore.train_new_model.inchikey_pair_selection import (
-    select_compound_pairs_wrapper)
 
 
 class TrainingBatchGenerator:
@@ -117,22 +115,3 @@ class TrainingBatchGenerator:
         binned_spectra_1, metadata_1 = tensorize_spectra(spectra_1, self.model_settings)
         binned_spectra_2, metadata_2 = tensorize_spectra(spectra_2, self.model_settings)
         return binned_spectra_1, binned_spectra_2, metadata_1, metadata_2, torch.tensor(targets, dtype=torch.float32)
-
-
-def create_data_generator(training_spectra,
-                          settings: SettingsMS2Deepscore,
-                          json_save_file=None) -> TrainingBatchGenerator:
-    # todo actually create, both between and across ionmodes.
-    # pos_spectra, neg_spectra = split_by_ionmode(training_spectra)
-
-    selected_compound_pairs_training = select_compound_pairs_wrapper(training_spectra, settings=settings)
-    inchikey_pair_generator = SpectrumPairGenerator(selected_compound_pairs_training, training_spectra,
-                                                    settings.shuffle, settings.random_seed)
-
-    if json_save_file is not None:
-        inchikey_pair_generator.save_as_json(json_save_file)
-    # todo possibly create a single TrainingBatchGenerator which takes in 3 generators and pos and neg spectra to iteratively select each one.
-    # Create generators
-    # todo also make sure that the TrainingBatchGenerator can work across ionmodes.
-    train_generator = TrainingBatchGenerator(spectrum_pair_generator=inchikey_pair_generator, settings=settings)
-    return train_generator

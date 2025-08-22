@@ -7,10 +7,12 @@ from typing import Optional
 
 import numpy as np
 from matplotlib import pyplot as plt
+
+from ms2deepscore import SettingsMS2Deepscore
 from ms2deepscore.models.SiameseSpectralModel import (SiameseSpectralModel,
                                                       train)
 from ms2deepscore.SettingsMS2Deepscore import SettingsMS2Deepscore
-from ms2deepscore.train_new_model.TrainingBatchGenerator import create_data_generator
+from ms2deepscore.train_new_model import TrainingBatchGenerator, select_compound_pairs_wrapper, SpectrumPairGenerator
 from ms2deepscore.validation_loss_calculation.ValidationLossCalculator import \
     ValidationLossCalculator
 
@@ -51,6 +53,25 @@ def train_ms2ds_model(
                     loss_function=settings.loss_function,
                     checkpoint_filename=output_model_file_name, lambda_l1=0, lambda_l2=0)
     return model, history
+
+
+def create_data_generator(training_spectra,
+                          settings: SettingsMS2Deepscore,
+                          json_save_file=None) -> TrainingBatchGenerator:
+    # todo actually create, both between and across ionmodes.
+    # pos_spectra, neg_spectra = split_by_ionmode(training_spectra)
+
+    selected_compound_pairs_training = select_compound_pairs_wrapper(training_spectra, settings=settings)
+    inchikey_pair_generator = SpectrumPairGenerator(selected_compound_pairs_training, training_spectra,
+                                                    settings.shuffle, settings.random_seed)
+
+    if json_save_file is not None:
+        inchikey_pair_generator.save_as_json(json_save_file)
+    # todo possibly create a single TrainingBatchGenerator which takes in 3 generators and pos and neg spectra to iteratively select each one.
+    # Create generators
+    # todo also make sure that the TrainingBatchGenerator can work across ionmodes.
+    train_generator = TrainingBatchGenerator(spectrum_pair_generator=inchikey_pair_generator, settings=settings)
+    return train_generator
 
 
 def plot_history(losses, val_losses, file_name: Optional[str] = None):
