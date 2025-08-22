@@ -79,7 +79,8 @@ def dummy_data_generator():
                                     augment_removal_max=0.0,
                                     augment_removal_intensity=0.0,
                                     augment_intensity=0.0,
-                                    augment_noise_max=0)
+                                    augment_noise_max=0,
+                                    average_inchikey_sampling_count=2)
     return TrainingBatchGenerator(selected_pairs, settings)
 
 
