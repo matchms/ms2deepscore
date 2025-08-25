@@ -245,7 +245,7 @@ def convert_to_selected_pairs_list(pair_frequency_matrixes: np.ndarray,
             for column_index, pair_frequency in enumerate(pair_frequency_row):
                 if pair_frequency > 0:
                     inchikey2_index = available_pairs_per_bin_matrix[bin_id][inchikey1_index][column_index]
-                    score = scores_matrix[bin_id][inchikey1_index][inchikey2_index]
+                    score = scores_matrix[bin_id][inchikey1_index][column_index]
                     # This ensures that the order is the same.
                     # This is important for the cross ionization mode selection.
                     if inchikey1_index < inchikey2_index:
