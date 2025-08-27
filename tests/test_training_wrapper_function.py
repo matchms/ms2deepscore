@@ -21,7 +21,7 @@ def test_train_wrapper_ms2ds_model(tmp_path):
     settings = SettingsMS2Deepscore(**{
         "spectrum_file_path": spectra_file_name,
         "epochs": 2,  # to speed up tests --> usually many more
-        "ionisation_mode": "negative",
+        "ionisation_mode": "both",
         "base_dims": (200, 200),  # to speed up tests --> usually larger
         "embedding_dim": 100,  # to speed up tests --> usually larger
         "same_prob_bins": np.array([(-0.01, 0.2), (0.2, 1.0)]),

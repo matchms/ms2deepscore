@@ -1,6 +1,6 @@
 import os
 import pickle
-from typing import Generator, List
+from typing import Generator, List, Tuple
 import numba
 import numpy as np
 from matchms import Spectrum
@@ -130,3 +130,25 @@ def validate_bin_order(score_bins):
             if low != previous_high:
                 raise ValueError("There is a gap or overlap between bins; The bins should cover everything between 0 and 1.")
         previous_high = high
+
+def split_by_ionmode(spectra:List[Spectrum]) -> Tuple[List[Spectrum], List[Spectrum]]:
+    """Splits spectra into list of positive ionmode and list of negative ionmode spectra.
+
+    Removes spectra without correct ionmode metadata entry.
+    """
+    pos_spectra = []
+    neg_spectra = []
+    spectra_removed = 0
+    for spectrum in tqdm(spectra,
+                         desc="Splitting pos and neg mode spectra"):
+        if spectrum is not None:
+            ionmode = spectrum.get("ionmode")
+            if ionmode == "positive":
+                pos_spectra.append(spectrum)
+            elif ionmode == "negative":
+                neg_spectra.append(spectrum)
+            else:
+                spectra_removed += 1
+    print(f"The spectra, are split in {len(pos_spectra)} positive spectra "
+          f"and {len(neg_spectra)} negative mode spectra. {spectra_removed} were removed")
+    return pos_spectra, neg_spectra
