@@ -5,11 +5,26 @@ import numpy as np
 from matchms import Spectrum
 from numba import jit, prange
 from ms2deepscore.SettingsMS2Deepscore import SettingsMS2Deepscore
-from ms2deepscore.train_new_model import TrainingBatchGenerator, SpectrumPairGenerator
+from ms2deepscore.train_new_model.TrainingBatchGenerator import TrainingBatchGenerator
+from ms2deepscore.train_new_model.SpectrumPairGenerator import SpectrumPairGenerator
 from ms2deepscore.train_new_model.inchikey_pair_selection import compute_fingerprints_for_training, \
     balanced_selection_of_pairs_per_bin, convert_to_selected_pairs_list, tanimoto_scores_row, \
     select_compound_pairs_wrapper
 from ms2deepscore.utils import split_by_ionmode
+
+def create_data_generator_across_ionmodes(training_spectra,
+                                          settings: SettingsMS2Deepscore) -> TrainingBatchGenerator:
+    pos_spectra, neg_spectra = split_by_ionmode(training_spectra)
+
+    pos_spectrum_pair_generator = select_compound_pairs_wrapper(pos_spectra, settings=settings)
+    neg_spectrum_pair_generator = select_compound_pairs_wrapper(neg_spectra, settings=settings)
+    pos_neg_spectrum_pair_generator = select_compound_pairs_wrapper_across_ionmode(pos_spectra, neg_spectra, settings)
+
+    spectrum_pair_generator = CombinedSpectrumGenerator([pos_spectrum_pair_generator, neg_spectrum_pair_generator, pos_neg_spectrum_pair_generator])
+
+    train_generator = TrainingBatchGenerator(spectrum_pair_generator=spectrum_pair_generator, settings=settings)
+    return train_generator
+
 
 def select_compound_pairs_wrapper_across_ionmode(
         spectra_1: List[Spectrum],
@@ -209,20 +224,6 @@ class SpectrumPairGeneratorAcrossIonmodes:
             raise ValueError("No matching inchikey found (note: expected first 14 characters), "
                              "likely switched pos and neg in entry")
         return self.spectra_neg[random_number_generator.choice(matching_spectrum_id)]
-
-
-def create_data_generator_across_ionmodes(training_spectra,
-                                          settings: SettingsMS2Deepscore) -> TrainingBatchGenerator:
-    pos_spectra, neg_spectra = split_by_ionmode(training_spectra)
-
-    pos_spectrum_pair_generator = select_compound_pairs_wrapper(pos_spectra, settings=settings)
-    neg_spectrum_pair_generator = select_compound_pairs_wrapper(neg_spectra, settings=settings)
-    pos_neg_spectrum_pair_generator = select_compound_pairs_wrapper_across_ionmode(pos_spectra, neg_spectra, settings)
-
-    spectrum_pair_generator = CombinedSpectrumGenerator([pos_spectrum_pair_generator, neg_spectrum_pair_generator, pos_neg_spectrum_pair_generator])
-
-    train_generator = TrainingBatchGenerator(spectrum_pair_generator=spectrum_pair_generator, settings=settings)
-    return train_generator
 
 
 class CombinedSpectrumGenerator:
