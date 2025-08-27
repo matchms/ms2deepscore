@@ -8,6 +8,8 @@ from ms2deepscore.tensorize_spectra import tensorize_spectra
 from ms2deepscore.train_new_model.TrainingBatchGenerator import TrainingBatchGenerator
 from ms2deepscore.train_new_model.DataGeneratorEmbeddingEvaluation import DataGeneratorEmbeddingEvaluation
 from ms2deepscore.train_new_model import SpectrumPairGenerator, select_compound_pairs_wrapper
+from ms2deepscore.train_new_model.inchikey_pair_selection_cross_ionmode import create_data_generator_across_ionmodes, \
+    select_compound_pairs_wrapper_across_ionmode
 from tests.create_test_spectra import create_test_spectra
 
 
@@ -235,3 +237,55 @@ def test_epoch_end_functionality(data_generator_embedding_evaluation):
     assert counter == 10
     assert not np.array_equal(data_generator_embedding_evaluation.indexes,
                               initial_indexes), "Indexes not shuffled after epoch end"
+
+def test_create_data_generator_across_ionmodes():
+    """Just a test that is runs, not a test if it is actually well balanced"""
+    test_spectra = create_test_spectra(20, 2)
+    pos_spectra = []
+    for spectrum in test_spectra[:20]:
+        spectrum.set("ionmode", "positive")
+        pos_spectra.append(spectrum)
+    neg_spectra = []
+    for spectrum in test_spectra[20:]:
+        spectrum.set("ionmode", "negative")
+        neg_spectra.append(spectrum)
+
+    settings = SettingsMS2Deepscore(min_mz=10, max_mz=1000,
+                                    mz_bin_width=0.1,
+                                    intensity_scaling=0.5,
+                                    additional_metadata=[],
+                                    same_prob_bins=np.array([(-0.000001, 0.25), (0.25, 0.5), (0.5, 0.75),
+                                                                        (0.75, 1)]),
+                                    batch_size=2,
+                                    num_turns=4,)
+    data_generator = create_data_generator_across_ionmodes(pos_spectra + neg_spectra, settings)
+    for _ in range(len(data_generator)):
+        spectra_1, spectra_2, meta_1, meta_2, targets = data_generator.__next__()
+
+def test_select_compound_pairs_wrapper_across_ionmode():
+    test_spectra = create_test_spectra(20, 2)
+    pos_spectra = []
+    for spectrum in test_spectra[:20]:
+        spectrum.set("ionmode", "positive")
+        pos_spectra.append(spectrum)
+    neg_spectra = []
+    for spectrum in test_spectra[20:]:
+        spectrum.set("ionmode", "negative")
+        neg_spectra.append(spectrum)
+    settings = SettingsMS2Deepscore(min_mz=10, max_mz=1000,
+                                    mz_bin_width=0.1,
+                                    intensity_scaling=0.5,
+                                    additional_metadata=[],
+                                    same_prob_bins=np.array([(-0.000001, 0.25), (0.25, 0.5), (0.5, 0.75),
+                                                             (0.75, 1)]),
+                                    batch_size=2,
+                                    num_turns=4, )
+    spectrum_pair_generator = select_compound_pairs_wrapper_across_ionmode(pos_spectra, neg_spectra, settings)
+
+    for _ in range(len(spectrum_pair_generator)):
+        spectrum_1, spectrum_2, score = spectrum_pair_generator.__next__()
+        assert spectrum_1.get("ionmode") == "positive"
+        assert spectrum_2.get("ionmode") == "negative"
+    # it should be an infinite generator, so it should continue after a loop
+    spectrum_pair_generator.__next__()
+
