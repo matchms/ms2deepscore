@@ -288,4 +288,3 @@ def test_select_compound_pairs_wrapper_across_ionmode():
         assert spectrum_2.get("ionmode") == "negative"
     # it should be an infinite generator, so it should continue after a loop
     spectrum_pair_generator.__next__()
-
