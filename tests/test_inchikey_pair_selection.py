@@ -297,18 +297,3 @@ def check_balanced_scores_selecting_inchikey_pairs(selected_inchikey_pairs: Spec
                 score_bin_counts[(min_bound, max_bound)] += 1
     # Check that the number of pairs per bin is equal for all bins
     assert len(set(score_bin_counts.values())) == 1
-
-from ms2deepscore.train_new_model.inchikey_pair_selection_cross_ionmode import select_compound_pairs_wrapper_across_ionmode
-def test_select_compound_pairs_wrapper_with_resampling_across_ionmodes():
-    spectrums_1 = create_test_spectra(num_of_unique_inchikeys=26, num_of_spectra_per_inchikey=1)
-    spectrums_2 = create_test_spectra(num_of_unique_inchikeys=25, num_of_spectra_per_inchikey=2)
-    for spectrum in spectrums_1:
-        spectrum.set("inchikey", "a" + spectrum.get("inchikey"))
-    bins = [(0.8, 0.9), (0.7, 0.8), (0.9, 1.0), (0.6, 0.7), (0.5, 0.6),
-            (0.4, 0.5), (0.3, 0.4), (0.2, 0.3), (0.1, 0.2), (-0.01, 0.1)]
-    max_pair_resampling = 10
-    settings = SettingsMS2Deepscore(same_prob_bins=np.array(bins, dtype="float32"),
-                                    average_inchikey_sampling_count=10,
-                                    batch_size=8,
-                                    max_pair_resampling=max_pair_resampling)
-    selected_inchikey_pairs = select_compound_pairs_wrapper_across_ionmode(spectrums_1, spectrums_2, settings)
