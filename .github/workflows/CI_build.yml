@@ -32,7 +32,7 @@ jobs:
       - name: Check style against standards using Ruff
         run: ruff check .
       - name: SonarCloud Scan
-        uses: SonarSource/sonarqube-scan-action@<action version or sha1>
+        uses: SonarSource/sonarqube-scan-action@v6.0.0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
