@@ -1,5 +1,11 @@
+import sys
 import pytest
 
+# Skip this whole module on Windows (tkinter issues in CI)
+pytestmark = pytest.mark.skipif(
+    sys.platform.startswith("win"),
+    reason="Skip plotting tests on Windows due to intermittent tkinter issues in CI."
+)
 from ms2deepscore.benchmarking.CalculateScoresBetweenAllIonmodes import CalculateScoresBetweenAllIonmodes
 from ms2deepscore.benchmarking.plot_average_per_bin import plot_average_per_bin
 from ms2deepscore.benchmarking.plot_heatmaps import create_3_heatmaps
