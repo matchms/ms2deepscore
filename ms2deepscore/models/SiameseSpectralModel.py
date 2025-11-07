@@ -1,4 +1,6 @@
 import os
+from typing import Union, Dict, Any
+from pathlib import Path
 import numpy as np
 import torch
 import torch.nn.functional as F
@@ -9,6 +11,7 @@ from ms2deepscore.__version__ import __version__
 from ms2deepscore.models.helper_functions import (initialize_device,
                                                   l1_regularization,
                                                   l2_regularization)
+from ms2deepscore.models.io_utils import _settings_to_json
 from ms2deepscore.models.loss_functions import LOSS_FUNCTIONS, rmse_loss
 from ms2deepscore.SettingsMS2Deepscore import SettingsMS2Deepscore
 from ms2deepscore.tensorize_spectra import tensorize_spectra
@@ -37,23 +40,34 @@ class SiameseSpectralModel(nn.Module):
         cos_sim = nn.CosineSimilarity(dim=1, eps=1e-6)(encoded_x1, encoded_x2)
         return cos_sim
 
-    def save(self, filepath):
-        """
-        Save the model's parameters and state dictionary to a file.
 
-        Parameters
-        ----------
-        filepath: str
-            The file path where the model will be saved.
+    def save(self, filepath: Union[str, Path]) -> None:
         """
-        # Ensure the model is in evaluation mode
+        Save a SAFE single-file checkpoint.
+
+        Contents:
+        - format: str  (identifier for the layout)
+        - ms2deepscore_version: str
+        - model_class: str       (best-effort label)
+        - settings_json: str     (pure JSON string)
+        - state_dict: Dict[str, Tensor]
+
+        This file is compatible with torch>=2.6 using weights_only=True.
+        """
+        filepath = Path(filepath)
+        filepath.parent.mkdir(parents=True, exist_ok=True)
         self.eval()
-        settings_dict = {
-            'model_params': self.model_settings.__dict__,
-            'model_state_dict': self.state_dict(),
-            'version': __version__
+
+        checkpoint: Dict[str, Any] = {
+            "format": "ms2deepscore.safe.v1",
+            "ms2deepscore_version": __version__,
+            "model_class": self.__class__.__name__,
+            "settings_json": _settings_to_json(self.model_settings),
+            "state_dict": self.state_dict(),  # tensors only
         }
-        torch.save(settings_dict, filepath)
+
+        # Important: no custom objects outside tensors/strings/primitives.
+        torch.save(checkpoint, str(filepath))
 
 
 class PeakBinner(nn.Module):
