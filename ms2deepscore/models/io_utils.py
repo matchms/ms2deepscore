@@ -40,7 +40,7 @@ def _to_jsonable(obj: Any) -> Any:
         return _to_jsonable(obj.to_dict())
     if hasattr(obj, "__dict__"):
         return _to_jsonable(vars(obj))
-    # last resort: stringify (prevents pickling arbitrary objects)
+    # last resort: stringify
     return str(obj)
 
 

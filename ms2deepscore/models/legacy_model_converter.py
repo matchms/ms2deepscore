@@ -2,47 +2,11 @@ from pathlib import Path
 from typing import Any, Dict, Optional, Tuple, Union
 import json
 import warnings
-import numpy as np
 import torch
 from ms2deepscore.__version__ import __version__ as _MS2DS_VERSION
 from ms2deepscore.models.__model_format__ import __model_format__
+from ms2deepscore.models.io_utils import _settings_to_json, _to_jsonable
 
-
-# -------------------------
-# JSON helpers (no pickling)
-# -------------------------
-
-def _to_jsonable(obj: Any) -> Any:
-    """Recursively convert settings/config to JSON-serializable primitives."""
-    if obj is None or isinstance(obj, (bool, int, float, str)):
-        return obj
-    if isinstance(obj, (np.bool_, np.integer, np.floating)):
-        return obj.item()
-    if isinstance(obj, (list, tuple)):
-        return [_to_jsonable(v) for v in obj]
-    if isinstance(obj, dict):
-        return {str(k): _to_jsonable(v) for k, v in obj.items()}
-    if isinstance(obj, np.ndarray):
-        return obj.tolist()
-    try:
-        from enum import Enum
-        if isinstance(obj, Enum):
-            return obj.value
-    except Exception:
-        pass
-    if hasattr(obj, "model_dump"):
-        return _to_jsonable(obj.model_dump())
-    if hasattr(obj, "dict"):
-        return _to_jsonable(obj.dict())
-    if hasattr(obj, "to_dict"):
-        return _to_jsonable(obj.to_dict())
-    if hasattr(obj, "__dict__"):
-        return _to_jsonable(vars(obj))
-    return str(obj)
-
-def _to_settings_json(settings_obj: Any) -> str:
-    """Strictly JSON-encode settings to ensure safe loading later."""
-    return json.dumps(_to_jsonable(settings_obj), ensure_ascii=False, sort_keys=True)
 
 # -------------------------
 # Legacy extraction
@@ -64,7 +28,7 @@ def _extract_from_legacy_object(obj: Any) -> Tuple[Dict[str, torch.Tensor], str,
             # Last resort: empty settings (not ideal, but avoids blocking conversion)
             settings_json = json.dumps({}, sort_keys=True)
         else:
-            settings_json = _to_settings_json(settings_obj)
+            settings_json = _settings_to_json(settings_obj)
         model_class = obj.__class__.__name__
         return state, settings_json, model_class
 
