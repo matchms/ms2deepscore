@@ -20,7 +20,6 @@ def _coerce_value(expected_example: Any, value: Any) -> Any:
         if value is None:
             return None
 
-        # Determine the "expected" type from the default value
         expected_type = type(expected_example)
 
         # Common container/array cases
@@ -36,21 +35,23 @@ def _coerce_value(expected_example: Any, value: Any) -> Any:
         if expected_type is _Path and isinstance(value, str):
             return _Path(value)
 
-        # Primitive numeric/bool casts (safe-ish, only when clearly convertible)
-        if expected_type is bool and isinstance(value, (int, float, str)):
-            if isinstance(value, str):
-                low = value.strip().lower()
-                if low in ("true", "1", "yes", "y"):
-                    return True
-                if low in ("false", "0", "no", "n"):
-                    return False
-            return bool(value)
+        # Coercing boolean
+        if expected_type is bool and isinstance(value, str):
+            low = value.strip().lower()
+            if low in ("true", "1", "yes", "y"):
+                return True
+            elif low in ("false", "0", "no", "n"):
+                return False
+            raise ValueError(f"Invalid boolean value: {value}")
 
         if expected_type is int and isinstance(value, (float, str)):
             return int(value)
 
         if expected_type is float and isinstance(value, (int, str)):
             return float(value)
+
+        if expected_type is _Path and isinstance(value, str):
+            return _Path(value)
 
         # If expected is np.ndarray of shape (n,2) (e.g., same_prob_bins), tolerate list of lists
         if isinstance(expected_example, np.ndarray) and isinstance(value, list):
@@ -268,7 +269,13 @@ class SettingsMS2Deepscore:
 
     def get_dict(self):
         """returns a dictionary representation of the settings"""
-        return self.__dict__
+        settings_dict = self.__dict__.copy()
+        
+        for key, value in settings_dict.items():
+            if isinstance(value, np.ndarray):
+                settings_dict[key] = value.tolist()  # Convert np.ndarray to list
+        
+        return settings_dict
 
     def save_to_file(self, file_path):
         class NumpyArrayEncoder(JSONEncoder):
