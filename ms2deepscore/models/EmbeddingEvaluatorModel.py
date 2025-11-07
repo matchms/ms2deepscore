@@ -11,6 +11,7 @@ from ms2deepscore.models.io_utils import _settings_to_json
 from ms2deepscore.SettingsMS2Deepscore import SettingsEmbeddingEvaluator
 from ms2deepscore.train_new_model.data_generators import \
     DataGeneratorEmbeddingEvaluation
+from ms2deepscore.models.__model_format__ import __model_format__
 
 
 class EmbeddingEvaluationModel(nn.Module):
@@ -72,7 +73,7 @@ class EmbeddingEvaluationModel(nn.Module):
         self.eval()
 
         checkpoint: Dict[str, Any] = {
-            "format": "ms2deepscore.safe.v1",
+            "format": __model_format__,
             "ms2deepscore_version": __version__,
             "model_class": self.__class__.__name__,
             "settings_json": _settings_to_json(self.settings),

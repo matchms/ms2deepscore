@@ -15,6 +15,7 @@ from ms2deepscore.models.io_utils import _settings_to_json
 from ms2deepscore.models.loss_functions import LOSS_FUNCTIONS, rmse_loss
 from ms2deepscore.SettingsMS2Deepscore import SettingsMS2Deepscore
 from ms2deepscore.tensorize_spectra import tensorize_spectra
+from ms2deepscore.models.__model_format__ import __model_format__
 
 
 class SiameseSpectralModel(nn.Module):
@@ -48,8 +49,8 @@ class SiameseSpectralModel(nn.Module):
         Contents:
         - format: str  (identifier for the layout)
         - ms2deepscore_version: str
-        - model_class: str       (best-effort label)
-        - settings_json: str     (pure JSON string)
+        - model_class: str
+        - settings_json: str
         - state_dict: Dict[str, Tensor]
 
         This file is compatible with torch>=2.6 using weights_only=True.
@@ -59,7 +60,7 @@ class SiameseSpectralModel(nn.Module):
         self.eval()
 
         checkpoint: Dict[str, Any] = {
-            "format": "ms2deepscore.safe.v1",
+            "format": __model_format__,
             "ms2deepscore_version": __version__,
             "model_class": self.__class__.__name__,
             "settings_json": _settings_to_json(self.model_settings),

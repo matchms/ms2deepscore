@@ -55,7 +55,6 @@ def _coerce_value(expected_example: Any, value: Any) -> Any:
         # If expected is np.ndarray of shape (n,2) (e.g., same_prob_bins), tolerate list of lists
         if isinstance(expected_example, np.ndarray) and isinstance(value, list):
             arr = np.array(value)
-            # optional: validate shape compatibility here if you want stricter checks
             return arr
 
         # Already right type or compatible
@@ -232,7 +231,7 @@ class SettingsMS2Deepscore:
 
             for key, value in settings.items():
                 if hasattr(self, key):
-                    # after coercion, keep your strict type check
+                    # after coercion, keep strict type check
                     if not isinstance(value, type(getattr(self, key))) and getattr(self, key) is not None:
                         raise TypeError(
                             f"An unexpected type is given for the setting: {key}. "

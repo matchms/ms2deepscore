@@ -153,8 +153,8 @@ def convert_legacy_checkpoint(
         "format": "ms2deepscore.safe.v1",
         "ms2deepscore_version": getattr(legacy_obj, "version", _MS2DS_VERSION),
         "model_class": model_class,
-        "settings_json": settings_json,   # pure JSON string
-        "state_dict": state_dict,         # tensors only
+        "settings_json": settings_json,  # pure JSON string
+        "state_dict": state_dict,  # tensors only
     }
 
     torch.save(safe_ckpt, str(output_path))
