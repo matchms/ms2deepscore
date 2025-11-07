@@ -12,6 +12,7 @@ from ms2deepscore.SettingsMS2Deepscore import (
     SettingsEmbeddingEvaluator,
     SettingsMS2Deepscore,
 )
+from ms2deepscore.models.io_utils import _settings_to_json  # re-use from your module where save() lives
 
 
 # ---------- internal helpers ----------
@@ -92,7 +93,6 @@ def _convert_legacy_if_requested(
     # 1) If it's an nn.Module with .state_dict and .model_settings
     if isinstance(obj, torch.nn.Module) and hasattr(obj, "state_dict") and hasattr(obj, "model_settings"):
         # Build a minimal safe checkpoint (match the new save())
-        from . import _settings_to_json  # re-use from your module where save() lives
         safe_ckpt = {
             "format": "ms2deepscore.safe.v1",
             "ms2deepscore_version": getattr(obj, "version", __version__),
