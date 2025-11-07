@@ -15,7 +15,7 @@ def get_test_ms2deepscore_instance():
     spectrums = pesticides_test_spectra()
 
     # Load pretrained model
-    model_file = TEST_RESOURCES_PATH / "testmodel.pt"
+    model_file = TEST_RESOURCES_PATH / "testmodel_v1.pt"
     model = load_model(model_file)
 
     similarity_measure = MS2DeepScore(model)

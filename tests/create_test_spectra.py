@@ -17,7 +17,7 @@ def pesticides_test_spectra():
 
 
 def ms2deepscore_model_file_name():
-    return os.path.join(TEST_RESOURCES_PATH, "testmodel.pt")
+    return os.path.join(TEST_RESOURCES_PATH, "testmodel_v1.pt")
 
 
 def siamese_spectral_model():
