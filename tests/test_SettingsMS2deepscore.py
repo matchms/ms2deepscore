@@ -1,7 +1,6 @@
 import json
 import pytest
 import numpy as np
-from pathlib import Path
 from ms2deepscore.SettingsMS2Deepscore import SettingsMS2Deepscore
 
 
