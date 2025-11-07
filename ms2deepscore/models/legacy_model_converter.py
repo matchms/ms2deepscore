@@ -5,6 +5,7 @@ import warnings
 import numpy as np
 import torch
 from ms2deepscore.__version__ import __version__ as _MS2DS_VERSION
+from ms2deepscore.models.__model_format__ import __model_format__
 
 
 # -------------------------
@@ -149,9 +150,14 @@ def convert_legacy_checkpoint(
 
     state_dict, settings_json, model_class = _extract_from_legacy_object(legacy_obj)
 
+    if isinstance(legacy_obj, dict):
+        legacy_version = legacy_obj.get("ms2deepscore_version") or legacy_obj.get("version")
+    else:
+        legacy_version = getattr(legacy_obj, "version", None)
+
     safe_ckpt = {
-        "format": "ms2deepscore.safe.v1",
-        "ms2deepscore_version": getattr(legacy_obj, "version", _MS2DS_VERSION),
+        "format": __model_format__,
+        "ms2deepscore_version": legacy_version or _MS2DS_VERSION,
         "model_class": model_class,
         "settings_json": settings_json,  # pure JSON string
         "state_dict": state_dict,  # tensors only
