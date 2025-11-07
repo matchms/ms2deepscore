@@ -3,7 +3,6 @@ from pathlib import Path
 import pytest
 import torch
 from ms2deepscore.models import convert_legacy_checkpoint
-from ms2deepscore import __version__
 from ms2deepscore.models.__model_format__ import __model_format__
 
 
