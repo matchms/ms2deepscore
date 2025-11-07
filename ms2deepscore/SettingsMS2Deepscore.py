@@ -1,11 +1,81 @@
 import json
 import warnings
+from pathlib import Path as _Path
+from typing import Any, Dict
 from datetime import datetime
 from json import JSONEncoder
 from typing import Optional
 import numpy as np
 from ms2deepscore.models.loss_functions import LOSS_FUNCTIONS
 from ms2deepscore.utils import validate_bin_order
+
+
+def _coerce_value(expected_example: Any, value: Any) -> Any:
+    """
+    Coerce `value` to the type suggested by `expected_example` (the current attribute's default).
+    This is best-effort and conservative: if coercion fails, returns the original `value`.
+    """
+    try:
+        # None stays None
+        if value is None:
+            return None
+
+        # Determine the "expected" type from the default value
+        expected_type = type(expected_example)
+
+        # Common container/array cases
+        if expected_type is tuple and isinstance(value, list):
+            return tuple(value)
+        if expected_type is set and isinstance(value, list):
+            return set(value)
+        # For numpy arrays, accept list (or tuple) and convert
+        if isinstance(expected_example, np.ndarray) and isinstance(value, (list, tuple)):
+            return np.array(value)
+
+        # Path-like
+        if expected_type is _Path and isinstance(value, str):
+            return _Path(value)
+
+        # Primitive numeric/bool casts (safe-ish, only when clearly convertible)
+        if expected_type is bool and isinstance(value, (int, float, str)):
+            if isinstance(value, str):
+                low = value.strip().lower()
+                if low in ("true", "1", "yes", "y"):
+                    return True
+                if low in ("false", "0", "no", "n"):
+                    return False
+            return bool(value)
+
+        if expected_type is int and isinstance(value, (float, str)):
+            return int(value)
+
+        if expected_type is float and isinstance(value, (int, str)):
+            return float(value)
+
+        # If expected is np.ndarray of shape (n,2) (e.g., same_prob_bins), tolerate list of lists
+        if isinstance(expected_example, np.ndarray) and isinstance(value, list):
+            arr = np.array(value)
+            # optional: validate shape compatibility here if you want stricter checks
+            return arr
+
+        # Already right type or compatible
+        return value
+
+    except Exception:
+        # On any failure, return the original value
+        return value
+
+
+def _coerce_settings_dict(settings_in: Dict[str, Any], defaults_obj: Any) -> Dict[str, Any]:
+    """
+    Build a new dict with values coerced to the types implied by `defaults_obj`'s current attributes.
+    Unknown keys are preserved (caller decides whether to accept/ignore them).
+    """
+    out = dict(settings_in)
+    for k, v in list(out.items()):
+        if hasattr(defaults_obj, k):
+            out[k] = _coerce_value(getattr(defaults_obj, k), v)
+    return out
 
 
 class SettingsMS2Deepscore:
@@ -157,19 +227,23 @@ class SettingsMS2Deepscore:
         self.augment_noise_intensity = 0.02
 
         if settings:
+            # coerce a copy against current defaults
+            settings = _coerce_settings_dict(settings, self)
+
             for key, value in settings.items():
                 if hasattr(self, key):
+                    # after coercion, keep your strict type check
                     if not isinstance(value, type(getattr(self, key))) and getattr(self, key) is not None:
-                        raise TypeError(f"An unexpected type is given for the setting: {key}. "
-                                        f"The expected type is {type(getattr(self, key))}, "
-                                        f"the type given is {type(value)}, the value given is {value}")
+                        raise TypeError(
+                            f"An unexpected type is given for the setting: {key}. "
+                            f"The expected type is {type(getattr(self, key))}, "
+                            f"the type given is {type(value)}, the value given is {value}"
+                        )
                     setattr(self, key, value)
                 else:
                     if validate_settings:
                         raise ValueError(f"Unknown setting: {key}")
-                    # When loading an older model, there can be incompatibilities between training settings.
-                    #  If these settings were just used during training it should not break the loading of a model,
-                    #  since it does not affect how the model runs.
+                    # keep legacy/unknown keys for backward-compat if validate_settings=False
                     setattr(self, key, value)
 
         if validate_settings:
@@ -206,6 +280,14 @@ class SettingsMS2Deepscore:
         with open(file_path, 'w', encoding="utf-8") as file:
             json.dump(self.__dict__, file, indent=4, cls=NumpyArrayEncoder)
 
+    @classmethod
+    def from_dict(cls, d: Dict[str, Any], *, validate_settings: bool = True) -> "SettingsMS2Deepscore":
+        return cls(validate_settings=validate_settings, **d)
+
+    @classmethod
+    def from_json(cls, s: str, *, validate_settings: bool = True) -> "SettingsMS2Deepscore":
+        return cls.from_dict(json.loads(s), validate_settings=validate_settings)
+
 
 class SettingsEmbeddingEvaluator:
     """Contains all the settings used for training a EmbeddingEvaluator model.
@@ -227,11 +309,21 @@ class SettingsEmbeddingEvaluator:
         self.num_epochs = 5
 
         if settings:
+            # Coerce incoming values against defaults for consistency
+            settings = _coerce_settings_dict(settings, self)
             for key, value in settings.items():
                 if hasattr(self, key):
                     setattr(self, key, value)
                 else:
                     raise ValueError(f"Unknown setting: {key}")
+
+    @classmethod
+    def from_dict(cls, d: Dict[str, Any]) -> "SettingsEmbeddingEvaluator":
+        return cls(**d)
+
+    @classmethod
+    def from_json(cls, s: str) -> "SettingsEmbeddingEvaluator":
+        return cls.from_dict(json.loads(s))
 
     def get_dict(self):
         """returns a dictionary representation of the settings"""
