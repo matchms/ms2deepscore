@@ -90,7 +90,7 @@ def _convert_legacy_if_requested(
     out_path.parent.mkdir(parents=True, exist_ok=True)
 
     # Two conversion paths:
-    # 1) If it's an nn.Module with .state_dict and .model_settings
+    # (1) nn.Module with .state_dict and .model_settings
     if isinstance(obj, torch.nn.Module) and hasattr(obj, "state_dict") and hasattr(obj, "model_settings"):
         # Build a minimal safe checkpoint (match the new save())
         safe_ckpt = {
@@ -103,7 +103,7 @@ def _convert_legacy_if_requested(
         torch.save(safe_ckpt, str(out_path))
         return out_path
 
-    # 2) If it's a dict-like legacy checkpoint with params + state_dict
+    # (2) dict-like legacy checkpoint with params + state_dict
     if isinstance(obj, dict) and ("model_state_dict" in obj or "state_dict" in obj):
         # Try to normalize to the new shape
         try:
