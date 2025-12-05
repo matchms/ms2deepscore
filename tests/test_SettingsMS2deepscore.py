@@ -1,5 +1,4 @@
 import json
-from pathlib import Path
 
 import pytest
 import numpy as np
