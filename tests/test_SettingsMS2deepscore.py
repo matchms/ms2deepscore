@@ -1,4 +1,6 @@
 import json
+from pathlib import Path
+
 import pytest
 import numpy as np
 from ms2deepscore.SettingsMS2Deepscore import SettingsMS2Deepscore
@@ -63,17 +65,10 @@ def test_coerce_string_to_bool():
     assert settings_false.use_fixed_set is False
 
 
-#def test_coerce_invalid_string_to_bool():
-#    """Test that invalid strings for bool raise an exception."""
-#    with pytest.raises(ValueError):
-#        SettingsMS2Deepscore(**{"use_fixed_set": "NotAValidBool"})
-
-
-#def test_coerce_string_to_path():
-#    """Test if string paths are coerced into Path objects."""
-#    settings = SettingsMS2Deepscore(**{"model_file_name": "model.pt"})
-#    assert isinstance(settings.model_file_name, Path)
-#    assert settings.model_file_name == Path("model.pt")
+def test_coerce_invalid_string_to_bool():
+   """Test that invalid strings for bool raise an exception."""
+   with pytest.raises(TypeError):
+       SettingsMS2Deepscore(**{"use_fixed_set": "NotAValidBool"})
 
 
 def test_save_settings(tmp_path):
