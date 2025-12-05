@@ -99,7 +99,7 @@ def convert_legacy_checkpoint(
     """
     legacy_path = Path(legacy_path)
     if output_path is None:
-        output_path = legacy_path.with_suffix(legacy_path.suffix + ".converted.pt")
+        output_path = legacy_path.with_name(legacy_path.stem + ".converted.pt")
     output_path = Path(output_path)
 
     if output_path.exists() and not overwrite:
@@ -129,3 +129,8 @@ def convert_legacy_checkpoint(
 
     torch.save(safe_ckpt, str(output_path))
     return output_path
+
+if __name__ == "__main__":
+    import os
+    model_folder = "../../../data/pytorch/new_corinna_included/trained_models/both_mode_precursor_mz_ionmode_10000_layers_500_embedding_2024_11_21_11_23_17/"
+    convert_legacy_checkpoint(os.path.join(model_folder, "embedding_evaluator_model/embedding_evaluator.pt"))
