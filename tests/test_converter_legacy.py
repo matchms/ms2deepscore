@@ -116,7 +116,7 @@ def test_default_output_path_and_overwrite_behavior(tmp_path: Path):
 
     # 1st conversion -> creates <legacy>.converted.pt
     out1 = convert_legacy_checkpoint(legacy_path)
-    assert out1 == legacy_path.with_suffix(legacy_path.suffix + ".converted.pt")
+    assert (out1 == tmp_path / "legacy_pickled.converted.pt")
     assert out1.exists()
 
     # 2nd conversion without overwrite -> should raise
