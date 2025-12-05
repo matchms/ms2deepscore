@@ -1,0 +1,1 @@
+__model_format__ = "ms2deepscore.safe.v1"
