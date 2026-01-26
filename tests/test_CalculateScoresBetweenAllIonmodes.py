@@ -8,7 +8,7 @@ def test_calculate_scores_between_all_ionmodes():
     positive_mode_spectra = [spectrum.set("ionmode", "positive") for spectrum in spectra[:40]]
     negative_mode_spectra = [spectrum.set("ionmode", "negative") for spectrum in spectra[40:]]
     # Load pretrained model
-    model_file = TEST_RESOURCES_PATH / "testmodel.pt"
+    model_file = TEST_RESOURCES_PATH / "testmodel_v1.pt"
     scores_between_all_ionmodes = CalculateScoresBetweenAllIonmodes(model_file, positive_mode_spectra,
                                                                     negative_mode_spectra)
 

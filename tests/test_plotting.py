@@ -1,11 +1,18 @@
+import sys
 import pytest
-
 from ms2deepscore.benchmarking.CalculateScoresBetweenAllIonmodes import CalculateScoresBetweenAllIonmodes
 from ms2deepscore.benchmarking.plot_average_per_bin import plot_average_per_bin
 from ms2deepscore.benchmarking.plot_heatmaps import create_3_heatmaps
 from ms2deepscore.benchmarking.plot_loss_per_bin import (
     plot_loss_per_bin, plot_loss_per_bin_multiple_benchmarks)
 from tests.test_PredictionsAndTanimotoScores import create_dummy_predictions_and_tanimoto_scores
+
+
+# Skip this whole module on Windows (tkinter issues in CI)
+pytestmark = pytest.mark.skipif(
+    sys.platform.startswith("win"),
+    reason="Skip plotting tests on Windows due to intermittent tkinter issues in CI."
+)
 
 
 @pytest.fixture()

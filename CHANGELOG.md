@@ -21,6 +21,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Moved the Spectrum picking from TraininBatchGenerator into InchikeyPairGenerator and renamed InchikeyPairGenerator to SpectrumPairGenerator.
 - Turned the new SpectrumPairGenerator (InchikeyPairGenerator before) into a real generator, before we had a generator method returning a generator.
 
+## [2.6.0] - 2025-12-05
+### Changed
+- Fixed model saving to be compatible with Pytorch > 2.6. 
+
 ## [2.5.2] - 2025-05-26
 ### Changed
 - Switch to Numpy>=2.0 (which means Python >=3.10)

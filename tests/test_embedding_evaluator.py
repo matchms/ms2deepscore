@@ -88,7 +88,7 @@ def test_train_embedding_evaluator(embedding_model, data_generator_embedding_eva
     embedding_model.train_evaluator(create_test_spectra(25), MockMS2DSModel())
     embedding = data_generator_embedding_evaluation.__next__()[2]
     result = embedding_model.compute_embedding_evaluations(embedding)
-    assert result.shape == (10, 1)
+    assert result.shape == (10,)
 
 
 def test_linear_model_fit_predict():

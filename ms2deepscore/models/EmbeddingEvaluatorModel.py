@@ -1,4 +1,5 @@
-from typing import List
+from typing import List, Union, Dict, Any
+from pathlib import Path
 import numpy as np
 import torch
 import torch.nn.functional as F
@@ -6,8 +7,10 @@ from matchms.Spectrum import Spectrum
 from torch import nn, optim
 from ms2deepscore.__version__ import __version__
 from ms2deepscore.models.helper_functions import initialize_device
+from ms2deepscore.models.io_utils import _settings_to_json
 from ms2deepscore.SettingsMS2Deepscore import SettingsEmbeddingEvaluator
 from ms2deepscore.train_new_model.DataGeneratorEmbeddingEvaluation import DataGeneratorEmbeddingEvaluation
+from ms2deepscore.models.__model_format__ import __model_format__
 
 
 class EmbeddingEvaluationModel(nn.Module):
@@ -51,23 +54,33 @@ class EmbeddingEvaluationModel(nn.Module):
         x = self.fc(x)
         return x
 
-    def save(self, filepath):
+    def save(self, filepath: Union[str, Path]) -> None:
         """
-        Save the model's parameters and state dictionary to a file.
+        Save a SAFE single-file checkpoint.
 
-        Parameters
-        ----------
-        filepath: str
-            The file path where the model will be saved.
+        Contents:
+        - format: str  (identifier for the layout)
+        - ms2deepscore_version: str
+        - model_class: str       (best-effort label)
+        - settings_json: str     (pure JSON string)
+        - state_dict: Dict[str, Tensor]
+
+        This file is compatible with torch>=2.6 using weights_only=True.
         """
-        # Ensure the model is in evaluation mode
+        filepath = Path(filepath)
+        filepath.parent.mkdir(parents=True, exist_ok=True)
         self.eval()
-        settings_dict = {
-            'model_params': self.settings.__dict__,
-            'model_state_dict': self.state_dict(),
-            'version': __version__
+
+        checkpoint: Dict[str, Any] = {
+            "format": __model_format__,
+            "ms2deepscore_version": __version__,
+            "model_class": self.__class__.__name__,
+            "settings_json": _settings_to_json(self.settings),
+            "state_dict": self.state_dict(),  # tensors only
         }
-        torch.save(settings_dict, filepath)
+
+        # Important: no custom objects outside tensors/strings/primitives.
+        torch.save(checkpoint, str(filepath))
 
     def train_evaluator(self,
                         training_spectra: List[Spectrum],
@@ -152,7 +165,7 @@ class EmbeddingEvaluationModel(nn.Module):
 
         self.to(device)
         evaluations = self(torch.tensor(embeddings).reshape(-1, 1, embedding_dim).to(device, dtype=torch.float32))
-        return evaluations.cpu().detach().numpy()
+        return evaluations.cpu().detach().numpy().ravel()
 
 
 class InceptionModule(nn.Module):

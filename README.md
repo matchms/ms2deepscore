@@ -16,7 +16,7 @@ The library provides intuitive classes to prepare data, train a Siamese model,
 and compute similarities between pairs of spectra.
 
 In addition to the prediction of a structural similarity, 
-MS2DeepScore can also make use of Monte-Carlo dropout to assess the model's uncertainty.
+MS2DeepScore can also make use of an embedding evaluator predict the models accuracy for each spectrum.
 
 ## Reference
 If you use MS2DeepScore for your research, please cite the following:
@@ -42,14 +42,14 @@ Installation is expected to take 10-20 minutes.
 We recommend creating an Anaconda environment with
 
 ```
-conda create --name ms2deepscore python=3.9
+conda create --name ms2deepscore python=3.12
 conda activate ms2deepscore
 pip install ms2deepscore
 ```
 
 Or, via conda:
 ```
-conda create --name ms2deepscore python=3.9
+conda create --name ms2deepscore python=3.12
 conda activate ms2deepscore
 conda install --channel bioconda --channel conda-forge matchms
 pip install ms2deepscore
@@ -59,13 +59,14 @@ Alternatively, simply install in the environment of your choice by `pip install 
 
 ## Getting started: How to prepare data, train a model, and compute similarities.
 We recommend to run the complete tutorial in [notebooks/MS2DeepScore_tutorial.ipynb](https://github.com/matchms/ms2deepscore/blob/main/notebooks/tutorials/ms2deepscore_tutorial.ipynb) 
-for a more extensive fully-working example on test data. The expected run time on a laptop is less than 5 minutes, including automatic model and dummy data download. 
+for a more extensive fully-working example on test data, including explanations on how to visualize the results. 
+The expected run time on a laptop is less than 5 minutes, including automatic model and dummy data download. 
 Alternatively there are some example scripts below.
-If you are not familiar with `matchms` yet, then we also recommand our [tutorial on how to get started using matchms](https://blog.esciencecenter.nl/build-your-own-mass-spectrometry-analysis-pipeline-in-python-using-matchms-part-i-d96c718c68ee).
 
 ## 1) Compute spectral similarities
 We provide a model which was trained on > 500,000 MS/MS combined spectra from [GNPS](https://gnps.ucsd.edu/), [Mona](https://mona.fiehnlab.ucdavis.edu/), MassBank and MSnLib. 
-This model can be downloaded from [from zenodo here](https://zenodo.org/records/10814306).
+
+This model can be downloaded from [from zenodo here](https://zenodo.org/records/17826815). Only the ms2deepscore_model.pt is needed.
 The model works for spectra in both positive and negative ionization modes and even predictions across ionization modes can be made by this model. 
 
 To compute the similarities between spectra of your choice you can run the code below.
@@ -88,12 +89,12 @@ pipeline = Pipeline(create_workflow(query_filters=DEFAULT_FILTERS,
 report = pipeline.run(spectrum_file_name)
 similarity_matrix = pipeline.scores.to_array()
 ```
-The resulting similarity matrix, is a numpy array containing all the MS2DeepScore predicitons between all spectra.
+The resulting similarity matrix, is a numpy array containing all the MS2DeepScore predictions between all spectra.
 
 
 ## 2 Create embeddings
 
-To calculate chemical similarity scores MS2DeepScore first calculates an embedding (vector) representing each spectrum. 
+To calculate chemical similarity scores, MS2DeepScore first calculates an embedding (vector) representing each spectrum. 
 This intermediate product can also be used to visualize spectra in "chemical space" by using a dimensionality reduction technique, like UMAP.
 
 ```python
@@ -106,9 +107,11 @@ The [tutorial](https://github.com/matchms/ms2deepscore/blob/main/notebooks/MS2De
 <img src="https://github.com/matchms/ms2deepscore/blob/main/materials/umap_example.png" width="400"/>
 
 ## 3) Train your own MS2DeepScore model
-Training your own model is only recommended if you have some familiarity with machine learning. 
-You can train a new model on a dataset of your choice. That, however, should preferentially contain a substantial amount of spectra to learn relevant features, say > 100,000 spectra of sufficiently diverse types.
+Training your own model is only recommended if you have some familiarity with machine learning.
+You can train a new model on a dataset of your choice. That, however, should  contain a substantial amount of spectra to learn relevant features, say > 100,000 spectra of sufficiently diverse types.
 Alternatively you can add your in house spectra to an already available public library, for instance the [data](https://zenodo.org/records/13934470) used for training the default MS2DeepScore model. 
+We recommend checking the [pair sampling tutorial](https://github.com/matchms/ms2deepscore/tree/main/notebooks/tutorials/pair_sampling_tutorial.ipynb), 
+since the quality of the pair sampling has to be checked and potentially re-optimized for new datasets. Particularly for smaller training sets, the pair sampling can be suboptimal if not checked. 
 To train your own model you can run the code below.
 Please first ensure cleaning your spectra. We recommend using the cleaning pipeline in [matchms](https://github.com/matchms/matchms).
 
@@ -132,3 +135,8 @@ train_ms2deepscore_wrapper(settings)
 ```
 ## Contributing
 We welcome contributions to the development of ms2deepscore! Have a look at the [contribution guidelines](https://github.com/matchms/ms2deepscore/blob/main/CONTRIBUTING.md).
+
+## Developing new machine learning models
+If you are a developer and you are interested in creating the next generation of machine learning models 
+the MS2DeepScore code base might be a good starting point. In this tutorial we describe how MS2DeepScore training works, 
+why this is important and where you can find this in the code base. 
