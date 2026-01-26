@@ -1,4 +1,5 @@
 import json
+import os
 import warnings
 from pathlib import Path as _Path
 from typing import Any, Dict
@@ -115,8 +116,8 @@ class SettingsMS2Deepscore:
         same_prob_bins
             List of tuples that define ranges of the true label to be trained with
             equal frequencies. Default is set to 10 bins of equal width between 0 and 1.
-        average_pairs_per_bin:
-            The aimed average number of pairs of spectra per spectrum in each bin.
+        average_inchikey_sampling_count:
+            The aimed number of times each unique inchikey is sampled.
         max_pairs_per_bin:
             The max_pairs_per_bin is used to reduce memory load.
             Since some spectra will have less than the average_pairs_per_bin, we can compensate by selecting more pairs for
@@ -166,6 +167,18 @@ class SettingsMS2Deepscore:
             the tanimoto scores. The minimum is 1, meaning that no resampling is performed.
         """
     def __init__(self, validate_settings=True, **settings):
+        self.spectrum_file_path = None # For training the file path has to be set, for inference it is not needed.
+
+        # data split settings
+        self.root_dir = None # Will be derived from the spectrum file path
+        self.spectrum_file_name = None # Will be derived from the spectrum file path
+        self.validation_spectra_file_name = None  # If None it will be auto set to val_{spectrum file}
+        self.test_spectra_file_name = None # If None it will be auto set to test_{spectrum file}
+        self.training_spectra_file_name = None # If None it will be auto set to train_{spectrum file}
+        self.results_folder = None # If None it will be auto set to {root_folder}/trained_models
+        self.model_directory_name = None # A unique folder name is created including settings and a time stamp
+        self.train_test_split_fraction = 20
+
         # model structure
         self.base_dims = (10000,)
         self.embedding_dim = 500
@@ -251,6 +264,25 @@ class SettingsMS2Deepscore:
         if self.random_seed is not None:
             np.random.seed(self.random_seed)
 
+        if self.spectrum_file_path is not None:
+            if not os.path.isfile(self.spectrum_file_path):
+                raise ValueError("The spectrum file specified is not an existing file")
+            root_dir = os.path.dirname(self.spectrum_file_path)
+            spectrum_file_name = os.path.basename(self.spectrum_file_path)
+
+            # Auto set the validation, test and train file names, if not set already
+            if self.results_folder is None:
+                self.results_folder = os.path.join(root_dir, "trained_models")
+            if self.validation_spectra_file_name is None:
+                self.validation_spectra_file_name = os.path.join(self.results_folder, "val_" + spectrum_file_name)
+            if self.test_spectra_file_name is None:
+                self.test_spectra_file_name = os.path.join(self.results_folder, "test_" + spectrum_file_name)
+            if self.training_spectra_file_name is None:
+                self.training_spectra_file_name = os.path.join(self.results_folder, "train_" + spectrum_file_name)
+            if self.model_directory_name is None:
+                self.model_directory_name = os.path.join(self.results_folder, self.create_model_directory_name())
+
+
     def validate_settings(self):
         if self.ionisation_mode not in ("positive", "negative", "both"):
             raise ValueError("Expected ionisation mode to be 'positive' , 'negative', or 'both'.")
@@ -263,6 +295,26 @@ class SettingsMS2Deepscore:
         if self.loss_function.lower() not in LOSS_FUNCTIONS:
             raise ValueError(f"Unknown loss function. Must be one of: {LOSS_FUNCTIONS.keys()}")
         validate_bin_order(self.same_prob_bins)
+
+    def create_model_directory_name(self):
+        """Creates a directory name using metadata, it will contain the metadata, the binned spectra and final model"""
+        binning_file_label = ""
+        for metadata_generator in self.additional_metadata:
+            binning_file_label += metadata_generator[1]["metadata_field"] + "_"
+
+        # Define a neural net structure label
+        neural_net_structure_label = ""
+        for layer in self.base_dims:
+            neural_net_structure_label += str(layer) + "_"
+        neural_net_structure_label += "layers"
+
+        if self.embedding_dim:
+            neural_net_structure_label += f"_{str(self.embedding_dim)}_embedding"
+        model_folder_file_name = f"{self.ionisation_mode}_mode_{binning_file_label}" \
+                                 f"{neural_net_structure_label}_{self.time_stamp}"
+        print(f"The model will be stored in the folder: {model_folder_file_name}")
+
+        return model_folder_file_name
 
     def number_of_bins(self):
         return int((self.max_mz - self.min_mz) / self.mz_bin_width)
