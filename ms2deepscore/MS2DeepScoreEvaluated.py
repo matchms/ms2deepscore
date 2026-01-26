@@ -25,7 +25,7 @@ class MS2DeepScoreEvaluated(BaseSimilarity):
         from matchms import calculate_scores()
         from matchms.importing import load_from_json
         from ms2deepscore import MS2DeepScoreEvaluated
-        from ms2deepscore.models import load_model, load_linear_model
+        from ms2deepscore.models import load_model, load_linear_model, load_embedding_evaluator
 
         # Import data
         references = load_from_json("abc.json")
@@ -33,7 +33,7 @@ class MS2DeepScoreEvaluated(BaseSimilarity):
 
         # Load pretrained model
         model = load_model("model_file_123.pt")
-        embedding_evaluator = load_model("embedding_evaluator_123.pt")
+        embedding_evaluator = load_embedding_evaluator("embedding_evaluator_123.pt")
         score_evaluator = load_linear_model("score_evaluator_123.json")
 
         similarity_measure = MS2DeepScoreEvaluated(model, embedding_evaluator, score_evaluator)

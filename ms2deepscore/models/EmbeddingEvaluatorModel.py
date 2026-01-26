@@ -166,7 +166,7 @@ class EmbeddingEvaluationModel(nn.Module):
 
         self.to(device)
         evaluations = self(torch.tensor(embeddings).reshape(-1, 1, embedding_dim).to(device, dtype=torch.float32))
-        return evaluations.cpu().detach().numpy()
+        return evaluations.cpu().detach().numpy().ravel()
 
 
 class InceptionModule(nn.Module):
