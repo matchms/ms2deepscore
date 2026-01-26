@@ -106,9 +106,11 @@ The [tutorial](https://github.com/matchms/ms2deepscore/blob/main/notebooks/MS2De
 <img src="https://github.com/matchms/ms2deepscore/blob/main/materials/umap_example.png" width="400"/>
 
 ## 3) Train your own MS2DeepScore model
-Training your own model is only recommended if you have some familiarity with machine learning. 
+Training your own model is only recommended if you have some familiarity with machine learning.
 You can train a new model on a dataset of your choice. That, however, should  contain a substantial amount of spectra to learn relevant features, say > 100,000 spectra of sufficiently diverse types.
 Alternatively you can add your in house spectra to an already available public library, for instance the [data](https://zenodo.org/records/13934470) used for training the default MS2DeepScore model. 
+We recommend checking the [pair sampling tutorial](https://github.com/matchms/ms2deepscore/tree/main/notebooks/tutorials/pair_sampling_tutorial.ipynb), 
+since the quality of the pair sampling has to be checked and potentially re-optimized for new datasets. Particularly for smaller training sets, the pair sampling can be suboptimal if not checked. 
 To train your own model you can run the code below.
 Please first ensure cleaning your spectra. We recommend using the cleaning pipeline in [matchms](https://github.com/matchms/matchms).
 
