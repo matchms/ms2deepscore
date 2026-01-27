@@ -7,8 +7,8 @@ from matchms import Spectrum
 
 from ms2deepscore import SettingsMS2Deepscore
 from ms2deepscore.train_new_model.inchikey_pair_selection import (
-    compute_jaccard_similarity_per_bin, select_inchi_for_unique_inchikeys, select_compound_pairs_wrapper, compute_fingerprints_for_training)
-from ms2deepscore.train_new_model import InchikeyPairGenerator
+    compute_jaccard_similarity_per_bin, select_inchi_for_unique_inchikeys, create_spectrum_pair_generator, compute_fingerprints_for_training)
+from ms2deepscore.train_new_model import SpectrumPairGenerator
 from tests.create_test_spectra import create_test_spectra
 
 
@@ -55,15 +55,6 @@ def test_spectra():
                           metadata={"inchikey": 14 * "X",
                                     "inchi": "InChI=1S/C8H10N4O2/c1-10-4-9-6-5(10)7(13)12(3)8(14)11(6)2/h4H,1-3H3"})
     return [spectrum_1, spectrum_2, spectrum_3, spectrum_4]
-
-
-@pytest.fixture
-def dummy_spectrum_pairs():
-    spectrum_pairs = [("Inchikey0", "Inchikey1", 0.8),
-                      ("Inchikey0", "Inchikey2", 0.6),
-                      ("Inchikey2", "Inchikey1", 0.3),
-                      ("Inchikey2", "Inchikey2", 1.0)]
-    return spectrum_pairs
 
 
 def test_compute_jaccard_similarity_per_bin(simple_fingerprints):
@@ -146,34 +137,45 @@ def test_select_inchi_for_unique_inchikeys_two_inchikeys(test_spectra):
     assert [s.get("inchi")[:15] for s in spectrums_selected] == ['InChI=1/C6H8O6/', 'InChI=1S/C8H10N']
 
 
-def test_SelectedInchikeyPairs_generator_with_shuffle(dummy_spectrum_pairs):
-    selected_inchikey_pairs = InchikeyPairGenerator(dummy_spectrum_pairs)
-    rng = np.random.default_rng(0)
-    gen = selected_inchikey_pairs.generator(True, rng)
+def test_SelectedInchikeyPairs_generator_with_shuffle():
+    dummy_inchikey_pair_generator = SpectrumPairGenerator(        [
+        ("Inchikey0", "Inchikey1", 0.8), ("Inchikey0", "Inchikey2", 0.6),
+        ("Inchikey2", "Inchikey1", 0.3), ("Inchikey2", "Inchikey2", 1.0)], [
+        Spectrum(mz=np.array([90.]), intensities=np.array([0.4]), metadata={"inchikey": "Inchikey0"}),
+        Spectrum(mz=np.array([90.]), intensities=np.array([0.4]), metadata={"inchikey": "Inchikey1"}),
+        Spectrum(mz=np.array([90.]), intensities=np.array([0.4]), metadata={"inchikey": "Inchikey2"}),],
+        True, 0)
+    found_pairs = []
+    # do one complete loop
+    for i in range(len(dummy_inchikey_pair_generator)):
+        spectrum_1, spectrum_2, score = next(dummy_inchikey_pair_generator)
+        found_pairs.append((spectrum_1.get("inchikey"), spectrum_2.get("inchikey"), score))
+
+    assert len(found_pairs) == len(dummy_inchikey_pair_generator.selected_inchikey_pairs)
+    assert sorted(found_pairs) == sorted(dummy_inchikey_pair_generator.selected_inchikey_pairs)
 
     found_pairs = []
     # do one complete loop
-    for i in range(len(selected_inchikey_pairs)):
-        found_pairs.append(next(gen))
+    for i in range(len(dummy_inchikey_pair_generator)):
+        spectrum_1, spectrum_2, score = next(dummy_inchikey_pair_generator)
+        found_pairs.append((spectrum_1.get("inchikey"), spectrum_2.get("inchikey"), score))
 
-    assert len(found_pairs) == len(dummy_spectrum_pairs)
-    assert sorted(found_pairs) == sorted(dummy_spectrum_pairs)
-
-    found_pairs = []
-    # do one complete loop
-    for i in range(len(selected_inchikey_pairs)):
-        found_pairs.append(next(gen))
-
-    assert len(found_pairs) == len(dummy_spectrum_pairs)
-    assert sorted(found_pairs) == sorted(dummy_spectrum_pairs)
+    assert len(found_pairs) == len(dummy_inchikey_pair_generator.selected_inchikey_pairs)
+    assert sorted(found_pairs) == sorted(dummy_inchikey_pair_generator.selected_inchikey_pairs)
 
 
-def test_SelectedInchikeyPairs_generator_without_shuffle(dummy_spectrum_pairs):
-    selected_inchikey_pairs = InchikeyPairGenerator(dummy_spectrum_pairs)
-    gen = selected_inchikey_pairs.generator(False, None)
+def test_SelectedInchikeyPairs_generator_without_shuffle():
+    dummy_inchikey_pair_generator = SpectrumPairGenerator(        [
+        ("Inchikey0", "Inchikey1", 0.8), ("Inchikey0", "Inchikey2", 0.6),
+        ("Inchikey2", "Inchikey1", 0.3), ("Inchikey2", "Inchikey2", 1.0)], [
+        Spectrum(mz=np.array([90.]), intensities=np.array([0.4]), metadata={"inchikey": "Inchikey0"}),
+        Spectrum(mz=np.array([90.]), intensities=np.array([0.4]), metadata={"inchikey": "Inchikey1"}),
+        Spectrum(mz=np.array([90.]), intensities=np.array([0.4]), metadata={"inchikey": "Inchikey2"}),],
+        True,  0)
 
-    for _, expected_pair in enumerate(dummy_spectrum_pairs):
-        assert expected_pair == next(gen)
+    for _, expected_pair in enumerate(dummy_inchikey_pair_generator.selected_inchikey_pairs):
+        spectrum_1, spectrum_2, score = next(dummy_inchikey_pair_generator)
+        assert expected_pair == (spectrum_1.get("inchikey"), spectrum_2.get("inchikey"), score)
 
 
 def test_select_compound_pairs_wrapper_no_resampling():
@@ -184,8 +186,7 @@ def test_select_compound_pairs_wrapper_no_resampling():
                                     average_inchikey_sampling_count=10,
                                     batch_size=8,
                                     max_pair_resampling=max_pair_resampling)
-    selected_inchikey_pairs = select_compound_pairs_wrapper(spectrums, settings)
-    inchikey_pair_generator = InchikeyPairGenerator(selected_inchikey_pairs)
+    inchikey_pair_generator = create_spectrum_pair_generator(spectrums, settings)
 
     check_balanced_scores_selecting_inchikey_pairs(inchikey_pair_generator, bins)
     check_correct_oversampling(inchikey_pair_generator, max_pair_resampling)
@@ -205,8 +206,7 @@ def test_select_compound_pairs_wrapper_with_resampling():
                                     average_inchikey_sampling_count=10,
                                     batch_size=8,
                                     max_pair_resampling=max_pair_resampling)
-    selected_inchikey_pairs = select_compound_pairs_wrapper(spectrums, settings)
-    inchikey_pair_generator = InchikeyPairGenerator(selected_inchikey_pairs)
+    inchikey_pair_generator = create_spectrum_pair_generator(spectrums, settings)
 
     check_balanced_scores_selecting_inchikey_pairs(inchikey_pair_generator, bins)
     check_correct_oversampling(inchikey_pair_generator, max_pair_resampling)
@@ -228,14 +228,13 @@ def test_select_compound_pairs_wrapper_maximum_inchikey_count():
                                     max_pair_resampling=max_pair_resampling,
                                     max_inchikey_sampling=max_inchikey_sampling
                                     )
-    selected_inchikey_pairs = select_compound_pairs_wrapper(spectrums, settings)
-    inchikey_pair_generator = InchikeyPairGenerator(selected_inchikey_pairs)
+    inchikey_pair_generator = create_spectrum_pair_generator(spectrums, settings)
 
     highest_inchikey_count = max(inchikey_pair_generator.get_inchikey_counts().values())
     assert highest_inchikey_count <= max_inchikey_sampling + 1 # +1 because there is a chance that the last added inchikey is a pair to itself...
 
 
-def check_correct_oversampling(selected_inchikey_pairs: InchikeyPairGenerator, max_resampling: int):
+def check_correct_oversampling(selected_inchikey_pairs: SpectrumPairGenerator, max_resampling: int):
     pair_counts = Counter(selected_inchikey_pairs.selected_inchikey_pairs)
     for count in pair_counts.values():
         assert count <= max_resampling, "the resampling was done too frequently"
@@ -260,7 +259,7 @@ def get_available_score_distribution(settings, spectra):
     return score_distribution_per_inchikey
 
 
-def print_balanced_bins_per_inchikey(selected_inchikey_pairs: InchikeyPairGenerator, settings, spectra):
+def print_balanced_bins_per_inchikey(selected_inchikey_pairs: SpectrumPairGenerator, settings, spectra):
     """Prints the available distribution and the balanced distribution
 
     Currently doesn't do any checks, because it is hard to check if the wanted behaviour is achieved,
@@ -283,9 +282,9 @@ def print_balanced_bins_per_inchikey(selected_inchikey_pairs: InchikeyPairGenera
             # assert minimum_available_distribution*settings.max_pair_resampling == min(balanced_distribution)
 
 
-def check_balanced_scores_selecting_inchikey_pairs(selected_inchikey_pairs: InchikeyPairGenerator,
+def check_balanced_scores_selecting_inchikey_pairs(selected_inchikey_pairs: SpectrumPairGenerator,
                                                    score_bins):
-    """Test if InchikeyPairGenerator has an equal inchikey distribution
+    """Test if SpectrumPairGenerator has an equal inchikey distribution
     """
     scores = selected_inchikey_pairs.get_scores()
     # converting to float32 is required, since the scores are float32, otherwise equal numbers are seen as not equal
@@ -298,4 +297,3 @@ def check_balanced_scores_selecting_inchikey_pairs(selected_inchikey_pairs: Inch
                 score_bin_counts[(min_bound, max_bound)] += 1
     # Check that the number of pairs per bin is equal for all bins
     assert len(set(score_bin_counts.values())) == 1
-

@@ -5,9 +5,11 @@ from collections import Counter
 from matchms import Spectrum
 from ms2deepscore.SettingsMS2Deepscore import SettingsMS2Deepscore, SettingsEmbeddingEvaluator
 from ms2deepscore.tensorize_spectra import tensorize_spectra
-from ms2deepscore.train_new_model.data_generators import SpectrumPairGenerator, \
-    DataGeneratorEmbeddingEvaluation, create_data_generator
-from ms2deepscore.train_new_model import InchikeyPairGenerator
+from ms2deepscore.train_new_model.TrainingBatchGenerator import TrainingBatchGenerator
+from ms2deepscore.train_new_model.DataGeneratorEmbeddingEvaluation import DataGeneratorEmbeddingEvaluation
+from ms2deepscore.train_new_model import SpectrumPairGenerator, create_spectrum_pair_generator
+from ms2deepscore.train_new_model.inchikey_pair_selection_cross_ionmode import create_data_generator_across_ionmodes, \
+    select_compound_pairs_wrapper_across_ionmode
 from tests.create_test_spectra import create_test_spectra
 
 
@@ -62,10 +64,11 @@ def test_tensorize_spectra():
 @pytest.fixture()
 def dummy_data_generator():
     spectrums = create_test_spectra(4, 3)
-    selected_pairs = InchikeyPairGenerator([('CCCCCCCCCCCCCC', 'DDDDDDDDDDDDDD', 0.25),
+    selected_pairs = SpectrumPairGenerator([('CCCCCCCCCCCCCC', 'DDDDDDDDDDDDDD', 0.25),
                                             ('BBBBBBBBBBBBBB', 'DDDDDDDDDDDDDD', 0.6666667),
                                             ('AAAAAAAAAAAAAA', 'CCCCCCCCCCCCCC', 1.0),
-                                            ('AAAAAAAAAAAAAA', 'BBBBBBBBBBBBBB', 0.33333334)])
+                                            ('AAAAAAAAAAAAAA', 'BBBBBBBBBBBBBB', 0.33333334)],
+                                           spectrums, True, 0)
     batch_size = 2
     settings = SettingsMS2Deepscore(min_mz=10,
                                     max_mz=1000,
@@ -78,8 +81,9 @@ def dummy_data_generator():
                                     augment_removal_max=0.0,
                                     augment_removal_intensity=0.0,
                                     augment_intensity=0.0,
-                                    augment_noise_max=0)
-    return SpectrumPairGenerator(spectrums, selected_pairs, settings)
+                                    augment_noise_max=0,
+                                    average_inchikey_sampling_count=2)
+    return TrainingBatchGenerator(selected_pairs, settings)
 
 
 def test_correct_batch_format_data_generator(dummy_data_generator):
@@ -107,6 +111,8 @@ def test_equal_sampling_of_spectra(dummy_data_generator):
     The sampling is random, but for enough repetitions very likely to always happen.
     This test is mostly to make sure we don't accidentally implement something
     where we just resample the same spectrum every time for one inchikey"""
+    spectrums = create_test_spectra(4, 3) # the same spectra used for the dummy_data_generator
+
     tensorized_spectra = []
     epochs = 20
     for _ in range(epochs):
@@ -127,7 +133,7 @@ def test_equal_sampling_of_spectra(dummy_data_generator):
     # but since we sample 640 spectra from 24 options, it is very unlikely (1 in 28 billion)
     # that this will result in not sampling all at least once.
     # Because we have a fixed seed, this should not result in random failing tests.
-    assert len(unique_tensors) == len(dummy_data_generator.spectrums), "Not all spectra are selected at least once"
+    assert len(unique_tensors) == 12, "Not all spectra are selected at least once"
 
     def reverse_tensorize(tensor, list_of_spectra, settings):
         """Finds the spectrum in a list of spectra based on the tensorized vesion"""
@@ -145,7 +151,7 @@ def test_equal_sampling_of_spectra(dummy_data_generator):
     inchikey_counts = Counter()
     for unique_tensor, count in tensor_counts.items():
         spectrum = reverse_tensorize(unique_tensor,
-                                     dummy_data_generator.spectrums,
+                                     spectrums,
                                      dummy_data_generator.model_settings)
 
         inchikey = spectrum.get("inchikey")[:14]
@@ -158,21 +164,20 @@ def test_create_data_generator():
     """tests if a the function create_data_generator creates a datagenerator that samples all input spectra
     correct distributions of inchikeys and scores are tested in other tests"""
     test_spectra = create_test_spectra(8, 3)
-    data_generator = create_data_generator(training_spectra=test_spectra,
-                                           settings=SettingsMS2Deepscore(
-                                               min_mz=10,
-                                               max_mz=1000,
-                                               mz_bin_width=0.1,
-                                               intensity_scaling=0.5,
-                                               additional_metadata=[],
-                                               same_prob_bins=np.array([(-0.000001, 0.25), (0.25, 0.5), (0.5, 0.75),
+    settings = SettingsMS2Deepscore(min_mz=10, max_mz=1000,
+                                    mz_bin_width=0.1,
+                                    intensity_scaling=0.5,
+                                    additional_metadata=[],
+                                    same_prob_bins=np.array([(-0.000001, 0.25), (0.25, 0.5), (0.5, 0.75),
                                                                         (0.75, 1)]),
-                                               batch_size=2,
+                                    batch_size=2,
                                                num_turns=4,
                                                augment_removal_max=0.0,
                                                augment_removal_intensity=0.0,
                                                augment_intensity=0.0,
-                                               augment_noise_max=0))
+                                               augment_noise_max=0)
+    spectrum_pair_generator = create_spectrum_pair_generator(test_spectra, settings=settings)
+    data_generator = TrainingBatchGenerator(spectrum_pair_generator=spectrum_pair_generator, settings=settings)
     tensorized_spectra = []
     epochs = 20
     for _ in range(epochs):
@@ -232,3 +237,54 @@ def test_epoch_end_functionality(data_generator_embedding_evaluation):
     assert counter == 10
     assert not np.array_equal(data_generator_embedding_evaluation.indexes,
                               initial_indexes), "Indexes not shuffled after epoch end"
+
+def test_create_data_generator_across_ionmodes():
+    """Just a test that is runs, not a test if it is actually well balanced"""
+    test_spectra = create_test_spectra(20, 2)
+    pos_spectra = []
+    for spectrum in test_spectra[:20]:
+        spectrum.set("ionmode", "positive")
+        pos_spectra.append(spectrum)
+    neg_spectra = []
+    for spectrum in test_spectra[20:]:
+        spectrum.set("ionmode", "negative")
+        neg_spectra.append(spectrum)
+
+    settings = SettingsMS2Deepscore(min_mz=10, max_mz=1000,
+                                    mz_bin_width=0.1,
+                                    intensity_scaling=0.5,
+                                    additional_metadata=[],
+                                    same_prob_bins=np.array([(-0.000001, 0.25), (0.25, 0.5), (0.5, 0.75),
+                                                                        (0.75, 1)]),
+                                    batch_size=2,
+                                    num_turns=4,)
+    data_generator = create_data_generator_across_ionmodes(pos_spectra + neg_spectra, settings)
+    for _ in range(len(data_generator)):
+        spectra_1, spectra_2, meta_1, meta_2, targets = data_generator.__next__()
+
+def test_select_compound_pairs_wrapper_across_ionmode():
+    test_spectra = create_test_spectra(20, 2)
+    pos_spectra = []
+    for spectrum in test_spectra[:20]:
+        spectrum.set("ionmode", "positive")
+        pos_spectra.append(spectrum)
+    neg_spectra = []
+    for spectrum in test_spectra[20:]:
+        spectrum.set("ionmode", "negative")
+        neg_spectra.append(spectrum)
+    settings = SettingsMS2Deepscore(min_mz=10, max_mz=1000,
+                                    mz_bin_width=0.1,
+                                    intensity_scaling=0.5,
+                                    additional_metadata=[],
+                                    same_prob_bins=np.array([(-0.000001, 0.25), (0.25, 0.5), (0.5, 0.75),
+                                                             (0.75, 1)]),
+                                    batch_size=2,
+                                    num_turns=4, )
+    spectrum_pair_generator = select_compound_pairs_wrapper_across_ionmode(pos_spectra, neg_spectra, settings)
+
+    for _ in range(len(spectrum_pair_generator)):
+        spectrum_1, spectrum_2, score = spectrum_pair_generator.__next__()
+        assert spectrum_1.get("ionmode") == "positive"
+        assert spectrum_2.get("ionmode") == "negative"
+    # it should be an infinite generator, so it should continue after a loop
+    spectrum_pair_generator.__next__()

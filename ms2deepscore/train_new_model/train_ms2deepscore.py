@@ -7,10 +7,12 @@ from typing import Optional
 
 import numpy as np
 from matplotlib import pyplot as plt
+
 from ms2deepscore.models.SiameseSpectralModel import (SiameseSpectralModel,
                                                       train)
 from ms2deepscore.SettingsMS2Deepscore import SettingsMS2Deepscore
-from ms2deepscore.train_new_model.data_generators import create_data_generator
+from ms2deepscore.train_new_model import TrainingBatchGenerator, create_spectrum_pair_generator
+from ms2deepscore.train_new_model.inchikey_pair_selection_cross_ionmode import create_data_generator_across_ionmodes
 from ms2deepscore.validation_loss_calculation.ValidationLossCalculator import \
     ValidationLossCalculator
 
@@ -20,20 +22,17 @@ def train_ms2ds_model(
         validation_spectra,
         results_folder,
         settings: SettingsMS2Deepscore,
-        inchikey_pairs_file: str = None,
         ):
     """Full workflow to train a MS2DeepScore model.
     """
     # Make folder and save settings
     os.makedirs(results_folder, exist_ok=True)
     settings.save_to_file(os.path.join(results_folder, "settings.json"))
-
-    # Create a training generator
-    if inchikey_pairs_file is None:
-        train_generator = create_data_generator(training_spectra, settings, None)
+    if settings.balanced_sampling_across_ionmodes:
+        train_generator = create_data_generator_across_ionmodes(training_spectra, settings=settings)
     else:
-        train_generator = create_data_generator(training_spectra, settings,
-                                                os.path.join(results_folder, inchikey_pairs_file))
+        spectrum_pair_generator = create_spectrum_pair_generator(training_spectra, settings=settings)
+        train_generator = TrainingBatchGenerator(spectrum_pair_generator=spectrum_pair_generator, settings=settings)
     # Create a validation loss calculator
     validation_loss_calculator = ValidationLossCalculator(validation_spectra,
                                                           settings=settings)

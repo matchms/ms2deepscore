@@ -65,6 +65,7 @@ Alternatively there are some example scripts below.
 
 ## 1) Compute spectral similarities
 We provide a model which was trained on > 500,000 MS/MS combined spectra from [GNPS](https://gnps.ucsd.edu/), [Mona](https://mona.fiehnlab.ucdavis.edu/), MassBank and MSnLib. 
+
 This model can be downloaded from [from zenodo here](https://zenodo.org/records/17826815). Only the ms2deepscore_model.pt is needed.
 The model works for spectra in both positive and negative ionization modes and even predictions across ionization modes can be made by this model. 
 

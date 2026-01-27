@@ -13,8 +13,8 @@ from ms2deepscore.benchmarking.CalculateScoresBetweenAllIonmodes import Calculat
 from ms2deepscore.models.SiameseSpectralModel import (SiameseSpectralModel,
                                                       train)
 from ms2deepscore.SettingsMS2Deepscore import SettingsMS2Deepscore
+from ms2deepscore.train_new_model import TrainingBatchGenerator, create_spectrum_pair_generator
 from ms2deepscore.validation_loss_calculation.ValidationLossCalculator import ValidationLossCalculator
-from ms2deepscore.train_new_model.data_generators import create_data_generator
 from ms2deepscore.train_new_model.train_ms2deepscore import \
     train_ms2ds_model, plot_history, save_history
 from ms2deepscore.train_new_model.validation_and_test_split import \
@@ -43,10 +43,7 @@ def train_ms2deepscore_wrapper(settings: SettingsMS2Deepscore,
     validation_spectra = load_spectra_in_ionmode(settings.validation_spectra_file_name, settings.ionisation_mode)
 
     # Train model
-    _, history = train_ms2ds_model(
-        training_spectra, validation_spectra, settings.model_directory_name,
-        settings,
-    )
+    _, history = train_ms2ds_model(training_spectra, validation_spectra, settings.model_directory_name, settings)
 
     ms2ds_history_plot_file_name = os.path.join(settings.model_directory_name, settings.history_plot_file_name)
     plot_history(history["losses"], history["val_losses"], ms2ds_history_plot_file_name)
@@ -131,7 +128,8 @@ def parameter_search(
         os.makedirs(settings.model_directory_name, exist_ok=True)
         settings.save_to_file(os.path.join(settings.model_directory_name, "settings.json"))
         # Create a training generator
-        train_generator = create_data_generator(training_spectra, settings)
+        spectrum_pair_generator = create_spectrum_pair_generator(training_spectra, settings=settings)
+        train_generator = TrainingBatchGenerator(spectrum_pair_generator=spectrum_pair_generator, settings=settings)
         # Create a validation loss calculator
         validation_loss_calculator = ValidationLossCalculator(validation_spectra,
                                                               settings=settings)

@@ -8,13 +8,14 @@ from matchms.similarity.vector_similarity_functions import jaccard_index
 from numba import jit, prange
 from tqdm import tqdm
 from ms2deepscore.SettingsMS2Deepscore import SettingsMS2Deepscore
+from ms2deepscore.train_new_model import SpectrumPairGenerator
 
 
-def select_compound_pairs_wrapper(
+def create_spectrum_pair_generator(
         spectra: List[Spectrum],
         settings: SettingsMS2Deepscore,
-) -> List[Tuple[str, str, float]]:
-    """Returns a InchikeyPairGenerator object containing equally balanced pairs over the different bins
+) -> SpectrumPairGenerator:
+    """Returns a SpectrumPairGenerator object containing equally balanced pairs over the different bins
 
     spectra:
         A list of spectra
@@ -24,8 +25,8 @@ def select_compound_pairs_wrapper(
 
     Returns
     -------
-    InchikeyPairGenerator
-        InchikeyPairGenerator containing balanced pairs. The pairs are stored as [(inchikey1, inchikey2, score)]
+    SpectrumPairGenerator
+        SpectrumPairGenerator containing balanced pairs. The pairs are stored as [(inchikey1, inchikey2, score)]
     """
     if settings.random_seed is not None:
         np.random.seed(settings.random_seed)
@@ -53,7 +54,8 @@ def select_compound_pairs_wrapper(
         pair_frequency_matrixes, available_pairs_per_bin_matrix,
         available_scores_per_bin_matrix, inchikeys14_unique)
 
-    return [pair for pairs in selected_pairs_per_bin for pair in pairs]
+    return SpectrumPairGenerator([pair for pairs in selected_pairs_per_bin for pair in pairs],
+                                 spectra, settings.shuffle, settings.random_seed)
 
 
 def compute_fingerprints_for_training(
@@ -126,7 +128,8 @@ def compute_jaccard_similarity_per_bin(
     selected_scores_per_bin = np.zeros((num_bins, size, max_pairs_per_bin), dtype=np.float32)
 
     for idx_fingerprint_i in prange(size):
-        tanimoto_scores = tanimoto_scores_row(fingerprints, idx_fingerprint_i)
+        fingerprint_i = fingerprints[idx_fingerprint_i, :]
+        tanimoto_scores = tanimoto_scores_row(fingerprint_i, fingerprints)
 
         for bin_number in range(num_bins):
             selection_bin = selection_bins[bin_number]
@@ -238,17 +241,23 @@ def convert_to_selected_pairs_list(pair_frequency_matrixes: np.ndarray,
     selected_pairs_per_bin = []
     for bin_id, bin_pair_frequency_matrix in enumerate(tqdm(pair_frequency_matrixes)):
         selected_pairs = []
-        for inchikey1, pair_frequency_row in enumerate(bin_pair_frequency_matrix):
-            for inchikey2_index, pair_frequency in enumerate(pair_frequency_row):
+        for inchikey1_index, pair_frequency_row in enumerate(bin_pair_frequency_matrix):
+            for column_index, pair_frequency in enumerate(pair_frequency_row):
                 if pair_frequency > 0:
-                    inchikey2 = available_pairs_per_bin_matrix[bin_id][inchikey1][inchikey2_index]
-                    score = scores_matrix[bin_id][inchikey1][inchikey2_index]
-                    selected_pairs.extend(
-                        [(inchikeys14_unique[inchikey1], inchikeys14_unique[inchikey2], score)] * pair_frequency)
+                    inchikey2_index = available_pairs_per_bin_matrix[bin_id][inchikey1_index][column_index]
+                    score = scores_matrix[bin_id][inchikey1_index][column_index]
+                    # This ensures that the order is the same.
+                    # This is important for the cross ionization mode selection.
+                    if inchikey1_index < inchikey2_index:
+                        selected_pairs.extend(
+                            [(inchikeys14_unique[inchikey1_index], inchikeys14_unique[inchikey2_index], score)] * pair_frequency)
+                    else:
+                        selected_pairs.extend(
+                            [(inchikeys14_unique[inchikey2_index], inchikeys14_unique[inchikey1_index], score)] * pair_frequency)
                     # remove duplicate pairs
                     position_of_first_inchikey_in_matrix = available_pairs_per_bin_matrix[bin_id][
-                                                               inchikey2] == inchikey1
-                    bin_pair_frequency_matrix[inchikey2][position_of_first_inchikey_in_matrix] = 0
+                                                               inchikey2_index] == inchikey1_index
+                    bin_pair_frequency_matrix[inchikey2_index][position_of_first_inchikey_in_matrix] = 0
         selected_pairs_per_bin.append(selected_pairs)
     return selected_pairs_per_bin
 
@@ -392,16 +401,16 @@ def get_nr_of_available_pairs_in_bin(selected_pairs_per_bin_matrix: np.ndarray) 
 
 
 @jit(nopython=True)
-def tanimoto_scores_row(fingerprints, idx):
-    size = fingerprints.shape[0]
+def tanimoto_scores_row(single_fingerprint, list_of_fingerprints):
+    size = list_of_fingerprints.shape[0]
     tanimoto_scores = np.zeros(size)
 
-    fingerprint_i = fingerprints[idx, :]
     for idx_fingerprint_j in range(size):
-        fingerprint_j = fingerprints[idx_fingerprint_j, :]
-        tanimoto_score = jaccard_index(fingerprint_i, fingerprint_j)
+        fingerprint_j = list_of_fingerprints[idx_fingerprint_j, :]
+        tanimoto_score = jaccard_index(single_fingerprint, fingerprint_j)
         tanimoto_scores[idx_fingerprint_j] = tanimoto_score
     return tanimoto_scores
+
 
 
 def select_inchi_for_unique_inchikeys(

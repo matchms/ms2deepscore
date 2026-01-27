@@ -9,8 +9,7 @@ from ms2deepscore.__version__ import __version__
 from ms2deepscore.models.helper_functions import initialize_device
 from ms2deepscore.models.io_utils import _settings_to_json
 from ms2deepscore.SettingsMS2Deepscore import SettingsEmbeddingEvaluator
-from ms2deepscore.train_new_model.data_generators import \
-    DataGeneratorEmbeddingEvaluation
+from ms2deepscore.train_new_model.DataGeneratorEmbeddingEvaluation import DataGeneratorEmbeddingEvaluation
 from ms2deepscore.models.__model_format__ import __model_format__
 
 

@@ -1,9 +1,10 @@
-from .data_generators import SpectrumPairGenerator, InchikeyPairGenerator
-from .inchikey_pair_selection import (select_compound_pairs_wrapper)
+from .TrainingBatchGenerator import TrainingBatchGenerator
+from .SpectrumPairGenerator import SpectrumPairGenerator
+from .inchikey_pair_selection import (create_spectrum_pair_generator)
 
 
 __all__ = [
-    "SpectrumPairGenerator",
-    "select_compound_pairs_wrapper",
-    "InchikeyPairGenerator"
+    "TrainingBatchGenerator",
+    "create_spectrum_pair_generator",
+    "SpectrumPairGenerator"
 ]

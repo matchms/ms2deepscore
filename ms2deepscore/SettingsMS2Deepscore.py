@@ -87,6 +87,12 @@ class SettingsMS2Deepscore:
             The in between layers to be used. Default = (2000, 2000, 2000)
         embedding_dim:
             The dimension of the final embedding. Default = 400
+        ionisation_mode:
+            The ionisation mode that is used for training the model.
+        balanced_sampling_across_ionmodes:
+            If True the model will do separate pair sampling for training for each ionmode.
+            This gives better balance over the ionmodes. Initial results showed a decrease in pos-pos prediction
+            accuracy. Which you can find in the notebook model_benchmarking/Compare balanced cross ion moe sampling.ipynb
         additional_metadata:
             Additional metadata that should be used in training the model. e.g. precursor_mz
         dropout_rate:
@@ -184,6 +190,7 @@ class SettingsMS2Deepscore:
         self.embedding_dim = 500
         self.ionisation_mode = "positive"
         self.activation_function = "relu"
+        self.balanced_sampling_across_ionmodes = False
 
         # additional model structure options
         self.train_binning_layer: bool = False
@@ -295,6 +302,8 @@ class SettingsMS2Deepscore:
         if self.loss_function.lower() not in LOSS_FUNCTIONS:
             raise ValueError(f"Unknown loss function. Must be one of: {LOSS_FUNCTIONS.keys()}")
         validate_bin_order(self.same_prob_bins)
+        if self.balanced_sampling_across_ionmodes and self.ionisation_mode != "both":
+            raise ValueError("Balanced sampling across ionmodes only works if you train on both ionmodes")
 
     def create_model_directory_name(self):
         """Creates a directory name using metadata, it will contain the metadata, the binned spectra and final model"""

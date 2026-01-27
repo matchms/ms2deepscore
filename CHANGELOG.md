@@ -6,11 +6,20 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+### Added
+- The training pair sampling for both ionmodes is now balanced over the different ionmode pairs.
+
 ### Fixed
 - Datasplit of test, train and val, is not done sepparately for ionmodes anymore.
 
 ### Changed
 - Settings include file name of spectra now. This makes tracking of runs more easily and more flexibility for results folder. 
+- Split the different datagenerators to different files, before they were all in data_generators.py
+- Renamed SpectrumPairGenerator -> TrainingBatchGenerator, this better captures what the class does.
+- Moved the data augmentation to a separate file out of the TrainingBatchGenerator.
+- Refactored the data augmentation to make it a bit more modular and testable (also added extra tests)
+- Moved the Spectrum picking from TraininBatchGenerator into InchikeyPairGenerator and renamed InchikeyPairGenerator to SpectrumPairGenerator.
+- Turned the new SpectrumPairGenerator (InchikeyPairGenerator before) into a real generator, before we had a generator method returning a generator.
 
 ## [2.6.0] - 2025-12-05
 ### Changed
