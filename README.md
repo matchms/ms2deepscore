@@ -1,4 +1,4 @@
-![GitHub](https://img.shields.io/github/license/matchms/ms2deepscore)
+from ms2deepscore.SettingsMS2Deepscore import SettingsEmbeddingEvaluator![GitHub](https://img.shields.io/github/license/matchms/ms2deepscore)
 [![PyPI](https://img.shields.io/pypi/v/ms2deepscore?color=teal)](https://pypi.org/project/ms2deepscore/)
 ![GitHub Workflow Status](https://img.shields.io/github/actions/workflow/status/matchms/ms2deepscore/CI_build.yml?branch=main)
 [![SonarCloud Quality Gate](https://sonarcloud.io/api/project_badges/measure?project=matchms_ms2deepscore&metric=alert_status)](https://sonarcloud.io/dashboard?id=matchms_ms2deepscore)
@@ -116,7 +116,7 @@ To train your own model you can run the code below.
 Please first ensure cleaning your spectra. We recommend using the cleaning pipeline in [matchms](https://github.com/matchms/matchms).
 
 ```python
-from ms2deepscore import SettingsMS2Deepscore
+from ms2deepscore.SettingsMS2Deepscore import SettingsMS2Deepscore, SettingsEmbeddingEvaluator
 from ms2deepscore.wrapper_functions.training_wrapper_functions import train_ms2deepscore_wrapper
 
 spectrum_file = "./combined_libraries.mgf"
@@ -131,7 +131,9 @@ settings = SettingsMS2Deepscore(
                                              "mean": 0, "standard_deviation": 1000})], 
     validation_split_fraction=20)
 
-train_ms2deepscore_wrapper(settings)
+train_ms2deepscore_wrapper(settings, 
+                           SettingsEmbeddingEvaluator() # this results in also training the embedding evaluator. Leave as None if you don't want to train this.
+                           )
 ```
 ## Contributing
 We welcome contributions to the development of ms2deepscore! Have a look at the [contribution guidelines](https://github.com/matchms/ms2deepscore/blob/main/CONTRIBUTING.md).
