@@ -7,7 +7,7 @@ from matchms import Spectrum
 
 from ms2deepscore import SettingsMS2Deepscore
 from ms2deepscore.train_new_model.inchikey_pair_selection import (
-    compute_jaccard_similarity_per_bin, select_inchi_for_unique_inchikeys, select_compound_pairs_wrapper, compute_fingerprints_for_training)
+    compute_jaccard_similarity_per_bin, select_inchi_for_unique_inchikeys, create_spectrum_pair_generator, compute_fingerprints_for_training)
 from ms2deepscore.train_new_model import SpectrumPairGenerator
 from tests.create_test_spectra import create_test_spectra
 
@@ -186,7 +186,7 @@ def test_select_compound_pairs_wrapper_no_resampling():
                                     average_inchikey_sampling_count=10,
                                     batch_size=8,
                                     max_pair_resampling=max_pair_resampling)
-    inchikey_pair_generator = select_compound_pairs_wrapper(spectrums, settings)
+    inchikey_pair_generator = create_spectrum_pair_generator(spectrums, settings)
 
     check_balanced_scores_selecting_inchikey_pairs(inchikey_pair_generator, bins)
     check_correct_oversampling(inchikey_pair_generator, max_pair_resampling)
@@ -206,7 +206,7 @@ def test_select_compound_pairs_wrapper_with_resampling():
                                     average_inchikey_sampling_count=10,
                                     batch_size=8,
                                     max_pair_resampling=max_pair_resampling)
-    inchikey_pair_generator = select_compound_pairs_wrapper(spectrums, settings)
+    inchikey_pair_generator = create_spectrum_pair_generator(spectrums, settings)
 
     check_balanced_scores_selecting_inchikey_pairs(inchikey_pair_generator, bins)
     check_correct_oversampling(inchikey_pair_generator, max_pair_resampling)
@@ -228,7 +228,7 @@ def test_select_compound_pairs_wrapper_maximum_inchikey_count():
                                     max_pair_resampling=max_pair_resampling,
                                     max_inchikey_sampling=max_inchikey_sampling
                                     )
-    inchikey_pair_generator = select_compound_pairs_wrapper(spectrums, settings)
+    inchikey_pair_generator = create_spectrum_pair_generator(spectrums, settings)
 
     highest_inchikey_count = max(inchikey_pair_generator.get_inchikey_counts().values())
     assert highest_inchikey_count <= max_inchikey_sampling + 1 # +1 because there is a chance that the last added inchikey is a pair to itself...

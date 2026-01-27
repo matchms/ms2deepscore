@@ -9,15 +9,15 @@ from ms2deepscore.train_new_model.TrainingBatchGenerator import TrainingBatchGen
 from ms2deepscore.train_new_model.SpectrumPairGenerator import SpectrumPairGenerator
 from ms2deepscore.train_new_model.inchikey_pair_selection import compute_fingerprints_for_training, \
     balanced_selection_of_pairs_per_bin, convert_to_selected_pairs_list, tanimoto_scores_row, \
-    select_compound_pairs_wrapper
+    create_spectrum_pair_generator
 from ms2deepscore.utils import split_by_ionmode
 
 def create_data_generator_across_ionmodes(training_spectra,
                                           settings: SettingsMS2Deepscore) -> TrainingBatchGenerator:
     pos_spectra, neg_spectra = split_by_ionmode(training_spectra)
 
-    pos_spectrum_pair_generator = select_compound_pairs_wrapper(pos_spectra, settings=settings)
-    neg_spectrum_pair_generator = select_compound_pairs_wrapper(neg_spectra, settings=settings)
+    pos_spectrum_pair_generator = create_spectrum_pair_generator(pos_spectra, settings=settings)
+    neg_spectrum_pair_generator = create_spectrum_pair_generator(neg_spectra, settings=settings)
     pos_neg_spectrum_pair_generator = select_compound_pairs_wrapper_across_ionmode(pos_spectra, neg_spectra, settings)
 
     spectrum_pair_generator = CombinedSpectrumGenerator([pos_spectrum_pair_generator, neg_spectrum_pair_generator, pos_neg_spectrum_pair_generator])

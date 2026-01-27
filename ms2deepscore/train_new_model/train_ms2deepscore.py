@@ -11,7 +11,7 @@ from matplotlib import pyplot as plt
 from ms2deepscore.models.SiameseSpectralModel import (SiameseSpectralModel,
                                                       train)
 from ms2deepscore.SettingsMS2Deepscore import SettingsMS2Deepscore
-from ms2deepscore.train_new_model import TrainingBatchGenerator, select_compound_pairs_wrapper
+from ms2deepscore.train_new_model import TrainingBatchGenerator, create_spectrum_pair_generator
 from ms2deepscore.train_new_model.inchikey_pair_selection_cross_ionmode import create_data_generator_across_ionmodes
 from ms2deepscore.validation_loss_calculation.ValidationLossCalculator import \
     ValidationLossCalculator
@@ -31,7 +31,7 @@ def train_ms2ds_model(
     if settings.ionisation_mode == "both":
         train_generator = create_data_generator_across_ionmodes(training_spectra, settings=settings)
     else:
-        spectrum_pair_generator = select_compound_pairs_wrapper(training_spectra, settings=settings)
+        spectrum_pair_generator = create_spectrum_pair_generator(training_spectra, settings=settings)
         train_generator = TrainingBatchGenerator(spectrum_pair_generator=spectrum_pair_generator, settings=settings)
     # Create a validation loss calculator
     validation_loss_calculator = ValidationLossCalculator(validation_spectra,

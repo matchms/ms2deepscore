@@ -13,7 +13,7 @@ from ms2deepscore.benchmarking.CalculateScoresBetweenAllIonmodes import Calculat
 from ms2deepscore.models.SiameseSpectralModel import (SiameseSpectralModel,
                                                       train)
 from ms2deepscore.SettingsMS2Deepscore import SettingsMS2Deepscore
-from ms2deepscore.train_new_model import TrainingBatchGenerator, select_compound_pairs_wrapper
+from ms2deepscore.train_new_model import TrainingBatchGenerator, create_spectrum_pair_generator
 from ms2deepscore.validation_loss_calculation.ValidationLossCalculator import ValidationLossCalculator
 from ms2deepscore.train_new_model.train_ms2deepscore import \
     train_ms2ds_model, plot_history, save_history
@@ -128,7 +128,7 @@ def parameter_search(
         os.makedirs(settings.model_directory_name, exist_ok=True)
         settings.save_to_file(os.path.join(settings.model_directory_name, "settings.json"))
         # Create a training generator
-        spectrum_pair_generator = select_compound_pairs_wrapper(training_spectra, settings=settings)
+        spectrum_pair_generator = create_spectrum_pair_generator(training_spectra, settings=settings)
         train_generator = TrainingBatchGenerator(spectrum_pair_generator=spectrum_pair_generator, settings=settings)
         # Create a validation loss calculator
         validation_loss_calculator = ValidationLossCalculator(validation_spectra,

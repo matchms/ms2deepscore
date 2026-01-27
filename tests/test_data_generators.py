@@ -7,7 +7,7 @@ from ms2deepscore.SettingsMS2Deepscore import SettingsMS2Deepscore, SettingsEmbe
 from ms2deepscore.tensorize_spectra import tensorize_spectra
 from ms2deepscore.train_new_model.TrainingBatchGenerator import TrainingBatchGenerator
 from ms2deepscore.train_new_model.DataGeneratorEmbeddingEvaluation import DataGeneratorEmbeddingEvaluation
-from ms2deepscore.train_new_model import SpectrumPairGenerator, select_compound_pairs_wrapper
+from ms2deepscore.train_new_model import SpectrumPairGenerator, create_spectrum_pair_generator
 from ms2deepscore.train_new_model.inchikey_pair_selection_cross_ionmode import create_data_generator_across_ionmodes, \
     select_compound_pairs_wrapper_across_ionmode
 from tests.create_test_spectra import create_test_spectra
@@ -176,7 +176,7 @@ def test_create_data_generator():
                                                augment_removal_intensity=0.0,
                                                augment_intensity=0.0,
                                                augment_noise_max=0)
-    spectrum_pair_generator = select_compound_pairs_wrapper(test_spectra, settings=settings)
+    spectrum_pair_generator = create_spectrum_pair_generator(test_spectra, settings=settings)
     data_generator = TrainingBatchGenerator(spectrum_pair_generator=spectrum_pair_generator, settings=settings)
     tensorized_spectra = []
     epochs = 20

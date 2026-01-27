@@ -11,7 +11,7 @@ from ms2deepscore.SettingsMS2Deepscore import SettingsMS2Deepscore
 from ms2deepscore.train_new_model import SpectrumPairGenerator
 
 
-def select_compound_pairs_wrapper(
+def create_spectrum_pair_generator(
         spectra: List[Spectrum],
         settings: SettingsMS2Deepscore,
 ) -> SpectrumPairGenerator:
