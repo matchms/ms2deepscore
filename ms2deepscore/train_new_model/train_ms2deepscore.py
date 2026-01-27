@@ -28,7 +28,7 @@ def train_ms2ds_model(
     # Make folder and save settings
     os.makedirs(results_folder, exist_ok=True)
     settings.save_to_file(os.path.join(results_folder, "settings.json"))
-    if settings.ionisation_mode == "both":
+    if settings.balanced_sampling_across_ionmodes:
         train_generator = create_data_generator_across_ionmodes(training_spectra, settings=settings)
     else:
         spectrum_pair_generator = create_spectrum_pair_generator(training_spectra, settings=settings)
