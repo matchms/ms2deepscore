@@ -3,8 +3,8 @@ import numpy as np
 from matchms.exporting import save_as_mgf
 from matchms.importing import load_spectra
 
-from ms2deepscore.SettingsMS2Deepscore import SettingsMS2Deepscore
-from ms2deepscore.models import load_model
+from ms2deepscore.SettingsMS2Deepscore import SettingsMS2Deepscore, SettingsEmbeddingEvaluator
+from ms2deepscore.models import load_model, load_embedding_evaluator
 from ms2deepscore.wrapper_functions.training_wrapper_functions import (train_ms2deepscore_wrapper, parameter_search,
                                                                        split_data_if_necessary)
 from tests.create_test_spectra import pesticides_test_spectra
@@ -31,12 +31,14 @@ def test_train_wrapper_ms2ds_model(tmp_path):
         "train_test_split_fraction": 5,
         })
 
-    model_directory_name = train_ms2deepscore_wrapper(settings)
+    model_directory_name = train_ms2deepscore_wrapper(settings, SettingsEmbeddingEvaluator())
     # Test model is created and can be loaded
     model_file_name = os.path.join(model_directory_name, settings.model_file_name)
     assert os.path.isfile(model_file_name)
     load_model(model_file_name)
-
+    embedding_evaluator_file_name = os.path.join(settings.model_directory_name, "embedding_evaluator.pt")
+    assert os.path.isfile(embedding_evaluator_file_name)
+    load_embedding_evaluator(embedding_evaluator_file_name)
     assert os.path.isfile(os.path.join(tmp_path, settings.results_folder,
                                        model_directory_name, "benchmarking_results", "average_per_bin.svg"))
     assert os.path.isfile(os.path.join(tmp_path, settings.results_folder,
