@@ -8,7 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 ### Added
 - The training pair sampling for both ionmodes is now balanced over the different ionmode pairs.
-
+- The training wrapper now also trains the embedding evaluator (if settings are given)
 ### Fixed
 - Datasplit of test, train and val, is not done sepparately for ionmodes anymore.
 

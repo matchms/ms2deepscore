@@ -7,6 +7,7 @@ from matchms import Spectrum
 from matchms.similarity.vector_similarity_functions import jaccard_similarity_matrix
 
 from ms2deepscore.SettingsMS2Deepscore import SettingsEmbeddingEvaluator
+from ms2deepscore.models import SiameseSpectralModel
 from ms2deepscore.tensorize_spectra import tensorize_spectra
 from ms2deepscore.train_new_model.inchikey_pair_selection import compute_fingerprints_for_training
 from ms2deepscore.vector_operations import cosine_similarity_matrix
@@ -29,7 +30,7 @@ class DataGeneratorEmbeddingEvaluation:
     """
 
     def __init__(self, spectrums: List[Spectrum],
-                 ms2ds_model,
+                 ms2ds_model: SiameseSpectralModel,
                  settings: SettingsEmbeddingEvaluator,
                  device="cpu",
                  ):

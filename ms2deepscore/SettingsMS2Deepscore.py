@@ -375,6 +375,10 @@ class SettingsEmbeddingEvaluator:
         self.learning_rate = 0.0001
         self.num_epochs = 5
 
+        # When using the training wrapper,
+        # this is used as the file name of the model, it is stored in the same folder as the ms2deepscore_model.
+        self.model_file_name = "embedding_evaluator.pt"
+
         if settings:
             # Coerce incoming values against defaults for consistency
             settings = _coerce_settings_dict(settings, self)
