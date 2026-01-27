@@ -5,10 +5,10 @@ from ms2deepscore.models.SiameseSpectralModel import (SiameseSpectralModel,
                                                       train)
 from ms2deepscore.SettingsMS2Deepscore import SettingsMS2Deepscore
 from ms2deepscore.tensorize_spectra import tensorize_spectra
-from ms2deepscore.train_new_model.data_generators import DataGeneratorPytorch
-from ms2deepscore.train_new_model.spectrum_pair_selection import \
-    select_compound_pairs_wrapper
-from ms2deepscore.train_new_model.ValidationLossCalculator import \
+from ms2deepscore.train_new_model.TrainingBatchGenerator import TrainingBatchGenerator
+from ms2deepscore.train_new_model.inchikey_pair_selection import \
+    create_spectrum_pair_generator
+from ms2deepscore.validation_loss_calculation.ValidationLossCalculator import \
     ValidationLossCalculator
 
 
@@ -125,17 +125,15 @@ def test_model_training(simple_training_spectra):
                                     intensity_scaling=0.5, base_dims=(200, 200),
                                     embedding_dim=100,
                                     train_binning_layer=False,
-                                    same_prob_bins=np.array([(0, 1.0)]),
-                                    average_pairs_per_bin=20,
+                                    same_prob_bins=np.array([(-0.01, 0.5), (0.5, 1.0)]),
+                                    average_inchikey_sampling_count=80,
                                     batch_size=2,
                                     num_turns=20,
                                     )
-    scp_train, _ = select_compound_pairs_wrapper(simple_training_spectra, settings)
-
+    inchikey_pair_generator = create_spectrum_pair_generator(simple_training_spectra, settings)
     # Create generators
-    train_generator_simple = DataGeneratorPytorch(spectrums=simple_training_spectra, selected_compound_pairs=scp_train,
-                                                  settings=settings)
-
+    train_generator_simple = TrainingBatchGenerator(spectrum_pair_generator=inchikey_pair_generator, settings=settings)
+    settings.same_prob_bins = np.array([(-0.01, 1.0)])
     validation_loss_calculator = ValidationLossCalculator(
         simple_training_spectra,
         settings=settings) # Just calculating the loss in one bin (since we have just two inchikeys)

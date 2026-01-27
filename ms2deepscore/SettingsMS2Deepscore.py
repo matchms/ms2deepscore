@@ -1,10 +1,82 @@
 import json
+import os
 import warnings
+from pathlib import Path as _Path
+from typing import Any, Dict
 from datetime import datetime
 from json import JSONEncoder
 from typing import Optional
 import numpy as np
 from ms2deepscore.models.loss_functions import LOSS_FUNCTIONS
+from ms2deepscore.utils import validate_bin_order
+
+
+def _coerce_value(expected_example: Any, value: Any) -> Any:
+    """
+    Coerce `value` to the type suggested by `expected_example` (the current attribute's default).
+    This is best-effort and conservative: if coercion fails, returns the original `value`.
+    """
+    try:
+        # None stays None
+        if value is None:
+            return None
+
+        expected_type = type(expected_example)
+
+        # Common container/array cases
+        if expected_type is tuple and isinstance(value, list):
+            return tuple(value)
+        if expected_type is set and isinstance(value, list):
+            return set(value)
+        # For numpy arrays, accept list (or tuple) and convert
+        if isinstance(expected_example, np.ndarray) and isinstance(value, (list, tuple)):
+            return np.array(value)
+
+        # Path-like
+        if expected_type is _Path and isinstance(value, str):
+            return _Path(value)
+
+        # Coercing boolean
+        if expected_type is bool and isinstance(value, str):
+            low = value.strip().lower()
+            if low in ("true", "1", "yes", "y"):
+                return True
+            elif low in ("false", "0", "no", "n"):
+                return False
+            raise ValueError(f"Invalid boolean value: {value}")
+
+        if expected_type is int and isinstance(value, (float, str)):
+            return int(value)
+
+        if expected_type is float and isinstance(value, (int, str)):
+            return float(value)
+
+        if expected_type is _Path and isinstance(value, str):
+            return _Path(value)
+
+        # If expected is np.ndarray of shape (n,2) (e.g., same_prob_bins), tolerate list of lists
+        if isinstance(expected_example, np.ndarray) and isinstance(value, list):
+            arr = np.array(value)
+            return arr
+
+        # Already right type or compatible
+        return value
+
+    except Exception:
+        # On any failure, return the original value
+        return value
+
+
+def _coerce_settings_dict(settings_in: Dict[str, Any], defaults_obj: Any) -> Dict[str, Any]:
+    """
+    Build a new dict with values coerced to the types implied by `defaults_obj`'s current attributes.
+    Unknown keys are preserved (caller decides whether to accept/ignore them).
+    """
+    out = dict(settings_in)
+    for k, v in list(out.items()):
+        if hasattr(defaults_obj, k):
+            out[k] = _coerce_value(getattr(defaults_obj, k), v)
+    return out
 
 
 class SettingsMS2Deepscore:
@@ -12,9 +84,15 @@ class SettingsMS2Deepscore:
 
     Attributes:
         base_dims:
-            The in between layers to be used. Default = (500, 500)
+            The in between layers to be used. Default = (2000, 2000, 2000)
         embedding_dim:
-            The dimension of the final embedding. Default = 200
+            The dimension of the final embedding. Default = 400
+        ionisation_mode:
+            The ionisation mode that is used for training the model.
+        balanced_sampling_across_ionmodes:
+            If True the model will do separate pair sampling for training for each ionmode.
+            This gives better balance over the ionmodes. Initial results showed a decrease in pos-pos prediction
+            accuracy. Which you can find in the notebook model_benchmarking/Compare balanced cross ion moe sampling.ipynb
         additional_metadata:
             Additional metadata that should be used in training the model. e.g. precursor_mz
         dropout_rate:
@@ -35,7 +113,7 @@ class SettingsMS2Deepscore:
             one dense micro-network.
         train_binning_layer_output_per_group
             This sets the number of next layer bins each group_size group of inputs shares.
-                batch_size
+        batch_size
             Number of pairs per batch. Default=32.
         num_turns
             Number of pairs for each InChiKey14 during each epoch. Default=1
@@ -43,24 +121,26 @@ class SettingsMS2Deepscore:
             Set to True to shuffle IDs every epoch. Default=True
         same_prob_bins
             List of tuples that define ranges of the true label to be trained with
-            equal frequencies. Default is set to [(0, 0.5), (0.5, 1)], which means
-            that pairs with scores <=0.5 will be picked as often as pairs with scores
-            > 0.5.
-        average_pairs_per_bin:
-            The aimed average number of pairs of spectra per spectrum in each bin.
+            equal frequencies. Default is set to 10 bins of equal width between 0 and 1.
+        average_inchikey_sampling_count:
+            The aimed number of times each unique inchikey is sampled.
         max_pairs_per_bin:
             The max_pairs_per_bin is used to reduce memory load.
             Since some spectra will have less than the average_pairs_per_bin, we can compensate by selecting more pairs for
             other spectra in this bin. For each spectrum initially max_pairs_per_bin is selected.
-            If the max_oversampling_rate is too low, no good division can be created for the spectra.
-            If the max_oversampling_rate is high the memory load on your system will be higher.
+            If the max_pairs_per_bin is too low, no good division can be created for the spectra.
+            If the max_pairs_per_bin is high the memory load on your system will be higher.
             If None, all pairs will be initially stored.
         include_diagonal:
             determines if a spectrum can be matched against itself when selection pairs.
+        val_spectra_per_inchikey:
+            Set number of spectra to pick per inchikey in the validation set. 
+            The larger this number, the slower the validation loss computation.
+            Default is set to 1.
         random_seed:
             The random seed to use for selecting compound pairs. Default is None.
         fingerprint_type:
-            The fingerprint type that should be used for tanimoto score calculations.
+            The fingerprint type that should be used for Tanimoto score calculations.
         fingerprint_nbits:
             The number of bits to use for the fingerprint.
         augment_removal_max
@@ -84,14 +164,33 @@ class SettingsMS2Deepscore:
             epoch. Default is False.
         random_seed
             Specify random seed for reproducible random number generation.
-        additional_inputs
-            Array of additional values to be used in training for e.g. ["precursor_mz", "parent_mass"]
+        additional_metadata
+            Array of metadata entries (and their transformation) to be used in training.
+            See `MetadatFeatureGenerator` for more information.
+            Default is set to empty list.
+        max_pair_resampling
+            The maximum number a inchikey pair can be resampled. Resampling is done to balance inchikey pairs over
+            the tanimoto scores. The minimum is 1, meaning that no resampling is performed.
         """
-    def __init__(self, **settings):
+    def __init__(self, validate_settings=True, **settings):
+        self.spectrum_file_path = None # For training the file path has to be set, for inference it is not needed.
+
+        # data split settings
+        self.root_dir = None # Will be derived from the spectrum file path
+        self.spectrum_file_name = None # Will be derived from the spectrum file path
+        self.validation_spectra_file_name = None  # If None it will be auto set to val_{spectrum file}
+        self.test_spectra_file_name = None # If None it will be auto set to test_{spectrum file}
+        self.training_spectra_file_name = None # If None it will be auto set to train_{spectrum file}
+        self.results_folder = None # If None it will be auto set to {root_folder}/trained_models
+        self.model_directory_name = None # A unique folder name is created including settings and a time stamp
+        self.train_test_split_fraction = 20
+
         # model structure
-        self.base_dims = (2000, 2000, 2000)
-        self.embedding_dim = 400
+        self.base_dims = (10000,)
+        self.embedding_dim = 500
         self.ionisation_mode = "positive"
+        self.activation_function = "relu"
+        self.balanced_sampling_across_ionmodes = False
 
         # additional model structure options
         self.train_binning_layer: bool = False
@@ -126,15 +225,19 @@ class SettingsMS2Deepscore:
         self.use_fixed_set = False
 
         # Compound pairs selection settings
-        self.average_pairs_per_bin = 20
-        self.max_pairs_per_bin = 100
-        self.same_prob_bins = np.array([(x / 10, x / 10 + 0.1) for x in range(0, 10)])
-        self.include_diagonal: bool = True
+        self.average_inchikey_sampling_count = 100
+        self.max_inchikey_sampling = 110
+        self.max_pairs_per_bin = 300
+        self.same_prob_bins = np.array([(0.8, 0.9), (0.7, 0.8), (0.9, 1.0), (0.6, 0.7), (0.5, 0.6),
+                                        (0.4, 0.5), (0.3, 0.4), (0.2, 0.3), (0.1, 0.2), (-0.01, 0.1)])
+        self.include_diagonal = True
+        self.val_spectra_per_inchikey = 1
         self.random_seed: Optional[int] = None
+        self.max_pair_resampling = 10000000
 
         # Tanimioto score setings
         self.fingerprint_type: str = "daylight"
-        self.fingerprint_nbits: int = 2048
+        self.fingerprint_nbits: int = 4096
 
         # Data augmentation
         self.augment_removal_max = 0.2
@@ -144,37 +247,96 @@ class SettingsMS2Deepscore:
         self.augment_noise_intensity = 0.02
 
         if settings:
+            # coerce a copy against current defaults
+            settings = _coerce_settings_dict(settings, self)
+
             for key, value in settings.items():
                 if hasattr(self, key):
-                    if not isinstance(value, type(getattr(self, key))) and not getattr(self, key) is None:
-                        raise TypeError(f"An unexpected type is given for the setting: {key}. "
-                                        f"The expected type is {type(getattr(self, key))}, "
-                                        f"the type given is {type(value)}, the value given is {value}")
+                    # after coercion, keep strict type check
+                    if not isinstance(value, type(getattr(self, key))) and getattr(self, key) is not None:
+                        raise TypeError(
+                            f"An unexpected type is given for the setting: {key}. "
+                            f"The expected type is {type(getattr(self, key))}, "
+                            f"the type given is {type(value)}, the value given is {value}"
+                        )
                     setattr(self, key, value)
                 else:
-                    raise ValueError(f"Unknown setting: {key}")
+                    if validate_settings:
+                        raise ValueError(f"Unknown setting: {key}")
+                    # keep legacy/unknown keys for backward-compat if validate_settings=False
+                    setattr(self, key, value)
 
-        self.validate_settings()
+        if validate_settings:
+            self.validate_settings()
         if self.random_seed is not None:
             np.random.seed(self.random_seed)
 
+        if self.spectrum_file_path is not None:
+            if not os.path.isfile(self.spectrum_file_path):
+                raise ValueError("The spectrum file specified is not an existing file")
+            root_dir = os.path.dirname(self.spectrum_file_path)
+            spectrum_file_name = os.path.basename(self.spectrum_file_path)
+
+            # Auto set the validation, test and train file names, if not set already
+            if self.results_folder is None:
+                self.results_folder = os.path.join(root_dir, "trained_models")
+            if self.validation_spectra_file_name is None:
+                self.validation_spectra_file_name = os.path.join(self.results_folder, "val_" + spectrum_file_name)
+            if self.test_spectra_file_name is None:
+                self.test_spectra_file_name = os.path.join(self.results_folder, "test_" + spectrum_file_name)
+            if self.training_spectra_file_name is None:
+                self.training_spectra_file_name = os.path.join(self.results_folder, "train_" + spectrum_file_name)
+            if self.model_directory_name is None:
+                self.model_directory_name = os.path.join(self.results_folder, self.create_model_directory_name())
+
+
     def validate_settings(self):
-        assert self.ionisation_mode in ("positive", "negative", "both")
-        assert 0.0 <= self.augment_removal_max <= 1.0, "Expected value within [0,1]"
-        assert 0.0 <= self.augment_removal_intensity <= 1.0, "Expected value within [0,1]"
+        if self.ionisation_mode not in ("positive", "negative", "both"):
+            raise ValueError("Expected ionisation mode to be 'positive' , 'negative', or 'both'.")
+        if not (0.0 <= self.augment_removal_max <= 1.0) or (not 0.0 <= self.augment_removal_intensity <= 1.0):
+            raise ValueError("Expected value within [0,1]")
         if self.use_fixed_set and self.shuffle:
             warnings.warn('When using a fixed set, data will not be shuffled')
-        if self.random_seed is not None:
-            assert isinstance(self.random_seed, int), "Random seed must be integer number."
+        if (self.random_seed is not None) and not isinstance(self.random_seed, int):
+            raise ValueError("Random seed must be integer number.")
         if self.loss_function.lower() not in LOSS_FUNCTIONS:
             raise ValueError(f"Unknown loss function. Must be one of: {LOSS_FUNCTIONS.keys()}")
+        validate_bin_order(self.same_prob_bins)
+        if self.balanced_sampling_across_ionmodes and self.ionisation_mode != "both":
+            raise ValueError("Balanced sampling across ionmodes only works if you train on both ionmodes")
+
+    def create_model_directory_name(self):
+        """Creates a directory name using metadata, it will contain the metadata, the binned spectra and final model"""
+        binning_file_label = ""
+        for metadata_generator in self.additional_metadata:
+            binning_file_label += metadata_generator[1]["metadata_field"] + "_"
+
+        # Define a neural net structure label
+        neural_net_structure_label = ""
+        for layer in self.base_dims:
+            neural_net_structure_label += str(layer) + "_"
+        neural_net_structure_label += "layers"
+
+        if self.embedding_dim:
+            neural_net_structure_label += f"_{str(self.embedding_dim)}_embedding"
+        model_folder_file_name = f"{self.ionisation_mode}_mode_{binning_file_label}" \
+                                 f"{neural_net_structure_label}_{self.time_stamp}"
+        print(f"The model will be stored in the folder: {model_folder_file_name}")
+
+        return model_folder_file_name
 
     def number_of_bins(self):
         return int((self.max_mz - self.min_mz) / self.mz_bin_width)
 
     def get_dict(self):
         """returns a dictionary representation of the settings"""
-        return self.__dict__
+        settings_dict = self.__dict__.copy()
+        
+        for key, value in settings_dict.items():
+            if isinstance(value, np.ndarray):
+                settings_dict[key] = value.tolist()  # Convert np.ndarray to list
+        
+        return settings_dict
 
     def save_to_file(self, file_path):
         class NumpyArrayEncoder(JSONEncoder):
@@ -184,6 +346,14 @@ class SettingsMS2Deepscore:
                 return JSONEncoder.default(self, o)
         with open(file_path, 'w', encoding="utf-8") as file:
             json.dump(self.__dict__, file, indent=4, cls=NumpyArrayEncoder)
+
+    @classmethod
+    def from_dict(cls, d: Dict[str, Any], *, validate_settings: bool = True) -> "SettingsMS2Deepscore":
+        return cls(validate_settings=validate_settings, **d)
+
+    @classmethod
+    def from_json(cls, s: str, *, validate_settings: bool = True) -> "SettingsMS2Deepscore":
+        return cls.from_dict(json.loads(s), validate_settings=validate_settings)
 
 
 class SettingsEmbeddingEvaluator:
@@ -206,11 +376,21 @@ class SettingsEmbeddingEvaluator:
         self.num_epochs = 5
 
         if settings:
+            # Coerce incoming values against defaults for consistency
+            settings = _coerce_settings_dict(settings, self)
             for key, value in settings.items():
                 if hasattr(self, key):
                     setattr(self, key, value)
                 else:
                     raise ValueError(f"Unknown setting: {key}")
+
+    @classmethod
+    def from_dict(cls, d: Dict[str, Any]) -> "SettingsEmbeddingEvaluator":
+        return cls(**d)
+
+    @classmethod
+    def from_json(cls, s: str) -> "SettingsEmbeddingEvaluator":
+        return cls.from_dict(json.loads(s))
 
     def get_dict(self):
         """returns a dictionary representation of the settings"""

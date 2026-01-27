@@ -5,6 +5,90 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+### Added
+- The training pair sampling for both ionmodes is now balanced over the different ionmode pairs.
+
+### Fixed
+- Datasplit of test, train and val, is not done sepparately for ionmodes anymore.
+
+### Changed
+- Settings include file name of spectra now. This makes tracking of runs more easily and more flexibility for results folder. 
+- Split the different datagenerators to different files, before they were all in data_generators.py
+- Renamed SpectrumPairGenerator -> TrainingBatchGenerator, this better captures what the class does.
+- Moved the data augmentation to a separate file out of the TrainingBatchGenerator.
+- Refactored the data augmentation to make it a bit more modular and testable (also added extra tests)
+- Moved the Spectrum picking from TraininBatchGenerator into InchikeyPairGenerator and renamed InchikeyPairGenerator to SpectrumPairGenerator.
+- Turned the new SpectrumPairGenerator (InchikeyPairGenerator before) into a real generator, before we had a generator method returning a generator.
+
+## [2.6.0] - 2025-12-05
+### Changed
+- Fixed model saving to be compatible with Pytorch > 2.6. 
+
+## [2.5.2] - 2025-05-26
+### Changed
+- Switch to Numpy>=2.0 (which means Python >=3.10)
+
+## [2.5.1] - 2025-02-12
+### Changed
+* Alternative remove_diagonal implementation by @florian-huber in https://github.com/matchms/ms2deepscore/pull/264
+* Restrict torch until new model load/save is implemented by @florian-huber in https://github.com/matchms/ms2deepscore/pull/265
+
+## [2.5.0] - 2024-12-20
+### Changed
+* Remove outdated notebooks and update notebooks for ms2deepscore 2 by @niekdejonge in https://github.com/matchms/ms2deepscore/pull/238
+* Add notebook for optimizing sampling algorithm by @niekdejonge in https://github.com/matchms/ms2deepscore/pull/256
+* Added saving history as json file (instead of only plotting) by @niekdejonge in https://github.com/matchms/ms2deepscore/pull/257
+* Add notebook hyperparameter optimization by @niekdejonge in https://github.com/matchms/ms2deepscore/pull/258
+* Add notebooks benchmarking by @niekdejonge in https://github.com/matchms/ms2deepscore/pull/259
+* Add notebooks benchmarking by @niekdejonge in https://github.com/matchms/ms2deepscore/pull/261
+* Added notebook for comparison with modified cosine scores by @niekdejonge in https://github.com/matchms/ms2deepscore/pull/262
+* Add notebooks analyzing the case studies by @niekdejonge in https://github.com/matchms/ms2deepscore/pull/255
+
+## [2.4.0] - 2024-11-08
+
+## Changed
+- Adapted sampling strategy to avoid biases even further [#253](https://github.com/matchms/ms2deepscore/pull/253)
+
+## [2.3.0] - 2024-10-30
+
+### Added
+- New plotting functions for benchmarking [#244](https://github.com/matchms/ms2deepscore/pull/244)
+
+### Changed
+- Integrated new plotting functions in automated training pipeline [#244](https://github.com/matchms/ms2deepscore/pull/244)
+- Removed automatic storing of benchmarking scores [#244](https://github.com/matchms/ms2deepscore/pull/244)
+- Integrated loss calculation for validation loss and plots [#244](https://github.com/matchms/ms2deepscore/pull/244)
+- Validation loss uses all spectrum pairs instead of only 1 spectrum per inchikey [#244](https://github.com/matchms/ms2deepscore/pull/244)
+
+### Fixed
+- Fingerprint type and number of bits specified in the settings is now correctly used in training and validation (before was set to default values in some instances) [#244](https://github.com/matchms/ms2deepscore/pull/244) and [#251](https://github.com/matchms/ms2deepscore/pull/251)
+
+### Removed
+- Removed version warning
+
+## [2.2.0] - 2024-10-17
+
+### Changed
+- Switch linter (and linting style) from pylint + prospector to ruff [#240](https://github.com/matchms/ms2deepscore/pull/240)
+- Clearer documentation and naming to run training from existing splits [#239](https://github.com/matchms/ms2deepscore/pull/239)
+
+### Fixed
+- Fixed one memory leak when running the `parameter_serch` function (there might be more though) [#243](https://github.com/matchms/ms2deepscore/pull/243)
+
+## [2.1.0] - 2024-10-07
+
+### Fixed
+- A bug of spectrum pair sampling during training was fixed. Due to this bug for each spectrum only one unique spectrum was sampled, even if multiple spectra were available. The bug was introduced with MS2Deepscore 2.0
+
+### Changed
+- The inchikey pair selection and data generator has been refactored. The new data generator results in a more balanced inchikey distribution. For details see [#232](https://github.com/matchms/ms2deepscore/pull/232)
+- dense layers are now build with leaky ReLU instead of ReLU [#222](https://github.com/matchms/ms2deepscore/pull/222).
+- The zenodo link to the latest model has been updated to a model trained using the new algorithm.
+
+### Added
+- Missing code documentation [#222](https://github.com/matchms/ms2deepscore/pull/222).
+
 ## [2.0.0] - date...
 Large scale expansion, revision, and restructuring of MS2Deepscore.
 
@@ -165,7 +249,15 @@ Last version using Tensorflow. Next versions will be using PyTorch.
 
 - This is the initial version of MS2DeepScore
 
-[Unreleased]: https://github.com/matchms/ms2deepscore/compare/1.0.0...HEAD
+[Unreleased]: https://github.com/matchms/ms2deepscore/compare/2.5.2...HEAD
+[2.5.2]: https://github.com/matchms/ms2deepscore/compare/2.5.1...2.5.2
+[2.5.1]: https://github.com/matchms/ms2deepscore/compare/2.5.0...2.5.1
+[2.5.0]: https://github.com/matchms/ms2deepscore/compare/2.4.0...2.5.0
+[2.4.0]: https://github.com/matchms/ms2deepscore/compare/2.3.0...2.4.0
+[2.3.0]: https://github.com/matchms/ms2deepscore/compare/2.2.0...2.3.0
+[2.2.0]: https://github.com/matchms/ms2deepscore/compare/2.1.0...2.2.0
+[2.1.0]: https://github.com/matchms/ms2deepscore/compare/2.0.0...2.1.0
+[2.0.0]: https://github.com/matchms/ms2deepscore/compare/1.0.0...2.0.0
 [1.0.0]: https://github.com/matchms/ms2deepscore/compare/0.5.0...1.0.0
 [0.5.0]: https://github.com/matchms/ms2deepscore/compare/0.4.0...0.5.0
 [0.4.0]: https://github.com/matchms/ms2deepscore/compare/0.3.1...0.4.0

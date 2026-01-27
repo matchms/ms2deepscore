@@ -3,8 +3,8 @@ import pytest
 from matchms.Spectrum import Spectrum
 from ms2deepscore.models.loss_functions import LOSS_FUNCTIONS
 from ms2deepscore.SettingsMS2Deepscore import SettingsMS2Deepscore
-from ms2deepscore.train_new_model.ValidationLossCalculator import (
-    ValidationLossCalculator, select_one_spectrum_per_inchikey)
+from ms2deepscore.validation_loss_calculation.ValidationLossCalculator import (
+    ValidationLossCalculator)
 from tests.create_test_spectra import (pesticides_test_spectra,
                                        siamese_spectral_model)
 
@@ -35,26 +35,15 @@ def simple_test_spectra():
     return spectra
 
 
-def test_select_one_spectrum_per_inchikey(simple_test_spectra):
-    one_spectrum_per_inchikey = select_one_spectrum_per_inchikey(simple_test_spectra, 42)
-    assert len(one_spectrum_per_inchikey) == 2
-
-    # Check if the spectra only are unique inchikeys
-    inchikeys_list = [s.get("inchikey") for s in one_spectrum_per_inchikey]
-    assert len(set(inchikeys_list)) == len(one_spectrum_per_inchikey), 'Expected 1 spectrum per inchikey. ' \
-                                                           'First run select_one_spectrum_per_inchikey'
-    # Check that the random seed works
-    assert one_spectrum_per_inchikey[0].get("precursor_mz") == 0.0
-    assert one_spectrum_per_inchikey[1].get("precursor_mz") == 17.0
-
-
 def test_validation_loss_calculator():
     model = siamese_spectral_model()
     test_spectra = pesticides_test_spectra()
-    bins = np.array([(x / 10, x / 10 + 0.1) for x in range(0, 10)])
+    bins = np.array([(0.8, 0.9), (0.7, 0.8), (0.9, 1.0), (0.6, 0.7), (0.5, 0.6),
+                     (0.4, 0.5), (0.3, 0.4), (0.2, 0.3), (0.1, 0.2), (-0.01, 0.1)])
     validation_loss_calculator = ValidationLossCalculator(test_spectra,
                                                           settings=SettingsMS2Deepscore(same_prob_bins=bins))
 
-    losses = validation_loss_calculator.compute_binned_validation_loss(model,
+    losses, binned_losses = validation_loss_calculator.compute_binned_validation_loss(model,
                                                                        LOSS_FUNCTIONS.keys())
     assert len(losses) == len(LOSS_FUNCTIONS)
+    assert len(binned_losses) == len(LOSS_FUNCTIONS)

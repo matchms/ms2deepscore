@@ -1,14 +1,16 @@
 import os
 import pickle
-from typing import Generator, List
+from typing import Generator, List, Tuple
 import numba
 import numpy as np
 from matchms import Spectrum
 from matchms.importing import load_spectra
+from tqdm import tqdm
 
 
 def save_pickled_file(obj, filename: str):
-    assert not os.path.exists(filename), "File already exists"
+    if os.path.exists(filename):
+        raise FileExistsError("File already exists")
     with open(filename, "wb") as f:
         pickle.dump(obj, f)
 
@@ -20,7 +22,8 @@ def load_pickled_file(filename: str):
 
 
 def return_non_existing_file_name(file_name):
-    """Checks if a path already exists, otherwise creates a new filename with (1)"""
+    """Checks if a path already exists, otherwise creates a new filename with (1).
+    """
     if not os.path.exists(file_name):
         return file_name
     print(f"The file name already exists: {file_name}")
@@ -37,25 +40,22 @@ def return_non_existing_file_name(file_name):
 def load_spectra_as_list(file_name) -> List[Spectrum]:
     spectra = load_spectra(file_name, metadata_harmonization=True)
     if isinstance(spectra, Generator):
-        return list(spectra)
+        return list(tqdm(spectra, desc="Loading in spectra"))
     return spectra
 
 
 def remove_diagonal(matrix):
-    """Removes the diagonal from a matrix
+    """Removes the diagonal from a square matrix.
+    """
+    nrows, ncols = matrix.shape
+    
+    if nrows != ncols:
+        raise ValueError("Expected a square matrix")
 
-    meant for removing matches of spectra against itself. """
-    # Get the number of rows and columns
-    nr_of_rows, nr_of_cols = matrix.shape
-    if nr_of_rows != nr_of_cols:
-        raise ValueError("Expected predictions against itself")
+    strided = np.lib.stride_tricks.as_strided
+    s0, s1 = nrows.strides
 
-    # Create a mask for the diagonal elements
-    diagonal_mask = np.eye(nr_of_rows, dtype=bool)
-
-    # Use the mask to remove the diagonal elements
-    matrix_without_diagonal = matrix[~diagonal_mask].reshape(nr_of_rows, nr_of_cols - 1)
-    return matrix_without_diagonal
+    return strided(matrix.ravel()[1:], shape=(nrows-1, nrows), strides=(s0 + s1, s1)).reshape(nrows, -1)
 
 
 @numba.jit(nopython=True)
@@ -88,3 +88,67 @@ def compute_scaled_intensitiy_sums(spectra, min_mz=0, max_mz=1000, scaling=2):
         )
 
     return scaled_intensities
+
+
+def create_evenly_spaced_bins(nr_of_bins):
+    """Creates evenly spaced bins between -0.0000001 and 1"""
+    bin_borders = np.linspace(0, 1, nr_of_bins+1)
+    bin_borders[0] = -0.00000001
+    bins = [(bin_borders[i], bin_borders[i+1]) for i in range(nr_of_bins)]
+    return bins
+
+
+def validate_bin_order(score_bins):
+    """
+    Checks that the given bins are of the correct format:
+    - Each bin is a tuple/list of two numbers [low, high], with low <= high
+    - Bins cover the entire interval from 0 to 1, with no gaps or overlaps
+    - The lowest bin starts below 0 (since pairs >=0 are selected and we want to include zero)
+    """
+
+    # Sort bins by their lower bound
+    sorted_bins = sorted(score_bins, key=lambda b: b[0])
+
+    # Check upper and lower bound
+    if sorted_bins[0][0] >= 0:
+        raise ValueError(f"The first bin should start below 0, but starts at {sorted_bins[0][0]}")
+
+    if sorted_bins[-1][1] != 1:
+        raise ValueError(f"The last bin should end at 1, but ends at {sorted_bins[-1][1]}")
+
+    # Check order, format, and overlaps
+    previous_high = None
+    for score_bin in sorted_bins:
+        if len(score_bin) != 2:
+            raise ValueError("Each bin should have exactly two elements")
+        low, high = score_bin
+        if low > high:
+            raise ValueError("The first number in the bin should be smaller than or equal to the second")
+        if high < 0:
+            raise ValueError("No bin should be entirely below 0.")
+        if previous_high is not None:
+            if low != previous_high:
+                raise ValueError("There is a gap or overlap between bins; The bins should cover everything between 0 and 1.")
+        previous_high = high
+
+def split_by_ionmode(spectra:List[Spectrum]) -> Tuple[List[Spectrum], List[Spectrum]]:
+    """Splits spectra into list of positive ionmode and list of negative ionmode spectra.
+
+    Removes spectra without correct ionmode metadata entry.
+    """
+    pos_spectra = []
+    neg_spectra = []
+    spectra_removed = 0
+    for spectrum in tqdm(spectra,
+                         desc="Splitting pos and neg mode spectra"):
+        if spectrum is not None:
+            ionmode = spectrum.get("ionmode")
+            if ionmode == "positive":
+                pos_spectra.append(spectrum)
+            elif ionmode == "negative":
+                neg_spectra.append(spectrum)
+            else:
+                spectra_removed += 1
+    print(f"The spectra, are split in {len(pos_spectra)} positive spectra "
+          f"and {len(neg_spectra)} negative mode spectra. {spectra_removed} were removed")
+    return pos_spectra, neg_spectra

@@ -5,6 +5,7 @@
 
 build
 dist
+runs
 .cache
 __pycache__
 
@@ -39,3 +40,5 @@ __pycache__/
 
 # conda build directory
 /_build
+/notebooks/case_studies_ms2deepscore_2/Rumex_case_study/results/
+/notebooks/case_studies_ms2deepscore_2/Blood_case_study/mzml/
