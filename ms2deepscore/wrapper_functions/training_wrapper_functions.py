@@ -10,9 +10,10 @@ from matchms.exporting import save_spectra
 from matchms.importing import load_spectra
 
 from ms2deepscore.benchmarking.CalculateScoresBetweenAllIonmodes import CalculateScoresBetweenAllIonmodes
+from ms2deepscore.models import EmbeddingEvaluationModel
 from ms2deepscore.models.SiameseSpectralModel import (SiameseSpectralModel,
                                                       train)
-from ms2deepscore.SettingsMS2Deepscore import SettingsMS2Deepscore
+from ms2deepscore.SettingsMS2Deepscore import SettingsMS2Deepscore, SettingsEmbeddingEvaluator
 from ms2deepscore.train_new_model import TrainingBatchGenerator, create_spectrum_pair_generator
 from ms2deepscore.validation_loss_calculation.ValidationLossCalculator import ValidationLossCalculator
 from ms2deepscore.train_new_model.train_ms2deepscore import \
@@ -25,6 +26,7 @@ from ms2deepscore.wrapper_functions.plotting_wrapper_functions import \
 
 
 def train_ms2deepscore_wrapper(settings: SettingsMS2Deepscore,
+                               settings_embedding_evaluator: SettingsEmbeddingEvaluator = None
                                ):
     """Splits data, trains a ms2deepscore model, and does benchmarking.
 
@@ -43,7 +45,7 @@ def train_ms2deepscore_wrapper(settings: SettingsMS2Deepscore,
     validation_spectra = load_spectra_in_ionmode(settings.validation_spectra_file_name, settings.ionisation_mode)
 
     # Train model
-    _, history = train_ms2ds_model(training_spectra, validation_spectra, settings.model_directory_name, settings)
+    ms2ds_model, history = train_ms2ds_model(training_spectra, validation_spectra, settings.model_directory_name, settings)
 
     ms2ds_history_plot_file_name = os.path.join(settings.model_directory_name, settings.history_plot_file_name)
     plot_history(history["losses"], history["val_losses"], ms2ds_history_plot_file_name)
@@ -59,6 +61,14 @@ def train_ms2deepscore_wrapper(settings: SettingsMS2Deepscore,
     create_plots_between_ionmodes(scores_between_all_ionmodes,
                                   results_folder=os.path.join(settings.model_directory_name, "benchmarking_results"),
                                   nr_of_bins=50)
+
+    if settings_embedding_evaluator:
+        model = EmbeddingEvaluationModel(settings_embedding_evaluator)
+        model.train_evaluator(ms2ds_model=ms2ds_model,
+                              training_spectra=training_spectra,
+                              validation_spectra=validation_spectra)
+        model.save(os.path.join(settings.model_directory_name, settings_embedding_evaluator.model_file_name))
+
     return settings.model_directory_name
 
 
