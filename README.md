@@ -129,7 +129,6 @@ settings = SettingsMS2Deepscore(
                                                   "entries_becoming_zero": "negative"}),
                          ("StandardScaler", {"metadata_field": "precursor_mz", 
                                              "mean": 0, "standard_deviation": 1000})], 
-    train_test_split_fraction=20,
     ionmode="both")
 
 train_ms2deepscore_wrapper(settings, 
