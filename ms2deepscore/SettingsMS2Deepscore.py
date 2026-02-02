@@ -93,8 +93,6 @@ class SettingsMS2Deepscore:
             If True the model will do separate pair sampling for training for each ionmode.
             This gives better balance over the ionmodes. Initial results showed a decrease in pos-pos prediction
             accuracy. Which you can find in the notebook model_benchmarking/Compare balanced cross ion moe sampling.ipynb
-        additional_metadata:
-            Additional metadata that should be used in training the model. e.g. precursor_mz
         dropout_rate:
             The dropout rate that should be used during training
         learning_rate:
@@ -272,8 +270,6 @@ class SettingsMS2Deepscore:
             np.random.seed(self.random_seed)
 
         if self.spectrum_file_path is not None:
-            if not os.path.isfile(self.spectrum_file_path):
-                raise ValueError("The spectrum file specified is not an existing file")
             root_dir = os.path.dirname(self.spectrum_file_path)
             spectrum_file_name = os.path.basename(self.spectrum_file_path)
 
@@ -304,7 +300,10 @@ class SettingsMS2Deepscore:
         validate_bin_order(self.same_prob_bins)
         if self.balanced_sampling_across_ionmodes and self.ionisation_mode != "both":
             raise ValueError("Balanced sampling across ionmodes only works if you train on both ionmodes")
-
+        if self.spectrum_file_path is not None:
+            if not os.path.isfile(self.spectrum_file_path):
+                raise ValueError("The spectrum file specified is not an existing file")
+        
     def create_model_directory_name(self):
         """Creates a directory name using metadata, it will contain the metadata, the binned spectra and final model"""
         binning_file_label = ""
