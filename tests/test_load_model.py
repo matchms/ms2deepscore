@@ -10,7 +10,7 @@ from ms2deepscore.models.io_utils import _to_jsonable
 
 def _dummy_siamese_model():
     """Helper function to create a dummy SiameseSpectralModel."""
-    settings = SettingsMS2Deepscore(base_dims=(100, 100), embedding_dim=10)
+    settings = SettingsMS2Deepscore(base_dims=(100, 100), embedding_dim=10, spectrum_file_path="./nonexisting_path.mgf", validate_settings=False)
     model = SiameseSpectralModel(settings=settings)
     return model
 
