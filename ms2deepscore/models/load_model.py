@@ -1,3 +1,4 @@
+import os
 from typing import Union, Dict, Optional, Any, Callable
 import json
 from pathlib import Path
@@ -130,6 +131,8 @@ def _load_model_generic(
       3) Instantiate model via model_factory(settings), then load state_dict.
       4) If safe path fails and allow_legacy=True, attempt unsafe legacy path.
     """
+    if not os.path.isfile(filename):
+        raise ValueError(f"The file given does not exist: {filename}")
     # --- preferred safe path
     try:
         ckpt = _load_ckpt_safe(filename)
