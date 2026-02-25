@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - Removed all lazy torch import to improve package loading speed
+- Fixed typehinting issues
 
 ## 2.7.1
 
@@ -55,14 +56,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-* Alternative remove_diagonal implementation by @florian-huber in <https://github.com/matchms/ms2deepscore/pull/264>
+- Alternative remove_diagonal implementation by @florian-huber in <https://github.com/matchms/ms2deepscore/pull/264>
+
 - Restrict torch until new model load/save is implemented by @florian-huber in <https://github.com/matchms/ms2deepscore/pull/265>
 
 ## [2.5.0] - 2024-12-20
 
 ### Changed
 
-* Remove outdated notebooks and update notebooks for ms2deepscore 2 by @niekdejonge in <https://github.com/matchms/ms2deepscore/pull/238>
+- Remove outdated notebooks and update notebooks for ms2deepscore 2 by @niekdejonge in <https://github.com/matchms/ms2deepscore/pull/238>
+
 - Add notebook for optimizing sampling algorithm by @niekdejonge in <https://github.com/matchms/ms2deepscore/pull/256>
 - Added saving history as json file (instead of only plotting) by @niekdejonge in <https://github.com/matchms/ms2deepscore/pull/257>
 - Add notebook hyperparameter optimization by @niekdejonge in <https://github.com/matchms/ms2deepscore/pull/258>
