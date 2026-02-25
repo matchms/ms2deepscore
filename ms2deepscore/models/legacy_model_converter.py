@@ -2,7 +2,8 @@ from pathlib import Path
 from typing import Any, Dict, Optional, Tuple, Union
 import json
 import warnings
-import torch
+from torch import Tensor, load, save
+from torch.nn import Module
 from ms2deepscore.__version__ import __version__ as _MS2DS_VERSION
 from ms2deepscore.models.__model_format__ import __model_format__
 from ms2deepscore.models.io_utils import _settings_to_json, _to_jsonable
@@ -12,13 +13,14 @@ from ms2deepscore.models.io_utils import _settings_to_json, _to_jsonable
 # Legacy extraction
 # -------------------------
 
-def _extract_from_legacy_object(obj: Any) -> Tuple[Dict[str, torch.Tensor], str, str]:
+
+def _extract_from_legacy_object(obj: Any) -> Tuple[Dict[str, Tensor], str, str]:
     """
     Return (state_dict, settings_json, model_class) from a legacy artifact.
     Raises TypeError for unsupported shapes.
     """
     # Case 1: pickled model object (torch.save(model))
-    if isinstance(obj, torch.nn.Module):
+    if isinstance(obj, Module):
         if not hasattr(obj, "state_dict"):
             raise TypeError("Legacy model object has no state_dict().")
         state = obj.state_dict()
@@ -60,13 +62,13 @@ def _extract_from_legacy_object(obj: Any) -> Tuple[Dict[str, torch.Tensor], str,
         model_class = obj.get("model_class", "Unknown")
         return state, settings_json, model_class
 
-    raise TypeError(
-        "Unsupported legacy artifact. Expected pickled torch.nn.Module or dict-style checkpoint."
-    )
+    raise TypeError("Unsupported legacy artifact. Expected pickled torch.nn.Module or dict-style checkpoint.")
+
 
 # -------------------------
 # Public converter
 # -------------------------
+
 
 def convert_legacy_checkpoint(
     legacy_path: Union[str, Path],
@@ -106,11 +108,10 @@ def convert_legacy_checkpoint(
         raise FileExistsError(f"Output already exists: {output_path} (use overwrite=True)")
 
     warnings.warn(
-        "Loading legacy checkpoint with weights_only=False. "
-        "Only do this for trusted files.",
+        "Loading legacy checkpoint with weights_only=False. Only do this for trusted files.",
         RuntimeWarning,
     )
-    legacy_obj = torch.load(str(legacy_path), map_location="cpu", weights_only=False)
+    legacy_obj = load(str(legacy_path), map_location="cpu", weights_only=False)
 
     state_dict, settings_json, model_class = _extract_from_legacy_object(legacy_obj)
 
@@ -127,5 +128,5 @@ def convert_legacy_checkpoint(
         "state_dict": state_dict,  # tensors only
     }
 
-    torch.save(safe_ckpt, str(output_path))
+    save(safe_ckpt, str(output_path))
     return output_path

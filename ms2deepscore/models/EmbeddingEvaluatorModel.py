@@ -1,7 +1,10 @@
 from typing import List, Union, Dict, Any
 from pathlib import Path
 import numpy as np
-import torch
+from torch import save as save_torch
+from torch import float32, cuda, tensor, cat
+from torch import device as torch_device
+from torch import no_grad
 import torch.nn.functional as F
 from matchms.Spectrum import Spectrum
 from torch import nn, optim
@@ -35,15 +38,19 @@ class EmbeddingEvaluationModel(nn.Module):
     num_filters (int, optional):
         Number of filters used in convolutional layers. Defaults to 32.
     """
-    def __init__(self,
-                 settings: SettingsEmbeddingEvaluator,
-                 ):
+
+    def __init__(
+        self,
+        settings: SettingsEmbeddingEvaluator,
+    ):
         self.settings = settings
         super().__init__()
-        self.inception_block = InceptionBlock(input_channels=1,
-                                              num_filters=settings.evaluator_num_filters,
-                                              depth=settings.evaluator_depth,
-                                              kernel_size=settings.evaluator_kernel_size)
+        self.inception_block = InceptionBlock(
+            input_channels=1,
+            num_filters=settings.evaluator_num_filters,
+            depth=settings.evaluator_depth,
+            kernel_size=settings.evaluator_kernel_size,
+        )
         self.global_avg_pool = nn.AdaptiveAvgPool1d(1)
         output_channels = 1
         self.fc = nn.Linear(settings.evaluator_num_filters * 4, output_channels)
@@ -80,23 +87,23 @@ class EmbeddingEvaluationModel(nn.Module):
         }
 
         # Important: no custom objects outside tensors/strings/primitives.
-        torch.save(checkpoint, str(filepath))
+        save_torch(checkpoint, str(filepath))
 
-    def train_evaluator(self,
-                        training_spectra: List[Spectrum],
-                        ms2ds_model,
-                        validation_spectra: List[Spectrum] = None):
-        """Train a evaluator model with given parameters.
-        """
-        data_generator = DataGeneratorEmbeddingEvaluation(spectrums=training_spectra,
-                                                          ms2ds_model=ms2ds_model,
-                                                          settings=self.settings,
-                                                          device="cpu",)
+    def train_evaluator(self, training_spectra: List[Spectrum], ms2ds_model, validation_spectra: List[Spectrum] = None):
+        """Train a evaluator model with given parameters."""
+        data_generator = DataGeneratorEmbeddingEvaluation(
+            spectrums=training_spectra,
+            ms2ds_model=ms2ds_model,
+            settings=self.settings,
+            device="cpu",
+        )
         if validation_spectra is not None:
-            val_generator = DataGeneratorEmbeddingEvaluation(spectrums=validation_spectra,
-                                                             ms2ds_model=ms2ds_model,
-                                                             settings=self.settings,
-                                                             device="cpu",)
+            val_generator = DataGeneratorEmbeddingEvaluation(
+                spectrums=validation_spectra,
+                ms2ds_model=ms2ds_model,
+                settings=self.settings,
+                device="cpu",
+            )
         else:
             val_generator = None
 
@@ -112,19 +119,19 @@ class EmbeddingEvaluationModel(nn.Module):
             for i, x in enumerate(data_generator):
                 tanimoto_scores, ms2ds_scores, embeddings = x
 
-                for i in range(data_generator.batch_size//self.settings.mini_batch_size):
+                for i in range(data_generator.batch_size // self.settings.mini_batch_size):
                     low = i * self.settings.mini_batch_size
                     high = low + self.settings.mini_batch_size
 
                     optimizer.zero_grad()
 
-                    mse_per_embedding = ((tanimoto_scores[low: high, :] -  ms2ds_scores[low: high, :]) ** 2).mean(axis=1)
+                    mse_per_embedding = ((tanimoto_scores[low:high, :] - ms2ds_scores[low:high, :]) ** 2).mean(axis=1)
                     mse_per_embedding = mse_per_embedding.reshape(-1, 1).clone().detach()
 
-                    outputs = self(embeddings[low: high].reshape(-1, 1, embeddings.shape[-1]).to(device))
+                    outputs = self(embeddings[low:high].reshape(-1, 1, embeddings.shape[-1]).to(device))
 
                     # Calculate loss
-                    loss = criterion(outputs.to(device), mse_per_embedding.to(device, dtype=torch.float32))
+                    loss = criterion(outputs.to(device), mse_per_embedding.to(device, dtype=float32))
                     iteration_losses.append(float(loss))
 
                     # Backward pass and optimize
@@ -133,11 +140,13 @@ class EmbeddingEvaluationModel(nn.Module):
 
                 batch_count += 1
                 if batch_count % self.settings.batches_per_iteration == 0:
-                    print(f">>> Batch: {batch_count} ({batch_count * data_generator.batch_size} spectra, epoch: {epoch + 1})")
+                    print(
+                        f">>> Batch: {batch_count} ({batch_count * data_generator.batch_size} spectra, epoch: {epoch + 1})"
+                    )
                     print(f">>> Training loss: {np.mean(iteration_losses):.6f}")
                     iteration_losses = []
                     if val_generator is not None:
-                        with torch.no_grad():
+                        with no_grad():
                             self.eval()
                             val_losses = []
                             for sample in val_generator:
@@ -147,24 +156,24 @@ class EmbeddingEvaluationModel(nn.Module):
                                 mse_per_embedding = ((tanimoto_scores - ms2ds_scores) ** 2).mean(axis=1)
                                 mse_per_embedding = mse_per_embedding.reshape(-1, 1).clone().detach()
 
-                                loss = criterion(outputs.to(device), mse_per_embedding.to(device, dtype=torch.float32))
+                                loss = criterion(outputs.to(device), mse_per_embedding.to(device, dtype=float32))
                                 val_losses.append(float(loss))
                             print(f">>> Val_loss: {np.mean(val_losses):.6f}")
 
                         self.train()
 
-    def compute_embedding_evaluations(self,
-                                      embeddings: np.ndarray,
-                                      device: str = None,
-                                     ):
-        """Compute the predicted evaluations of all embeddings.
-        """
+    def compute_embedding_evaluations(
+        self,
+        embeddings: np.ndarray,
+        device: str = None,
+    ):
+        """Compute the predicted evaluations of all embeddings."""
         embedding_dim = embeddings.shape[1]
         if device is None:
-            device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+            device = torch_device("cuda" if cuda.is_available() else "cpu")
 
         self.to(device)
-        evaluations = self(torch.tensor(embeddings).reshape(-1, 1, embedding_dim).to(device, dtype=torch.float32))
+        evaluations = self(tensor(embeddings).reshape(-1, 1, embedding_dim).to(device, dtype=float32))
         return evaluations.cpu().detach().numpy().ravel()
 
 
@@ -184,14 +193,11 @@ class InceptionModule(nn.Module):
         Whether to use a bottleneck layer. Defaults to True.
     """
 
-    def __init__(self, input_channels: int,
-                 num_filters: int,
-                 kernel_size: int = 40,
-                 use_bottleneck: bool = True):
+    def __init__(self, input_channels: int, num_filters: int, kernel_size: int = 40, use_bottleneck: bool = True):
         super().__init__()
 
         # Create 3 different kernel sizes. Adjust to ensure they are odd for symmetric padding
-        kernel_sizes = [max(kernel_size // (2 ** i), 3) for i in range(3)]
+        kernel_sizes = [max(kernel_size // (2**i), 3) for i in range(3)]
         kernel_sizes = [k - (k % 2 == 0) for k in kernel_sizes]
 
         # Bottleneck layer is only used if input_channels > 1
@@ -200,13 +206,13 @@ class InceptionModule(nn.Module):
 
         # Prepare convolutional layers with adjusted kernel sizes
         conv_input_channels = num_filters if use_bottleneck else input_channels
-        self.convs = nn.ModuleList([nn.Conv1d(conv_input_channels, num_filters, k,
-                                              padding="same") for k in kernel_sizes])
+        self.convs = nn.ModuleList(
+            [nn.Conv1d(conv_input_channels, num_filters, k, padding="same") for k in kernel_sizes]
+        )
 
         # MaxPooling followed by a convolution
         self.maxconvpool = nn.Sequential(
-            nn.MaxPool1d(3, stride=1, padding=1),
-            nn.Conv1d(input_channels, num_filters, 1, bias=False)
+            nn.MaxPool1d(3, stride=1, padding=1), nn.Conv1d(input_channels, num_filters, 1, bias=False)
         )
 
         # Batch normalization and activation function
@@ -216,7 +222,7 @@ class InceptionModule(nn.Module):
         bottleneck_output = self.bottleneck(x)
         conv_outputs = [conv(bottleneck_output) for conv in self.convs]
         pooled_output = self.maxconvpool(x)
-        concatenated_output = torch.cat(conv_outputs + [pooled_output], dim=1)
+        concatenated_output = cat(conv_outputs + [pooled_output], dim=1)
         return F.relu(self.bn(concatenated_output))
 
 
@@ -236,11 +242,7 @@ class InceptionBlock(nn.Module):
         Number of Inception modules to stack. Defaults to 6.
     """
 
-    def __init__(self,
-                 input_channels: int,
-                 num_filters: int = 32,
-                 use_residual: bool = True,
-                 depth: int = 6, **kwargs):
+    def __init__(self, input_channels: int, num_filters: int = 32, use_residual: bool = True, depth: int = 6, **kwargs):
         super().__init__()
         self.use_residual = use_residual
         self.depth = depth

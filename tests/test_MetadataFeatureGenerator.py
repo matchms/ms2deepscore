@@ -1,13 +1,15 @@
 import numpy as np
 import pytest
-import torch
+from torch import tensor
 from matchms import Metadata, Spectrum
-from ms2deepscore.MetadataFeatureGenerator import (CategoricalToBinary,
-                                                   MetadataFeatureGenerator,
-                                                   MetadataVectorizer,
-                                                   OneHotEncoder,
-                                                   StandardScaler,
-                                                   load_from_json)
+from ms2deepscore.MetadataFeatureGenerator import (
+    CategoricalToBinary,
+    MetadataFeatureGenerator,
+    MetadataVectorizer,
+    OneHotEncoder,
+    StandardScaler,
+    load_from_json,
+)
 
 
 @pytest.fixture
@@ -17,10 +19,10 @@ def metadata():
 
 def test_metadatafeaturegenerator_not_implemented(metadata):
     gen = MetadataFeatureGenerator()
-    
+
     with pytest.raises(NotImplementedError):
         gen.generate_features(metadata)
-    
+
     with pytest.raises(NotImplementedError):
         MetadataFeatureGenerator.load_from_dict({})
 
@@ -28,11 +30,11 @@ def test_metadatafeaturegenerator_not_implemented(metadata):
 def test_metadata_vectorizer(metadata):
     scaler = StandardScaler("mass", 200.0, 250.0)
     metadata = {"mass": 220.0}
-    s1 = Spectrum(mz=np.array([100.]), intensities=np.array([1.0]), metadata=metadata)
+    s1 = Spectrum(mz=np.array([100.0]), intensities=np.array([1.0]), metadata=metadata)
     vectorizer = MetadataVectorizer([scaler])
     expected_value = (220 - 200) / 250
-    assert vectorizer.transform([s1]) == torch.tensor([expected_value])
-    assert (vectorizer.transform([s1, s1]) == torch.tensor([expected_value, expected_value])).all()
+    assert vectorizer.transform([s1]) == tensor([expected_value])
+    assert (vectorizer.transform([s1, s1]) == tensor([expected_value, expected_value])).all()
     assert vectorizer.size == 1
 
 
@@ -101,13 +103,15 @@ def test_equality():
 
 
 def test_load_from_json():
-    feature_generators = load_from_json([("StandardScaler", {"metadata_field": "precursor_mz",
-                                        "mean": 200.0,
-                                        "standard_deviation": 250.0}),
-                    ("CategoricalToBinary", {"metadata_field": "ionmode",
-                                             "entries_becoming_one": "positive",
-                                             "entries_becoming_zero": "negative"}),
-                    ])
+    feature_generators = load_from_json(
+        [
+            ("StandardScaler", {"metadata_field": "precursor_mz", "mean": 200.0, "standard_deviation": 250.0}),
+            (
+                "CategoricalToBinary",
+                {"metadata_field": "ionmode", "entries_becoming_one": "positive", "entries_becoming_zero": "negative"},
+            ),
+        ]
+    )
     assert len(feature_generators) == 2
     assert isinstance(feature_generators[0], StandardScaler)
     assert isinstance(feature_generators[1], CategoricalToBinary)

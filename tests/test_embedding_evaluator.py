@@ -2,7 +2,7 @@ import os
 import pytest
 import numpy as np
 from sklearn.datasets import make_regression
-import torch
+from torch import randn
 from ms2deepscore.models import EmbeddingEvaluationModel, LinearModel
 from ms2deepscore.models import load_linear_model, load_embedding_evaluator
 from tests.test_data_generators import data_generator_embedding_evaluation, MockMS2DSModel
@@ -16,14 +16,16 @@ fixtures = [data_generator_embedding_evaluation]
 
 @pytest.fixture
 def mock_settings():
-    return SettingsEmbeddingEvaluator(evaluator_num_filters=32,
-                                      evaluator_depth=6,
-                                      evaluator_kernel_size=40,
-                                      mini_batch_size=10,
-                                      batches_per_iteration=5,
-                                      learning_rate=0.001,
-                                      num_epochs=1,
-                                      evaluator_distribution_size=10)
+    return SettingsEmbeddingEvaluator(
+        evaluator_num_filters=32,
+        evaluator_depth=6,
+        evaluator_kernel_size=40,
+        mini_batch_size=10,
+        batches_per_iteration=5,
+        learning_rate=0.001,
+        num_epochs=1,
+        evaluator_distribution_size=10,
+    )
 
 
 @pytest.fixture
@@ -44,7 +46,7 @@ def test_forward_pass(embedding_model):
     """
     Test the forward pass of the model with a mock input.
     """
-    mock_input = torch.randn(1, 1, 500)
+    mock_input = randn(1, 1, 500)
     output = embedding_model(mock_input)
     assert output.shape == (1, 1), "Output shape is incorrect"
 
@@ -55,7 +57,7 @@ def test_model_with_different_input_sizes(embedding_model):
     """
     sizes = [100, 250, 500, 750]
     for size in sizes:
-        mock_input = torch.randn(1, 1, size)
+        mock_input = randn(1, 1, size)
         output = embedding_model(mock_input)
         assert output.shape == (1, 1), f"Output shape is incorrect for input size {size}"
 
@@ -66,7 +68,7 @@ def test_model_with_batch_sizes(embedding_model):
     """
     batch_sizes = [1, 2, 10]
     for size in batch_sizes:
-        mock_input = torch.randn(size, 1, 100)
+        mock_input = randn(size, 1, 100)
         output = embedding_model(mock_input)
         assert output.shape == (size, 1), f"Output shape is incorrect for batch size {size}"
 
