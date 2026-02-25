@@ -230,8 +230,8 @@ def load_linear_model(filepath: Union[str, Path]) -> LinearModel:
     loaded_model = LinearModel(model_params["degree"])
     loaded_model.model.coef_ = np.array(model_params["coef"])
     loaded_model.model.intercept_ = np.array(model_params["intercept"])
-    loaded_model.poly._min_degree = model_params["min_degree"]
-    loaded_model.poly._max_degree = model_params["max_degree"]
-    loaded_model.poly._n_out_full = model_params["_n_out_full"]
+    loaded_model.poly._min_degree = model_params["min_degree"]  # pyright: ignore[reportAttributeAccessIssue]
+    loaded_model.poly._max_degree = model_params["max_degree"]  # pyright: ignore[reportAttributeAccessIssue]
+    loaded_model.poly._n_out_full = model_params["_n_out_full"]  # pyright: ignore[reportAttributeAccessIssue]
     loaded_model.poly.n_output_features_ = model_params["n_output_features_"]
     return loaded_model

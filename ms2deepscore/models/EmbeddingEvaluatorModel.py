@@ -1,4 +1,4 @@
-from typing import List, Union, Dict, Any
+from typing import List, Optional, Union, Dict, Any
 from pathlib import Path
 import numpy as np
 from torch import save as save_torch
@@ -89,7 +89,9 @@ class EmbeddingEvaluationModel(nn.Module):
         # Important: no custom objects outside tensors/strings/primitives.
         save_torch(checkpoint, str(filepath))
 
-    def train_evaluator(self, training_spectra: List[Spectrum], ms2ds_model, validation_spectra: List[Spectrum] = None):
+    def train_evaluator(
+        self, training_spectra: List[Spectrum], ms2ds_model, validation_spectra: Optional[List[Spectrum]] = None
+    ):
         """Train a evaluator model with given parameters."""
         data_generator = DataGeneratorEmbeddingEvaluation(
             spectrums=training_spectra,
@@ -125,7 +127,7 @@ class EmbeddingEvaluationModel(nn.Module):
 
                     optimizer.zero_grad()
 
-                    mse_per_embedding = ((tanimoto_scores[low:high, :] - ms2ds_scores[low:high, :]) ** 2).mean(axis=1)
+                    mse_per_embedding = ((tanimoto_scores[low:high, :] - ms2ds_scores[low:high, :]) ** 2).mean(dim=1)
                     mse_per_embedding = mse_per_embedding.reshape(-1, 1).clone().detach()
 
                     outputs = self(embeddings[low:high].reshape(-1, 1, embeddings.shape[-1]).to(device))
@@ -153,7 +155,7 @@ class EmbeddingEvaluationModel(nn.Module):
                                 tanimoto_scores, ms2ds_scores, embeddings = sample
                                 outputs = self(embeddings.reshape(-1, 1, embeddings.shape[-1]).to(device))
 
-                                mse_per_embedding = ((tanimoto_scores - ms2ds_scores) ** 2).mean(axis=1)
+                                mse_per_embedding = ((tanimoto_scores - ms2ds_scores) ** 2).mean(dim=1)
                                 mse_per_embedding = mse_per_embedding.reshape(-1, 1).clone().detach()
 
                                 loss = criterion(outputs.to(device), mse_per_embedding.to(device, dtype=float32))
@@ -165,7 +167,7 @@ class EmbeddingEvaluationModel(nn.Module):
     def compute_embedding_evaluations(
         self,
         embeddings: np.ndarray,
-        device: str = None,
+        device: Optional[Union[torch_device, str]] = None,
     ):
         """Compute the predicted evaluations of all embeddings."""
         embedding_dim = embeddings.shape[1]

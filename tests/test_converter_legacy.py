@@ -14,7 +14,7 @@ def _dummy_module():
         nn.Linear(3, 2),
     )
     # Attach something that looks like ms2deepscore settings
-    m.model_settings = {"base_dims": (4, 3, 2), "embedding_dim": 2, "ionisation_mode": "positive"}
+    m.model_settings = {"base_dims": (4, 3, 2), "embedding_dim": 2, "ionisation_mode": "positive"}  # pyright: ignore[reportArgumentType]
     return m
 
 

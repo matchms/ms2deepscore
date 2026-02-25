@@ -8,13 +8,13 @@ def weighted_linear(target, weighting_factor):
     return (1 - weighting_factor) + weighting_factor * target
 
 
-def mae_loss(outputs, targets, weighting_factor=0):
+def mae_loss(outputs, targets, weighting_factor=0.0):
     weights = weighted_linear(targets, weighting_factor)
     weighted_errors = weights * (abs(outputs - targets))
     return mean(weighted_errors)
 
 
-def mse_loss(outputs, targets, weighting_factor=0):
+def mse_loss(outputs, targets, weighting_factor=0.0):
     weights = weighted_linear(targets, weighting_factor)
     weighted_errors = weights * ((outputs - targets) ** 2)
     return mean(weighted_errors)
