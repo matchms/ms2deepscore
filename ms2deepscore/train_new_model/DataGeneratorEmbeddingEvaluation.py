@@ -2,7 +2,7 @@ from typing import List
 
 import numpy as np
 import pandas as pd
-import torch
+from torch import tensor
 from matchms import Spectrum
 from matchms.similarity.vector_similarity_functions import jaccard_similarity_matrix
 
@@ -29,11 +29,13 @@ class DataGeneratorEmbeddingEvaluation:
     embeddings are returned.
     """
 
-    def __init__(self, spectrums: List[Spectrum],
-                 ms2ds_model: SiameseSpectralModel,
-                 settings: SettingsEmbeddingEvaluator,
-                 device="cpu",
-                 ):
+    def __init__(
+        self,
+        spectrums: List[Spectrum],
+        ms2ds_model: SiameseSpectralModel,
+        settings: SettingsEmbeddingEvaluator,
+        device="cpu",
+    ):
         """
 
         Parameters
@@ -55,8 +57,8 @@ class DataGeneratorEmbeddingEvaluation:
         self.fingerprint_df = self.compute_fingerprint_dataframe(
             self.spectrums,
             fingerprint_type=self.ms2ds_model.model_settings.fingerprint_type,
-            fingerprint_nbits=self.ms2ds_model.model_settings.fingerprint_nbits
-            )
+            fingerprint_nbits=self.ms2ds_model.model_settings.fingerprint_nbits,
+        )
 
         # Initialize random number generator
         self.rng = np.random.default_rng(self.settings.random_seed)
@@ -80,10 +82,11 @@ class DataGeneratorEmbeddingEvaluation:
 
     def _compute_embeddings_and_scores(self, batch_index: int):
         batch_size = self.batch_size
-        indexes = self.indexes[batch_index * batch_size:((batch_index + 1) * batch_size)]
+        indexes = self.indexes[batch_index * batch_size : ((batch_index + 1) * batch_size)]
 
-        spec_tensors, meta_tensors = tensorize_spectra([self.spectrums[i] for i in indexes],
-                                                       self.ms2ds_model.model_settings)
+        spec_tensors, meta_tensors = tensorize_spectra(
+            [self.spectrums[i] for i in indexes], self.ms2ds_model.model_settings
+        )
         embeddings = self.ms2ds_model.encoder(spec_tensors.to(self.device), meta_tensors.to(self.device))
 
         ms2ds_scores = cosine_similarity_matrix(embeddings.cpu().detach().numpy(), embeddings.cpu().detach().numpy())
@@ -94,22 +97,22 @@ class DataGeneratorEmbeddingEvaluation:
 
         tanimoto_scores = jaccard_similarity_matrix(fingerprints, fingerprints)
 
-        return torch.tensor(tanimoto_scores), torch.tensor(ms2ds_scores), embeddings.cpu().detach()
+        return tensor(tanimoto_scores), tensor(ms2ds_scores), embeddings.cpu().detach()
 
     def on_epoch_end(self):
         """Updates indexes after each epoch."""
         self.rng.shuffle(self.indexes)
 
     def __getitem__(self, batch_index: int):
-        """Generate one batch of data.
-        """
+        """Generate one batch of data."""
         return self._compute_embeddings_and_scores(batch_index)
 
-    def compute_fingerprint_dataframe(self,
-                                      spectrums: List[Spectrum],
-                                      fingerprint_type,
-                                      fingerprint_nbits,
-                                      ) -> pd.DataFrame:
+    def compute_fingerprint_dataframe(
+        self,
+        spectrums: List[Spectrum],
+        fingerprint_type,
+        fingerprint_nbits,
+    ) -> pd.DataFrame:
         """Returns a dataframe with a fingerprints dataframe
 
         spectrums:
@@ -119,10 +122,8 @@ class DataGeneratorEmbeddingEvaluation:
             SettingsMS2Deepscore object.
         """
         fingerprints, inchikeys14_unique = compute_fingerprints_for_training(
-            spectrums,
-            fingerprint_type,
-            fingerprint_nbits
-            )
+            spectrums, fingerprint_type, fingerprint_nbits
+        )
 
         fingerprints_df = pd.DataFrame(fingerprints, index=inchikeys14_unique)
         return fingerprints_df

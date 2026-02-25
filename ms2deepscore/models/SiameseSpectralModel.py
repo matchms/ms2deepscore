@@ -2,15 +2,16 @@ import os
 from typing import Union, Dict, Any
 from pathlib import Path
 import numpy as np
-import torch
-import torch.nn.functional as F
-from torch import nn, optim
+
+from torch import save, cat, zeros, cuda, no_grad
+from torch import device as torch_device
+from torch.nn.functional import relu
+from torch.optim import Adam
+from torch import nn
 from torch.utils.tensorboard import SummaryWriter
 from tqdm import tqdm
 from ms2deepscore.__version__ import __version__
-from ms2deepscore.models.helper_functions import (initialize_device,
-                                                  l1_regularization,
-                                                  l2_regularization)
+from ms2deepscore.models.helper_functions import initialize_device, l1_regularization, l2_regularization
 from ms2deepscore.models.io_utils import _settings_to_json
 from ms2deepscore.models.loss_functions import LOSS_FUNCTIONS, rmse_loss
 from ms2deepscore.SettingsMS2Deepscore import SettingsMS2Deepscore
@@ -24,13 +25,18 @@ class SiameseSpectralModel(nn.Module):
     It consists of a dense 'base' network that produces an embedding for each of the 2 inputs.
     This head model computes the cosine similarity between the embeddings.
     """
-    def __init__(self,
-                 settings: SettingsMS2Deepscore,
-                 ):
+
+    def __init__(
+        self,
+        settings: SettingsMS2Deepscore,
+    ):
         super().__init__()
         self.model_settings = settings
-        self.encoder = SpectralEncoder(settings=self.model_settings, peak_inputs=self.model_settings.number_of_bins(),
-                                       additional_inputs=len(self.model_settings.additional_metadata))
+        self.encoder = SpectralEncoder(
+            settings=self.model_settings,
+            peak_inputs=self.model_settings.number_of_bins(),
+            additional_inputs=len(self.model_settings.additional_metadata),
+        )
 
     def forward(self, spectra_tensors_1, spectra_tensors_2, metadata_1, metadata_2):
         # Pass both inputs through the same encoder
@@ -40,7 +46,6 @@ class SiameseSpectralModel(nn.Module):
         # Calculate cosine similarity
         cos_sim = nn.CosineSimilarity(dim=1, eps=1e-6)(encoded_x1, encoded_x2)
         return cos_sim
-
 
     def save(self, filepath: Union[str, Path]) -> None:
         """
@@ -68,7 +73,7 @@ class SiameseSpectralModel(nn.Module):
         }
 
         # Important: no custom objects outside tensors/strings/primitives.
-        torch.save(checkpoint, str(filepath))
+        save(checkpoint, str(filepath))
 
 
 class PeakBinner(nn.Module):
@@ -78,17 +83,23 @@ class PeakBinner(nn.Module):
     The initial input tensors will thereby be divided into groups of `group_size` inputs
     which are connected to `output_per_group` outputs.
     """
+
     def __init__(self, input_size, settings: SettingsMS2Deepscore):
         super().__init__()
         self.group_size = settings.train_binning_layer_group_size
         self.step_width = int(settings.train_binning_layer_group_size / 2)
         self.output_per_group = settings.train_binning_layer_output_per_group
-        self.groups = 2 * input_size // settings.train_binning_layer_group_size - 1 # overlapping groups
+        self.groups = 2 * input_size // settings.train_binning_layer_group_size - 1  # overlapping groups
 
         # Create a ModuleList of linear layers, each mapping group_size inputs to output_per_group outputs
-        self.linear_layers = nn.ModuleList([nn.Linear(settings.train_binning_layer_group_size,
-                                                      settings.train_binning_layer_output_per_group,
-                                                      bias=False) for _ in range(self.groups)])
+        self.linear_layers = nn.ModuleList(
+            [
+                nn.Linear(
+                    settings.train_binning_layer_group_size, settings.train_binning_layer_output_per_group, bias=False
+                )
+                for _ in range(self.groups)
+            ]
+        )
 
         # Initialize weights
         for x in self.linear_layers:
@@ -96,14 +107,16 @@ class PeakBinner(nn.Module):
 
     def forward(self, x):
         # Split the input into groups and apply each linear layer to each group
-        outputs = [linear(x[:, i*self.step_width :(i+2)*self.step_width ]) for i, linear in enumerate(self.linear_layers)]
+        outputs = [
+            linear(x[:, i * self.step_width : (i + 2) * self.step_width]) for i, linear in enumerate(self.linear_layers)
+        ]
 
         # Make sure all inputs get a connection to the next layer
         i = self.groups - 1
-        outputs[-1] = self.linear_layers[-1](x[:, i*self.step_width:(i+2)*self.step_width ])
+        outputs[-1] = self.linear_layers[-1](x[:, i * self.step_width : (i + 2) * self.step_width])
 
         # Concatenate all outputs
-        return F.relu(torch.cat(outputs, dim=1))
+        return relu(cat(outputs, dim=1))
 
     def output_size(self):
         return self.groups * self.output_per_group
@@ -114,11 +127,13 @@ class SpectralEncoder(nn.Module):
 
     This model will convert input spectra (spectra_tensors and metadata_tensors) to reduced embeddings.
     """
-    def __init__(self,
-                 settings: SettingsMS2Deepscore,
-                 peak_inputs: int,
-                 additional_inputs: int,
-                 ):
+
+    def __init__(
+        self,
+        settings: SettingsMS2Deepscore,
+        peak_inputs: int,
+        additional_inputs: int,
+    ):
         """
         Parameters
         ----------
@@ -139,9 +154,7 @@ class SpectralEncoder(nn.Module):
             input_size = self.peak_binner.output_size() + additional_inputs
         else:
             input_size = peak_inputs + additional_inputs
-        self.dense_layers.append(
-            dense_layer(input_size, settings.base_dims[0], settings.activation_function)
-        )
+        self.dense_layers.append(dense_layer(input_size, settings.base_dims[0], settings.activation_function))
         input_dim = settings.base_dims[0]
 
         # Create additional dense layers
@@ -155,9 +168,9 @@ class SpectralEncoder(nn.Module):
     def forward(self, spectra_tensors, metadata_tensors):
         if self.train_binning_layer:
             x = self.peak_binner(spectra_tensors)
-            x = torch.cat([metadata_tensors, x], dim=1)
+            x = cat([metadata_tensors, x], dim=1)
         else:
-            x = torch.cat([metadata_tensors, spectra_tensors], dim=1)
+            x = cat([metadata_tensors, spectra_tensors], dim=1)
         x = self.dense_layers[0](x)
 
         for layer in self.dense_layers[1:]:
@@ -168,22 +181,24 @@ class SpectralEncoder(nn.Module):
         return x
 
 
-def train(model: SiameseSpectralModel,
-          data_generator,
-          num_epochs: int,
-          learning_rate: float,
-          validation_loss_calculator = None,
-          early_stopping=True,
-          patience: int = 10,
-          checkpoint_filename: str = None,
-          loss_function="MSE",
-          weighting_factor=0,
-          monitor_rmse: bool = True,
-          collect_all_targets: bool = False,
-          lambda_l1: float = 0,
-          lambda_l2: float = 0,
-          progress_bar: bool = True,
-          log_dir: str = "./runs"):
+def train(
+    model: SiameseSpectralModel,
+    data_generator,
+    num_epochs: int,
+    learning_rate: float,
+    validation_loss_calculator=None,
+    early_stopping=True,
+    patience: int = 10,
+    checkpoint_filename: str = None,
+    loss_function="MSE",
+    weighting_factor=0,
+    monitor_rmse: bool = True,
+    collect_all_targets: bool = False,
+    lambda_l1: float = 0,
+    lambda_l2: float = 0,
+    progress_bar: bool = True,
+    log_dir: str = "./runs",
+):
     """Train a model with given parameters.
 
     Parameters
@@ -214,7 +229,7 @@ def train(model: SiameseSpectralModel,
         If True, all training targets will be collected (e.g. for later statistics).
     lambda_l1
         L1 regularization strength.
-    lambda_l2 
+    lambda_l2
         L2 regularization strength.
     """
     device = initialize_device()
@@ -224,7 +239,7 @@ def train(model: SiameseSpectralModel,
         raise ValueError(f"Unknown loss function. Must be one of: {LOSS_FUNCTIONS.keys()}")
     criterion = LOSS_FUNCTIONS[loss_function.lower()]
 
-    optimizer = optim.Adam(model.parameters(), lr=learning_rate)
+    optimizer = Adam(model.parameters(), lr=learning_rate)
 
     # Initialize TensorBoard writer
     if checkpoint_filename:
@@ -238,7 +253,7 @@ def train(model: SiameseSpectralModel,
         "rmse": [],
         "val_rmse": [],
         "collection_targets": [],
-        }
+    }
     min_val_loss = np.inf
     epochs_no_improve = 0
 
@@ -251,12 +266,11 @@ def train(model: SiameseSpectralModel,
             for spectra_1, spectra_2, meta_1, meta_2, targets in training:
                 if collect_all_targets:
                     history["collection_targets"].extend(targets)
-                
+
                 optimizer.zero_grad()
 
                 # Forward pass
-                outputs = model(spectra_1.to(device), spectra_2.to(device), 
-                                meta_1.to(device), meta_2.to(device))
+                outputs = model(spectra_1.to(device), spectra_2.to(device), meta_1.to(device), meta_2.to(device))
 
                 # Calculate loss
                 loss = criterion(outputs, targets.to(device), weighting_factor=weighting_factor)
@@ -282,20 +296,19 @@ def train(model: SiameseSpectralModel,
         history["losses"].append(epoch_loss)
         history["rmse"].append(epoch_rmse)
 
-        writer.add_scalar('Loss/train', epoch_loss, epoch)
+        writer.add_scalar("Loss/train", epoch_loss, epoch)
 
         if validation_loss_calculator is not None:
-            val_losses, _  = validation_loss_calculator.compute_binned_validation_loss(
-                model,
-                loss_types=(loss_function, "rmse")
-                )
+            val_losses, _ = validation_loss_calculator.compute_binned_validation_loss(
+                model, loss_types=(loss_function, "rmse")
+            )
             val_loss = val_losses[loss_function]
             val_rmse = val_losses["rmse"]
             history["val_losses"].append(val_loss)
             history["val_rmse"].append(val_rmse)
 
-            writer.add_scalar('Loss/validation', val_loss, epoch)
-            writer.add_scalar('RMSE/validation', val_rmse, epoch)
+            writer.add_scalar("Loss/validation", val_loss, epoch)
+            writer.add_scalar("RMSE/validation", val_rmse, epoch)
 
             if val_loss < min_val_loss:
                 if checkpoint_filename:
@@ -310,7 +323,7 @@ def train(model: SiameseSpectralModel,
                 break
 
         # Print statistics
-        print(f"Epoch [{epoch+1}/{num_epochs}], Loss: {np.mean(batch_losses):.4f}")
+        print(f"Epoch [{epoch + 1}/{num_epochs}], Loss: {np.mean(batch_losses):.4f}")
         if validation_loss_calculator is not None:
             print(f"Validation Loss: {val_loss:.4f} (RMSE: {val_losses['rmse']:.4f}).")
 
@@ -320,22 +333,13 @@ def train(model: SiameseSpectralModel,
 
 def dense_layer(input_size, output_size, activation="lrelu"):
     """Combines a densely connected layer and an activation function."""
-    activations = nn.ModuleDict([
-        ["lrelu", nn.LeakyReLU()],
-        ["relu", nn.ReLU()],
-        ["sigmoid", nn.Sigmoid()],
-        ["tanh", nn.Tanh()]
-    ])
-    return nn.Sequential(
-        nn.Linear(input_size, output_size),
-        activations[activation]
+    activations = nn.ModuleDict(
+        [["lrelu", nn.LeakyReLU()], ["relu", nn.ReLU()], ["sigmoid", nn.Sigmoid()], ["tanh", nn.Tanh()]]
     )
+    return nn.Sequential(nn.Linear(input_size, output_size), activations[activation])
 
 
-def compute_embedding_array(model: SiameseSpectralModel,
-                            spectra,
-                            datatype="numpy",
-                            device=None):
+def compute_embedding_array(model: SiameseSpectralModel, spectra, datatype="numpy", device=None):
     """
     Compute the embeddings of all given spectra (list of matchms Spectrum objects).
 
@@ -358,16 +362,14 @@ def compute_embedding_array(model: SiameseSpectralModel,
     if datatype.lower() == "numpy":
         embeddings = np.zeros((len(spectra), model.model_settings.embedding_dim))
     else:
-        embeddings = torch.zeros((len(spectra), model.model_settings.embedding_dim))
+        embeddings = zeros((len(spectra), model.model_settings.embedding_dim))
 
     if device is None:
-        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        device = torch_device("cuda" if cuda.is_available() else "cpu")
     model.to(device)
-    for i, spec in tqdm(enumerate(spectra),
-                        total=len(spectra),
-                        desc="Computing spectral embeddings ..."):
+    for i, spec in tqdm(enumerate(spectra), total=len(spectra), desc="Computing spectral embeddings ..."):
         X = tensorize_spectra([spec], model.model_settings)
-        with torch.no_grad():
+        with no_grad():
             if datatype.lower() == "numpy":
                 embeddings[i, :] = model.encoder(X[0].to(device), X[1].to(device)).cpu().detach().numpy()
             else:

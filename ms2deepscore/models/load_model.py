@@ -4,7 +4,8 @@ import json
 from pathlib import Path
 import warnings
 import numpy as np
-import torch
+from torch import device, cuda, load, save, Tensor
+from torch.nn import Module
 from ms2deepscore.__version__ import __version__
 from ms2deepscore.models.EmbeddingEvaluatorModel import EmbeddingEvaluationModel
 from ms2deepscore.models.SiameseSpectralModel import SiameseSpectralModel
@@ -18,17 +19,18 @@ from ms2deepscore.models.io_utils import _settings_to_json
 
 # ---------- internal helpers ----------
 
-def _torch_device() -> torch.device:
-    return torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+def _torch_device() -> device:
+    return device("cuda" if cuda.is_available() else "cpu")
 
 
 def _load_ckpt_safe(filename: Union[str, Path]) -> Dict[str, Any]:
     """Load a checkpoint using PyTorch's restricted unpickler (weights_only=True)."""
     try:
-        return torch.load(str(filename), map_location=_torch_device(), weights_only=True)
+        return load(str(filename), map_location=_torch_device(), weights_only=True)
     except TypeError:
         # Older torch may not support weights_only -> fall back but still expect only primitives/tensors.
-        ckpt = torch.load(str(filename), map_location=_torch_device())
+        ckpt = load(str(filename), map_location=_torch_device())
         if not isinstance(ckpt, dict):
             raise
         return ckpt
@@ -50,12 +52,10 @@ def _extract_settings_dict(ckpt: Dict[str, Any]) -> Dict[str, Any]:
         if not isinstance(params, dict):
             raise TypeError("Expected 'model_params' to be a dict.")
         return params
-    raise KeyError(
-        "No settings found. Expected 'settings_json' (preferred) or 'model_params_json' / 'model_params'."
-    )
+    raise KeyError("No settings found. Expected 'settings_json' (preferred) or 'model_params_json' / 'model_params'.")
 
 
-def _extract_state_dict(ckpt: Dict[str, Any]) -> Dict[str, torch.Tensor]:
+def _extract_state_dict(ckpt: Dict[str, Any]) -> Dict[str, Tensor]:
     """Support current key 'state_dict' and older 'model_state_dict'."""
     if "state_dict" in ckpt:
         return ckpt["state_dict"]
@@ -81,7 +81,7 @@ def _convert_legacy_if_requested(
     out_path.parent.mkdir(parents=True, exist_ok=True)
 
     # (1) nn.Module with .state_dict and .model_settings
-    if isinstance(obj, torch.nn.Module) and hasattr(obj, "state_dict") and hasattr(obj, "model_settings"):
+    if isinstance(obj, Module) and hasattr(obj, "state_dict") and hasattr(obj, "model_settings"):
         safe_ckpt = {
             "format": "ms2deepscore.safe.v1",
             "ms2deepscore_version": getattr(obj, "version", __version__),
@@ -89,7 +89,7 @@ def _convert_legacy_if_requested(
             "settings_json": _settings_to_json(obj.model_settings),
             "state_dict": obj.state_dict(),
         }
-        torch.save(safe_ckpt, str(out_path))
+        save(safe_ckpt, str(out_path))
         return out_path
 
     # (2) dict-like legacy checkpoint with params + state_dict
@@ -108,7 +108,7 @@ def _convert_legacy_if_requested(
             "settings_json": settings_json,
             "state_dict": state_dict,
         }
-        torch.save(safe_ckpt, str(out_path))
+        save(safe_ckpt, str(out_path))
         return out_path
 
     return None
@@ -116,14 +116,15 @@ def _convert_legacy_if_requested(
 
 # ---------- generic loader ----------
 
+
 def _load_model_generic(
     filename: Union[str, Path],
     *,
     allow_legacy: bool,
     convert_legacy_to: Optional[Union[str, Path]],
     settings_factory: Callable[[Dict[str, Any]], Any],
-    model_factory: Callable[[Any], torch.nn.Module],
-) -> torch.nn.Module:
+    model_factory: Callable[[Any], Module],
+) -> Module:
     """
     Shared loader:
       1) Safe-load checkpoint (weights_only=True).
@@ -155,10 +156,10 @@ def _load_model_generic(
         "Using UNSAFE legacy loading (weights_only=False). Only do this for trusted files.",
         RuntimeWarning,
     )
-    legacy_obj = torch.load(str(filename), map_location=_torch_device(), weights_only=False)
+    legacy_obj = load(str(filename), map_location=_torch_device(), weights_only=False)
 
     # If the whole module was saved, just use it.
-    if isinstance(legacy_obj, torch.nn.Module):
+    if isinstance(legacy_obj, Module):
         legacy_obj.eval()
         _convert_legacy_if_requested(legacy_obj, convert_path=convert_legacy_to)
         return legacy_obj
@@ -184,6 +185,7 @@ def _load_model_generic(
 
 # ---------- public API ----------
 
+
 def load_model(
     filename: Union[str, Path],
     *,
@@ -197,9 +199,7 @@ def load_model(
         filename,
         allow_legacy=allow_legacy,
         convert_legacy_to=convert_legacy_to,
-        settings_factory=lambda params: SettingsMS2Deepscore(
-            **params, validate_settings=False
-        ),
+        settings_factory=lambda params: SettingsMS2Deepscore(**params, validate_settings=False),
         model_factory=lambda settings: SiameseSpectralModel(settings=settings),
     )  # type: ignore[return-value]
 

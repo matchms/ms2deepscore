@@ -1,8 +1,8 @@
-""" Data generators for training/inference with MS2DeepScore model.
-"""
+"""Data generators for training/inference with MS2DeepScore model."""
+
 import numpy as np
-import torch
-from ms2deepscore.SettingsMS2Deepscore import (SettingsMS2Deepscore)
+from torch import tensor, float32
+from ms2deepscore.SettingsMS2Deepscore import SettingsMS2Deepscore
 from ms2deepscore.tensorize_spectra import tensorize_spectra
 from ms2deepscore.train_new_model.SpectrumPairGenerator import SpectrumPairGenerator
 from ms2deepscore.train_new_model.data_augmentation import data_augmentation
@@ -22,9 +22,7 @@ class TrainingBatchGenerator:
     In addition inchikeys are selected to occur equally for each pair.
     """
 
-    def __init__(self,
-                 spectrum_pair_generator: SpectrumPairGenerator,
-                 settings: SettingsMS2Deepscore):
+    def __init__(self, spectrum_pair_generator: SpectrumPairGenerator, settings: SettingsMS2Deepscore):
         """Generates data for training a siamese Pytorch model.
 
         Parameters
@@ -44,7 +42,8 @@ class TrainingBatchGenerator:
         if self.model_settings.use_fixed_set:
             if self.model_settings.shuffle:
                 raise ValueError(
-                    "The generator cannot run reproducibly when shuffling is on for `SelectedCompoundPairs`.")
+                    "The generator cannot run reproducibly when shuffling is on for `SelectedCompoundPairs`."
+                )
             if self.model_settings.random_seed is None:
                 self.model_settings.random_seed = 0
         self.rng = np.random.default_rng(self.model_settings.random_seed)
@@ -56,8 +55,9 @@ class TrainingBatchGenerator:
             raise ValueError("The number of unique inchikeys must be larger than the batch size.")
         self.fixed_set = {}
 
-        self.nr_of_batches = int(self.model_settings.num_turns) * int(np.ceil(nr_of_unique_inchikeys /
-                                                                              self.model_settings.batch_size))
+        self.nr_of_batches = int(self.model_settings.num_turns) * int(
+            np.ceil(nr_of_unique_inchikeys / self.model_settings.batch_size)
+        )
 
     def __len__(self):
         return self.nr_of_batches
@@ -80,9 +80,9 @@ class TrainingBatchGenerator:
                 spectrum1, spectrum2, score = next(self.spectrum_pair_generator)
                 yield spectrum1, spectrum2, score
             except StopIteration as exc:
-                raise RuntimeError("The inchikey pair generator is not expected to end, "
-                                   "but should instead generate infinite pairs") from exc
-
+                raise RuntimeError(
+                    "The inchikey pair generator is not expected to end, but should instead generate infinite pairs"
+                ) from exc
 
     def __getitem__(self, batch_index: int):
         """Generate one batch of data.
@@ -116,4 +116,4 @@ class TrainingBatchGenerator:
 
         binned_spectra_1, metadata_1 = tensorize_spectra(spectra_1, self.model_settings)
         binned_spectra_2, metadata_2 = tensorize_spectra(spectra_2, self.model_settings)
-        return binned_spectra_1, binned_spectra_2, metadata_1, metadata_2, torch.tensor(targets, dtype=torch.float32)
+        return binned_spectra_1, binned_spectra_2, metadata_1, metadata_2, tensor(targets, dtype=float32)

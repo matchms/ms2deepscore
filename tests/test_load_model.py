@@ -1,7 +1,7 @@
 import json
 from pathlib import Path
 import pytest
-import torch
+from torch import load, save
 from ms2deepscore.models import EmbeddingEvaluationModel, SiameseSpectralModel
 from ms2deepscore.SettingsMS2Deepscore import SettingsMS2Deepscore, SettingsEmbeddingEvaluator
 from ms2deepscore.models import load_model, load_embedding_evaluator
@@ -10,7 +10,9 @@ from ms2deepscore.models.io_utils import _to_jsonable
 
 def _dummy_siamese_model():
     """Helper function to create a dummy SiameseSpectralModel."""
-    settings = SettingsMS2Deepscore(base_dims=(100, 100), embedding_dim=10, spectrum_file_path="./nonexisting_path.mgf", validate_settings=False)
+    settings = SettingsMS2Deepscore(
+        base_dims=(100, 100), embedding_dim=10, spectrum_file_path="./nonexisting_path.mgf", validate_settings=False
+    )
     model = SiameseSpectralModel(settings=settings)
     return model
 
@@ -34,7 +36,7 @@ def safe_checkpoint_siamese(tmp_path):
     model = _dummy_siamese_model()
     checkpoint = _create_safe_checkpoint(model)
     checkpoint_path = tmp_path / "safe_model.pt"
-    torch.save(checkpoint, checkpoint_path)
+    save(checkpoint, checkpoint_path)
     return checkpoint_path
 
 
@@ -43,7 +45,7 @@ def legacy_checkpoint_siamese(tmp_path):
     """Fixture to generate a legacy checkpoint (pickled model)."""
     model = _dummy_siamese_model()
     legacy_path = tmp_path / "legacy_model.pt"
-    torch.save(model, legacy_path)
+    save(model, legacy_path)
     return legacy_path
 
 
@@ -57,7 +59,7 @@ def legacy_dict_checkpoint(tmp_path):
         "version": "9.9.9",
     }
     legacy_dict_path = tmp_path / "legacy_dict_model.pt"
-    torch.save(legacy_dict, legacy_dict_path)
+    save(legacy_dict, legacy_dict_path)
     return legacy_dict_path
 
 
@@ -78,6 +80,7 @@ def _dummy_evaluator_model():
     )
     return EmbeddingEvaluationModel(settings=eval_settings)
 
+
 def _create_safe_ckpt_evaluator(model):
     model.eval()
     return {
@@ -88,26 +91,29 @@ def _create_safe_ckpt_evaluator(model):
         "state_dict": model.state_dict(),
     }
 
+
 @pytest.fixture
 def safe_checkpoint_evaluator(tmp_path: Path):
     model = _dummy_evaluator_model()
     ckpt = _create_safe_ckpt_evaluator(model)
     p = tmp_path / "safe_evaluator.pt"
-    torch.save(ckpt, p)
+    save(ckpt, p)
     return p
+
 
 @pytest.fixture
 def legacy_checkpoint_evaluator(tmp_path: Path):
     model = _dummy_evaluator_model()
     p = tmp_path / "legacy_evaluator.pt"
-    torch.save(model, p)  # pickled module
+    save(model, p)  # pickled module
     return p
+
 
 @pytest.fixture
 def legacy_dict_checkpoint_evaluator(tmp_path: Path):
     model = _dummy_evaluator_model()
     p = tmp_path / "legacy_evaluator_dict.pt"
-    torch.save(
+    save(
         {
             "model_state_dict": model.state_dict(),
             "model_params": model.settings.__dict__,
@@ -159,12 +165,12 @@ def test_load_legacy_and_convert(legacy_checkpoint_siamese, tmp_path):
     """Test legacy model conversion into a safe format."""
     convert_path = tmp_path / "converted_model.pt"
     _ = load_model(legacy_checkpoint_siamese, allow_legacy=True, convert_legacy_to=convert_path)
-    
+
     # Check that the new file was created
     assert convert_path.exists()
-    
+
     # Load the converted model to verify it's safe
-    converted_ckpt = torch.load(str(convert_path), map_location="cpu", weights_only=True)
+    converted_ckpt = load(str(convert_path), map_location="cpu", weights_only=True)
     assert "settings_json" in converted_ckpt
     assert "state_dict" in converted_ckpt
 
@@ -211,7 +217,7 @@ def test_siamese_legacy_warns_and_converts(legacy_checkpoint_siamese, tmp_path: 
     assert any("UNSAFE legacy loading" in str(w.message) for w in rec)
     assert convert_path.exists()
     # Converted file is safe-loadable
-    ckpt = torch.load(str(convert_path), map_location="cpu", weights_only=True)
+    ckpt = load(str(convert_path), map_location="cpu", weights_only=True)
     assert "settings_json" in ckpt and "state_dict" in ckpt
 
 
@@ -228,6 +234,7 @@ def test_siamese_legacy_gate(legacy_dict_checkpoint, allow_legacy):
 # ----------------------
 # EmbeddingEvaluator legacy route tests
 # ----------------------
+
 
 def test_evaluator_safe_load(safe_checkpoint_evaluator):
     model = load_embedding_evaluator(safe_checkpoint_evaluator)

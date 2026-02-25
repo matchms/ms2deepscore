@@ -132,7 +132,7 @@ class SettingsMS2Deepscore:
         include_diagonal:
             determines if a spectrum can be matched against itself when selection pairs.
         val_spectra_per_inchikey:
-            Set number of spectra to pick per inchikey in the validation set. 
+            Set number of spectra to pick per inchikey in the validation set.
             The larger this number, the slower the validation loss computation.
             Default is set to 1.
         random_seed:
@@ -169,18 +169,19 @@ class SettingsMS2Deepscore:
         max_pair_resampling
             The maximum number a inchikey pair can be resampled. Resampling is done to balance inchikey pairs over
             the tanimoto scores. The minimum is 1, meaning that no resampling is performed.
-        """
+    """
+
     def __init__(self, validate_settings=True, **settings):
-        self.spectrum_file_path = None # For training the file path has to be set, for inference it is not needed.
+        self.spectrum_file_path = None  # For training the file path has to be set, for inference it is not needed.
 
         # data split settings
-        self.root_dir = None # Will be derived from the spectrum file path
-        self.spectrum_file_name = None # Will be derived from the spectrum file path
+        self.root_dir = None  # Will be derived from the spectrum file path
+        self.spectrum_file_name = None  # Will be derived from the spectrum file path
         self.validation_spectra_file_name = None  # If None it will be auto set to val_{spectrum file}
-        self.test_spectra_file_name = None # If None it will be auto set to test_{spectrum file}
-        self.training_spectra_file_name = None # If None it will be auto set to train_{spectrum file}
-        self.results_folder = None # If None it will be auto set to {root_folder}/trained_models
-        self.model_directory_name = None # A unique folder name is created including settings and a time stamp
+        self.test_spectra_file_name = None  # If None it will be auto set to test_{spectrum file}
+        self.training_spectra_file_name = None  # If None it will be auto set to train_{spectrum file}
+        self.results_folder = None  # If None it will be auto set to {root_folder}/trained_models
+        self.model_directory_name = None  # A unique folder name is created including settings and a time stamp
         self.train_test_split_fraction = 20
 
         # model structure
@@ -226,8 +227,20 @@ class SettingsMS2Deepscore:
         self.average_inchikey_sampling_count = 100
         self.max_inchikey_sampling = 110
         self.max_pairs_per_bin = 300
-        self.same_prob_bins = np.array([(0.8, 0.9), (0.7, 0.8), (0.9, 1.0), (0.6, 0.7), (0.5, 0.6),
-                                        (0.4, 0.5), (0.3, 0.4), (0.2, 0.3), (0.1, 0.2), (-0.01, 0.1)])
+        self.same_prob_bins = np.array(
+            [
+                (0.8, 0.9),
+                (0.7, 0.8),
+                (0.9, 1.0),
+                (0.6, 0.7),
+                (0.5, 0.6),
+                (0.4, 0.5),
+                (0.3, 0.4),
+                (0.2, 0.3),
+                (0.1, 0.2),
+                (-0.01, 0.1),
+            ]
+        )
         self.include_diagonal = True
         self.val_spectra_per_inchikey = 1
         self.random_seed: Optional[int] = None
@@ -285,14 +298,13 @@ class SettingsMS2Deepscore:
             if self.model_directory_name is None:
                 self.model_directory_name = os.path.join(self.results_folder, self.create_model_directory_name())
 
-
     def validate_settings(self):
         if self.ionisation_mode not in ("positive", "negative", "both"):
             raise ValueError("Expected ionisation mode to be 'positive' , 'negative', or 'both'.")
         if not (0.0 <= self.augment_removal_max <= 1.0) or (not 0.0 <= self.augment_removal_intensity <= 1.0):
             raise ValueError("Expected value within [0,1]")
         if self.use_fixed_set and self.shuffle:
-            warnings.warn('When using a fixed set, data will not be shuffled')
+            warnings.warn("When using a fixed set, data will not be shuffled")
         if (self.random_seed is not None) and not isinstance(self.random_seed, int):
             raise ValueError("Random seed must be integer number.")
         if self.loss_function.lower() not in LOSS_FUNCTIONS:
@@ -303,7 +315,7 @@ class SettingsMS2Deepscore:
         if self.spectrum_file_path is not None:
             if not os.path.isfile(self.spectrum_file_path):
                 raise ValueError("The spectrum file specified is not an existing file")
-        
+
     def create_model_directory_name(self):
         """Creates a directory name using metadata, it will contain the metadata, the binned spectra and final model"""
         binning_file_label = ""
@@ -318,8 +330,9 @@ class SettingsMS2Deepscore:
 
         if self.embedding_dim:
             neural_net_structure_label += f"_{str(self.embedding_dim)}_embedding"
-        model_folder_file_name = f"{self.ionisation_mode}_mode_{binning_file_label}" \
-                                 f"{neural_net_structure_label}_{self.time_stamp}"
+        model_folder_file_name = (
+            f"{self.ionisation_mode}_mode_{binning_file_label}{neural_net_structure_label}_{self.time_stamp}"
+        )
         print(f"The model will be stored in the folder: {model_folder_file_name}")
 
         return model_folder_file_name
@@ -330,11 +343,11 @@ class SettingsMS2Deepscore:
     def get_dict(self):
         """returns a dictionary representation of the settings"""
         settings_dict = self.__dict__.copy()
-        
+
         for key, value in settings_dict.items():
             if isinstance(value, np.ndarray):
                 settings_dict[key] = value.tolist()  # Convert np.ndarray to list
-        
+
         return settings_dict
 
     def save_to_file(self, file_path):
@@ -343,7 +356,8 @@ class SettingsMS2Deepscore:
                 if isinstance(o, np.ndarray):
                     return o.tolist()
                 return JSONEncoder.default(self, o)
-        with open(file_path, 'w', encoding="utf-8") as file:
+
+        with open(file_path, "w", encoding="utf-8") as file:
             json.dump(self.__dict__, file, indent=4, cls=NumpyArrayEncoder)
 
     @classmethod
@@ -361,6 +375,7 @@ class SettingsEmbeddingEvaluator:
     mini_batch_size
         Defines the actual trainig batch size after which the model weights are optimized.
     """
+
     def __init__(self, **settings):
         self.evaluator_distribution_size = 1000
         self.evaluator_num_filters = 48
