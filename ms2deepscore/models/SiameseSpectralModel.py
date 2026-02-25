@@ -1,5 +1,5 @@
 import os
-from typing import Union, Dict, Any
+from typing import Optional, Union, Dict, Any
 from pathlib import Path
 import numpy as np
 
@@ -103,7 +103,7 @@ class PeakBinner(nn.Module):
 
         # Initialize weights
         for x in self.linear_layers:
-            nn.init.uniform_(x.weight, 0.9, 1.1)
+            nn.init.uniform_(x.weight, 0.9, 1.1)  # pyright: ignore[reportArgumentType]
 
     def forward(self, x):
         # Split the input into groups and apply each linear layer to each group
@@ -189,7 +189,7 @@ def train(
     validation_loss_calculator=None,
     early_stopping=True,
     patience: int = 10,
-    checkpoint_filename: str = None,
+    checkpoint_filename: Optional[str] = None,
     loss_function="MSE",
     weighting_factor=0,
     monitor_rmse: bool = True,
@@ -334,7 +334,12 @@ def train(
 def dense_layer(input_size, output_size, activation="lrelu"):
     """Combines a densely connected layer and an activation function."""
     activations = nn.ModuleDict(
-        [["lrelu", nn.LeakyReLU()], ["relu", nn.ReLU()], ["sigmoid", nn.Sigmoid()], ["tanh", nn.Tanh()]]
+        {
+            "lrelu": nn.LeakyReLU(),
+            "relu": nn.ReLU(),
+            "sigmoid": nn.Sigmoid(),
+            "tanh": nn.Tanh(),
+        }
     )
     return nn.Sequential(nn.Linear(input_size, output_size), activations[activation])
 

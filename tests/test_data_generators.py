@@ -4,6 +4,7 @@ from torch import rand, Size
 from collections import Counter
 from matchms import Spectrum
 from ms2deepscore.SettingsMS2Deepscore import SettingsMS2Deepscore, SettingsEmbeddingEvaluator
+from ms2deepscore.models import SiameseSpectralModel
 from ms2deepscore.tensorize_spectra import tensorize_spectra
 from ms2deepscore.train_new_model.TrainingBatchGenerator import TrainingBatchGenerator
 from ms2deepscore.train_new_model.DataGeneratorEmbeddingEvaluation import DataGeneratorEmbeddingEvaluation
@@ -15,7 +16,7 @@ from ms2deepscore.train_new_model.inchikey_pair_selection_cross_ionmode import (
 from tests.create_test_spectra import create_test_spectra
 
 
-class MockMS2DSModel:
+class MockMS2DSModel(SiameseSpectralModel):
     def __init__(self):
         self.model_settings = SettingsMS2Deepscore()
 
@@ -160,7 +161,7 @@ def test_equal_sampling_of_spectra(dummy_data_generator):
     for unique_tensor, count in tensor_counts.items():
         spectrum = reverse_tensorize(unique_tensor, spectrums, dummy_data_generator.model_settings)
 
-        inchikey = spectrum.get("inchikey")[:14]
+        inchikey = spectrum.get("inchikey")[:14]  # pyright: ignore[reportOptionalMemberAccess]
         inchikey_counts[inchikey] += count
     # Test that the inchikeys are sampled equally
     assert max(inchikey_counts.values()) - min(inchikey_counts.values()) < 2

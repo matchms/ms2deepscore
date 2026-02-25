@@ -1,6 +1,6 @@
 import json
 from importlib import import_module
-from typing import List, Tuple, Union
+from typing import List, Optional, Tuple, Union
 from torch import zeros, tensor
 from matchms import Metadata
 from matchms.Spectrum import Spectrum
@@ -101,7 +101,7 @@ class MetadataFeatureGenerator:
 class StandardScaler(MetadataFeatureGenerator):
     """StandardScaler scales metadata by subtracting the mean and dividing by the standard deviation."""
 
-    def __init__(self, metadata_field: str, mean: float, std: float = None):
+    def __init__(self, metadata_field: str, mean: float, std: Optional[float] = None):
         """
         Parameters
         ----------

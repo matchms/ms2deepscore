@@ -48,7 +48,7 @@ class DataGeneratorEmbeddingEvaluation:
         self.current_index = 0
         self.settings = settings
         self.spectrums = spectrums
-        self.inchikey14s = [s.get("inchikey")[:14] for s in spectrums]
+        self.inchikey14s = [s.get("inchikey")[:14] for s in spectrums]  # type: ignore
         self.ms2ds_model = ms2ds_model
         self.device = device
         self.ms2ds_model.to(self.device)
