@@ -60,7 +60,7 @@ def create_spectrum_pair_generator(
 
 def compute_fingerprints_for_training(
     spectra: List[Spectrum],
-    fingerprint_type: str = "daylight",
+    fingerprint_type: str = "rdkit_binary",
     nbits: int = 2048
 ) -> Tuple[np.ndarray, List[str]]:
     """Calculates fingerprints for each unique inchikey.

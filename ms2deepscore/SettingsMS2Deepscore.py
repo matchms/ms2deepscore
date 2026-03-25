@@ -247,7 +247,7 @@ class SettingsMS2Deepscore:
         self.max_pair_resampling = 10000000
 
         # Tanimioto score setings
-        self.fingerprint_type: str = "daylight"
+        self.fingerprint_type: str = "rdkit_binary"
         self.fingerprint_nbits: int = 4096
 
         # Data augmentation
