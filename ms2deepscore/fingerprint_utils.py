@@ -5,6 +5,14 @@ from rdkit.Chem import rdFingerprintGenerator
 from chemap import compute_fingerprints, FingerprintConfig
 
 
+SUPPORTED_FINGERPRINT_TYPES = {
+    "rdkit_binary",
+    "rdkit_count",
+    "rdkit_binary_unfolded",
+    "rdkit_count_unfolded",
+    }
+
+
 def _inchi_to_smiles(inchi: str) -> str | None:
     mol = Chem.MolFromInchi(inchi)
     if mol is None:
@@ -33,13 +41,23 @@ def normalize_to_smiles(smiles_or_inchi: str | List[str]) -> str | List[str | No
     return normalized
 
 
+def matchms_spectrum_to_smiles(spectrum) -> str | None:
+    if spectrum is None:
+        return None
+    if spectrum.get("smiles") is not None:
+        return spectrum.get("smiles")
+    if spectrum.get("inchi") is not None:
+        return _inchi_to_smiles(spectrum.get("inchi"))
+    return None
+
+
 def derive_fingerprint_from_smiles(
         smiles: str | List[str],
         fingerprint_type="rdkit_binary",
         nbits=2048,
         policy_invalid_smiles="raise",
         ) -> np.ndarray:
-    if fingerprint_type not in {"rdkit_binary", "rdkit_count"}:
+    if fingerprint_type not in SUPPORTED_FINGERPRINT_TYPES:
         raise ValueError(f"Unsupported fingerprint type: {fingerprint_type}")
 
     generator = rdFingerprintGenerator.GetRDKitFPGenerator(fpSize=nbits)
@@ -51,14 +69,14 @@ def derive_fingerprint_from_smiles(
         inputs,
         generator,
         config=FingerprintConfig(
-            count=(fingerprint_type == "rdkit_count"),
-            folded=True,
+            count=("count" in fingerprint_type),
+            folded=("unfolded" not in fingerprint_type),
             return_csr=False,
             invalid_policy=policy_invalid_smiles,
         ),
     )
 
-    if not isinstance(fingerprints, np.ndarray):
+    if not isinstance(fingerprints, np.ndarray) and ("unfolded" not in fingerprint_type):
         raise ValueError("Fingerprint computation failed.")
 
     return fingerprints[0] if is_single else fingerprints

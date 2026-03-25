@@ -10,8 +10,45 @@ from ms2deepscore.fingerprint_utils import (
 
 
 VALID_SMILES = "CCO"
+VALID_SMILES_2 = "CCCO"
 VALID_INCHI = "InChI=1S/C2H6O/c1-2-3/h3H,2H2,1H3"
 INVALID_INCHI = "InChI=1S/this_is_not_valid"
+
+
+def _assert_unfolded_binary_single(fp):
+    assert isinstance(fp, np.ndarray)
+    assert fp.ndim == 1
+    assert fp.shape[0] > 0
+    assert np.issubdtype(fp.dtype, np.integer)
+
+
+def _assert_unfolded_binary_list(fps, expected_len):
+    assert isinstance(fps, list)
+    assert len(fps) == expected_len
+    for fp in fps:
+        _assert_unfolded_binary_single(fp)
+
+
+def _assert_unfolded_count_single(fp):
+    assert isinstance(fp, tuple)
+    assert len(fp) == 2
+
+    bins, counts = fp
+    assert isinstance(bins, np.ndarray)
+    assert isinstance(counts, np.ndarray)
+    assert bins.ndim == 1
+    assert counts.ndim == 1
+    assert bins.shape == counts.shape
+    assert bins.shape[0] > 0
+    assert np.issubdtype(bins.dtype, np.integer)
+    assert np.all(counts > 0)
+
+
+def _assert_unfolded_count_list(fps, expected_len):
+    assert isinstance(fps, list)
+    assert len(fps) == expected_len
+    for fp in fps:
+        _assert_unfolded_count_single(fp)
 
 
 def test_inchi_to_smiles_valid():
@@ -51,7 +88,7 @@ def test_normalize_to_smiles_list_mixed_inputs():
 
 
 @pytest.mark.parametrize("fingerprint_type", ["rdkit_binary", "rdkit_count"])
-def test_derive_fingerprint_from_smiles_single(fingerprint_type):
+def test_derive_fingerprint_from_smiles_single_folded(fingerprint_type):
     fp = derive_fingerprint_from_smiles(
         VALID_SMILES,
         fingerprint_type=fingerprint_type,
@@ -63,15 +100,51 @@ def test_derive_fingerprint_from_smiles_single(fingerprint_type):
 
 
 @pytest.mark.parametrize("fingerprint_type", ["rdkit_binary", "rdkit_count"])
-def test_derive_fingerprint_from_smiles_list(fingerprint_type):
+def test_derive_fingerprint_from_smiles_list_folded(fingerprint_type):
     fps = derive_fingerprint_from_smiles(
-        [VALID_SMILES, "CCCO"],
+        [VALID_SMILES, VALID_SMILES_2],
         fingerprint_type=fingerprint_type,
         nbits=256,
     )
     assert isinstance(fps, np.ndarray)
     assert fps.shape == (2, 256)
     assert np.all(fps.sum(axis=1) > 0)
+
+
+def test_derive_fingerprint_from_smiles_single_binary_unfolded():
+    fp = derive_fingerprint_from_smiles(
+        VALID_SMILES,
+        fingerprint_type="rdkit_binary_unfolded",
+        nbits=256,
+    )
+    _assert_unfolded_binary_single(fp)
+
+
+def test_derive_fingerprint_from_smiles_list_binary_unfolded():
+    fps = derive_fingerprint_from_smiles(
+        [VALID_SMILES, VALID_SMILES_2],
+        fingerprint_type="rdkit_binary_unfolded",
+        nbits=256,
+    )
+    _assert_unfolded_binary_list(fps, expected_len=2)
+
+
+def test_derive_fingerprint_from_smiles_single_count_unfolded():
+    fp = derive_fingerprint_from_smiles(
+        VALID_SMILES,
+        fingerprint_type="rdkit_count_unfolded",
+        nbits=256,
+    )
+    _assert_unfolded_count_single(fp)
+
+
+def test_derive_fingerprint_from_smiles_list_count_unfolded():
+    fps = derive_fingerprint_from_smiles(
+        [VALID_SMILES, VALID_SMILES_2],
+        fingerprint_type="rdkit_count_unfolded",
+        nbits=256,
+    )
+    _assert_unfolded_count_list(fps, expected_len=2)
 
 
 def test_derive_fingerprint_from_smiles_binary_is_integer_like():
@@ -113,10 +186,11 @@ def test_derive_fingerprint_from_smiles_invalid_smiles_raises():
         )
 
 
-def test_derive_fingerprint_from_smiles_or_inchi_single_smiles():
+@pytest.mark.parametrize("fingerprint_type", ["rdkit_binary", "rdkit_count"])
+def test_derive_fingerprint_from_smiles_or_inchi_single_smiles_folded(fingerprint_type):
     fp = derive_fingerprint_from_smiles_or_inchi(
         VALID_SMILES,
-        fingerprint_type="rdkit_binary",
+        fingerprint_type=fingerprint_type,
         nbits=256,
     )
     assert isinstance(fp, np.ndarray)
@@ -124,10 +198,11 @@ def test_derive_fingerprint_from_smiles_or_inchi_single_smiles():
     assert np.sum(fp) > 0
 
 
-def test_derive_fingerprint_from_smiles_or_inchi_single_inchi():
+@pytest.mark.parametrize("fingerprint_type", ["rdkit_binary", "rdkit_count"])
+def test_derive_fingerprint_from_smiles_or_inchi_single_inchi_folded(fingerprint_type):
     fp = derive_fingerprint_from_smiles_or_inchi(
         VALID_INCHI,
-        fingerprint_type="rdkit_binary",
+        fingerprint_type=fingerprint_type,
         nbits=256,
     )
     assert isinstance(fp, np.ndarray)
@@ -135,15 +210,70 @@ def test_derive_fingerprint_from_smiles_or_inchi_single_inchi():
     assert np.sum(fp) > 0
 
 
-def test_derive_fingerprint_from_smiles_or_inchi_list_mixed_valid():
+def test_derive_fingerprint_from_smiles_or_inchi_single_smiles_binary_unfolded():
+    fp = derive_fingerprint_from_smiles_or_inchi(
+        VALID_SMILES,
+        fingerprint_type="rdkit_binary_unfolded",
+        nbits=256,
+    )
+    _assert_unfolded_binary_single(fp)
+
+
+def test_derive_fingerprint_from_smiles_or_inchi_single_inchi_binary_unfolded():
+    fp = derive_fingerprint_from_smiles_or_inchi(
+        VALID_INCHI,
+        fingerprint_type="rdkit_binary_unfolded",
+        nbits=256,
+    )
+    _assert_unfolded_binary_single(fp)
+
+
+def test_derive_fingerprint_from_smiles_or_inchi_single_smiles_count_unfolded():
+    fp = derive_fingerprint_from_smiles_or_inchi(
+        VALID_SMILES,
+        fingerprint_type="rdkit_count_unfolded",
+        nbits=256,
+    )
+    _assert_unfolded_count_single(fp)
+
+
+def test_derive_fingerprint_from_smiles_or_inchi_single_inchi_count_unfolded():
+    fp = derive_fingerprint_from_smiles_or_inchi(
+        VALID_INCHI,
+        fingerprint_type="rdkit_count_unfolded",
+        nbits=256,
+    )
+    _assert_unfolded_count_single(fp)
+
+
+@pytest.mark.parametrize("fingerprint_type", ["rdkit_binary", "rdkit_count"])
+def test_derive_fingerprint_from_smiles_or_inchi_list_mixed_valid_folded(fingerprint_type):
     fps = derive_fingerprint_from_smiles_or_inchi(
-        [VALID_SMILES, VALID_INCHI, "CCCO"],
-        fingerprint_type="rdkit_binary",
+        [VALID_SMILES, VALID_INCHI, VALID_SMILES_2],
+        fingerprint_type=fingerprint_type,
         nbits=256,
     )
     assert isinstance(fps, np.ndarray)
     assert fps.shape == (3, 256)
     assert np.all(fps.sum(axis=1) > 0)
+
+
+def test_derive_fingerprint_from_smiles_or_inchi_list_mixed_valid_binary_unfolded():
+    fps = derive_fingerprint_from_smiles_or_inchi(
+        [VALID_SMILES, VALID_INCHI, VALID_SMILES_2],
+        fingerprint_type="rdkit_binary_unfolded",
+        nbits=256,
+    )
+    _assert_unfolded_binary_list(fps, expected_len=3)
+
+
+def test_derive_fingerprint_from_smiles_or_inchi_list_mixed_valid_count_unfolded():
+    fps = derive_fingerprint_from_smiles_or_inchi(
+        [VALID_SMILES, VALID_INCHI, VALID_SMILES_2],
+        fingerprint_type="rdkit_count_unfolded",
+        nbits=256,
+    )
+    _assert_unfolded_count_list(fps, expected_len=3)
 
 
 def test_derive_fingerprint_from_smiles_or_inchi_invalid_single_raises():
@@ -161,7 +291,7 @@ def test_derive_fingerprint_from_smiles_or_inchi_invalid_single_ignore_returns_z
         INVALID_INCHI,
         fingerprint_type="rdkit_binary",
         nbits=256,
-        policy_invalid="ignore",
+        policy_invalid="keep",
     )
     assert isinstance(fp, np.ndarray)
     assert fp.shape == (256,)
@@ -183,19 +313,39 @@ def test_derive_fingerprint_from_smiles_or_inchi_all_invalid_list_ignore_returns
         [INVALID_INCHI, INVALID_INCHI],
         fingerprint_type="rdkit_binary",
         nbits=256,
-        policy_invalid="ignore",
+        policy_invalid="keep",
     )
     assert isinstance(fps, np.ndarray)
     assert fps.shape == (0, 256)
 
 
-def test_derive_fingerprint_from_smiles_or_inchi_mixed_list_ignore_drops_invalid_entries():
+def test_derive_fingerprint_from_smiles_or_inchi_mixed_list_ignore_drops_invalid_entries_folded():
     fps = derive_fingerprint_from_smiles_or_inchi(
-        [VALID_SMILES, INVALID_INCHI, "CCCO"],
+        [VALID_SMILES, INVALID_INCHI, VALID_SMILES_2],
         fingerprint_type="rdkit_binary",
         nbits=256,
-        policy_invalid="ignore",
+        policy_invalid="keep",
     )
     assert isinstance(fps, np.ndarray)
     assert fps.shape == (2, 256)
     assert np.all(fps.sum(axis=1) > 0)
+
+
+def test_derive_fingerprint_from_smiles_or_inchi_mixed_list_ignore_drops_invalid_entries_binary_unfolded():
+    fps = derive_fingerprint_from_smiles_or_inchi(
+        [VALID_SMILES, INVALID_INCHI, VALID_SMILES_2],
+        fingerprint_type="rdkit_binary_unfolded",
+        nbits=256,
+        policy_invalid="keep",
+    )
+    _assert_unfolded_binary_list(fps, expected_len=2)
+
+
+def test_derive_fingerprint_from_smiles_or_inchi_mixed_list_ignore_drops_invalid_entries_count_unfolded():
+    fps = derive_fingerprint_from_smiles_or_inchi(
+        [VALID_SMILES, INVALID_INCHI, VALID_SMILES_2],
+        fingerprint_type="rdkit_count_unfolded",
+        nbits=256,
+        policy_invalid="keep",
+    )
+    _assert_unfolded_count_list(fps, expected_len=2)
