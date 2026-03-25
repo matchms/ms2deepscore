@@ -28,6 +28,7 @@ setup(
     test_suite="tests",
     python_requires='>=3.10',
     install_requires=[
+        "chemap",
         "matchms>=0.19.0",
         "numba",
         "numpy>=2.0",
