@@ -72,11 +72,12 @@ def derive_fingerprint_from_smiles_or_inchi(
         ) -> np.ndarray:
     normalized = normalize_to_smiles(smiles_or_inchi)
 
+    if normalized is None:
+        if policy_invalid == "raise":
+            raise ValueError("Could not convert input structure to SMILES.")
+        return np.zeros((nbits,), dtype=np.float32)
+
     if isinstance(normalized, str):
-        if normalized is None:
-            if policy_invalid == "raise":
-                raise ValueError("Could not convert input structure to SMILES.")
-            return np.zeros((nbits,), dtype=np.float32)
         return derive_fingerprint_from_smiles(
             normalized,
             fingerprint_type=fingerprint_type,
