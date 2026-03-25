@@ -26,7 +26,7 @@ setup(
     license="Apache Software License 2.0",
     zip_safe=False,
     test_suite="tests",
-    python_requires='>=3.10',
+    python_requires='>=3.11',
     install_requires=[
         "chemap",
         "matchms>=0.19.0",
