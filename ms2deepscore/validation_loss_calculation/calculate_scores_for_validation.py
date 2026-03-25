@@ -3,12 +3,52 @@ from typing import List
 import numpy as np
 import pandas as pd
 from matchms import Spectrum
-from matchms.filtering.metadata_processing.add_fingerprint import _derive_fingerprint_from_smiles
-from matchms.similarity.vector_similarity_functions import jaccard_similarity_matrix
 from tqdm import tqdm
+
+from rdkit.Chem import rdFingerprintGenerator
+from chemap import compute_fingerprints, FingerprintConfig
+from chemap.metrics import tanimoto_similarity_matrix_dense
 
 from ms2deepscore.train_new_model.inchikey_pair_selection import select_inchi_for_unique_inchikeys
 from ms2deepscore.vector_operations import cosine_similarity_matrix
+
+
+def derive_fingerprint_from_smiles(
+        smiles: str,
+        fingerprint_type="rdkit_binary",
+        nbits=2048) -> np.ndarray:
+    """
+    Derive a fingerprint from a SMILES string.
+
+    Supported fingerprint types:
+    - "rdkit_binary"
+      -> RDKit fingerprint via chemap
+    - "rdkit_count"
+      -> RDKit count fingerprint via chemap
+    """
+    if fingerprint_type not in {"rdkit_binary", "rdkit_count"}:
+        raise ValueError(f"Unsupported fingerprint type: {fingerprint_type}")
+
+    generator = rdFingerprintGenerator.GetRDKitFPGenerator(fpSize=nbits)
+
+    fingerprint = compute_fingerprints(
+        [smiles],
+        generator,
+        config=FingerprintConfig(
+            count=(fingerprint_type == "rdkit_count"),
+            folded=True,
+            return_csr=False,
+            invalid_policy="raise",
+        ),
+    )
+
+    if not isinstance(fingerprint, np.ndarray):
+        raise ValueError(f"Fingerprint could not be set for SMILES: {smiles}")
+
+    if fingerprint.shape[0] != 1:
+        raise ValueError(f"Expected one fingerprint for one SMILES, got shape {fingerprint.shape}")
+
+    return fingerprint[0]
 
 
 def create_embedding_matrix_symmetric(model, spectra) -> pd.DataFrame:
@@ -70,7 +110,7 @@ def create_embedding_matrix_not_symmetric(model, spectra_1, spectra_2) -> pd.Dat
 def calculate_tanimoto_scores_unique_inchikey(
     list_of_spectra_1: List[Spectrum],
     list_of_spectra_2: List[Spectrum],
-    fingerprint_type="daylight",
+    fingerprint_type="rdkit_binary",
     nbits=2048
     ) -> pd.DataFrame:
     """
@@ -83,14 +123,16 @@ def calculate_tanimoto_scores_unique_inchikey(
     list_of_spectra_2 : List[Spectrum]
         A list of spectra for the second set.
     fingerprint_type : str, optional
-        The type of fingerprint to derive (default is "daylight").
+        The type of fingerprint to derive (default is "rdkit_binary").
     nbits : int, optional
         The number of bits for the fingerprint (default is 2048).
     """
     def get_fingerprint(smiles: str):
-        fingerprint = _derive_fingerprint_from_smiles(smiles,
-                                                      fingerprint_type=fingerprint_type,
-                                                      nbits=nbits)
+        fingerprint = derive_fingerprint_from_smiles(
+            smiles,
+            fingerprint_type=fingerprint_type,
+            nbits=nbits
+        )
         if not isinstance(fingerprint, np.ndarray):
             raise ValueError(f"Fingerprint could not be set for SMILES: {smiles}")
         return fingerprint
@@ -111,6 +153,6 @@ def calculate_tanimoto_scores_unique_inchikey(
     fingerprints_2 = np.array([get_fingerprint(spectrum) for spectrum in tqdm(list_of_smiles_2,
                                                                               desc="Calculating fingerprints")])
     print("Calculating tanimoto scores")
-    tanimoto_scores = jaccard_similarity_matrix(fingerprints_1, fingerprints_2)
+    tanimoto_scores = tanimoto_similarity_matrix_dense(fingerprints_1, fingerprints_2)
     tanimoto_df = pd.DataFrame(tanimoto_scores, index=unique_inchikeys_1, columns=unique_inchikeys_2)
     return tanimoto_df
