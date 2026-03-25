@@ -3,12 +3,12 @@ from typing import List, Tuple
 import heapq
 import numpy as np
 from matchms import Spectrum
-from matchms.filtering import add_fingerprint
-from matchms.similarity.vector_similarity_functions import jaccard_index
+from chemap.metrics import tanimoto_similarity_dense
 from numba import jit, prange
 from tqdm import tqdm
 from ms2deepscore.SettingsMS2Deepscore import SettingsMS2Deepscore
 from ms2deepscore.train_new_model import SpectrumPairGenerator
+from ms2deepscore.fingerprint_utils import derive_fingerprint_from_smiles_or_inchi
 
 
 def create_spectrum_pair_generator(
@@ -83,22 +83,42 @@ def compute_fingerprints_for_training(
     print(f"Selected {len(spectra_selected)} spectra with unique inchikeys for calculating tanimoto scores "
           f"(out of {len(spectra)} spectra)")
 
-    # Compute fingerprints using matchms
-    spectra_selected = [add_fingerprint(s, fingerprint_type, nbits) \
-                        if s.get("fingerprint") is None else s for s in spectra_selected]
+    if len(spectra_selected) == 0:
+        raise ValueError("No spectra with valid structural annotations were found")
 
-    # Ignore missing / not-computed fingerprints
-    fingerprints = [s.get("fingerprint") for s in tqdm(spectra_selected,
-                                                       desc="Calculating fingerprints")]
-    idx = np.array([i for i, x in enumerate(fingerprints) if x is not None]).astype(int)
-    if len(idx) == 0:
+    structure_list = []
+    valid_inchikeys = []
+
+    for spectrum, inchikey14 in zip(spectra_selected, inchikeys14_unique):
+        structure = spectrum.get("smiles")
+        if structure is None:
+            structure = spectrum.get("inchi")
+
+        if structure is None:
+            continue
+
+        structure_list.append(structure)
+        valid_inchikeys.append(inchikey14)
+
+    if len(structure_list) == 0:
+        raise ValueError("No valid SMILES/InChI entries available for fingerprint calculation")
+
+    fingerprints = derive_fingerprint_from_smiles_or_inchi(
+        structure_list,
+        fingerprint_type=fingerprint_type,
+        nbits=nbits,
+        policy_invalid="keep",
+    )
+
+    if not isinstance(fingerprints, np.ndarray) or fingerprints.shape[0] == 0:
         raise ValueError("No fingerprints could be computed")
-    if len(idx) < len(fingerprints):
-        print(f"Successfully generated fingerprints for {len(idx)} of {len(fingerprints)} spectra")
 
-    fingerprints = np.array([fingerprints[i] for i in idx])
-    inchikeys14_unique = [inchikeys14_unique[i] for i in idx]
-    return fingerprints, inchikeys14_unique
+    if len(valid_inchikeys) != fingerprints.shape[0]:
+        raise ValueError(
+            f"Mismatch between inchikeys ({len(valid_inchikeys)}) and fingerprints ({fingerprints.shape[0]})."
+        )
+
+    return fingerprints, valid_inchikeys
 
 
 @jit(nopython=True, parallel=True)
@@ -407,10 +427,9 @@ def tanimoto_scores_row(single_fingerprint, list_of_fingerprints):
 
     for idx_fingerprint_j in range(size):
         fingerprint_j = list_of_fingerprints[idx_fingerprint_j, :]
-        tanimoto_score = jaccard_index(single_fingerprint, fingerprint_j)
+        tanimoto_score = tanimoto_similarity_dense(single_fingerprint, fingerprint_j)
         tanimoto_scores[idx_fingerprint_j] = tanimoto_score
     return tanimoto_scores
-
 
 
 def select_inchi_for_unique_inchikeys(
@@ -420,24 +439,19 @@ def select_inchi_for_unique_inchikeys(
 
     Method needed to calculate Tanimoto scores.
     """
-    # Extract inchi's and inchikeys from spectra metadata
     inchikeys_list = [s.get("inchikey") for s in list_of_spectra]
     inchi_list = [s.get("inchi") for s in list_of_spectra]
 
     inchi_array = np.array(inchi_list)
     inchikeys14_array = np.array([x[:14] for x in inchikeys_list])
 
-    # Find unique inchikeys
     inchikeys14_unique = sorted(set(inchikeys14_array))
 
     spectra_selected = []
     for inchikey14 in inchikeys14_unique:
-        # Indices of matching inchikeys
         idx = np.where(inchikeys14_array == inchikey14)[0]
 
-        # Find the most frequent inchi for the inchikey
         most_common_inchi = Counter(inchi_array[idx]).most_common(1)[0][0]
-
         # ID of the spectrum with the most frequent inchi
         ID = idx[np.where(inchi_array[idx] == most_common_inchi)[0][0]]
 
