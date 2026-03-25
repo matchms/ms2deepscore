@@ -7,7 +7,8 @@ from matchms import Spectrum
 
 from ms2deepscore import SettingsMS2Deepscore
 from ms2deepscore.train_new_model.inchikey_pair_selection import (
-    compute_jaccard_similarity_per_bin, select_inchi_for_unique_inchikeys, create_spectrum_pair_generator, compute_fingerprints_for_training)
+    compute_jaccard_similarity_per_bin, select_inchi_for_unique_inchikeys,
+    create_spectrum_pair_generator, compute_fingerprints_for_training)
 from ms2deepscore.train_new_model import SpectrumPairGenerator
 from tests.create_test_spectra import create_test_spectra
 
@@ -200,7 +201,7 @@ def test_select_compound_pairs_wrapper_no_resampling():
 def test_select_compound_pairs_wrapper_with_resampling():
     spectrums = create_test_spectra(num_of_unique_inchikeys=26, num_of_spectra_per_inchikey=1)
     bins = [(0.8, 0.9), (0.7, 0.8), (0.9, 1.0), (0.6, 0.7), (0.5, 0.6),
-            (0.4, 0.5), (0.3, 0.4), (0.2, 0.3), (0.1, 0.2), (-0.01, 0.1)]
+            (0.4, 0.5), (0.3, 0.4), (-0.01, 0.3)]
     max_pair_resampling = 10
     settings = SettingsMS2Deepscore(same_prob_bins=np.array(bins, dtype="float32"),
                                     average_inchikey_sampling_count=10,
@@ -219,7 +220,7 @@ def test_select_compound_pairs_wrapper_with_resampling():
 def test_select_compound_pairs_wrapper_maximum_inchikey_count():
     spectrums = create_test_spectra(num_of_unique_inchikeys=26, num_of_spectra_per_inchikey=1)
     bins = [(0.8, 0.9), (0.7, 0.8), (0.9, 1.0), (0.6, 0.7), (0.5, 0.6),
-            (0.4, 0.5), (0.3, 0.4), (0.2, 0.3), (0.1, 0.2), (-0.01, 0.1)]
+            (0.4, 0.5), (0.3, 0.4), (-0.01, 0.3)]
     max_pair_resampling = 1000
     max_inchikey_sampling = 280
     settings = SettingsMS2Deepscore(same_prob_bins=np.array(bins, dtype="float32"),
