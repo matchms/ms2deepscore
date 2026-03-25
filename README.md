@@ -129,7 +129,7 @@ settings = SettingsMS2Deepscore(
                                                   "entries_becoming_zero": "negative"}),
                          ("StandardScaler", {"metadata_field": "precursor_mz", 
                                              "mean": 0, "standard_deviation": 1000})], 
-    ionmode="both")
+    ionisation_mode="both")
 
 train_ms2deepscore_wrapper(settings, 
                            SettingsEmbeddingEvaluator() # this results in also training the embedding evaluator. Leave as None if you don't want to train this.
