@@ -6,7 +6,7 @@ from matchms.importing.load_from_mgf import load_from_mgf
 from tqdm import tqdm
 
 def calculate_tanimoto_scores_unique_inchikey(list_of_spectra,
-    fingerprint_type="daylight",
+    fingerprint_type="rdkit_binary",
     nbits=2048
     ) -> pd.DataFrame:
     fingerprints, inchikeys14_unique = compute_fingerprints_for_training(
@@ -23,7 +23,7 @@ neg_training_spectra = list(tqdm(load_from_mgf("/lustre/BIF/nobackup/jonge094/ms
 
 tanimoto_df_training_spectra = calculate_tanimoto_scores_unique_inchikey(
     neg_training_spectra,
-    fingerprint_type="daylight",
+    fingerprint_type="rdkit_binary",
     nbits=4096)
 
 tanimoto_df_training_spectra.to_csv("tanimoto_scores_validation_spectra_neg.csv")
@@ -32,7 +32,7 @@ pos_training_spectra = list(load_from_mgf("/lustre/BIF/nobackup/jonge094/ms2deep
 
 tanimoto_df_training_spectra = calculate_tanimoto_scores_unique_inchikey(
     pos_training_spectra,
-    fingerprint_type="daylight",
+    fingerprint_type="rdkit_binary",
     nbits=4096)
 
 tanimoto_df_training_spectra.to_csv("tanimoto_scores_validation_spectra_pos.csv")

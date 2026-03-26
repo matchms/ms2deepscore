@@ -62,7 +62,7 @@ def peak_removal_for_data_augmentation(
         bin_indices_below_removal_intensity = where(
             (spectrum_tensor > 0) & (spectrum_tensor < augment_removal_intensity)
         )[0]
-        fraction_of_noise_to_remove = random_number_generator.random(1) * augment_removal_max
+        fraction_of_noise_to_remove = random_number_generator.random() * augment_removal_max
         number_of_peaks_to_remove = int(
             np.ceil((1 - fraction_of_noise_to_remove) * len(bin_indices_below_removal_intensity))
         )

@@ -177,7 +177,7 @@ def test_create_data_generator():
         mz_bin_width=0.1,
         intensity_scaling=0.5,
         additional_metadata=[],
-        same_prob_bins=np.array([(-0.000001, 0.25), (0.25, 0.5), (0.5, 0.75), (0.75, 1)]),
+        same_prob_bins=np.array([(-0.01, 0.75), (0.75, 1)]),
         batch_size=2,
         num_turns=4,
         augment_removal_max=0.0,
@@ -274,7 +274,7 @@ def test_create_data_generator_across_ionmodes():
         mz_bin_width=0.1,
         intensity_scaling=0.5,
         additional_metadata=[],
-        same_prob_bins=np.array([(-0.000001, 0.25), (0.25, 0.5), (0.5, 0.75), (0.75, 1)]),
+        same_prob_bins=np.array([(-0.01, 0.75), (0.75, 1)]),
         batch_size=2,
         num_turns=4,
     )
@@ -299,7 +299,7 @@ def test_select_compound_pairs_wrapper_across_ionmode():
         mz_bin_width=0.1,
         intensity_scaling=0.5,
         additional_metadata=[],
-        same_prob_bins=np.array([(-0.000001, 0.25), (0.25, 0.5), (0.5, 0.75), (0.75, 1)]),
+        same_prob_bins=np.array([(-0.01, 0.75), (0.75, 1)]),
         batch_size=2,
         num_turns=4,
     )

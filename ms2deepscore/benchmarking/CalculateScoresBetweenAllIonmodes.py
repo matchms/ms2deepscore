@@ -18,7 +18,7 @@ class CalculateScoresBetweenAllIonmodes:
         model_file_name,
         positive_validation_spectra,
         negative_validation_spectra,
-        fingerprint_type="daylight",
+        fingerprint_type="rdkit_binary",
         n_bits_fingerprint=2048,
     ):
         self.model_file_name = model_file_name
@@ -50,7 +50,7 @@ class CalculateScoresBetweenAllIonmodes:
         del self.model
 
     def get_tanimoto_and_prediction_pairs(
-        self, spectra_1, spectra_2=None, label="", fingerprint_type="daylight", n_bits=2048
+        self, spectra_1, spectra_2=None, label="", fingerprint_type="rdkit_binary", n_bits=2048
     ) -> PredictionsAndTanimotoScores:
         symmetric = False
         if spectra_2 is None:

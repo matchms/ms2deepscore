@@ -33,7 +33,7 @@ bioRxiv 2024.03.25.586580; doi: https://doi.org/10.1101/2024.03.25.586580
 ## Setup
 ### Requirements
 
-Python 3.10, 3.11, 3.12 (higher will likely work but is not tested systematically).
+Python 3.11, 3.12 (higher will likely work, but is not tested systematically).
 
 ### Installation
 Installation is expected to take 10-20 minutes.
@@ -61,7 +61,7 @@ Alternatively, simply install in the environment of your choice by `pip install 
 We recommend to run the complete tutorial in [notebooks/MS2DeepScore_tutorial.ipynb](https://github.com/matchms/ms2deepscore/blob/main/notebooks/tutorials/ms2deepscore_tutorial.ipynb) 
 for a more extensive fully-working example on test data, including explanations on how to visualize the results. 
 The expected run time on a laptop is less than 5 minutes, including automatic model and dummy data download. 
-Alternatively there are some example scripts below.
+Alternatively, there are some example scripts below.
 
 ## 1) Compute spectral similarities
 We provide a model which was trained on > 500,000 MS/MS combined spectra from [GNPS](https://gnps.ucsd.edu/), [Mona](https://mona.fiehnlab.ucdavis.edu/), MassBank and MSnLib. 

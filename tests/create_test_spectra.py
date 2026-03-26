@@ -32,32 +32,40 @@ def create_test_spectra(num_of_unique_inchikeys: int,
                         num_of_spectra_per_inchikey: int = 1):
     if num_of_unique_inchikeys > 26:
         raise ValueError("The max number of unique inchikeys is 26, because that is the number of available letters")
-    # Define other parameters
+
     intens = [0.1, 1]
     spectrums = []
     letters = list(string.ascii_uppercase[:num_of_unique_inchikeys])
 
-    def generate_binary_vector(i):
-        binary_vector = np.zeros(10, dtype=int)
-        binary_vector[i % 3] = 1
-        binary_vector[i % 5 + 3] = 1
-        binary_vector[i % 4] = 1
-        binary_vector[i % 10] = 1
-        binary_vector[8 - i // 9] = 1
-        binary_vector[6 - i // 15] = 1
-        return binary_vector
+    # 26 valid and fairly similar substituents
+    substituents = [
+        "C", "CC", "CCC", "CCCC", "CCCCC", "CCCCCC",
+        "O", "OC", "OCC", "OCCC",
+        "N", "NC", "NCC",
+        "F", "Cl", "Br", "I",
+        "C(F)(F)F", "C#N", "C(=O)O", "C(=O)OC",
+        "S(=O)(=O)N", "S(=O)(=O)C",
+        "c1ccccc1", "c1ccncc1", "COC"
+    ]
 
-    # Create fake spectra
-    fake_inchikeys = []
     for i, letter in enumerate(letters):
         dummy_inchikey = f"{14 * letter}-{10 * letter}-N"
-        fingerprint = generate_binary_vector(i)
-        fake_inchikeys.append(dummy_inchikey)
+        substituent = substituents[i]
+
+        # Shared aromatic scaffold with varying para substituent
+        smiles = f"CC(=O)Oc1ccc({substituent})cc1"
+
         for j in range(num_of_spectra_per_inchikey):
-            spectrums.append(Spectrum(mz=np.array([100 + (i+1) * 0.2, 500 + j * 0.2]), intensities=np.array(intens),
-                                      metadata={"precursor_mz": 111.1,
-                                                "inchikey": dummy_inchikey,
-                                                "compound_name": letter,
-                                                "fingerprint": fingerprint,
-                                                }))
+            spectrums.append(
+                Spectrum(
+                    mz=np.array([100 + (i + 1) * 0.2, 500 + j * 0.2]),
+                    intensities=np.array(intens),
+                    metadata={
+                        "precursor_mz": 111.1,
+                        "inchikey": dummy_inchikey,
+                        "compound_name": letter,
+                        "smiles": smiles
+                    }
+                )
+            )
     return spectrums
