@@ -21,13 +21,13 @@ MS2DeepScore can also make use of an embedding evaluator predict the models accu
 ## Reference
 If you use MS2DeepScore for your research, please cite the following:
 
-**"MS2DeepScore - a novel deep learning similarity measure to compare tandem mass spectra"**
+**"MS2DeepScore - a novel deep learning similarity measure to compare tandem mass spectra"**  
 Florian Huber, Sven van der Burg, Justin J.J. van der Hooft, Lars Ridder, 13, Article number: 84 (2021), Journal of Cheminformatics, doi: https://doi.org/10.1186/s13321-021-00558-4
 
-If you use MS2Deepscore 2.0 or higher please also cite:
-**Reliable cross-ion mode chemical similarity prediction between MS2 spectra**
-Niek de Jonge, David Joas, Lem-Joe Truong, Justin J.J. van der Hooft, Florian Huber
-bioRxiv 2024.03.25.586580; doi: https://doi.org/10.1101/2024.03.25.586580
+If you use MS2Deepscore 2.0 or higher please also cite:  
+**Cross ionization mode chemical similarity prediction between tandem mass spectra in metabolomics**  
+Niek de Jonge, Elena Chekmeneva, Robin Schmid, David Joas, Lem-Joe Truong, Justin J.J. van der Hooft, Florian Huber
+Nature Communications, 17, 2483 (2026). [doi: https://doi.org/10.1101/2024.03.25.586580](https://www.nature.com/articles/s41467-026-69083-y)
 
 
 ## Setup
