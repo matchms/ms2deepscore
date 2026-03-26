@@ -1,4 +1,4 @@
-import random
+import numpy as np
 from typing import List, Tuple
 from matchms import Spectrum
 from tqdm import tqdm
@@ -32,8 +32,8 @@ def split_spectra_in_random_inchikey_sets(
     """Splits a set of spectra into a val, test and train set. The size of the val and test set are n/k.
     """
     unique_inchikeys = select_unique_inchikeys(spectra)
-    random.seed(random_seed)
-    random.shuffle(unique_inchikeys)
+    rng = np.random.default_rng(random_seed)
+    rng.shuffle(unique_inchikeys)
     fraction_size = len(unique_inchikeys) // k
 
     validation_inchikeys = unique_inchikeys[-fraction_size:]

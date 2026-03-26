@@ -344,7 +344,13 @@ def dense_layer(input_size, output_size, activation="lrelu"):
     return nn.Sequential(nn.Linear(input_size, output_size), activations[activation])
 
 
-def compute_embedding_array(model: SiameseSpectralModel, spectra, datatype="numpy", device=None):
+def compute_embedding_array(
+        model: SiameseSpectralModel,
+        spectra,
+        datatype="numpy",
+        device=None,
+        progress_bar: bool = True,
+        ):
     """
     Compute the embeddings of all given spectra (list of matchms Spectrum objects).
 
@@ -361,6 +367,8 @@ def compute_embedding_array(model: SiameseSpectralModel, spectra, datatype="nump
     device:
         The device on which to perform the computation.
         If None, it automatically uses CUDA if available, otherwise CPU.
+    progress_bar:
+        Whether to display a progress bar during embedding computation.
     """
     if datatype.lower() not in ["numpy", "pytorch"]:
         raise ValueError("datatype can only be 'numpy' or 'pytorch'.")
@@ -372,7 +380,11 @@ def compute_embedding_array(model: SiameseSpectralModel, spectra, datatype="nump
     if device is None:
         device = torch_device("cuda" if cuda.is_available() else "cpu")
     model.to(device)
-    for i, spec in tqdm(enumerate(spectra), total=len(spectra), desc="Computing spectral embeddings ..."):
+    for i, spec in tqdm(
+            enumerate(spectra),
+            total=len(spectra),
+            desc="Computing spectral embeddings ...",
+            disable=not progress_bar):
         X = tensorize_spectra([spec], model.model_settings)
         with no_grad():
             if datatype.lower() == "numpy":
