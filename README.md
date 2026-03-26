@@ -131,9 +131,10 @@ settings = SettingsMS2Deepscore(
                                              "mean": 0, "standard_deviation": 1000})], 
     ionisation_mode="both")
 
-train_ms2deepscore_wrapper(settings, 
-                           SettingsEmbeddingEvaluator() # this results in also training the embedding evaluator. Leave as None if you don't want to train this.
-                           )
+train_ms2deepscore_wrapper(
+    settings, 
+    SettingsEmbeddingEvaluator() # this results in also training the embedding evaluator. Leave as None if you don't want to train this.
+)
 ```
 ## Contributing
 We welcome contributions to the development of ms2deepscore! Have a look at the [contribution guidelines](https://github.com/matchms/ms2deepscore/blob/main/CONTRIBUTING.md).
