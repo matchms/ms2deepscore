@@ -1,9 +1,7 @@
 from typing import List
 
-import numpy as np
 import pandas as pd
 from matchms import Spectrum
-from tqdm import tqdm
 from chemap.metrics import (
     tanimoto_similarity_matrix_dense,
     tanimoto_similarity_matrix_sparse_binary,
