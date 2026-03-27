@@ -2,6 +2,15 @@ import numpy as np
 import pytest
 
 from ms2deepscore.fingerprint_similarity_computations import (
+    is_dense_fingerprint_type,
+    is_unfolded_binary_fingerprint_type,
+    is_unfolded_count_fingerprint_type,
+    compute_fingerprint_similarity_matrix,
+    compute_fingerprint_similarity_row,
+    tanimoto_scores_row_dense,
+    tanimoto_scores_row_sparse_binary,
+    tanimoto_scores_row_sparse_count,
+    _split_sparse_count_fingerprints,
     compute_tanimoto_similarity_per_bin,
     compute_tanimoto_similarity_per_bin_between_sets,
 )
@@ -123,13 +132,209 @@ def _check_between_sets_similarity_per_bin_outputs(
     assert np.all(selected_scores_per_bin <= 1.0)
 
 
+# ------------------------------------------------------------------
+# Type helper coverage
+# ------------------------------------------------------------------
+
+@pytest.mark.parametrize(
+    "fingerprint_type,expected",
+    [
+        ("rdkit_binary", True),
+        ("rdkit_count", True),
+        ("rdkit_logcount", True),
+        ("rdkit_binary_unfolded", False),
+        ("rdkit_count_unfolded", False),
+        ("rdkit_logcount_unfolded", False),
+        ("daylight", False),
+    ],
+)
+def test_is_dense_fingerprint_type(fingerprint_type, expected):
+    assert is_dense_fingerprint_type(fingerprint_type) is expected
+
+
+@pytest.mark.parametrize(
+    "fingerprint_type,expected",
+    [
+        ("rdkit_binary", False),
+        ("rdkit_count", False),
+        ("rdkit_logcount", False),
+        ("rdkit_binary_unfolded", True),
+        ("rdkit_count_unfolded", False),
+        ("rdkit_logcount_unfolded", False),
+        ("daylight", False),
+    ],
+)
+def test_is_unfolded_binary_fingerprint_type(fingerprint_type, expected):
+    assert is_unfolded_binary_fingerprint_type(fingerprint_type) is expected
+
+
+@pytest.mark.parametrize(
+    "fingerprint_type,expected",
+    [
+        ("rdkit_binary", False),
+        ("rdkit_count", False),
+        ("rdkit_logcount", False),
+        ("rdkit_binary_unfolded", False),
+        ("rdkit_count_unfolded", True),
+        ("rdkit_logcount_unfolded", True),
+        ("daylight", False),
+    ],
+)
+def test_is_unfolded_count_fingerprint_type(fingerprint_type, expected):
+    assert is_unfolded_count_fingerprint_type(fingerprint_type) is expected
+
+
+# ------------------------------------------------------------------
+# Low-level helper coverage
+# ------------------------------------------------------------------
+
+def test_split_sparse_count_fingerprints(simple_sparse_count_fingerprints):
+    bins, counts = _split_sparse_count_fingerprints(simple_sparse_count_fingerprints)
+
+    assert isinstance(bins, list)
+    assert isinstance(counts, list)
+    assert len(bins) == len(simple_sparse_count_fingerprints)
+    assert len(counts) == len(simple_sparse_count_fingerprints)
+
+    for i, (expected_bins, expected_counts) in enumerate(simple_sparse_count_fingerprints):
+        assert np.array_equal(bins[i], expected_bins)
+        assert np.array_equal(counts[i], expected_counts)
+
+
+# ------------------------------------------------------------------
+# Matrix similarity coverage
+# ------------------------------------------------------------------
+
+@pytest.mark.parametrize(
+    "fingerprints_fixture_1,fingerprints_fixture_2,fingerprint_type",
+    [
+        ("simple_binary_fingerprints_between_sets", "simple_binary_fingerprints_between_sets", "rdkit_binary"),
+        ("simple_count_fingerprints_between_sets", "simple_count_fingerprints_between_sets", "rdkit_count"),
+        ("simple_count_fingerprints_between_sets", "simple_count_fingerprints_between_sets", "rdkit_logcount"),
+        ("simple_sparse_binary_fingerprints_between_sets", "simple_sparse_binary_fingerprints_between_sets", "rdkit_binary_unfolded"),
+        ("simple_sparse_count_fingerprints_between_sets", "simple_sparse_count_fingerprints_between_sets", "rdkit_count_unfolded"),
+        ("simple_sparse_count_fingerprints_between_sets", "simple_sparse_count_fingerprints_between_sets", "rdkit_logcount_unfolded"),
+    ],
+)
+def test_compute_fingerprint_similarity_matrix_all_supported_types(
+    request, fingerprints_fixture_1, fingerprints_fixture_2, fingerprint_type
+):
+    fingerprints_1, fingerprints_2 = request.getfixturevalue(fingerprints_fixture_1)
+
+    result = compute_fingerprint_similarity_matrix(
+        fingerprints_1,
+        fingerprints_2,
+        fingerprint_type=fingerprint_type,
+    )
+
+    assert isinstance(result, np.ndarray)
+    assert result.shape == (len(fingerprints_1), len(fingerprints_2))
+    assert np.all(result >= 0.0)
+    assert np.all(result <= 1.0)
+
+
+def test_compute_fingerprint_similarity_matrix_invalid_type_raises(simple_binary_fingerprints_between_sets):
+    fingerprints_1, fingerprints_2 = simple_binary_fingerprints_between_sets
+    with pytest.raises(ValueError, match="Unsupported fingerprint type"):
+        compute_fingerprint_similarity_matrix(
+            fingerprints_1,
+            fingerprints_2,
+            fingerprint_type="daylight",
+        )
+
+
+# ------------------------------------------------------------------
+# Row similarity coverage
+# ------------------------------------------------------------------
+
 @pytest.mark.parametrize(
     "fingerprints_fixture,fingerprint_type",
     [
         ("simple_binary_fingerprints", "rdkit_binary"),
         ("simple_count_fingerprints", "rdkit_count"),
+        ("simple_count_fingerprints", "rdkit_logcount"),
         ("simple_sparse_binary_fingerprints", "rdkit_binary_unfolded"),
         ("simple_sparse_count_fingerprints", "rdkit_count_unfolded"),
+        ("simple_sparse_count_fingerprints", "rdkit_logcount_unfolded"),
+    ],
+)
+def test_compute_fingerprint_similarity_row_all_supported_types(request, fingerprints_fixture, fingerprint_type):
+    fingerprints = request.getfixturevalue(fingerprints_fixture)
+    single_fingerprint = fingerprints[0]
+
+    row = compute_fingerprint_similarity_row(
+        single_fingerprint,
+        fingerprints,
+        fingerprint_type=fingerprint_type,
+    )
+
+    assert isinstance(row, np.ndarray)
+    assert row.shape == (len(fingerprints),)
+    assert np.all(row >= 0.0)
+    assert np.all(row <= 1.0)
+    assert row[0] == pytest.approx(1.0)
+
+
+def test_compute_fingerprint_similarity_row_invalid_type_raises(simple_binary_fingerprints):
+    with pytest.raises(ValueError, match="Unsupported fingerprint type"):
+        compute_fingerprint_similarity_row(
+            simple_binary_fingerprints[0],
+            simple_binary_fingerprints,
+            fingerprint_type="daylight",
+        )
+
+
+# ------------------------------------------------------------------
+# Explicit row-kernel coverage, compiled and uncompiled
+# ------------------------------------------------------------------
+
+def test_tanimoto_scores_row_dense_compiled_and_py_func(simple_binary_fingerprints):
+    single = simple_binary_fingerprints[0]
+
+    compiled = tanimoto_scores_row_dense(single, simple_binary_fingerprints)
+    uncompiled = tanimoto_scores_row_dense.py_func(single, simple_binary_fingerprints)
+
+    assert compiled.shape == (len(simple_binary_fingerprints),)
+    assert np.allclose(compiled, uncompiled)
+    assert compiled[0] == pytest.approx(1.0)
+
+
+def test_tanimoto_scores_row_sparse_binary_compiled_and_py_func(simple_sparse_binary_fingerprints):
+    single = simple_sparse_binary_fingerprints[0]
+
+    compiled = tanimoto_scores_row_sparse_binary(single, simple_sparse_binary_fingerprints)
+    uncompiled = tanimoto_scores_row_sparse_binary.py_func(single, simple_sparse_binary_fingerprints)
+
+    assert compiled.shape == (len(simple_sparse_binary_fingerprints),)
+    assert np.allclose(compiled, uncompiled)
+    assert compiled[0] == pytest.approx(1.0)
+
+
+def test_tanimoto_scores_row_sparse_count_compiled_and_py_func(simple_sparse_count_fingerprints):
+    bins, counts = simple_sparse_count_fingerprints[0]
+    list_of_bins, list_of_counts = _split_sparse_count_fingerprints(simple_sparse_count_fingerprints)
+
+    compiled = tanimoto_scores_row_sparse_count(bins, counts, list_of_bins, list_of_counts)
+    uncompiled = tanimoto_scores_row_sparse_count.py_func(bins, counts, list_of_bins, list_of_counts)
+
+    assert compiled.shape == (len(simple_sparse_count_fingerprints),)
+    assert np.allclose(compiled, uncompiled)
+    assert compiled[0] == pytest.approx(1.0)
+
+
+# ------------------------------------------------------------------
+# Same-set per-bin dispatcher coverage
+# ------------------------------------------------------------------
+
+@pytest.mark.parametrize(
+    "fingerprints_fixture,fingerprint_type",
+    [
+        ("simple_binary_fingerprints", "rdkit_binary"),
+        ("simple_count_fingerprints", "rdkit_count"),
+        ("simple_count_fingerprints", "rdkit_logcount"),
+        ("simple_sparse_binary_fingerprints", "rdkit_binary_unfolded"),
+        ("simple_sparse_count_fingerprints", "rdkit_count_unfolded"),
+        ("simple_sparse_count_fingerprints", "rdkit_logcount_unfolded"),
     ],
 )
 def test_compute_tanimoto_similarity_per_bin_all_supported_types(
@@ -165,8 +370,10 @@ def test_compute_tanimoto_similarity_per_bin_all_supported_types(
     [
         ("simple_binary_fingerprints", "rdkit_binary"),
         ("simple_count_fingerprints", "rdkit_count"),
+        ("simple_count_fingerprints", "rdkit_logcount"),
         ("simple_sparse_binary_fingerprints", "rdkit_binary_unfolded"),
         ("simple_sparse_count_fingerprints", "rdkit_count_unfolded"),
+        ("simple_sparse_count_fingerprints", "rdkit_logcount_unfolded"),
     ],
 )
 def test_compute_tanimoto_similarity_per_bin_exclude_diagonal_all_supported_types(
@@ -248,13 +455,30 @@ def test_compute_tanimoto_similarity_per_bin_count_dense_zero_scores_for_invalid
     assert np.all(selected_scores_per_bin[selected_pairs_per_bin == -1] == 0)
 
 
+def test_compute_tanimoto_similarity_per_bin_invalid_fingerprint_type_raises(simple_binary_fingerprints):
+    with pytest.raises(ValueError, match="Unsupported fingerprint type"):
+        compute_tanimoto_similarity_per_bin(
+            simple_binary_fingerprints,
+            max_pairs_per_bin=5,
+            fingerprint_type="daylight",
+            selection_bins=np.array([(-0.01, 1.0)], dtype=np.float32),
+            include_diagonal=True,
+        )
+
+
+# ------------------------------------------------------------------
+# Between-sets per-bin dispatcher coverage
+# ------------------------------------------------------------------
+
 @pytest.mark.parametrize(
     "fingerprints_fixture_1,fingerprints_fixture_2,fingerprint_type",
     [
         ("simple_binary_fingerprints_between_sets", "simple_binary_fingerprints_between_sets", "rdkit_binary"),
         ("simple_count_fingerprints_between_sets", "simple_count_fingerprints_between_sets", "rdkit_count"),
+        ("simple_count_fingerprints_between_sets", "simple_count_fingerprints_between_sets", "rdkit_logcount"),
         ("simple_sparse_binary_fingerprints_between_sets", "simple_sparse_binary_fingerprints_between_sets", "rdkit_binary_unfolded"),
         ("simple_sparse_count_fingerprints_between_sets", "simple_sparse_count_fingerprints_between_sets", "rdkit_count_unfolded"),
+        ("simple_sparse_count_fingerprints_between_sets", "simple_sparse_count_fingerprints_between_sets", "rdkit_logcount_unfolded"),
     ],
 )
 def test_compute_tanimoto_similarity_per_bin_between_sets_all_supported_types(
@@ -287,8 +511,10 @@ def test_compute_tanimoto_similarity_per_bin_between_sets_all_supported_types(
     [
         ("simple_binary_fingerprints_between_sets", "rdkit_binary"),
         ("simple_count_fingerprints_between_sets", "rdkit_count"),
+        ("simple_count_fingerprints_between_sets", "rdkit_logcount"),
         ("simple_sparse_binary_fingerprints_between_sets", "rdkit_binary_unfolded"),
         ("simple_sparse_count_fingerprints_between_sets", "rdkit_count_unfolded"),
+        ("simple_sparse_count_fingerprints_between_sets", "rdkit_logcount_unfolded"),
     ],
 )
 def test_compute_tanimoto_similarity_per_bin_between_sets_uses_cross_set_similarity_for_both_directions(
@@ -321,30 +547,19 @@ def test_compute_tanimoto_similarity_per_bin_between_sets_uses_cross_set_similar
     # set1[1] <-> set2[0]
 
     assert pairs[0, 0] == 3
-    assert scores[0, 0] == 1.0
+    assert scores[0, 0] == pytest.approx(1.0)
 
     assert pairs[1, 0] == 2
-    assert scores[1, 0] == 1.0
+    assert scores[1, 0] == pytest.approx(1.0)
 
     assert pairs[2, 0] == 1
-    assert scores[2, 0] == 1.0
+    assert scores[2, 0] == pytest.approx(1.0)
 
     assert pairs[3, 0] == 0
-    assert scores[3, 0] == 1.0
+    assert scores[3, 0] == pytest.approx(1.0)
 
     assert np.all(pairs[:, 1] == -1)
     assert np.all(scores[:, 1] == 0.0)
-
-
-def test_compute_tanimoto_similarity_per_bin_invalid_fingerprint_type_raises(simple_binary_fingerprints):
-    with pytest.raises(ValueError, match="Unsupported fingerprint type"):
-        compute_tanimoto_similarity_per_bin(
-            simple_binary_fingerprints,
-            max_pairs_per_bin=5,
-            fingerprint_type="daylight",
-            selection_bins=np.array([(-0.01, 1.0)], dtype=np.float32),
-            include_diagonal=True,
-        )
 
 
 def test_compute_tanimoto_similarity_per_bin_between_sets_invalid_fingerprint_type_raises(
