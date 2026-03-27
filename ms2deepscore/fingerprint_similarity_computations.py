@@ -132,10 +132,6 @@ def tanimoto_scores_row_sparse_count(
     return tanimoto_scores
 
 
-from numba import jit
-import numpy as np
-
-
 @jit(nopython=True, fastmath=True)
 def _fill_pairs_for_row_same_set(
     selected_pairs_per_bin,
