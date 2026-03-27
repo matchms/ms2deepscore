@@ -13,6 +13,12 @@ from ms2deepscore.fingerprint_similarity_computations import (
     _split_sparse_count_fingerprints,
     compute_tanimoto_similarity_per_bin,
     compute_tanimoto_similarity_per_bin_between_sets,
+    _compute_tanimoto_similarity_per_bin_dense,
+    _compute_tanimoto_similarity_per_bin_sparse_binary,
+    _compute_tanimoto_similarity_per_bin_sparse_count,
+    _compute_tanimoto_similarity_per_bin_between_sets_sparse_count,
+    _compute_tanimoto_similarity_per_bin_between_sets_dense,
+    _compute_tanimoto_similarity_per_bin_between_sets_sparse_binary
 )
 
 
@@ -106,6 +112,15 @@ def simple_sparse_count_fingerprints_between_sets():
         (np.array([0], dtype=np.int64), np.array([2.0], dtype=np.float32)),
     ]
     return fingerprints_1, fingerprints_2
+
+
+def _to_numba_sparse_count_lists(fingerprints):
+    bins = []
+    counts = []
+    for fp_bins, fp_counts in fingerprints:
+        bins.append(fp_bins)
+        counts.append(fp_counts)
+    return bins, counts
 
 
 def _check_similarity_per_bin_outputs(selected_pairs_per_bin, selected_scores_per_bin, nr_of_items, nr_of_bins, max_pairs_per_bin):
@@ -574,3 +589,198 @@ def test_compute_tanimoto_similarity_per_bin_between_sets_invalid_fingerprint_ty
             fingerprint_type="daylight",
             selection_bins=np.array([(-0.01, 1.0)], dtype=np.float32),
         )
+
+
+# Test underlying helper function
+# --------------------------------
+
+def test__compute_tanimoto_similarity_per_bin_dense_compiled_and_py_func(simple_binary_fingerprints):
+    max_pairs_per_bin = 5
+    selection_bins = np.array([(0.0, 0.5), (0.5, 1.0)], dtype=np.float32)
+
+    compiled_pairs, compiled_scores = _compute_tanimoto_similarity_per_bin_dense(
+        simple_binary_fingerprints,
+        max_pairs_per_bin=max_pairs_per_bin,
+        selection_bins=selection_bins,
+        include_diagonal=True,
+    )
+    py_pairs, py_scores = _compute_tanimoto_similarity_per_bin_dense.py_func(
+        simple_binary_fingerprints,
+        max_pairs_per_bin=max_pairs_per_bin,
+        selection_bins=selection_bins,
+        include_diagonal=True,
+    )
+
+    assert compiled_pairs.shape == py_pairs.shape == (2, len(simple_binary_fingerprints), max_pairs_per_bin)
+    assert compiled_scores.shape == py_scores.shape == (2, len(simple_binary_fingerprints), max_pairs_per_bin)
+    assert np.all(compiled_scores[compiled_pairs == -1] == 0)
+    assert np.all(py_scores[py_pairs == -1] == 0)
+    assert np.all(compiled_scores >= 0.0)
+    assert np.all(compiled_scores <= 1.0)
+    assert np.all(py_scores >= 0.0)
+    assert np.all(py_scores <= 1.0)
+
+
+def test__compute_tanimoto_similarity_per_bin_sparse_binary_compiled_and_py_func(simple_sparse_binary_fingerprints):
+    max_pairs_per_bin = 5
+    selection_bins = np.array([(0.0, 0.5), (0.5, 1.0)], dtype=np.float32)
+
+    compiled_pairs, compiled_scores = _compute_tanimoto_similarity_per_bin_sparse_binary(
+        simple_sparse_binary_fingerprints,
+        max_pairs_per_bin=max_pairs_per_bin,
+        selection_bins=selection_bins,
+        include_diagonal=True,
+    )
+    py_pairs, py_scores = _compute_tanimoto_similarity_per_bin_sparse_binary.py_func(
+        simple_sparse_binary_fingerprints,
+        max_pairs_per_bin=max_pairs_per_bin,
+        selection_bins=selection_bins,
+        include_diagonal=True,
+    )
+
+    assert compiled_pairs.shape == py_pairs.shape == (2, len(simple_sparse_binary_fingerprints), max_pairs_per_bin)
+    assert compiled_scores.shape == py_scores.shape == (2, len(simple_sparse_binary_fingerprints), max_pairs_per_bin)
+    assert np.all(compiled_scores[compiled_pairs == -1] == 0)
+    assert np.all(py_scores[py_pairs == -1] == 0)
+    assert np.all(compiled_scores >= 0.0)
+    assert np.all(compiled_scores <= 1.0)
+    assert np.all(py_scores >= 0.0)
+    assert np.all(py_scores <= 1.0)
+
+
+def test__compute_tanimoto_similarity_per_bin_sparse_count_compiled_and_py_func(simple_sparse_count_fingerprints):
+    bins, counts = _to_numba_sparse_count_lists(simple_sparse_count_fingerprints)
+    max_pairs_per_bin = 5
+    selection_bins = np.array([(0.0, 0.5), (0.5, 1.0)], dtype=np.float32)
+
+    compiled_pairs, compiled_scores = _compute_tanimoto_similarity_per_bin_sparse_count(
+        bins,
+        counts,
+        max_pairs_per_bin=max_pairs_per_bin,
+        selection_bins=selection_bins,
+        include_diagonal=True,
+    )
+    py_pairs, py_scores = _compute_tanimoto_similarity_per_bin_sparse_count.py_func(
+        bins,
+        counts,
+        max_pairs_per_bin=max_pairs_per_bin,
+        selection_bins=selection_bins,
+        include_diagonal=True,
+    )
+
+    assert compiled_pairs.shape == py_pairs.shape == (2, len(simple_sparse_count_fingerprints), max_pairs_per_bin)
+    assert compiled_scores.shape == py_scores.shape == (2, len(simple_sparse_count_fingerprints), max_pairs_per_bin)
+    assert np.all(compiled_scores[compiled_pairs == -1] == 0)
+    assert np.all(py_scores[py_pairs == -1] == 0)
+    assert np.all(compiled_scores >= 0.0)
+    assert np.all(compiled_scores <= 1.0)
+    assert np.all(py_scores >= 0.0)
+    assert np.all(py_scores <= 1.0)
+
+
+def test__compute_tanimoto_similarity_per_bin_between_sets_dense_compiled_and_py_func(
+    simple_binary_fingerprints_between_sets,
+):
+    fingerprints_1, fingerprints_2 = simple_binary_fingerprints_between_sets
+    max_pairs_per_bin = 2
+    selection_bins = np.array([(0.99, 1.0)], dtype=np.float32)
+
+    compiled_pairs, compiled_scores = _compute_tanimoto_similarity_per_bin_between_sets_dense(
+        fingerprints_1,
+        fingerprints_2,
+        max_pairs_per_bin=max_pairs_per_bin,
+        selection_bins=selection_bins,
+    )
+    py_pairs, py_scores = _compute_tanimoto_similarity_per_bin_between_sets_dense.py_func(
+        fingerprints_1,
+        fingerprints_2,
+        max_pairs_per_bin=max_pairs_per_bin,
+        selection_bins=selection_bins,
+    )
+
+    assert compiled_pairs.shape == py_pairs.shape == (1, len(fingerprints_1) + len(fingerprints_2), max_pairs_per_bin)
+    assert compiled_scores.shape == py_scores.shape == (1, len(fingerprints_1) + len(fingerprints_2), max_pairs_per_bin)
+    assert np.all(compiled_scores[compiled_pairs == -1] == 0)
+    assert np.all(py_scores[py_pairs == -1] == 0)
+    assert compiled_pairs[0, 0, 0] == 3
+    assert compiled_pairs[0, 1, 0] == 2
+    assert compiled_pairs[0, 2, 0] == 1
+    assert compiled_pairs[0, 3, 0] == 0
+    assert py_pairs[0, 0, 0] == 3
+    assert py_pairs[0, 1, 0] == 2
+    assert py_pairs[0, 2, 0] == 1
+    assert py_pairs[0, 3, 0] == 0
+
+
+def test__compute_tanimoto_similarity_per_bin_between_sets_sparse_binary_compiled_and_py_func(
+    simple_sparse_binary_fingerprints_between_sets,
+):
+    fingerprints_1, fingerprints_2 = simple_sparse_binary_fingerprints_between_sets
+    max_pairs_per_bin = 2
+    selection_bins = np.array([(0.99, 1.0)], dtype=np.float32)
+
+    compiled_pairs, compiled_scores = _compute_tanimoto_similarity_per_bin_between_sets_sparse_binary(
+        fingerprints_1,
+        fingerprints_2,
+        max_pairs_per_bin=max_pairs_per_bin,
+        selection_bins=selection_bins,
+    )
+    py_pairs, py_scores = _compute_tanimoto_similarity_per_bin_between_sets_sparse_binary.py_func(
+        fingerprints_1,
+        fingerprints_2,
+        max_pairs_per_bin=max_pairs_per_bin,
+        selection_bins=selection_bins,
+    )
+
+    assert compiled_pairs.shape == py_pairs.shape == (1, len(fingerprints_1) + len(fingerprints_2), max_pairs_per_bin)
+    assert compiled_scores.shape == py_scores.shape == (1, len(fingerprints_1) + len(fingerprints_2), max_pairs_per_bin)
+    assert np.all(compiled_scores[compiled_pairs == -1] == 0)
+    assert np.all(py_scores[py_pairs == -1] == 0)
+    assert compiled_pairs[0, 0, 0] == 3
+    assert compiled_pairs[0, 1, 0] == 2
+    assert compiled_pairs[0, 2, 0] == 1
+    assert compiled_pairs[0, 3, 0] == 0
+    assert py_pairs[0, 0, 0] == 3
+    assert py_pairs[0, 1, 0] == 2
+    assert py_pairs[0, 2, 0] == 1
+    assert py_pairs[0, 3, 0] == 0
+
+
+def test__compute_tanimoto_similarity_per_bin_between_sets_sparse_count_compiled_and_py_func(
+    simple_sparse_count_fingerprints_between_sets,
+):
+    fingerprints_1, fingerprints_2 = simple_sparse_count_fingerprints_between_sets
+    bins_1, counts_1 = _to_numba_sparse_count_lists(fingerprints_1)
+    bins_2, counts_2 = _to_numba_sparse_count_lists(fingerprints_2)
+    max_pairs_per_bin = 2
+    selection_bins = np.array([(0.99, 1.0)], dtype=np.float32)
+
+    compiled_pairs, compiled_scores = _compute_tanimoto_similarity_per_bin_between_sets_sparse_count(
+        bins_1,
+        counts_1,
+        bins_2,
+        counts_2,
+        max_pairs_per_bin=max_pairs_per_bin,
+        selection_bins=selection_bins,
+    )
+    py_pairs, py_scores = _compute_tanimoto_similarity_per_bin_between_sets_sparse_count.py_func(
+        bins_1,
+        counts_1,
+        bins_2,
+        counts_2,
+        max_pairs_per_bin=max_pairs_per_bin,
+        selection_bins=selection_bins,
+    )
+
+    assert compiled_pairs.shape == py_pairs.shape == (1, len(fingerprints_1) + len(fingerprints_2), max_pairs_per_bin)
+    assert compiled_scores.shape == py_scores.shape == (1, len(fingerprints_1) + len(fingerprints_2), max_pairs_per_bin)
+    assert np.all(compiled_scores[compiled_pairs == -1] == 0)
+    assert np.all(py_scores[py_pairs == -1] == 0)
+    assert compiled_pairs[0, 0, 0] == 3
+    assert compiled_pairs[0, 1, 0] == 2
+    assert compiled_pairs[0, 2, 0] == 1
+    assert compiled_pairs[0, 3, 0] == 0
+    assert py_pairs[0, 0, 0] == 3
+    assert py_pairs[0, 1, 0] == 2
+    assert py_pairs[0, 2, 0] == 1
+    assert py_pairs[0, 3, 0] == 0
