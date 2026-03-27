@@ -2,16 +2,11 @@ from typing import List
 
 import pandas as pd
 from matchms import Spectrum
-from chemap.metrics import (
-    tanimoto_similarity_matrix_dense,
-    tanimoto_similarity_matrix_sparse_binary,
-    tanimoto_similarity_matrix_sparse
-)
-
 
 from ms2deepscore.train_new_model.inchikey_pair_selection import select_inchi_for_unique_inchikeys
 from ms2deepscore.vector_operations import cosine_similarity_matrix
 from ms2deepscore.fingerprint_utils import derive_fingerprint_from_smiles, matchms_spectrum_to_smiles
+from ms2deepscore.fingerprint_similarity_computations import compute_fingerprint_similarity_matrix
 
 
 def create_embedding_matrix_symmetric(model, spectra) -> pd.DataFrame:
@@ -113,18 +108,10 @@ def calculate_tanimoto_scores_unique_inchikey(
         )
     print("Calculating tanimoto scores")
 
-    if "unfolded" in fingerprint_type:
-        if "count" in fingerprint_type:
-            tanimoto_scores = tanimoto_similarity_matrix_sparse(
-                [x[0] for x in fingerprints_1],
-                [x[1] for x in fingerprints_1],
-                [x[0] for x in fingerprints_2],
-                [x[1] for x in fingerprints_2],
-                )
-        else:
-            tanimoto_scores = tanimoto_similarity_matrix_sparse_binary(fingerprints_1, fingerprints_2)
-    
-    else:
-        tanimoto_scores = tanimoto_similarity_matrix_dense(fingerprints_1, fingerprints_2)
+    tanimoto_scores = compute_fingerprint_similarity_matrix(
+        fingerprints_1,
+        fingerprints_2,
+        fingerprint_type=fingerprint_type,
+    )
     tanimoto_df = pd.DataFrame(tanimoto_scores, index=unique_inchikeys_1, columns=unique_inchikeys_2)
     return tanimoto_df
