@@ -132,6 +132,39 @@ def tanimoto_scores_row_sparse_count(
     return tanimoto_scores
 
 
+from numba import jit
+import numpy as np
+
+
+@jit(nopython=True, fastmath=True)
+def _fill_pairs_for_row_same_set(
+    selected_pairs_per_bin,
+    selected_scores_per_bin,
+    tanimoto_scores,
+    idx_fingerprint_i,
+    max_pairs_per_bin,
+    selection_bins,
+    include_diagonal,
+):
+    num_bins = len(selection_bins)
+
+    for bin_number in range(num_bins):
+        selection_bin = selection_bins[bin_number]
+        indices = np.nonzero(
+            (tanimoto_scores > selection_bin[0]) & (tanimoto_scores <= selection_bin[1])
+        )[0]
+
+        if not include_diagonal and idx_fingerprint_i in indices:
+            indices = indices[indices != idx_fingerprint_i]
+
+        np.random.shuffle(indices)
+        indices = indices[:max_pairs_per_bin]
+        num_indices = len(indices)
+
+        selected_pairs_per_bin[bin_number, idx_fingerprint_i, :num_indices] = indices
+        selected_scores_per_bin[bin_number, idx_fingerprint_i, :num_indices] = tanimoto_scores[indices]
+
+
 @jit(nopython=True, parallel=True)
 def _compute_tanimoto_similarity_per_bin_dense(
     fingerprints,
@@ -149,21 +182,15 @@ def _compute_tanimoto_similarity_per_bin_dense(
         fingerprint_i = fingerprints[idx_fingerprint_i, :]
         tanimoto_scores = tanimoto_scores_row_dense(fingerprint_i, fingerprints)
 
-        for bin_number in range(num_bins):
-            selection_bin = selection_bins[bin_number]
-            indices = np.nonzero(
-                (tanimoto_scores > selection_bin[0]) & (tanimoto_scores <= selection_bin[1])
-            )[0]
-
-            if not include_diagonal and idx_fingerprint_i in indices:
-                indices = indices[indices != idx_fingerprint_i]
-
-            np.random.shuffle(indices)
-            indices = indices[:max_pairs_per_bin]
-            num_indices = len(indices)
-
-            selected_pairs_per_bin[bin_number, idx_fingerprint_i, :num_indices] = indices
-            selected_scores_per_bin[bin_number, idx_fingerprint_i, :num_indices] = tanimoto_scores[indices]
+        _fill_pairs_for_row_same_set(
+            selected_pairs_per_bin,
+            selected_scores_per_bin,
+            tanimoto_scores,
+            idx_fingerprint_i,
+            max_pairs_per_bin,
+            selection_bins,
+            include_diagonal,
+        )
 
     return selected_pairs_per_bin, selected_scores_per_bin
 
@@ -185,21 +212,15 @@ def _compute_tanimoto_similarity_per_bin_sparse_binary(
         fingerprint_i = fingerprints[idx_fingerprint_i]
         tanimoto_scores = tanimoto_scores_row_sparse_binary(fingerprint_i, fingerprints)
 
-        for bin_number in range(num_bins):
-            selection_bin = selection_bins[bin_number]
-            indices = np.nonzero(
-                (tanimoto_scores > selection_bin[0]) & (tanimoto_scores <= selection_bin[1])
-            )[0]
-
-            if not include_diagonal and idx_fingerprint_i in indices:
-                indices = indices[indices != idx_fingerprint_i]
-
-            np.random.shuffle(indices)
-            indices = indices[:max_pairs_per_bin]
-            num_indices = len(indices)
-
-            selected_pairs_per_bin[bin_number, idx_fingerprint_i, :num_indices] = indices
-            selected_scores_per_bin[bin_number, idx_fingerprint_i, :num_indices] = tanimoto_scores[indices]
+        _fill_pairs_for_row_same_set(
+            selected_pairs_per_bin,
+            selected_scores_per_bin,
+            tanimoto_scores,
+            idx_fingerprint_i,
+            max_pairs_per_bin,
+            selection_bins,
+            include_diagonal,
+        )
 
     return selected_pairs_per_bin, selected_scores_per_bin
 
@@ -225,21 +246,15 @@ def _compute_tanimoto_similarity_per_bin_sparse_count(
             bins_i, counts_i, fingerprints_bins, fingerprints_counts
         )
 
-        for bin_number in range(num_bins):
-            selection_bin = selection_bins[bin_number]
-            indices = np.nonzero(
-                (tanimoto_scores > selection_bin[0]) & (tanimoto_scores <= selection_bin[1])
-            )[0]
-
-            if not include_diagonal and idx_fingerprint_i in indices:
-                indices = indices[indices != idx_fingerprint_i]
-
-            np.random.shuffle(indices)
-            indices = indices[:max_pairs_per_bin]
-            num_indices = len(indices)
-
-            selected_pairs_per_bin[bin_number, idx_fingerprint_i, :num_indices] = indices
-            selected_scores_per_bin[bin_number, idx_fingerprint_i, :num_indices] = tanimoto_scores[indices]
+        _fill_pairs_for_row_same_set(
+            selected_pairs_per_bin,
+            selected_scores_per_bin,
+            tanimoto_scores,
+            idx_fingerprint_i,
+            max_pairs_per_bin,
+            selection_bins,
+            include_diagonal,
+        )
 
     return selected_pairs_per_bin, selected_scores_per_bin
 
@@ -290,6 +305,32 @@ def compute_tanimoto_similarity_per_bin(
     raise ValueError(f"Unsupported fingerprint type: {fingerprint_type}")
 
 
+@jit(nopython=True, fastmath=True)
+def _fill_pairs_for_row_between_sets(
+    selected_pairs_per_bin,
+    selected_scores_per_bin,
+    tanimoto_scores,
+    row_index,
+    target_offset,
+    max_pairs_per_bin,
+    selection_bins,
+):
+    num_bins = len(selection_bins)
+
+    for bin_number in range(num_bins):
+        selection_bin = selection_bins[bin_number]
+        indices = np.nonzero(
+            (tanimoto_scores > selection_bin[0]) & (tanimoto_scores <= selection_bin[1])
+        )[0]
+
+        np.random.shuffle(indices)
+        indices = indices[:max_pairs_per_bin]
+        num_indices = len(indices)
+
+        selected_pairs_per_bin[bin_number, row_index, :num_indices] = indices + target_offset
+        selected_scores_per_bin[bin_number, row_index, :num_indices] = tanimoto_scores[indices]
+
+
 @jit(nopython=True, parallel=True)
 def _compute_tanimoto_similarity_per_bin_between_sets_dense(
     fingerprints_1,
@@ -308,32 +349,30 @@ def _compute_tanimoto_similarity_per_bin_between_sets_dense(
         fingerprint_i = fingerprints_1[idx_fingerprint_i, :]
         tanimoto_scores = tanimoto_scores_row_dense(fingerprint_i, fingerprints_2)
 
-        for bin_number in range(num_bins):
-            selection_bin = selection_bins[bin_number]
-            indices = np.nonzero((tanimoto_scores > selection_bin[0]) & (tanimoto_scores <= selection_bin[1]))[0]
-
-            np.random.shuffle(indices)
-            indices = indices[:max_pairs_per_bin]
-            num_indices = len(indices)
-
-            selected_scores_per_bin[bin_number, idx_fingerprint_i, :num_indices] = tanimoto_scores[indices]
-            selected_pairs_per_bin[bin_number, idx_fingerprint_i, :num_indices] = indices + size_1
+        _fill_pairs_for_row_between_sets(
+            selected_pairs_per_bin,
+            selected_scores_per_bin,
+            tanimoto_scores,
+            idx_fingerprint_i,
+            size_1,
+            max_pairs_per_bin,
+            selection_bins,
+        )
 
     for idx_fingerprint_j in prange(size_2):
         fingerprint_j = fingerprints_2[idx_fingerprint_j, :]
-        idx_fingerprint_corrected = idx_fingerprint_j + size_1
+        row_index = idx_fingerprint_j + size_1
         tanimoto_scores = tanimoto_scores_row_dense(fingerprint_j, fingerprints_1)
 
-        for bin_number in range(num_bins):
-            selection_bin = selection_bins[bin_number]
-            indices = np.nonzero((tanimoto_scores > selection_bin[0]) & (tanimoto_scores <= selection_bin[1]))[0]
-
-            np.random.shuffle(indices)
-            indices = indices[:max_pairs_per_bin]
-            num_indices = len(indices)
-
-            selected_pairs_per_bin[bin_number, idx_fingerprint_corrected, :num_indices] = indices
-            selected_scores_per_bin[bin_number, idx_fingerprint_corrected, :num_indices] = tanimoto_scores[indices]
+        _fill_pairs_for_row_between_sets(
+            selected_pairs_per_bin,
+            selected_scores_per_bin,
+            tanimoto_scores,
+            row_index,
+            0,
+            max_pairs_per_bin,
+            selection_bins,
+        )
 
     return selected_pairs_per_bin, selected_scores_per_bin
 
@@ -356,32 +395,30 @@ def _compute_tanimoto_similarity_per_bin_between_sets_sparse_binary(
         fingerprint_i = fingerprints_1[idx_fingerprint_i]
         tanimoto_scores = tanimoto_scores_row_sparse_binary(fingerprint_i, fingerprints_2)
 
-        for bin_number in range(num_bins):
-            selection_bin = selection_bins[bin_number]
-            indices = np.nonzero((tanimoto_scores > selection_bin[0]) & (tanimoto_scores <= selection_bin[1]))[0]
-
-            np.random.shuffle(indices)
-            indices = indices[:max_pairs_per_bin]
-            num_indices = len(indices)
-
-            selected_scores_per_bin[bin_number, idx_fingerprint_i, :num_indices] = tanimoto_scores[indices]
-            selected_pairs_per_bin[bin_number, idx_fingerprint_i, :num_indices] = indices + size_1
+        _fill_pairs_for_row_between_sets(
+            selected_pairs_per_bin,
+            selected_scores_per_bin,
+            tanimoto_scores,
+            idx_fingerprint_i,
+            size_1,
+            max_pairs_per_bin,
+            selection_bins,
+        )
 
     for idx_fingerprint_j in prange(size_2):
         fingerprint_j = fingerprints_2[idx_fingerprint_j]
-        idx_fingerprint_corrected = idx_fingerprint_j + size_1
+        row_index = idx_fingerprint_j + size_1
         tanimoto_scores = tanimoto_scores_row_sparse_binary(fingerprint_j, fingerprints_1)
 
-        for bin_number in range(num_bins):
-            selection_bin = selection_bins[bin_number]
-            indices = np.nonzero((tanimoto_scores > selection_bin[0]) & (tanimoto_scores <= selection_bin[1]))[0]
-
-            np.random.shuffle(indices)
-            indices = indices[:max_pairs_per_bin]
-            num_indices = len(indices)
-
-            selected_pairs_per_bin[bin_number, idx_fingerprint_corrected, :num_indices] = indices
-            selected_scores_per_bin[bin_number, idx_fingerprint_corrected, :num_indices] = tanimoto_scores[indices]
+        _fill_pairs_for_row_between_sets(
+            selected_pairs_per_bin,
+            selected_scores_per_bin,
+            tanimoto_scores,
+            row_index,
+            0,
+            max_pairs_per_bin,
+            selection_bins,
+        )
 
     return selected_pairs_per_bin, selected_scores_per_bin
 
@@ -406,38 +443,42 @@ def _compute_tanimoto_similarity_per_bin_between_sets_sparse_count(
         bins_i = fingerprints_1_bins[idx_fingerprint_i]
         counts_i = fingerprints_1_counts[idx_fingerprint_i]
         tanimoto_scores = tanimoto_scores_row_sparse_count(
-            bins_i, counts_i, fingerprints_2_bins, fingerprints_2_counts
+            bins_i,
+            counts_i,
+            fingerprints_2_bins,
+            fingerprints_2_counts,
         )
 
-        for bin_number in range(num_bins):
-            selection_bin = selection_bins[bin_number]
-            indices = np.nonzero((tanimoto_scores > selection_bin[0]) & (tanimoto_scores <= selection_bin[1]))[0]
-
-            np.random.shuffle(indices)
-            indices = indices[:max_pairs_per_bin]
-            num_indices = len(indices)
-
-            selected_scores_per_bin[bin_number, idx_fingerprint_i, :num_indices] = tanimoto_scores[indices]
-            selected_pairs_per_bin[bin_number, idx_fingerprint_i, :num_indices] = indices + size_1
+        _fill_pairs_for_row_between_sets(
+            selected_pairs_per_bin,
+            selected_scores_per_bin,
+            tanimoto_scores,
+            idx_fingerprint_i,
+            size_1,
+            max_pairs_per_bin,
+            selection_bins,
+        )
 
     for idx_fingerprint_j in prange(size_2):
         bins_j = fingerprints_2_bins[idx_fingerprint_j]
         counts_j = fingerprints_2_counts[idx_fingerprint_j]
-        idx_fingerprint_corrected = idx_fingerprint_j + size_1
+        row_index = idx_fingerprint_j + size_1
         tanimoto_scores = tanimoto_scores_row_sparse_count(
-            bins_j, counts_j, fingerprints_1_bins, fingerprints_1_counts
+            bins_j,
+            counts_j,
+            fingerprints_1_bins,
+            fingerprints_1_counts,
         )
 
-        for bin_number in range(num_bins):
-            selection_bin = selection_bins[bin_number]
-            indices = np.nonzero((tanimoto_scores > selection_bin[0]) & (tanimoto_scores <= selection_bin[1]))[0]
-
-            np.random.shuffle(indices)
-            indices = indices[:max_pairs_per_bin]
-            num_indices = len(indices)
-
-            selected_pairs_per_bin[bin_number, idx_fingerprint_corrected, :num_indices] = indices
-            selected_scores_per_bin[bin_number, idx_fingerprint_corrected, :num_indices] = tanimoto_scores[indices]
+        _fill_pairs_for_row_between_sets(
+            selected_pairs_per_bin,
+            selected_scores_per_bin,
+            tanimoto_scores,
+            row_index,
+            0,
+            max_pairs_per_bin,
+            selection_bins,
+        )
 
     return selected_pairs_per_bin, selected_scores_per_bin
 
