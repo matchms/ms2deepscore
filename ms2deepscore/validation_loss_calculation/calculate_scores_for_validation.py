@@ -86,7 +86,7 @@ def calculate_tanimoto_scores_unique_inchikey(
     nbits : int, optional
         The number of bits for the fingerprint (default is 2048).
     """
-    if (len(list_of_spectra_1) == 0) or (len(list_of_spectra_2) == 0):
+    if (len(list_of_spectra_1) == 0) or (list_of_spectra_2 is not None and (len(list_of_spectra_2) == 0)):
         raise ValueError("The number of spectra to calculate Tanimoto scores should be larger than 0")
 
     spectra_with_most_frequent_inchi_per_inchikey_1, unique_inchikeys_1 = \
