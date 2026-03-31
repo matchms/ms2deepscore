@@ -8,8 +8,10 @@ from chemap import compute_fingerprints, FingerprintConfig
 SUPPORTED_FINGERPRINT_TYPES = {
     "rdkit_binary",
     "rdkit_count",
+    "rdkit_logcount",
     "rdkit_binary_unfolded",
     "rdkit_count_unfolded",
+    "rdkit_logcount_unfolded",
     }
 
 
@@ -71,6 +73,7 @@ def derive_fingerprint_from_smiles(
         config=FingerprintConfig(
             count=("count" in fingerprint_type),
             folded=("unfolded" not in fingerprint_type),
+            scaling="log" if "logcount" in fingerprint_type else None,
             return_csr=False,
             invalid_policy=policy_invalid_smiles,
         ),

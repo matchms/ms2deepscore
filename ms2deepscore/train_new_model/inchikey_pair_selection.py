@@ -3,12 +3,11 @@ from typing import List, Tuple
 import heapq
 import numpy as np
 from matchms import Spectrum
-from chemap.metrics import tanimoto_similarity_dense
-from numba import jit, prange
 from tqdm import tqdm
 from ms2deepscore.SettingsMS2Deepscore import SettingsMS2Deepscore
 from ms2deepscore.train_new_model import SpectrumPairGenerator
 from ms2deepscore.fingerprint_utils import derive_fingerprint_from_smiles_or_inchi
+from ms2deepscore.fingerprint_similarity_computations import compute_tanimoto_similarity_per_bin
 
 
 def create_spectrum_pair_generator(
@@ -40,13 +39,13 @@ def create_spectrum_pair_generator(
     if len(inchikeys14_unique) < settings.batch_size:
         raise ValueError("The number of unique inchikeys must be larger than the batch size.")
 
-    available_pairs_per_bin_matrix, available_scores_per_bin_matrix = compute_jaccard_similarity_per_bin(
+    available_pairs_per_bin_matrix, available_scores_per_bin_matrix = compute_tanimoto_similarity_per_bin(
         fingerprints,
         settings.max_pairs_per_bin,
-        settings.same_prob_bins,
-        settings.include_diagonal
-        )
-
+        fingerprint_type=settings.fingerprint_type,
+        selection_bins=settings.same_prob_bins,
+        include_diagonal=settings.include_diagonal,
+    )
     pair_frequency_matrixes = balanced_selection_of_pairs_per_bin(
         available_pairs_per_bin_matrix, settings)
 
@@ -110,62 +109,15 @@ def compute_fingerprints_for_training(
         policy_invalid="keep",
     )
 
-    if not isinstance(fingerprints, np.ndarray) or fingerprints.shape[0] == 0:
+    if len(fingerprints) == 0:
         raise ValueError("No fingerprints could be computed")
 
-    if len(valid_inchikeys) != fingerprints.shape[0]:
+    if len(valid_inchikeys) != len(fingerprints):
         raise ValueError(
-            f"Mismatch between inchikeys ({len(valid_inchikeys)}) and fingerprints ({fingerprints.shape[0]})."
+            f"Mismatch between inchikeys ({len(valid_inchikeys)}) and fingerprints ({len(fingerprints)})."
         )
 
     return fingerprints, valid_inchikeys
-
-
-@jit(nopython=True, parallel=True)
-def compute_jaccard_similarity_per_bin(
-        fingerprints,
-        max_pairs_per_bin,
-        selection_bins=np.array([(x / 10, x / 10 + 0.1) for x in range(10)]),
-        include_diagonal=True) -> Tuple[np.ndarray, np.ndarray]:
-    """Randomly selects compound pairs per tanimoto bin, up to max_pairs_per_bin
-
-    returns:
-    2 3d numpy arrays are returned, the first encodes the pairs per bin and the second the corresponding scores.
-    A 3D numpy array with shape [nr_of_bins, nr_of_fingerprints, max_pairs_per_bin].
-    An example structure for bin 1, with 3 fingerprints and max_pairs_per_bin =4 would be:
-    [[1,2,-1,-1],
-    [0,3,-1,-1],
-    [0,2,-1,-1],]
-    The pairs are encoded by the index and the value.
-    So the first row encodes pairs between fingerpint 0 and 1, fingerprint 0 and 2.
-    The -1 encode that no more pairs were found for this fingerprint in this bin.
-    """
-
-    size = fingerprints.shape[0]
-    num_bins = len(selection_bins)
-
-    selected_pairs_per_bin = -1 * np.ones((num_bins, size, max_pairs_per_bin), dtype=np.int32)
-    selected_scores_per_bin = np.zeros((num_bins, size, max_pairs_per_bin), dtype=np.float32)
-
-    for idx_fingerprint_i in prange(size):
-        fingerprint_i = fingerprints[idx_fingerprint_i, :]
-        tanimoto_scores = tanimoto_scores_row(fingerprint_i, fingerprints)
-
-        for bin_number in range(num_bins):
-            selection_bin = selection_bins[bin_number]
-            indices = np.nonzero((tanimoto_scores > selection_bin[0]) & (tanimoto_scores <= selection_bin[1]))[0]
-
-            if not include_diagonal and idx_fingerprint_i in indices:
-                indices = indices[indices != idx_fingerprint_i]
-
-            np.random.shuffle(indices)
-            indices = indices[:max_pairs_per_bin]
-            num_indices = len(indices)
-
-            selected_pairs_per_bin[bin_number, idx_fingerprint_i, :num_indices] = indices
-            selected_scores_per_bin[bin_number, idx_fingerprint_i, :num_indices] = tanimoto_scores[indices]
-
-    return selected_pairs_per_bin, selected_scores_per_bin
 
 
 def determine_nr_of_pairs_per_bin(settings, nr_of_inchikeys):
@@ -304,7 +256,7 @@ def select_balanced_pairs(available_pairs_for_bin_matrix: np.ndarray,
     max_resampling:
         The maximum number of times a pair can be resampled.
         Resampling means that the exact same inchikey pair is added multiple times to the list of pairs.
-    required_number_of_pairs:
+    max_inchikey_count:
         The number of pairs to sample.
 
     Returns
@@ -418,18 +370,6 @@ def get_nr_of_available_pairs_in_bin(selected_pairs_per_bin_matrix: np.ndarray) 
                 pairs.append((inchikey_index_2, inchikey_index_1))
         nr_of_unique_pairs_per_bin.append(len(set(pairs)))
     return nr_of_unique_pairs_per_bin
-
-
-@jit(nopython=True)
-def tanimoto_scores_row(single_fingerprint, list_of_fingerprints):
-    size = list_of_fingerprints.shape[0]
-    tanimoto_scores = np.zeros(size)
-
-    for idx_fingerprint_j in range(size):
-        fingerprint_j = list_of_fingerprints[idx_fingerprint_j, :]
-        tanimoto_score = tanimoto_similarity_dense(single_fingerprint, fingerprint_j)
-        tanimoto_scores[idx_fingerprint_j] = tanimoto_score
-    return tanimoto_scores
 
 
 def select_inchi_for_unique_inchikeys(

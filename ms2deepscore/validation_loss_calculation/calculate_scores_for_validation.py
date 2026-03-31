@@ -2,16 +2,11 @@ from typing import List
 
 import pandas as pd
 from matchms import Spectrum
-from chemap.metrics import (
-    tanimoto_similarity_matrix_dense,
-    tanimoto_similarity_matrix_sparse_binary,
-    tanimoto_similarity_matrix_sparse
-)
-
 
 from ms2deepscore.train_new_model.inchikey_pair_selection import select_inchi_for_unique_inchikeys
 from ms2deepscore.vector_operations import cosine_similarity_matrix
 from ms2deepscore.fingerprint_utils import derive_fingerprint_from_smiles, matchms_spectrum_to_smiles
+from ms2deepscore.fingerprint_similarity_computations import compute_fingerprint_similarity_matrix
 
 
 def create_embedding_matrix_symmetric(model, spectra) -> pd.DataFrame:
@@ -72,7 +67,7 @@ def create_embedding_matrix_not_symmetric(model, spectra_1, spectra_2) -> pd.Dat
 
 def calculate_tanimoto_scores_unique_inchikey(
     list_of_spectra_1: List[Spectrum],
-    list_of_spectra_2: List[Spectrum],
+    list_of_spectra_2: List[Spectrum] | None = None,
     fingerprint_type="rdkit_binary",
     nbits=2048
     ) -> pd.DataFrame:
@@ -84,47 +79,56 @@ def calculate_tanimoto_scores_unique_inchikey(
     list_of_spectra_1 : List[Spectrum]
         A list of spectra for the first set.
     list_of_spectra_2 : List[Spectrum]
-        A list of spectra for the second set.
+        A list of spectra for the second set. If None, the Tanimoto scores will be calculated within the
+        first set (symmetric).
     fingerprint_type : str, optional
         The type of fingerprint to derive (default is "rdkit_binary").
     nbits : int, optional
         The number of bits for the fingerprint (default is 2048).
     """
-    if (len(list_of_spectra_1) == 0) or (len(list_of_spectra_2) == 0):
+    if (len(list_of_spectra_1) == 0) or (list_of_spectra_2 is not None and (len(list_of_spectra_2) == 0)):
         raise ValueError("The number of spectra to calculate Tanimoto scores should be larger than 0")
 
     spectra_with_most_frequent_inchi_per_inchikey_1, unique_inchikeys_1 = \
         select_inchi_for_unique_inchikeys(list_of_spectra_1)
-    spectra_with_most_frequent_inchi_per_inchikey_2, unique_inchikeys_2 = \
-        select_inchi_for_unique_inchikeys(list_of_spectra_2)
+    
+    if list_of_spectra_2 is None:
+        unique_inchikeys_2 = unique_inchikeys_1
+        spectra_with_most_frequent_inchi_per_inchikey_2 = spectra_with_most_frequent_inchi_per_inchikey_1
+    else:
+        spectra_with_most_frequent_inchi_per_inchikey_2, unique_inchikeys_2 = \
+            select_inchi_for_unique_inchikeys(list_of_spectra_2)
 
-    list_of_smiles_1 = [matchms_spectrum_to_smiles(spectrum) for spectrum in spectra_with_most_frequent_inchi_per_inchikey_1]
-    list_of_smiles_2 = [matchms_spectrum_to_smiles(spectrum) for spectrum in spectra_with_most_frequent_inchi_per_inchikey_2]
+    list_of_smiles_1 = [
+        matchms_spectrum_to_smiles(spectrum) for spectrum in spectra_with_most_frequent_inchi_per_inchikey_1
+    ]
+    if list_of_spectra_2 is None:
+        list_of_smiles_2 = list_of_smiles_1
+    else:
+        list_of_smiles_2 = [
+            matchms_spectrum_to_smiles(spectrum) for spectrum in spectra_with_most_frequent_inchi_per_inchikey_2
+        ]
 
     fingerprints_1 = derive_fingerprint_from_smiles(
             list_of_smiles_1,
             fingerprint_type=fingerprint_type,
             nbits=nbits
         )
-    fingerprints_2 = derive_fingerprint_from_smiles(
-            list_of_smiles_2,
-            fingerprint_type=fingerprint_type,
-            nbits=nbits
-        )
+
+    if list_of_spectra_2 is None:
+        fingerprints_2 = fingerprints_1
+    else:
+        fingerprints_2 = derive_fingerprint_from_smiles(
+                list_of_smiles_2,
+                fingerprint_type=fingerprint_type,
+                nbits=nbits
+            )
     print("Calculating tanimoto scores")
 
-    if "unfolded" in fingerprint_type:
-        if "count" in fingerprint_type:
-            tanimoto_scores = tanimoto_similarity_matrix_sparse(
-                [x[0] for x in fingerprints_1],
-                [x[1] for x in fingerprints_1],
-                [x[0] for x in fingerprints_2],
-                [x[1] for x in fingerprints_2],
-                )
-        else:
-            tanimoto_scores = tanimoto_similarity_matrix_sparse_binary(fingerprints_1, fingerprints_2)
-    
-    else:
-        tanimoto_scores = tanimoto_similarity_matrix_dense(fingerprints_1, fingerprints_2)
+    tanimoto_scores = compute_fingerprint_similarity_matrix(
+        fingerprints_1,
+        fingerprints_2,
+        fingerprint_type=fingerprint_type,
+    )
     tanimoto_df = pd.DataFrame(tanimoto_scores, index=unique_inchikeys_1, columns=unique_inchikeys_2)
     return tanimoto_df

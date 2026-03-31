@@ -246,7 +246,8 @@ def test_derive_fingerprint_from_smiles_or_inchi_single_inchi_count_unfolded():
     _assert_unfolded_count_single(fp)
 
 
-@pytest.mark.parametrize("fingerprint_type", ["rdkit_binary", "rdkit_count"])
+@pytest.mark.parametrize("fingerprint_type",
+                         ["rdkit_binary", "rdkit_count", "rdkit_logcount"])
 def test_derive_fingerprint_from_smiles_or_inchi_list_mixed_valid_folded(fingerprint_type):
     fps = derive_fingerprint_from_smiles_or_inchi(
         [VALID_SMILES, VALID_INCHI, VALID_SMILES_2],
@@ -258,6 +259,22 @@ def test_derive_fingerprint_from_smiles_or_inchi_list_mixed_valid_folded(fingerp
     assert np.all(fps.sum(axis=1) > 0)
 
 
+def test_derive_fingerprint_count_vs_logcount():
+    # test if indeed logcount is approximately log1p of count
+    fps_count = derive_fingerprint_from_smiles_or_inchi(
+        [VALID_SMILES, VALID_INCHI, VALID_SMILES_2],
+        fingerprint_type="rdkit_count",
+        nbits=256,
+    )
+    fps_logcount = derive_fingerprint_from_smiles_or_inchi(
+        [VALID_SMILES, VALID_INCHI, VALID_SMILES_2],
+        fingerprint_type="rdkit_logcount",
+        nbits=256,
+    )
+    assert fps_count.shape == fps_logcount.shape
+    assert np.log1p(fps_count) == pytest.approx(fps_logcount, rel=1e-5)
+
+
 def test_derive_fingerprint_from_smiles_or_inchi_list_mixed_valid_binary_unfolded():
     fps = derive_fingerprint_from_smiles_or_inchi(
         [VALID_SMILES, VALID_INCHI, VALID_SMILES_2],
@@ -267,10 +284,12 @@ def test_derive_fingerprint_from_smiles_or_inchi_list_mixed_valid_binary_unfolde
     _assert_unfolded_binary_list(fps, expected_len=3)
 
 
-def test_derive_fingerprint_from_smiles_or_inchi_list_mixed_valid_count_unfolded():
+@pytest.mark.parametrize("fp_type",
+                        ["rdkit_count_unfolded", "rdkit_logcount_unfolded"])
+def test_derive_fingerprint_count_and_logcount_unfolded(fp_type):
     fps = derive_fingerprint_from_smiles_or_inchi(
         [VALID_SMILES, VALID_INCHI, VALID_SMILES_2],
-        fingerprint_type="rdkit_count_unfolded",
+        fingerprint_type=fp_type,
         nbits=256,
     )
     _assert_unfolded_count_list(fps, expected_len=3)
