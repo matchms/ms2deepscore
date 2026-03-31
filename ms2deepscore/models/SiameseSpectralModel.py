@@ -276,7 +276,8 @@ def train(
                 loss = criterion(outputs, targets.to(device), weighting_factor=weighting_factor)
                 if lambda_l1 > 0 or lambda_l2 > 0:
                     loss += l1_regularization(model, lambda_l1) + l2_regularization(model, lambda_l2)
-                batch_losses.append(float(loss))
+                loss_value = loss.detach().item()
+                batch_losses.append(loss_value)
 
                 if monitor_rmse:
                     batch_rmse.append(rmse_loss(outputs, targets.to(device)).cpu().detach().numpy())
@@ -287,7 +288,7 @@ def train(
 
                 # Print progress
                 training.set_postfix(
-                    loss=float(loss),
+                    loss=loss_value,
                     rmse=np.mean(batch_rmse),
                 )
         epoch_loss = np.mean(batch_losses)

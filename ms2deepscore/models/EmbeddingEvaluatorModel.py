@@ -134,7 +134,8 @@ class EmbeddingEvaluationModel(nn.Module):
 
                     # Calculate loss
                     loss = criterion(outputs.to(device), mse_per_embedding.to(device, dtype=float32))
-                    iteration_losses.append(float(loss))
+                    loss_value = loss.detach().item()
+                    iteration_losses.append(loss_value)
 
                     # Backward pass and optimize
                     loss.backward()
@@ -159,7 +160,7 @@ class EmbeddingEvaluationModel(nn.Module):
                                 mse_per_embedding = mse_per_embedding.reshape(-1, 1).clone().detach()
 
                                 loss = criterion(outputs.to(device), mse_per_embedding.to(device, dtype=float32))
-                                val_losses.append(float(loss))
+                                val_losses.append(loss_value)
                             print(f">>> Val_loss: {np.mean(val_losses):.6f}")
 
                         self.train()
