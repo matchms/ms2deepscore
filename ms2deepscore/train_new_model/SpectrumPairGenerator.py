@@ -1,7 +1,7 @@
 import json
 from collections import Counter
 from typing import List, Tuple
-
+from collections import defaultdict
 import numpy as np
 from matchms import Spectrum
 
@@ -23,6 +23,13 @@ class SpectrumPairGenerator:
         self._idx = 0
         if self.shuffle:
             self.random_nr_generator.shuffle(self.selected_inchikey_pairs)
+        
+        # create a mapping from inchikey to spectrum indices for efficient retrieval
+        self.spectra_by_inchikey = defaultdict(list)
+        for i, spectrum in enumerate(self.spectra):
+            inchikey = spectrum.get("inchikey")
+            if inchikey is not None:
+                self.spectra_by_inchikey[inchikey[:14]].append(i)
 
     def __iter__(self):
         return self
@@ -63,11 +70,11 @@ class SpectrumPairGenerator:
             if inchikey_1 in inchikey_scores:
                 inchikey_scores[inchikey_1].append(score)
             else:
-                inchikey_scores[inchikey_1] = []
+                inchikey_scores[inchikey_1] = [score]
             if inchikey_2 in inchikey_scores:
                 inchikey_scores[inchikey_2].append(score)
             else:
-                inchikey_scores[inchikey_2] = []
+                inchikey_scores[inchikey_2] = [score]
         return inchikey_scores
 
     def save_as_json(self, file_name):
@@ -83,7 +90,7 @@ class SpectrumPairGenerator:
         NB: A compound (identified by an
         inchikey) can have multiple measured spectrums in a binned spectrum dataset.
         """
-        matching_spectrum_id = np.where(self.spectrum_inchikeys == inchikey)[0]
-        if len(matching_spectrum_id) <= 0:
-            raise ValueError("No matching inchikey found (note: expected first 14 characters)")
-        return self.spectra[random_number_generator.choice(matching_spectrum_id)]
+        indices = self.spectra_by_inchikey.get(inchikey)
+        if not indices:
+            raise ValueError(f"No matching inchikey found: {inchikey}")
+        return self.spectra[random_number_generator.choice(indices)]
