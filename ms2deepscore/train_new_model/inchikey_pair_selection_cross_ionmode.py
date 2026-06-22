@@ -1,7 +1,7 @@
 import json
 from typing import List, Tuple
 from collections import Counter
-
+from collections import defaultdict
 import numpy as np
 from matchms import Spectrum
 
@@ -122,14 +122,30 @@ class SpectrumPairGeneratorAcrossIonmodes:
         self.spectra_pos = spectra_pos
         self.spectra_neg = spectra_neg
 
-        self.pos_inchikeys = np.array([s.get("inchikey")[:14] for s in self.spectra_pos])
-        self.neg_inchikeys = np.array([s.get("inchikey")[:14] for s in self.spectra_neg])
+        self.pos_spectra_by_inchikey = self._build_spectra_by_inchikey(self.spectra_pos)
+        self.neg_spectra_by_inchikey = self._build_spectra_by_inchikey(self.spectra_neg)
 
         self.shuffle = shuffle
         self.random_nr_generator = np.random.default_rng(random_seed)
         self._idx = 0
         if self.shuffle:
             self.random_nr_generator.shuffle(self.selected_inchikey_pairs)
+
+    @staticmethod
+    def _build_spectra_by_inchikey(spectra: List[Spectrum]) -> dict[str, np.ndarray]:
+        """Create fast lookup from inchikey14 to spectrum indices."""
+        spectra_by_inchikey = defaultdict(list)
+
+        for spectrum_id, spectrum in enumerate(spectra):
+            inchikey = spectrum.get("inchikey")
+            if inchikey is None:
+                continue
+            spectra_by_inchikey[inchikey[:14]].append(spectrum_id)
+
+        return {
+            inchikey: np.asarray(indices, dtype=np.int64)
+            for inchikey, indices in spectra_by_inchikey.items()
+        }
 
     def __iter__(self):
         return self
@@ -184,20 +200,22 @@ class SpectrumPairGeneratorAcrossIonmodes:
             json.dump(data_for_json, f)
 
     def _get_pos_spectrum_with_inchikey(self, inchikey: str, random_number_generator) -> Spectrum:
-        matching_spectrum_id = np.where(self.pos_inchikeys == inchikey)[0]
-        if len(matching_spectrum_id) <= 0:
+        matching_spectrum_ids = self.pos_spectra_by_inchikey.get(inchikey)
+        if matching_spectrum_ids is None or len(matching_spectrum_ids) == 0:
             raise ValueError(
-                "No matching inchikey found (note: expected first 14 characters), likely switched pos and neg in entry"
+                "No matching positive-mode inchikey found "
+                "(note: expected first 14 characters), likely switched pos and neg in entry"
             )
-        return self.spectra_pos[random_number_generator.choice(matching_spectrum_id)]
+        return self.spectra_pos[random_number_generator.choice(matching_spectrum_ids)]
 
     def _get_neg_spectrum_with_inchikey(self, inchikey: str, random_number_generator) -> Spectrum:
-        matching_spectrum_id = np.where(self.neg_inchikeys == inchikey)[0]
-        if len(matching_spectrum_id) <= 0:
+        matching_spectrum_ids = self.neg_spectra_by_inchikey.get(inchikey)
+        if matching_spectrum_ids is None or len(matching_spectrum_ids) == 0:
             raise ValueError(
-                "No matching inchikey found (note: expected first 14 characters), likely switched pos and neg in entry"
+                "No matching negative-mode inchikey found "
+                "(note: expected first 14 characters), likely switched pos and neg in entry"
             )
-        return self.spectra_neg[random_number_generator.choice(matching_spectrum_id)]
+        return self.spectra_neg[random_number_generator.choice(matching_spectrum_ids)]
 
 
 class CombinedSpectrumGenerator:
