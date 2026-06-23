@@ -247,7 +247,7 @@ def test_spectrum_pair_generator_across_ionmodes_missing_positive_inchikey_raise
         random_seed=0,
     )
 
-    with pytest.raises(ValueError, match="No matching inchikey found"):
+    with pytest.raises(ValueError, match="No matching positive-mode inchikey found"):
         next(generator)
 
 
@@ -261,7 +261,7 @@ def test_spectrum_pair_generator_across_ionmodes_missing_negative_inchikey_raise
         random_seed=0,
     )
 
-    with pytest.raises(ValueError, match="No matching inchikey found"):
+    with pytest.raises(ValueError, match="No matching negative-mode inchikey found"):
         next(generator)
 
 
