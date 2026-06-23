@@ -1,22 +1,29 @@
+import logging
 import os
-from typing import Optional, Union, Dict, Any
 from pathlib import Path
+from typing import Any, Dict, Optional, Union
 import numpy as np
-
-from torch import save, cat, zeros, cuda, no_grad
+from torch import cat, cuda
 from torch import device as torch_device
+from torch import nn, no_grad, randn, save, zeros
+from torch.export.dynamic_shapes import Dim
 from torch.nn.functional import relu
+from torch.onnx import export
 from torch.optim import Adam
-from torch import nn
 from torch.utils.tensorboard import SummaryWriter
 from tqdm import tqdm
 from ms2deepscore.__version__ import __version__
-from ms2deepscore.models.helper_functions import initialize_device, l1_regularization, l2_regularization
+from ms2deepscore.models.__model_format__ import __model_format__
+from ms2deepscore.models.helper_functions import (initialize_device,
+                                                  l1_regularization,
+                                                  l2_regularization)
 from ms2deepscore.models.io_utils import _settings_to_json
 from ms2deepscore.models.loss_functions import LOSS_FUNCTIONS, rmse_loss
 from ms2deepscore.SettingsMS2Deepscore import SettingsMS2Deepscore
 from ms2deepscore.tensorize_spectra import tensorize_spectra
-from ms2deepscore.models.__model_format__ import __model_format__
+
+
+logger = logging.getLogger(__name__)
 
 
 class SiameseSpectralModel(nn.Module):
@@ -74,6 +81,72 @@ class SiameseSpectralModel(nn.Module):
 
         # Important: no custom objects outside tensors/strings/primitives.
         save(checkpoint, str(filepath))
+
+    def export_to_onnx(self, output_dir: Union[str, Path], model_name: str = "ms2deepscore_model") -> None:
+        """Exports a trained pytorch model to onnx.
+
+        Parameters
+        ----------
+        output_dir
+            The path to the output directory.
+        model_name
+            The name of the onnx model files (and settings).
+        """
+        out_path = Path(output_dir)
+        out_path.mkdir(parents=True, exist_ok=True)
+        self.eval()
+
+        encoder = self.encoder
+        num_peaks = self.model_settings.number_of_bins()
+
+        num_metadata = 0
+        if hasattr(self.model_settings, "additional_metadata") and self.model_settings.additional_metadata:
+            num_metadata = len(self.model_settings.additional_metadata)
+
+        dummy_peaks = randn(1, num_peaks)
+        dummy_meta = randn(1, num_metadata)
+
+        dummy_inputs = (dummy_peaks, dummy_meta)
+        input_names = ["input_peaks", "input_metadata"]
+        dynamic_shapes = {
+            "spectra_tensors": ["batch_size", Dim.STATIC],
+            "metadata_tensors": ["batch_size", Dim.STATIC],
+        }
+
+        onnx_file = Path(output_dir, model_name).with_suffix(".onnx")
+        json_file = Path(output_dir, f"{model_name}_settings").with_suffix(".json")
+
+        export(
+            encoder,
+            dummy_inputs,
+            str(onnx_file),
+            dynamo=True,
+            export_params=True,
+            # opset_version=None,
+            do_constant_folding=True,
+            input_names=input_names,
+            output_names=["embedding"],
+            dynamic_shapes=dynamic_shapes
+        )
+
+        # Convert model settings to json
+        # Some keys are required for inference
+        required_keys = [
+            "embedding_dim",
+            "intensity_scaling",
+            "min_mz",
+            "max_mz",
+            "mz_bin_width",
+            "number_of_bins",
+        ]
+
+        for key in required_keys:
+            if not hasattr(self.model_settings, key):
+                logger.error(
+                    f"SettingsMS2Deepscore model_settings do not contain required attribute {key}. Inference may not work."
+                )
+
+        self.model_settings.save_to_file(json_file)
 
 
 class PeakBinner(nn.Module):
@@ -346,12 +419,12 @@ def dense_layer(input_size, output_size, activation="lrelu"):
 
 
 def compute_embedding_array(
-        model: SiameseSpectralModel,
-        spectra,
-        datatype="numpy",
-        device=None,
-        progress_bar: bool = True,
-        ):
+    model: SiameseSpectralModel,
+    spectra,
+    datatype="numpy",
+    device=None,
+    progress_bar: bool = True,
+):
     """
     Compute the embeddings of all given spectra (list of matchms Spectrum objects).
 
@@ -382,10 +455,8 @@ def compute_embedding_array(
         device = torch_device("cuda" if cuda.is_available() else "cpu")
     model.to(device)
     for i, spec in tqdm(
-            enumerate(spectra),
-            total=len(spectra),
-            desc="Computing spectral embeddings ...",
-            disable=not progress_bar):
+        enumerate(spectra), total=len(spectra), desc="Computing spectral embeddings ...", disable=not progress_bar
+    ):
         X = tensorize_spectra([spec], model.model_settings)
         with no_grad():
             if datatype.lower() == "numpy":
