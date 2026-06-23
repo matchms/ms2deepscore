@@ -32,6 +32,7 @@ setup(
         "matchms>=0.19.0",
         "numba",
         "numpy>=2.0",
+        "onnxscript>=0.7.0",
         "pandas<3.0",
         "scikit-learn",
         "tensorboard",
