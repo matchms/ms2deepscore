@@ -119,15 +119,13 @@ class MS2DeepScoreEvaluated(BaseSimilarity):
             embedding_reference[0, :].detach().numpy(),
             embedding_query[0, :].detach().numpy(),
         )
-        score_predicted_ae = self.score_evaluator.predict(
-            [[float(embedding_ref_mse[0][0]), float(embedding_query_mse[0][0])]]
-        )
+        score_predicted_ae = self.get_score_evaluations(
+            embedding_ref_mse,
+            embedding_query_mse,
+        )[0, 0]
 
         return np.asarray(
-            (
-                score,
-                float(np.asarray(score_predicted_ae).ravel()[0]),
-            ),
+            (float(score), float(score_predicted_ae)),
             dtype=self.score_datatype,
         )
 
