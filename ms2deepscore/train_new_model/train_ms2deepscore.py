@@ -49,6 +49,8 @@ def train_ms2ds_model(
                     patience=settings.patience,
                     loss_function=settings.loss_function,
                     checkpoint_filename=output_model_file_name, lambda_l1=0, lambda_l2=0)
+    model.export_to_onnx(results_folder)
+
     return model, history
 
 

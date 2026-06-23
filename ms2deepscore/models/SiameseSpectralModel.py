@@ -82,7 +82,7 @@ class SiameseSpectralModel(nn.Module):
         # Important: no custom objects outside tensors/strings/primitives.
         save(checkpoint, str(filepath))
 
-    def export_to_onnx(self, output_dir: Union[str, Path], model_name: str = "ms2deepscore_model") -> None:
+    def export_to_onnx(self, output_dir: Union[str, Path], model_name: str = "ms2deepscore_model", export_metadata: bool = False) -> None:
         """Exports a trained pytorch model to onnx.
 
         Parameters
@@ -91,6 +91,8 @@ class SiameseSpectralModel(nn.Module):
             The path to the output directory.
         model_name
             The name of the onnx model files (and settings).
+        export_metadata
+            Export metadata in a separate file.
         """
         out_path = Path(output_dir)
         out_path.mkdir(parents=True, exist_ok=True)
@@ -114,7 +116,6 @@ class SiameseSpectralModel(nn.Module):
         }
 
         onnx_file = Path(output_dir, model_name).with_suffix(".onnx")
-        json_file = Path(output_dir, f"{model_name}_settings").with_suffix(".json")
 
         export(
             encoder,
@@ -129,24 +130,27 @@ class SiameseSpectralModel(nn.Module):
             dynamic_shapes=dynamic_shapes
         )
 
-        # Convert model settings to json
-        # Some keys are required for inference
-        required_keys = [
-            "embedding_dim",
-            "intensity_scaling",
-            "min_mz",
-            "max_mz",
-            "mz_bin_width",
-            "number_of_bins",
-        ]
+        if export_metadata:
+            json_file = Path(output_dir, "settings.json")
 
-        for key in required_keys:
-            if not hasattr(self.model_settings, key):
-                logger.error(
-                    f"SettingsMS2Deepscore model_settings do not contain required attribute {key}. Inference may not work."
-                )
+            # Convert model settings to json
+            # Some keys are required for inference
+            required_keys = [
+                "embedding_dim",
+                "intensity_scaling",
+                "min_mz",
+                "max_mz",
+                "mz_bin_width",
+                "number_of_bins",
+            ]
 
-        self.model_settings.save_to_file(json_file)
+            for key in required_keys:
+                if not hasattr(self.model_settings, key):
+                    logger.error(
+                        f"SettingsMS2Deepscore model_settings do not contain required attribute {key}. Inference may not work."
+                    )
+
+            self.model_settings.save_to_file(json_file)
 
 
 class PeakBinner(nn.Module):
