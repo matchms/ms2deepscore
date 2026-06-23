@@ -300,7 +300,6 @@ def test_export_to_onnx_no_metadata(tmp_path: Path):
     model.export_to_onnx(output_dir, model_name=model_name)
 
     expected_onnx_file = output_dir / f"{model_name}.onnx"
-    expected_json_file = output_dir / f"{model_name}_settings.json"
 
     assert expected_onnx_file.exists(), "ONNX file was not created."
 
