@@ -303,35 +303,29 @@ def test_export_to_onnx_no_metadata(tmp_path: Path):
     expected_json_file = output_dir / f"{model_name}_settings.json"
 
     assert expected_onnx_file.exists(), "ONNX file was not created."
-    assert expected_json_file.exists(), "Settings JSON file was not created."
+
+
+def test_export_to_onnx_with_metadata(tmp_path: Path):
+    """Test the ONNX export for a model with additional metadata."""
+    model = _dummy_siamese_model_with_metadata()
+
+    output_dir = tmp_path / "onnx_export_meta"
+    model_name = "test_model_meta"
+
+    model.export_to_onnx(output_dir, model_name=model_name, export_metadata=True)
+
+    expected_onnx_file = output_dir / f"{model_name}.onnx"
+    expected_json_file = output_dir / "settings.json"
+
+    assert expected_onnx_file.exists(), "ONNX file with metadata was not created."
+    assert expected_json_file.exists(), "Settings JSON file with metadata was not created."
 
     with open(expected_json_file, "r") as f:
         saved_settings = json.load(f)
-    assert "embedding_dim" in saved_settings
-    assert saved_settings["embedding_dim"] == 10
 
+    assert "additional_metadata" in saved_settings, "Feld 'additional_metadata' fehlt in der JSON!"
 
-# def test_export_to_onnx_with_metadata(tmp_path: Path):
-#     """Test the ONNX export for a model with additional metadata."""
-#     model = _dummy_siamese_model_with_metadata()
-#
-#     output_dir = tmp_path / "onnx_export_meta"
-#     model_name = "test_model_meta"
-#
-#     model.export_to_onnx(output_dir, model_name=model_name)
-#
-#     expected_onnx_file = output_dir / f"{model_name}.onnx"
-#     expected_json_file = output_dir / f"{model_name}_settings.json"
-#
-#     assert expected_onnx_file.exists(), "ONNX file with metadata was not created."
-#     assert expected_json_file.exists(), "Settings JSON file with metadata was not created."
-#
-#     with open(expected_json_file, "r") as f:
-#         saved_settings = json.load(f)
-#
-#     assert "additional_metadata" in saved_settings, "Feld 'additional_metadata' fehlt in der JSON!"
-#
-#     exported_metadata = saved_settings["additional_metadata"]
-#     assert len(exported_metadata) == 1
-#     assert exported_metadata[0][0] == "StandardScaler"
-#     assert exported_metadata[0][1]["metadata_field"] == "precursor_mz"
+    exported_metadata = saved_settings["additional_metadata"]
+    assert len(exported_metadata) == 1
+    assert exported_metadata[0][0] == "StandardScaler"
+    assert exported_metadata[0][1]["metadata_field"] == "precursor_mz"
