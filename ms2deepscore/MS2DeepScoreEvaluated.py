@@ -100,12 +100,37 @@ class MS2DeepScoreEvaluated(BaseSimilarity):
         embedding_reference = self.get_embedding_array([reference], datatype="pytorch")
         embedding_query = self.get_embedding_array([query], datatype="pytorch")
 
-        embedding_ref_mse = self.get_embedding_evaluations(embedding_reference.reshape(-1, 1, self.output_vector_dim)).detach().numpy()
-        embedding_query_mse = self.get_embedding_evaluations(embedding_query.reshape(-1, 1, self.output_vector_dim)).detach().numpy()
-        score = cosine_similarity(embedding_reference[0, :].detach().numpy(), embedding_query[0, :].detach().numpy())
-        score_predicted_ae = self.score_evaluator.predict([[embedding_ref_mse[0][0], embedding_query_mse[0][0]]])
-        return np.asarray((score, score_predicted_ae),
-                          dtype=self.score_datatype)
+        embedding_ref_mse = (
+            self.get_embedding_evaluations(
+                embedding_reference.reshape(-1, 1, self.output_vector_dim)
+            )
+            .detach()
+            .numpy()
+        )
+        embedding_query_mse = (
+            self.get_embedding_evaluations(
+                embedding_query.reshape(-1, 1, self.output_vector_dim)
+            )
+            .detach()
+            .numpy()
+        )
+
+        score = cosine_similarity(
+            embedding_reference[0, :].detach().numpy(),
+            embedding_query[0, :].detach().numpy(),
+        )
+        score_predicted_ae = self.score_evaluator.predict(
+            [[float(embedding_ref_mse[0][0]), float(embedding_query_mse[0][0])]]
+        )
+
+        return np.asarray(
+            (
+                score,
+                float(np.asarray(score_predicted_ae).ravel()[0]),
+            ),
+            dtype=self.score_datatype,
+        )
+
 
     def matrix(self, references: List[Spectrum], queries: List[Spectrum],
                array_type: str = "numpy",
