@@ -1,5 +1,7 @@
 import json
 from pathlib import Path
+
+import onnx
 import pytest
 from torch import load, save
 from ms2deepscore.models import EmbeddingEvaluationModel, SiameseSpectralModel
@@ -25,10 +27,14 @@ def _dummy_siamese_model_with_metadata():
             "mean": 200.0,
             "standard_deviation": 250.0
         })],
+        min_mz=0,
+        max_mz=100,
+        mz_bin_width=0.1,
         validate_settings=False
     )
     model = SiameseSpectralModel(settings=settings)
     return model
+
 
 def _create_safe_checkpoint(model):
     """Helper function to save a model as a safe checkpoint."""
@@ -311,9 +317,16 @@ def test_export_to_onnx_with_metadata(tmp_path: Path):
     output_dir = tmp_path / "onnx_export_meta"
     model_name = "test_model_meta"
 
-    model.export_to_onnx(output_dir, model_name=model_name, export_metadata=True)
+    model.export_to_onnx(output_dir, model_name=model_name)
 
-    expected_onnx_file = output_dir / f"{model_name}.onnx"
-    expected_json_file = output_dir / "settings.json"
+    onnx_model = onnx.load(Path(output_dir, model_name).with_suffix(".onnx"))
+    metadata_keys = [prop.key for prop in onnx_model.metadata_props]
+    assert "settings" in metadata_keys, "'settings' key not found in ONNX metadata_props"
 
-    assert expected_onnx_file.exists(), "ONNX file with metadata was not created."
+    stored_settings = next(prop.value for prop in onnx_model.metadata_props if prop.key == "settings")
+    settings_dict = json.loads(stored_settings)
+
+    assert settings_dict["embedding_dim"] == 10
+    assert settings_dict["min_mz"] == 0
+    assert settings_dict["max_mz"] == 100
+    assert settings_dict["mz_bin_width"] == 0.1
