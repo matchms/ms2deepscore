@@ -7,6 +7,7 @@ from .SettingsMS2Deepscore import SettingsMS2Deepscore
 
 
 logging.getLogger(__name__).addHandler(logging.NullHandler())
+logging.getLogger("torch.onnx").setLevel(logging.ERROR)
 
 __author__ = "MS2DeepScore developer community"
 __all__ = [
