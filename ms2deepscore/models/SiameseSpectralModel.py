@@ -82,7 +82,7 @@ class SiameseSpectralModel(nn.Module):
         # Important: no custom objects outside tensors/strings/primitives.
         save(checkpoint, str(filepath))
 
-    def export_to_onnx(self, output_dir: Union[str, Path], model_name: str = "ms2deepscore_model", export_metadata: bool = False) -> None:
+    def export_to_onnx(self, output_dir: Union[str, Path], model_name: str = "ms2deepscore_model") -> None:
         """Exports a trained pytorch model to onnx.
 
         Parameters
