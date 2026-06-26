@@ -317,14 +317,3 @@ def test_export_to_onnx_with_metadata(tmp_path: Path):
     expected_json_file = output_dir / "settings.json"
 
     assert expected_onnx_file.exists(), "ONNX file with metadata was not created."
-    assert expected_json_file.exists(), "Settings JSON file with metadata was not created."
-
-    with open(expected_json_file, "r") as f:
-        saved_settings = json.load(f)
-
-    assert "additional_metadata" in saved_settings, "Feld 'additional_metadata' fehlt in der JSON!"
-
-    exported_metadata = saved_settings["additional_metadata"]
-    assert len(exported_metadata) == 1
-    assert exported_metadata[0][0] == "StandardScaler"
-    assert exported_metadata[0][1]["metadata_field"] == "precursor_mz"

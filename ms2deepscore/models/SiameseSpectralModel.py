@@ -1,8 +1,10 @@
 import logging
 import os
+import json
 from pathlib import Path
 from typing import Any, Dict, Optional, Union
 import numpy as np
+import onnx
 from torch import cat, cuda
 from torch import device as torch_device
 from torch import nn, no_grad, randn, save, zeros
@@ -14,9 +16,7 @@ from torch.utils.tensorboard import SummaryWriter
 from tqdm import tqdm
 from ms2deepscore.__version__ import __version__
 from ms2deepscore.models.__model_format__ import __model_format__
-from ms2deepscore.models.helper_functions import (initialize_device,
-                                                  l1_regularization,
-                                                  l2_regularization)
+from ms2deepscore.models.helper_functions import initialize_device, l1_regularization, l2_regularization
 from ms2deepscore.models.io_utils import _settings_to_json
 from ms2deepscore.models.loss_functions import LOSS_FUNCTIONS, rmse_loss
 from ms2deepscore.SettingsMS2Deepscore import SettingsMS2Deepscore
@@ -91,66 +91,63 @@ class SiameseSpectralModel(nn.Module):
             The path to the output directory.
         model_name
             The name of the onnx model files (and settings).
-        export_metadata
-            Export metadata in a separate file.
         """
         out_path = Path(output_dir)
         out_path.mkdir(parents=True, exist_ok=True)
         self.eval()
 
-        encoder = self.encoder
+        encoder = self.encoder.cpu()
         num_peaks = self.model_settings.number_of_bins()
-
-        num_metadata = 0
-        if hasattr(self.model_settings, "additional_metadata") and self.model_settings.additional_metadata:
-            num_metadata = len(self.model_settings.additional_metadata)
+        num_metadata = len(self.model_settings.additional_metadata) if self.model_settings.additional_metadata else 0
 
         dummy_peaks = randn(1, num_peaks)
         dummy_meta = randn(1, num_metadata)
-
         dummy_inputs = (dummy_peaks, dummy_meta)
-        input_names = ["input_peaks", "input_metadata"]
+
+        batch_size = Dim("batch_size", min=1)
+
+        input_names = ["spectra_tensors", "metadata_tensors"]
         dynamic_shapes = {
-            "spectra_tensors": ["batch_size", Dim.STATIC],
-            "metadata_tensors": ["batch_size", Dim.STATIC],
+            "spectra_tensors": {0: batch_size},
+            "metadata_tensors": {0: batch_size},
         }
 
         onnx_file = Path(output_dir, model_name).with_suffix(".onnx")
 
-        export(
+        onnx_program = export(
             encoder,
             dummy_inputs,
-            str(onnx_file),
             dynamo=True,
             export_params=True,
-            # opset_version=None,
-            do_constant_folding=True,
             input_names=input_names,
             output_names=["embedding"],
-            dynamic_shapes=dynamic_shapes
+            dynamic_shapes=dynamic_shapes,
         )
 
-        if export_metadata:
-            json_file = Path(output_dir, "settings.json")
+        onnx_model = onnx_program.model_proto
 
-            # Convert model settings to json
-            # Some keys are required for inference
-            required_keys = [
-                "embedding_dim",
-                "intensity_scaling",
-                "min_mz",
-                "max_mz",
-                "mz_bin_width",
-                "number_of_bins",
-            ]
+        # Some keys are required for inference
+        required_keys = [
+            "embedding_dim",
+            "intensity_scaling",
+            "min_mz",
+            "max_mz",
+            "mz_bin_width",
+            "number_of_bins",
+        ]
 
-            for key in required_keys:
-                if not hasattr(self.model_settings, key):
-                    logger.error(
-                        f"SettingsMS2Deepscore model_settings do not contain required attribute {key}. Inference may not work."
-                    )
+        for key in required_keys:
+            if not hasattr(self.model_settings, key):
+                logger.error(
+                    f"SettingsMS2Deepscore model_settings do not contain required attribute {key}. Inference may not work."
+                )
 
-            self.model_settings.save_to_file(json_file)
+        # Add inference settings
+        training_metadata = onnx_model.metadata_props.add()
+        training_metadata.key = "settings"
+        training_metadata.value = json.dumps(self.model_settings.get_dict())
+
+        onnx.save(onnx_model, onnx_file)
 
 
 class PeakBinner(nn.Module):
