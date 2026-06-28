@@ -32,6 +32,18 @@ def tensorize_spectra(
     return binned_spectra, metadata_tensors
 
 
+def tensorize_spectra_onnx(
+    spectra,
+    settings: SettingsMS2Deepscore,
+) -> tuple[np.ndarray, np.ndarray]:
+    """Convert list of matchms Spectrum objects to numpy peak and metadata tensors."""
+    x_binned_torch, x_metadata_torch = tensorize_spectra(spectra, settings)
+    x_binned = x_binned_torch.numpy().astype(np.float32, copy=False)
+    x_metadata = x_metadata_torch.numpy().astype(np.float32, copy=False)
+
+    return x_binned, x_metadata
+
+
 @numba.jit(nopython=True)
 def vectorize_spectrum(mz_array, intensities_array, min_mz, max_mz, mz_bin_width, intensity_scaling):
     """Fast function to convert mz and intensity arrays into dense spectrum vector."""
