@@ -1,8 +1,12 @@
 import json
 import platform
+from pathlib import Path
 import numpy as np
+import onnxruntime as ort
 from matchms import Spectrum
 from tqdm.auto import tqdm
+from ms2deepscore import SettingsMS2Deepscore
+from ms2deepscore.tensorize_spectra import tensorize_spectra_onnx
 
 
 try:
@@ -10,12 +14,37 @@ try:
 except ImportError:
     openvino = None
 
-import onnxruntime as ort
-from ms2deepscore import SettingsMS2Deepscore
-from ms2deepscore.tensorize_spectra import tensorize_spectra_onnx
+
+
+class SiameseSpectralModelONNX:
+    """
+    SiameseSpectralModelONNX for inference with onnx runtime.
+    Training is done via the SiameseSpectralModel.
+    """
+
+    def __init__(self, model_path: str | Path, providers: list | None = None):
+        if providers is None:
+            providers = configure_onnx_providers()
+
+        self.session = ort.InferenceSession(str(model_path), providers=providers)
+        validate_onnx_session(self.session)
+        self.model_settings = self._load_settings()
+
+    def _load_settings(self) -> SettingsMS2Deepscore:
+        """Extract and deserialize model settings from ONNX model metadata."""
+        model_metadata = self.session.get_modelmeta().custom_metadata_map
+
+        if "settings" not in model_metadata:
+            raise ValueError("Model does not contain settings. These are required for inference.")
+
+        settings_dict = json.loads(model_metadata["settings"])
+        settings_dict["spectrum_file_path"] = None
+
+        return SettingsMS2Deepscore(**settings_dict)
 
 
 def configure_onnx_providers() -> list:
+    """Reads and configures all onnxruntime backend providers available to the system."""
     available = ort.get_available_providers()
     providers = []
 
@@ -59,9 +88,8 @@ def validate_onnx_session(session: ort.InferenceSession) -> None:
 
 
 def compute_embedding_array_onnx(
-    onnx_session: ort.InferenceSession,
+    model: SiameseSpectralModelONNX,
     spectra: list[Spectrum],
-    settings: SettingsMS2Deepscore = None,
     batch_size: int = 1024,
     progress_bar: bool = True,
 ) -> np.ndarray:
@@ -70,23 +98,16 @@ def compute_embedding_array_onnx(
 
     Parameters
     ----------
-    onnx_session:
-        A onnx runtime session with loaded onnx model and attached providers.
+    model:
+        A trained SiameseSpectralModelONNX with attached settings used to compute spectral embeddings.
     spectra:
         A list of matchms spectra.
-    settings:
-        A optional SettingsMS2Deepscore object. If not present is derived from the onnx model.
     batch_size:
         The batch size for inference, defaults to 1024.
     progress_bar:
         Whether to display a progress bar during embedding computation.
     """
-    # validate_onnx_session(onnx_session)
-    if not settings:
-        model_metadata = onnx_session.get_modelmeta().custom_metadata_map
-        settings_dict = json.loads(model_metadata["settings"])
-        settings_dict["spectrum_file_path"] = None
-        settings = SettingsMS2Deepscore(**settings_dict)
+    settings = model.model_settings
 
     x_binned, x_metadata = tensorize_spectra_onnx(spectra, settings)
 
@@ -103,7 +124,7 @@ def compute_embedding_array_onnx(
             if has_metadata:
                 input_feed["metadata_tensors"] = x_metadata[start:end]
 
-            embeddings[start:end] = onnx_session.run(["embedding"], input_feed)[0]
+            embeddings[start:end] = model.session.run(["embedding"], input_feed)[0]
 
             pbar.update(end - start)
 
