@@ -21,15 +21,17 @@ class SiameseSpectralModelONNX:
     Training is done via the SiameseSpectralModel.
     """
 
-    def __init__(self, model_path: str | Path, providers: list | None = None):
+    def __init__(self, model_path: str | Path, providers: list | None = None, **kwargs):
         if providers is None:
             providers = configure_onnx_providers()
 
         self.session = ort.InferenceSession(str(model_path), providers=providers)
         validate_onnx_session(self.session)
-        self.model_settings = self._load_settings()
 
-    def _load_settings(self) -> SettingsMS2Deepscore:
+        validate_settings = kwargs.get("validate_settings", True)
+        self.model_settings = self._load_settings(validate_settings)
+
+    def _load_settings(self, validate_settings: bool = True) -> SettingsMS2Deepscore:
         """Extract and deserialize model settings from ONNX model metadata."""
         model_metadata = self.session.get_modelmeta().custom_metadata_map
 
@@ -39,7 +41,7 @@ class SiameseSpectralModelONNX:
         settings_dict = json.loads(model_metadata["settings"])
         settings_dict["spectrum_file_path"] = None
 
-        return SettingsMS2Deepscore(**settings_dict)
+        return SettingsMS2Deepscore(**settings_dict, validate_settings=validate_settings)
 
     def compute_embedding_array(
         self,
@@ -65,7 +67,8 @@ class SiameseSpectralModelONNX:
 
         x_binned, x_metadata = tensorize_spectra_onnx(spectra, settings)
 
-        has_metadata = x_metadata.shape[1] > 0
+        onnx_inputs = {inp.name for inp in self.session.get_inputs()}
+        has_metadata = "metadata_tensors" in onnx_inputs
         num_samples = x_binned.shape[0]
         embedding_dim = settings.embedding_dim
         embeddings = np.zeros((num_samples, embedding_dim), dtype=np.float32)
@@ -125,5 +128,5 @@ def validate_onnx_session(session: ort.InferenceSession) -> None:
 
     if missing_inputs or missing_outputs:
         raise ValueError(
-            f"model does not match expected interface. Missing inputs:  {missing_inputs}. Missing outputs: {missing_outputs}."
+            f"model does not match expected interface. Missing inputs: {missing_inputs}. Missing outputs: {missing_outputs}."
         )
