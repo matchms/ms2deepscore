@@ -1,0 +1,117 @@
+from typing import List
+import numpy as np
+from matchms import Spectrum
+from matchms.similarity.BaseSimilarity import BaseSimilarity
+from ms2deepscore.models import SiameseSpectralModelONNX
+from .vector_operations import cosine_similarity, cosine_similarity_matrix
+
+
+class MS2DeepScoreONNX(BaseSimilarity):
+    """Calculate MS2DeepScore similarity scores between a reference and a query.
+
+    Using a trained model, binned spectra will be converted into spectrum
+    vectors using a deep neural network. The MS2DeepScoreONNX similarity is then
+    the cosine similarity score between two spectrum vectors.
+
+    Example code to calculate MS2DeepScoreONNX similarities between query and reference
+    spectra:
+
+    .. code-block:: python
+
+        from matchms import calculate_scores
+        from matchms.importing import load_spectra
+        from ms2deepscore import MS2DeepScoreONNX
+        from ms2deepscore.models import SiameseSpectralModelONNX
+
+        # Import data
+        references = list(load_spectra("abc.mgf"))
+        queries = list(load_spectra("xyz.mgf"))
+
+        # Load pretrained model
+        model = SiameseSpectralModelONNX("data/ms2deepscore_model.onnx")
+
+        similarity_measure = MS2DeepScoreONNX(model)
+        # Calculate scores and get matchms.Scores object
+        scores = calculate_scores(references, queries, similarity_measure)
+
+
+    """
+
+    def __init__(self, model: SiameseSpectralModelONNX, progress_bar: bool = True):
+        """
+
+        Parameters
+        ----------
+        model:
+            Expected input is a SiameseModelONNX with attached settings that has been trained on the desired set of spectra.
+        progress_bar:
+            Set to True to monitor the embedding creating with a progress bar. Default is False.
+        """
+        self.model = model
+        self.output_vector_dim = self.model.model_settings.embedding_dim
+        self.progress_bar = progress_bar
+
+    def get_embedding_array(self, spectra) -> np.ndarray:
+        return self.model.compute_embedding_array(spectra, progress_bar=self.progress_bar)
+
+    def pair(self, reference: Spectrum, query: Spectrum) -> float:
+        """Calculate the MS2DeepScore similaritiy between a reference and a query spectrum.
+
+        Parameters
+        ----------
+        reference:
+            Reference spectrum.
+        query:
+            Query spectrum.
+
+        Returns
+        -------
+        ms2ds_similarity
+            MS2DeepScore similarity score.
+        """
+        embedding_reference = self.get_embedding_array([reference])
+        embedding_query = self.get_embedding_array([query])
+
+        return cosine_similarity(embedding_reference[0, :], embedding_query[0, :])
+
+    def matrix(
+        self,
+        references: List[Spectrum],
+        queries: List[Spectrum],
+        array_type: str = "numpy",
+        is_symmetric: bool = False,
+        progress_bar: bool = True,
+    ) -> np.ndarray:
+        """Calculate the MS2DeepScore similarities between all references and queries.
+
+        Parameters
+        ----------
+        references:
+            Reference spectrum.
+        queries:
+            Query spectrum.
+        array_type
+            Specify the output array type. Can be "numpy" or "sparse".
+            Currently, only "numpy" is supported and will return a numpy array.
+            Future versions will include "sparse" as option to return a COO-sparse array.
+        is_symmetric:
+            Set to True if references == queries to speed up calculation about 2x.
+            Uses the fact that in this case score[i, j] = score[j, i]. Default is False.
+        progress_bar:
+            When True a progress bar is shown. Default is True.
+
+        Returns
+        -------
+        ms2ds_similarity
+            Array of MS2DeepScore similarity scores.
+        """
+        embeddings_reference = self.get_embedding_array(references)
+        if is_symmetric:
+            assert np.all(references == queries), "Expected references to be equal to queries for is_symmetric=True"
+            embeddings_query = embeddings_reference
+        else:
+            embeddings_query = self.get_embedding_array(queries)
+
+        ms2ds_similarity = cosine_similarity_matrix(embeddings_reference, embeddings_query)
+
+        return ms2ds_similarity
