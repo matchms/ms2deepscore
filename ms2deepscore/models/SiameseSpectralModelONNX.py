@@ -5,7 +5,7 @@ import numpy as np
 import onnxruntime as ort
 from matchms import Spectrum
 from tqdm.auto import tqdm
-from ms2deepscore import SettingsMS2Deepscore
+from ms2deepscore.SettingsMS2Deepscore import SettingsMS2Deepscore
 from ms2deepscore.tensorize_spectra import tensorize_spectra_onnx
 
 
@@ -13,7 +13,6 @@ try:
     import openvino  # noqa: F401
 except ImportError:
     openvino = None
-
 
 
 class SiameseSpectralModelONNX:
@@ -41,6 +40,49 @@ class SiameseSpectralModelONNX:
         settings_dict["spectrum_file_path"] = None
 
         return SettingsMS2Deepscore(**settings_dict)
+
+    def compute_embedding_array(
+        self,
+        spectra: list[Spectrum],
+        batch_size: int = 1024,
+        progress_bar: bool = True,
+    ) -> np.ndarray:
+        """
+        Compute the embeddings of all given spectra (list of matchms Spectrum objects) using onnxruntime.
+
+        Parameters
+        ----------
+        model:
+            A trained SiameseSpectralModelONNX with attached settings used to compute spectral embeddings.
+        spectra:
+            A list of matchms spectra.
+        batch_size:
+            The batch size for inference, defaults to 1024.
+        progress_bar:
+            Whether to display a progress bar during embedding computation.
+        """
+        settings = self.model_settings
+
+        x_binned, x_metadata = tensorize_spectra_onnx(spectra, settings)
+
+        has_metadata = x_metadata.shape[1] > 0
+        num_samples = x_binned.shape[0]
+        embedding_dim = settings.embedding_dim
+        embeddings = np.zeros((num_samples, embedding_dim), dtype=np.float32)
+
+        with tqdm(total=num_samples, desc="Computing embeddings", unit="spectrum", disable=not progress_bar) as pbar:
+            for start in range(0, num_samples, batch_size):
+                end = min(start + batch_size, num_samples)
+
+                input_feed = {"spectra_tensors": x_binned[start:end]}
+                if has_metadata:
+                    input_feed["metadata_tensors"] = x_metadata[start:end]
+
+                embeddings[start:end] = self.session.run(["embedding"], input_feed)[0]
+
+                pbar.update(end - start)
+
+        return embeddings
 
 
 def configure_onnx_providers() -> list:
@@ -85,47 +127,3 @@ def validate_onnx_session(session: ort.InferenceSession) -> None:
         raise ValueError(
             f"model does not match expected interface. Missing inputs:  {missing_inputs}. Missing outputs: {missing_outputs}."
         )
-
-
-def compute_embedding_array_onnx(
-    model: SiameseSpectralModelONNX,
-    spectra: list[Spectrum],
-    batch_size: int = 1024,
-    progress_bar: bool = True,
-) -> np.ndarray:
-    """
-    Compute the embeddings of all given spectra (list of matchms Spectrum objects) using onnxruntime.
-
-    Parameters
-    ----------
-    model:
-        A trained SiameseSpectralModelONNX with attached settings used to compute spectral embeddings.
-    spectra:
-        A list of matchms spectra.
-    batch_size:
-        The batch size for inference, defaults to 1024.
-    progress_bar:
-        Whether to display a progress bar during embedding computation.
-    """
-    settings = model.model_settings
-
-    x_binned, x_metadata = tensorize_spectra_onnx(spectra, settings)
-
-    has_metadata = x_metadata.shape[1] > 0
-    num_samples = x_binned.shape[0]
-    embedding_dim = settings.embedding_dim
-    embeddings = np.zeros((num_samples, embedding_dim), dtype=np.float32)
-
-    with tqdm(total=num_samples, desc="Computing embeddings", unit="spectrum", disable=not progress_bar) as pbar:
-        for start in range(0, num_samples, batch_size):
-            end = min(start + batch_size, num_samples)
-
-            input_feed = {"spectra_tensors": x_binned[start:end]}
-            if has_metadata:
-                input_feed["metadata_tensors"] = x_metadata[start:end]
-
-            embeddings[start:end] = model.session.run(["embedding"], input_feed)[0]
-
-            pbar.update(end - start)
-
-    return embeddings
