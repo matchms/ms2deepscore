@@ -55,8 +55,14 @@ class MS2DeepScore(BaseSimilarity):
         self.output_vector_dim = self.model.model_settings.embedding_dim
         self.progress_bar = progress_bar
 
-    def get_embedding_array(self, spectrums):
-        return compute_embedding_array(self.model, spectrums, progress_bar=self.progress_bar)
+    def get_embedding_array(self, spectrums, batch_size: int = 1024) -> np.ndarray:
+        """Calculate the spectrum embeddings for a list of spectrums."""
+        return compute_embedding_array(
+            self.model,
+            spectrums,
+            progress_bar=self.progress_bar,
+            batch_size=batch_size
+            )
 
     def pair(self, reference: Spectrum, query: Spectrum) -> float:
         """Calculate the MS2DeepScore similaritiy between a reference and a query spectrum.
