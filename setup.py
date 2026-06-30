@@ -52,6 +52,7 @@ setup(
             "sphinx_rtd_theme",
             "sphinxcontrib-apidoc",
             "yapf",
+            "onnxruntime>=1.27.0",
         ],
         "gpu": ["onnxruntime>=1.27.0"],
         "intel": ["openvino==2025.4.1", "onnxruntime-openvino"],
