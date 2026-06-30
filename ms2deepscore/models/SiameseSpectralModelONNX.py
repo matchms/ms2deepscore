@@ -89,7 +89,18 @@ class SiameseSpectralModelONNX:
 
 
 def configure_onnx_providers(precision: Literal[16, 32] = 32) -> list:
-    """Reads and configures all onnxruntime backend providers available to the system."""
+    """
+    Reads and configures all onnxruntime backend providers available to the system.
+
+    Parameters
+    ----------
+    precision:
+        Inference precision (16 or 32). Used for OpenVINO if no openvino_config is provided.
+
+    Returns
+    -------
+    List of configured providers to be used for onnxruntime inference.
+    """
     available = ort.get_available_providers()
     providers = []
 
@@ -110,8 +121,13 @@ def configure_onnx_providers(precision: Literal[16, 32] = 32) -> list:
 
     # Intel -> OpenVino
     if "OpenVINOExecutionProvider" in available:
-        prec = "GPU_FP16" if precision == 16 else "GPU_FP32"
-        providers.append(("OpenVINOExecutionProvider", {"device_type": prec}))
+        prec = "f16" if precision == 16 else "f32"
+        options = {
+            "device_type": "GPU",
+            "load_config": json.dumps({"GPU": {"INFERENCE_PRECISION_HINT": prec}}),
+        }
+
+        providers.append(("OpenVINOExecutionProvider", options))
 
     # Fallback
     providers.append("CPUExecutionProvider")
