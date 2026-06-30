@@ -131,29 +131,32 @@ class SiameseSpectralModel(nn.Module):
         batch_starts = range(0, n_spectra, batch_size)
 
         with no_grad():
-            for start in tqdm(
-                batch_starts,
-                total=(n_spectra + batch_size - 1) // batch_size,
+            with tqdm(
+                total=n_spectra,
                 desc="Computing spectral embeddings ...",
+                unit="spectrum",
                 disable=not progress_bar,
-            ):
-                stop = min(start + batch_size, n_spectra)
-                batch_spectra = spectra[start:stop]
+            ) as progress:
+                for start in batch_starts:
+                    stop = min(start + batch_size, n_spectra)
+                    batch_spectra = spectra[start:stop]
 
-                spectra_tensors, metadata_tensors = tensorize_spectra(
-                    batch_spectra,
-                    self.model_settings,
-                )
+                    spectra_tensors, metadata_tensors = tensorize_spectra(
+                        batch_spectra,
+                        self.model_settings,
+                    )
 
-                batch_embeddings = self.encoder(
-                    spectra_tensors.to(device),
-                    metadata_tensors.to(device),
-                ).detach().cpu()
+                    batch_embeddings = self.encoder(
+                        spectra_tensors.to(device),
+                        metadata_tensors.to(device),
+                    ).detach().cpu()
 
-                if datatype == "numpy":
-                    embeddings[start:stop, :] = batch_embeddings.numpy()
-                else:
-                    embeddings[start:stop, :] = batch_embeddings
+                    if datatype == "numpy":
+                        embeddings[start:stop, :] = batch_embeddings.numpy()
+                    else:
+                        embeddings[start:stop, :] = batch_embeddings
+
+                    progress.update(stop - start)
 
         return embeddings
 
