@@ -4,8 +4,7 @@ from pathlib import Path
 import numpy as np
 
 import torch
-from torch import save, cat, zeros, cuda, no_grad
-from torch import device as torch_device
+from torch import save, cat, no_grad
 from torch.nn.functional import relu
 from torch.optim import Adam
 from torch import nn
