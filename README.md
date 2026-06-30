@@ -42,14 +42,21 @@ Installation is expected to take 10-20 minutes.
 We recommend creating an Anaconda environment with
 
 ```
-conda create --name ms2deepscore python=3.12
+conda create --name ms2deepscore python=3.13
 conda activate ms2deepscore
 pip install ms2deepscore
+
+# You can install hardware accelerated versions (for inference) with:
+# for all x64/x86 and macOS aarch64:
+pip install ms2deepscore[gpu]
+
+# for Intel iGPU/Arc GPUs:
+pip install ms2deepscore[intel]
 ```
 
 Or, via conda:
 ```
-conda create --name ms2deepscore python=3.12
+conda create --name ms2deepscore python=3.13
 conda activate ms2deepscore
 conda install --channel bioconda --channel conda-forge matchms
 pip install ms2deepscore
@@ -91,6 +98,26 @@ similarity_matrix = pipeline.scores.to_array()
 ```
 The resulting similarity matrix, is a numpy array containing all the MS2DeepScore predictions between all spectra.
 
+To use the hardware accelerated version (see Prepare environment):
+```python
+from matchms.Pipeline import Pipeline, create_workflow
+from matchms.filtering.default_pipelines import DEFAULT_FILTERS
+from ms2deepscore import MS2DeepScoreONNX
+from ms2deepscore.models import SiameseSpectralModelONNX
+
+# Use the .onnx version here. See Model conversion on how to convert .pt models.
+model_file_name = "ms2deepscore_model.onnx"
+spectrum_file_name = "pesticides.mgf"
+
+# load in the ms2deepscore model
+model = SiameseSpectralModelONNX(model_file_name)
+
+pipeline = Pipeline(create_workflow(query_filters=DEFAULT_FILTERS,
+                                    score_computations=[[MS2DeepScoreONNX, {"model": model}]]))
+report = pipeline.run(spectrum_file_name)
+similarity_matrix = pipeline.scores.to_array()
+```
+
 
 ## 2 Create embeddings
 
@@ -98,9 +125,15 @@ To calculate chemical similarity scores, MS2DeepScore first calculates an embedd
 This intermediate product can also be used to visualize spectra in "chemical space" by using a dimensionality reduction technique, like UMAP.
 
 ```python
+from ms2deepscore import MS2DeepScore, MS2DeepScoreONNX
+
 cleaned_spectra = pipeline.spectra_queries
 
 ms2ds_model = MS2DeepScore(model)
+ms2ds_embeddings = ms2ds_model.get_embedding_array(cleaned_spectra)
+
+# Hardware accelerated version:
+ms2ds_model = MS2DeepScoreONNX("ms2deepscore_model.onnx")
 ms2ds_embeddings = ms2ds_model.get_embedding_array(cleaned_spectra)
 ```
 The [tutorial](https://github.com/matchms/ms2deepscore/blob/main/notebooks/MS2DeepScore_tutorial.ipynb) shows how to use these embeddings to create an interactive UMAP with overlaying smiles.
@@ -136,6 +169,16 @@ train_ms2deepscore_wrapper(
     SettingsEmbeddingEvaluator() # this results in also training the embedding evaluator. Leave as None if you don't want to train this.
 )
 ```
+
+### Model conversion
+For inference you can convert your .pt model to .onnx:
+```python
+from ms2deepscore.models import load_model
+
+model = load_model("ms2deepscore_model.pt")
+model.export_to_onnx("export_dir", "ms2deepscore_model.onnx")
+```
+
 ## Contributing
 We welcome contributions to the development of ms2deepscore! Have a look at the [contribution guidelines](https://github.com/matchms/ms2deepscore/blob/main/CONTRIBUTING.md).
 
