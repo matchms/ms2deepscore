@@ -1,6 +1,8 @@
 import json
 import platform
 from pathlib import Path
+from typing import Literal
+
 import numpy as np
 import onnxruntime as ort
 from matchms import Spectrum
@@ -54,8 +56,6 @@ class SiameseSpectralModelONNX:
 
         Parameters
         ----------
-        model:
-            A trained SiameseSpectralModelONNX with attached settings used to compute spectral embeddings.
         spectra:
             A list of matchms spectra.
         batch_size:
@@ -88,7 +88,7 @@ class SiameseSpectralModelONNX:
         return embeddings
 
 
-def configure_onnx_providers() -> list:
+def configure_onnx_providers(precision: Literal[16, 32] = 32) -> list:
     """Reads and configures all onnxruntime backend providers available to the system."""
     available = ort.get_available_providers()
     providers = []
@@ -110,7 +110,8 @@ def configure_onnx_providers() -> list:
 
     # Intel -> OpenVino
     if "OpenVINOExecutionProvider" in available:
-        providers.append(("OpenVINOExecutionProvider", {"device_type": "GPU"}))
+        prec = "GPU_FP16" if precision == 16 else "GPU_FP32"
+        providers.append(("OpenVINOExecutionProvider", {"device_type": prec}))
 
     # Fallback
     providers.append("CPUExecutionProvider")
