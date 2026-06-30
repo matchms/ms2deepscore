@@ -32,7 +32,6 @@ setup(
         "matchms>=0.19.0",
         "numba",
         "numpy>=2.0",
-        "onnxruntime>=1.27.0",
         "onnxscript>=0.7.0",
         "pandas<3.0",
         "scikit-learn",
@@ -54,5 +53,7 @@ setup(
             "sphinxcontrib-apidoc",
             "yapf",
         ],
+        "gpu": ["onnxruntime>=1.27.0"],
+        "intel": ["openvino==2025.4.1", "onnxruntime-openvino"],
     },
 )
