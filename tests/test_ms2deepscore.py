@@ -22,11 +22,15 @@ def get_test_ms2deepscore_instance():
     return spectrums, model, similarity_measure
 
 
-def test_MS2DeepScore_vector_creation():
+@pytest.mark.parametrize("batch_size", [16, None])
+def test_MS2DeepScore_vector_creation(batch_size):
     """Test embeddings creation.
     """
     spectrums, _, similarity_measure = get_test_ms2deepscore_instance()
-    embeddings = similarity_measure.get_embedding_array(spectrums)
+    if batch_size is None:
+        embeddings = similarity_measure.get_embedding_array(spectrums)
+    else:
+        embeddings = similarity_measure.get_embedding_array(spectrums, batch_size=batch_size)
     assert embeddings.shape == (76, 100), "Expected different embeddings shape"
     assert isinstance(embeddings, np.ndarray), "Expected embeddings to be numpy array"
 
