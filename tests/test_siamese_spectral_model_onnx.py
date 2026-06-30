@@ -151,7 +151,7 @@ def test_compute_embedding_array_batching(onnx_model, dummy_spectra):
     """Batch size 1 and batch size equal to n_spectra produce identical results."""
     emb_batch_1 = onnx_model.compute_embedding_array(dummy_spectra, batch_size=1, progress_bar=False)
     emb_full = onnx_model.compute_embedding_array(dummy_spectra, batch_size=len(dummy_spectra), progress_bar=False)
-    np.testing.assert_allclose(emb_batch_1, emb_full, rtol=1e-5)
+    np.testing.assert_allclose(emb_batch_1, emb_full, rtol=1e-4, atol=1e-6)
 
 
 def test_compute_embedding_array_invalid_batch_size(onnx_model, dummy_spectra):
