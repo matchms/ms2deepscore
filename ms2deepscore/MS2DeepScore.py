@@ -2,8 +2,7 @@ from typing import List
 import numpy as np
 from matchms import Spectrum
 from matchms.similarity.BaseSimilarity import BaseSimilarity
-from ms2deepscore.models.SiameseSpectralModel import (SiameseSpectralModel,
-                                                      compute_embedding_array)
+from ms2deepscore.models.SiameseSpectralModel import SiameseSpectralModel
 from .vector_operations import cosine_similarity, cosine_similarity_matrix
 
 
@@ -57,8 +56,7 @@ class MS2DeepScore(BaseSimilarity):
 
     def get_embedding_array(self, spectrums, datatype: str = "numpy", batch_size: int = 1024) -> np.ndarray:
         """Calculate the spectrum embeddings for a list of spectrums."""
-        return compute_embedding_array(
-            self.model,
+        return self.model.compute_embedding_array(
             spectrums,
             datatype=datatype,
             progress_bar=self.progress_bar,
