@@ -62,7 +62,15 @@ class SiameseSpectralModelONNX:
             The batch size for inference, defaults to 1024.
         progress_bar:
             Whether to display a progress bar during embedding computation.
+
+        Returns
+        -------
+        np.ndarray
+            Embedding array with shape (n_spectra, embedding_dim).
         """
+        if batch_size <= 0:
+            raise ValueError("batch_size must be a positive integer.")
+
         settings = self.model_settings
 
         x_binned, x_metadata = tensorize_spectra_onnx(spectra, settings)
@@ -95,7 +103,7 @@ def configure_onnx_providers(precision: Literal[16, 32] = 32) -> list:
     Parameters
     ----------
     precision:
-        Inference precision (16 or 32). Used for OpenVINO if no openvino_config is provided.
+        Inference precision (16 or 32). Used for OpenVINO.
 
     Returns
     -------
