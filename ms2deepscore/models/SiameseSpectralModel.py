@@ -1,14 +1,12 @@
+import json
 import logging
 import os
-import json
-from typing import Optional, Union, Dict, Any, Literal
 from pathlib import Path
+from typing import Any, Dict, Literal, Optional, Union
 import numpy as np
 import onnx
 import torch
-from torch import save, cat, no_grad
-from torch import device as torch_device
-from torch import nn, randn, save, zeros
+from torch import cat, nn, no_grad, randn, save
 from torch.export.dynamic_shapes import Dim
 from torch.nn.functional import relu
 from torch.onnx import export
@@ -17,7 +15,9 @@ from torch.utils.tensorboard import SummaryWriter
 from tqdm import tqdm
 from ms2deepscore.__version__ import __version__
 from ms2deepscore.models.__model_format__ import __model_format__
-from ms2deepscore.models.helper_functions import initialize_device, l1_regularization, l2_regularization
+from ms2deepscore.models.helper_functions import (initialize_device,
+                                                  l1_regularization,
+                                                  l2_regularization)
 from ms2deepscore.models.io_utils import _settings_to_json
 from ms2deepscore.models.loss_functions import LOSS_FUNCTIONS, rmse_loss
 from ms2deepscore.SettingsMS2Deepscore import SettingsMS2Deepscore
@@ -83,7 +83,6 @@ class SiameseSpectralModel(nn.Module):
         # Important: no custom objects outside tensors/strings/primitives.
         save(checkpoint, str(filepath))
 
-    
     def compute_embedding_array(
         self,
         spectra,
@@ -155,10 +154,14 @@ class SiameseSpectralModel(nn.Module):
                         self.model_settings,
                     )
 
-                    batch_embeddings = self.encoder(
-                        spectra_tensors.to(device),
-                        metadata_tensors.to(device),
-                    ).detach().cpu()
+                    batch_embeddings = (
+                        self.encoder(
+                            spectra_tensors.to(device),
+                            metadata_tensors.to(device),
+                        )
+                        .detach()
+                        .cpu()
+                    )
 
                     if datatype == "numpy":
                         embeddings[start:stop, :] = batch_embeddings.numpy()
@@ -168,8 +171,7 @@ class SiameseSpectralModel(nn.Module):
                     progress.update(stop - start)
 
         return embeddings
-      
-    
+
     def export_to_onnx(self, output_dir: Union[str, Path], model_name: str = "ms2deepscore_model") -> None:
         """Exports a trained pytorch model to onnx.
 
@@ -508,12 +510,13 @@ def dense_layer(input_size, output_size, activation="lrelu"):
 
 
 def compute_embedding_array(
-        model: SiameseSpectralModel,
-        spectra,
-        datatype="numpy",
-        device=None,
-        progress_bar: bool = True,
-        batch_size: int = 1024):
+    model: SiameseSpectralModel,
+    spectra,
+    datatype="numpy",
+    device=None,
+    progress_bar: bool = True,
+    batch_size: int = 1024,
+):
     """
     Compatibility wrapper.
 
