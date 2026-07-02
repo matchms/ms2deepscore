@@ -1,22 +1,30 @@
+import json
+import logging
 import os
-from typing import Optional, Union, Dict, Any, Literal
 from pathlib import Path
+from typing import Any, Dict, Literal, Optional, Union
 import numpy as np
-
+import onnx
 import torch
-from torch import save, cat, no_grad
+from torch import cat, nn, no_grad, randn, save
+from torch.export.dynamic_shapes import Dim
 from torch.nn.functional import relu
+from torch.onnx import export
 from torch.optim import Adam
-from torch import nn
 from torch.utils.tensorboard import SummaryWriter
 from tqdm import tqdm
 from ms2deepscore.__version__ import __version__
-from ms2deepscore.models.helper_functions import initialize_device, l1_regularization, l2_regularization
+from ms2deepscore.models.__model_format__ import __model_format__
+from ms2deepscore.models.helper_functions import (initialize_device,
+                                                  l1_regularization,
+                                                  l2_regularization)
 from ms2deepscore.models.io_utils import _settings_to_json
 from ms2deepscore.models.loss_functions import LOSS_FUNCTIONS, rmse_loss
 from ms2deepscore.SettingsMS2Deepscore import SettingsMS2Deepscore
 from ms2deepscore.tensorize_spectra import tensorize_spectra
-from ms2deepscore.models.__model_format__ import __model_format__
+
+
+logger = logging.getLogger(__name__)
 
 
 class SiameseSpectralModel(nn.Module):
@@ -146,10 +154,14 @@ class SiameseSpectralModel(nn.Module):
                         self.model_settings,
                     )
 
-                    batch_embeddings = self.encoder(
-                        spectra_tensors.to(device),
-                        metadata_tensors.to(device),
-                    ).detach().cpu()
+                    batch_embeddings = (
+                        self.encoder(
+                            spectra_tensors.to(device),
+                            metadata_tensors.to(device),
+                        )
+                        .detach()
+                        .cpu()
+                    )
 
                     if datatype == "numpy":
                         embeddings[start:stop, :] = batch_embeddings.numpy()
@@ -159,6 +171,73 @@ class SiameseSpectralModel(nn.Module):
                     progress.update(stop - start)
 
         return embeddings
+
+    def export_to_onnx(self, output_dir: Union[str, Path], model_name: str = "ms2deepscore_model") -> None:
+        """Exports a trained pytorch model to onnx.
+
+        Parameters
+        ----------
+        output_dir
+            The path to the output directory.
+        model_name
+            The name of the onnx model files (and settings).
+        """
+        out_path = Path(output_dir)
+        out_path.mkdir(parents=True, exist_ok=True)
+        self.eval()
+
+        encoder = self.encoder.cpu()
+        num_peaks = self.model_settings.number_of_bins()
+        num_metadata = len(self.model_settings.additional_metadata) if self.model_settings.additional_metadata else 0
+
+        dummy_peaks = randn(1, num_peaks)
+        dummy_meta = randn(1, num_metadata)
+        dummy_inputs = (dummy_peaks, dummy_meta)
+
+        batch_size = Dim("batch_size", min=1)
+
+        input_names = ["spectra_tensors", "metadata_tensors"]
+        dynamic_shapes = {
+            "spectra_tensors": {0: batch_size},
+            "metadata_tensors": {0: batch_size},
+        }
+
+        onnx_file = Path(output_dir, model_name).with_suffix(".onnx")
+
+        onnx_program = export(
+            encoder,
+            dummy_inputs,
+            dynamo=True,
+            export_params=True,
+            input_names=input_names,
+            output_names=["embedding"],
+            dynamic_shapes=dynamic_shapes,
+        )
+
+        onnx_model = onnx_program.model_proto
+
+        # Some keys are required for inference
+        required_keys = [
+            "embedding_dim",
+            "intensity_scaling",
+            "min_mz",
+            "max_mz",
+            "mz_bin_width",
+            "number_of_bins",
+        ]
+
+        for key in required_keys:
+            if not hasattr(self.model_settings, key):
+                logger.error(
+                    f"SettingsMS2Deepscore model_settings do not contain required attribute {key}. Inference may not work."
+                )
+
+        # Add inference settings
+        training_metadata = onnx_model.metadata_props.add()
+        training_metadata.key = "settings"
+        training_metadata.value = json.dumps(self.model_settings.get_dict())
+
+        onnx.save(onnx_model, onnx_file)
 
 
 class PeakBinner(nn.Module):
@@ -431,12 +510,13 @@ def dense_layer(input_size, output_size, activation="lrelu"):
 
 
 def compute_embedding_array(
-        model: SiameseSpectralModel,
-        spectra,
-        datatype="numpy",
-        device=None,
-        progress_bar: bool = True,
-        batch_size: int = 1024):
+    model: SiameseSpectralModel,
+    spectra,
+    datatype="numpy",
+    device=None,
+    progress_bar: bool = True,
+    batch_size: int = 1024,
+):
     """
     Compatibility wrapper.
 
