@@ -4,8 +4,7 @@ from matchms import Spectrum
 from matchms.similarity.BaseSimilarity import BaseSimilarity
 from ms2deepscore.models.LinearEmbeddingEvaluation import \
     compute_error_predictions
-from ms2deepscore.models.SiameseSpectralModel import (SiameseSpectralModel,
-                                                      compute_embedding_array)
+from ms2deepscore.models.SiameseSpectralModel import SiameseSpectralModel
 from ms2deepscore.vector_operations import (cosine_similarity,
                                             cosine_similarity_matrix)
 
@@ -69,8 +68,13 @@ class MS2DeepScoreEvaluated(BaseSimilarity):
         self.output_vector_dim = self.model.model_settings.embedding_dim
         self.progress_bar = progress_bar
 
-    def get_embedding_array(self, spectrums, datatype="numpy"):
-        return compute_embedding_array(self.model, spectrums, datatype)
+    def get_embedding_array(self, spectrums, datatype="numpy", batch_size=1024):
+        return self.model.compute_embedding_array(
+            spectrums,
+            datatype=datatype,
+            batch_size=batch_size,
+            progress_bar=self.progress_bar,
+        )
 
     def get_embedding_evaluations(self, embeddings):
         """Compute the RMSE.

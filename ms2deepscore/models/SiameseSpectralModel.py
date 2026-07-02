@@ -1,13 +1,14 @@
 import logging
 import os
 import json
+from typing import Optional, Union, Dict, Any, Literal
 from pathlib import Path
-from typing import Any, Dict, Optional, Union
 import numpy as np
 import onnx
-from torch import cat, cuda
+import torch
+from torch import save, cat, no_grad
 from torch import device as torch_device
-from torch import nn, no_grad, randn, save, zeros
+from torch import nn, randn, save, zeros
 from torch.export.dynamic_shapes import Dim
 from torch.nn.functional import relu
 from torch.onnx import export
@@ -82,6 +83,93 @@ class SiameseSpectralModel(nn.Module):
         # Important: no custom objects outside tensors/strings/primitives.
         save(checkpoint, str(filepath))
 
+    
+    def compute_embedding_array(
+        self,
+        spectra,
+        datatype: Literal["numpy", "pytorch"] = "numpy",
+        device: Optional[torch.device | str] = None,
+        batch_size: int = 1024,
+        progress_bar: bool = True,
+    ):
+        """
+        Compute embeddings for a list of matchms Spectrum objects.
+
+        Parameters
+        ----------
+        spectra:
+            List of spectra to embed.
+        datatype:
+            "numpy" returns a NumPy array.
+            "pytorch" returns a CPU torch tensor.
+        device:
+            Device used for inference. If None, CUDA is used when available.
+        batch_size:
+            Number of spectra processed per encoder forward pass.
+        progress_bar:
+            Show progress bar.
+
+        Returns
+        -------
+        np.ndarray or torch.Tensor
+            Embedding array with shape (n_spectra, embedding_dim).
+        """
+        datatype = datatype.lower()
+        if datatype not in {"numpy", "pytorch"}:
+            raise ValueError("datatype can only be 'numpy' or 'pytorch'.")
+
+        if batch_size <= 0:
+            raise ValueError("batch_size must be a positive integer.")
+
+        if device is None:
+            device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        else:
+            device = torch.device(device)
+
+        n_spectra = len(spectra)
+        embedding_dim = self.model_settings.embedding_dim
+
+        self.to(device)
+        self.eval()
+
+        if datatype == "numpy":
+            embeddings = np.empty((n_spectra, embedding_dim), dtype=np.float32)
+        else:
+            embeddings = torch.empty((n_spectra, embedding_dim), dtype=torch.float32)
+
+        batch_starts = range(0, n_spectra, batch_size)
+
+        with no_grad():
+            with tqdm(
+                total=n_spectra,
+                desc="Computing spectral embeddings ...",
+                unit="spectrum",
+                disable=not progress_bar,
+            ) as progress:
+                for start in batch_starts:
+                    stop = min(start + batch_size, n_spectra)
+                    batch_spectra = spectra[start:stop]
+
+                    spectra_tensors, metadata_tensors = tensorize_spectra(
+                        batch_spectra,
+                        self.model_settings,
+                    )
+
+                    batch_embeddings = self.encoder(
+                        spectra_tensors.to(device),
+                        metadata_tensors.to(device),
+                    ).detach().cpu()
+
+                    if datatype == "numpy":
+                        embeddings[start:stop, :] = batch_embeddings.numpy()
+                    else:
+                        embeddings[start:stop, :] = batch_embeddings
+
+                    progress.update(stop - start)
+
+        return embeddings
+      
+    
     def export_to_onnx(self, output_dir: Union[str, Path], model_name: str = "ms2deepscore_model") -> None:
         """Exports a trained pytorch model to onnx.
 
@@ -420,48 +508,22 @@ def dense_layer(input_size, output_size, activation="lrelu"):
 
 
 def compute_embedding_array(
-    model: SiameseSpectralModel,
-    spectra,
-    datatype="numpy",
-    device=None,
-    progress_bar: bool = True,
-):
+        model: SiameseSpectralModel,
+        spectra,
+        datatype="numpy",
+        device=None,
+        progress_bar: bool = True,
+        batch_size: int = 1024):
     """
-    Compute the embeddings of all given spectra (list of matchms Spectrum objects).
+    Compatibility wrapper.
 
-    Parameters
-    ----------
-    model:
-        A trained SiameseSpectralModel used to compute spectral embeddings.
-    spectra:
-        A list (or other iterable) of spectra to be embedded.
-    datatype:
-        Determines the output type of the embedding array:
-        - "numpy": returns a NumPy array of shape (n_spectra, embedding_dim).
-        - "pytorch": returns a PyTorch tensor of shape (n_spectra, embedding_dim).
-    device:
-        The device on which to perform the computation.
-        If None, it automatically uses CUDA if available, otherwise CPU.
-    progress_bar:
-        Whether to display a progress bar during embedding computation.
+    Prefer:
+        model.compute_embedding_array(...)
     """
-    if datatype.lower() not in ["numpy", "pytorch"]:
-        raise ValueError("datatype can only be 'numpy' or 'pytorch'.")
-    if datatype.lower() == "numpy":
-        embeddings = np.zeros((len(spectra), model.model_settings.embedding_dim))
-    else:
-        embeddings = zeros((len(spectra), model.model_settings.embedding_dim))
-
-    if device is None:
-        device = torch_device("cuda" if cuda.is_available() else "cpu")
-    model.to(device)
-    for i, spec in tqdm(
-        enumerate(spectra), total=len(spectra), desc="Computing spectral embeddings ...", disable=not progress_bar
-    ):
-        X = tensorize_spectra([spec], model.model_settings)
-        with no_grad():
-            if datatype.lower() == "numpy":
-                embeddings[i, :] = model.encoder(X[0].to(device), X[1].to(device)).cpu().detach().numpy()
-            else:
-                embeddings[i, :] = model.encoder(X[0].to(device), X[1].to(device)).cpu().detach()
-    return embeddings
+    return model.compute_embedding_array(
+        spectra,
+        datatype=datatype,
+        device=device,
+        progress_bar=progress_bar,
+        batch_size=batch_size,
+    )
