@@ -1,5 +1,6 @@
 import numpy as np
 import pytest
+import torch
 from matchms import Spectrum
 from ms2deepscore.models.SiameseSpectralModel import (SiameseSpectralModel,
                                                       train)
@@ -151,3 +152,66 @@ def test_model_training(simple_training_spectra):
     # Check if bias in data is handled correctly
     assert (np.array(history["collection_targets"]) == 1).sum() == 200
     assert (np.array(history["collection_targets"]) < .2).sum() == 200
+
+
+def test_siamese_model_compute_embedding_array_batched(dummy_spectra):
+    """Test that batched embedding computation matches single-spectrum batching."""
+    settings = SettingsMS2Deepscore(
+        mz_bin_width=1.0,
+        base_dims=(100,),
+        embedding_dim=20,
+        train_binning_layer=False,
+    )
+    model = SiameseSpectralModel(settings)
+
+    embeddings_batch_size_1 = model.compute_embedding_array(
+        dummy_spectra,
+        datatype="numpy",
+        batch_size=1,
+        progress_bar=False,
+    )
+    embeddings_batch_size_2 = model.compute_embedding_array(
+        dummy_spectra,
+        datatype="numpy",
+        batch_size=2,
+        progress_bar=False,
+    )
+
+    assert isinstance(embeddings_batch_size_1, np.ndarray)
+    assert isinstance(embeddings_batch_size_2, np.ndarray)
+    assert embeddings_batch_size_1.shape == (len(dummy_spectra), settings.embedding_dim)
+    assert embeddings_batch_size_2.shape == (len(dummy_spectra), settings.embedding_dim)
+    assert np.allclose(embeddings_batch_size_1, embeddings_batch_size_2, atol=1e-6)
+
+    embeddings_torch = model.compute_embedding_array(
+        dummy_spectra,
+        datatype="pytorch",
+        batch_size=2,
+        progress_bar=False,
+    )
+
+    assert isinstance(embeddings_torch, torch.Tensor)
+    assert embeddings_torch.shape == (len(dummy_spectra), settings.embedding_dim)
+    assert embeddings_torch.device.type == "cpu"
+    assert not embeddings_torch.requires_grad
+    assert np.allclose(
+        embeddings_batch_size_2,
+        embeddings_torch.numpy(),
+        atol=1e-6,
+    )
+
+
+def test_siamese_model_compute_embedding_array_invalid_datatype(dummy_spectra):
+    settings = SettingsMS2Deepscore(
+        mz_bin_width=1.0,
+        base_dims=(100,),
+        embedding_dim=20,
+    )
+    model = SiameseSpectralModel(settings)
+
+    with pytest.raises(ValueError, match="datatype"):
+        model.compute_embedding_array(
+            dummy_spectra,
+            datatype="invalid",
+            progress_bar=False,
+        )
