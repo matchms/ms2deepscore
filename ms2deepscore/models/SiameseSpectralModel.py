@@ -186,6 +186,7 @@ class SiameseSpectralModel(nn.Module):
         out_path.mkdir(parents=True, exist_ok=True)
         self.eval()
 
+        original_device = next(self.encoder.parameters()).device
         encoder = self.encoder.cpu()
         num_peaks = self.model_settings.number_of_bins()
         num_metadata = len(self.model_settings.additional_metadata) if self.model_settings.additional_metadata else 0
@@ -204,15 +205,18 @@ class SiameseSpectralModel(nn.Module):
 
         onnx_file = Path(output_dir, model_name).with_suffix(".onnx")
 
-        onnx_program = export(
-            encoder,
-            dummy_inputs,
-            dynamo=True,
-            export_params=True,
-            input_names=input_names,
-            output_names=["embedding"],
-            dynamic_shapes=dynamic_shapes,
-        )
+        try:
+            onnx_program = export(
+                encoder,
+                dummy_inputs,
+                dynamo=True,
+                export_params=True,
+                input_names=input_names,
+                output_names=["embedding"],
+                dynamic_shapes=dynamic_shapes,
+            )
+        finally:
+            self.encoder.to(original_device)
 
         onnx_model = onnx_program.model_proto
 
