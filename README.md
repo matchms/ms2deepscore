@@ -33,7 +33,7 @@ Nature Communications, 17, 2483 (2026). [doi: https://doi.org/10.1101/2024.03.25
 ## Setup
 ### Requirements
 
-Python 3.11, 3.12 (higher will likely work, but is not tested systematically).
+Python 3.11, 3.12, 3.13 (higher will likely work, but is not tested systematically).
 
 ### Installation
 Installation is expected to take 10-20 minutes.
@@ -126,6 +126,7 @@ This intermediate product can also be used to visualize spectra in "chemical spa
 
 ```python
 from ms2deepscore import MS2DeepScore, MS2DeepScoreONNX
+from ms2deepscore.models import SiameseSpectralModelONNX
 
 cleaned_spectra = pipeline.spectra_queries
 
@@ -133,7 +134,8 @@ ms2ds_model = MS2DeepScore(model)
 ms2ds_embeddings = ms2ds_model.get_embedding_array(cleaned_spectra)
 
 # Hardware accelerated version:
-ms2ds_model = MS2DeepScoreONNX("ms2deepscore_model.onnx")
+model = SiameseSpectralModelONNX("ms2deepscore_model.onnx")
+ms2ds_model = MS2DeepScoreONNX(model)
 ms2ds_embeddings = ms2ds_model.get_embedding_array(cleaned_spectra)
 ```
 The [tutorial](https://github.com/matchms/ms2deepscore/blob/main/notebooks/MS2DeepScore_tutorial.ipynb) shows how to use these embeddings to create an interactive UMAP with overlaying smiles.
@@ -171,7 +173,8 @@ train_ms2deepscore_wrapper(
 ```
 
 ### Model conversion
-For inference you can convert your .pt model to .onnx:
+In version 2.9 and earlier we used .pt models. But since ONNX models enable faster inference we changed to ONNX.
+If you have your own models that you would like to have converted to onnx, you can convert it using the code below.
 ```python
 from ms2deepscore.models import load_model
 
