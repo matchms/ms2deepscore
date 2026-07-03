@@ -72,12 +72,9 @@ class SiameseSpectralModelONNX:
             raise ValueError("batch_size must be a positive integer.")
 
         settings = self.model_settings
-
-        x_binned, x_metadata = tensorize_spectra_onnx(spectra, settings)
-
         onnx_inputs = {inp.name for inp in self.session.get_inputs()}
         has_metadata = "metadata_tensors" in onnx_inputs
-        num_samples = x_binned.shape[0]
+        num_samples = len(spectra)
         embedding_dim = settings.embedding_dim
         embeddings = np.zeros((num_samples, embedding_dim), dtype=np.float32)
 
@@ -85,9 +82,11 @@ class SiameseSpectralModelONNX:
             for start in range(0, num_samples, batch_size):
                 end = min(start + batch_size, num_samples)
 
-                input_feed = {"spectra_tensors": x_binned[start:end]}
+                x_binned, x_metadata = tensorize_spectra_onnx(spectra[start:end], settings)
+
+                input_feed = {"spectra_tensors": x_binned}
                 if has_metadata:
-                    input_feed["metadata_tensors"] = x_metadata[start:end]
+                    input_feed["metadata_tensors"] = x_metadata
 
                 embeddings[start:end] = self.session.run(["embedding"], input_feed)[0]
 
