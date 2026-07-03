@@ -53,6 +53,18 @@ def model_settings_with_metadata():
 
 
 @pytest.fixture
+def model_settings_with_multiple_metadata():
+    return SettingsMS2Deepscore(
+        mz_bin_width=1.0,
+        additional_metadata=[
+            ("StandardScaler", {"metadata_field": "precursor_mz", "mean": 200.0, "standard_deviation": 250.0}),
+            ("OneHotEncoder", {"metadata_field": "precursor_mz", "entries_becoming_one": 222.2}),
+        ],
+        train_binning_layer=False,
+    )
+
+
+@pytest.fixture
 def exported_onnx_model(tmp_path, model_settings):
     """Exports a SiameseSpectralModel to ONNX and returns the path."""
     pytorch_model = SiameseSpectralModel(model_settings)
@@ -72,6 +84,13 @@ def exported_onnx_model_with_metadata(tmp_path, model_settings_with_metadata):
 def onnx_model(exported_onnx_model):
     """Returns a loaded SiameseSpectralModelONNX."""
     return SiameseSpectralModelONNX(exported_onnx_model)
+
+
+@pytest.fixture
+def exported_onnx_model_with_multiple_metadata(tmp_path, model_settings_with_multiple_metadata):
+    pytorch_model = SiameseSpectralModel(model_settings_with_multiple_metadata)
+    pytorch_model.export_to_onnx(tmp_path, model_name="test_model_multi_meta")
+    return tmp_path / "test_model_multi_meta.onnx"
 
 
 # ---------------------------------------------------------------------------
@@ -125,6 +144,31 @@ def test_validate_onnx_session_missing_output():
 
 
 # ---------------------------------------------------------------------------
+# expected_metadata
+# ---------------------------------------------------------------------------
+
+def test_expected_metadata_width_no_metadata(onnx_model):
+    """Width is 0 when model has no additional_metadata."""
+    assert onnx_model._expected_metadata_width() == 0
+
+def test_expected_metadata_width_with_metadata(exported_onnx_model_with_metadata):
+    """Width matches the number of configured metadata generators."""
+    model = SiameseSpectralModelONNX(exported_onnx_model_with_metadata)
+    assert model._expected_metadata_width() == 1
+
+def test_expected_metadata_width_missing_input_returns_none():
+    """Returns None if session has no metadata_tensors input at all."""
+    session = MagicMock()
+    inp = MagicMock()
+    inp.name = "spectra_tensors"
+    session.get_inputs.return_value = [inp]
+
+    model = SiameseSpectralModelONNX.__new__(SiameseSpectralModelONNX)
+    model.session = session
+    assert model._expected_metadata_width() is None
+
+
+# ---------------------------------------------------------------------------
 # compute_embedding_array
 # ---------------------------------------------------------------------------
 
@@ -166,6 +210,22 @@ def test_compute_embedding_array_no_binning_layer(exported_onnx_model, dummy_spe
     assert not model.model_settings.train_binning_layer
     embeddings = model.compute_embedding_array(dummy_spectra, progress_bar=False)
     assert embeddings.shape[0] == len(dummy_spectra)
+
+
+def test_compute_embedding_array_metadata_mismatch_raises(exported_onnx_model_with_metadata, dummy_spectra):
+    """A mismatch between settings and the exported metadata width raises a clear error."""
+    model = SiameseSpectralModelONNX(exported_onnx_model_with_metadata)
+    model.model_settings.additional_metadata = []
+
+    with pytest.raises(ValueError, match="metadata_tensors has"):
+        model.compute_embedding_array(dummy_spectra, progress_bar=False)
+
+
+def test_compute_embedding_array_multiple_metadata_columns(exported_onnx_model_with_multiple_metadata, dummy_spectra):
+    """Multiple metadata generators produce matching width without mismatch errors."""
+    model = SiameseSpectralModelONNX(exported_onnx_model_with_multiple_metadata)
+    embeddings = model.compute_embedding_array(dummy_spectra, progress_bar=False)
+    assert embeddings.shape == (len(dummy_spectra), model.model_settings.embedding_dim)
 
 
 # ---------------------------------------------------------------------------

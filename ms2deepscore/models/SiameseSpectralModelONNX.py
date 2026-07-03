@@ -72,8 +72,7 @@ class SiameseSpectralModelONNX:
             raise ValueError("batch_size must be a positive integer.")
 
         settings = self.model_settings
-        onnx_inputs = {inp.name for inp in self.session.get_inputs()}
-        has_metadata = "metadata_tensors" in onnx_inputs
+        metadata_width = self._expected_metadata_width()
         num_samples = len(spectra)
         embedding_dim = settings.embedding_dim
         embeddings = np.zeros((num_samples, embedding_dim), dtype=np.float32)
@@ -85,7 +84,11 @@ class SiameseSpectralModelONNX:
                 x_binned, x_metadata = tensorize_spectra_onnx(spectra[start:end], settings)
 
                 input_feed = {"spectra_tensors": x_binned}
-                if has_metadata:
+                if metadata_width is not None:
+                    if x_metadata.shape[1] != metadata_width:
+                        raise ValueError(
+                            f"metadata_tensors has {x_metadata.shape[1]} columns, ONNX model expects {metadata_width}."
+                        )
                     input_feed["metadata_tensors"] = x_metadata
 
                 embeddings[start:end] = self.session.run(["embedding"], input_feed)[0]
@@ -94,6 +97,13 @@ class SiameseSpectralModelONNX:
 
         return embeddings
 
+    def _expected_metadata_width(self) -> int | None:
+        """Static (non-batch) width of the metadata_tensors input, if fixed in the ONNX graph."""
+        for inp in self.session.get_inputs():
+            if inp.name == "metadata_tensors":
+                width = inp.shape[1]
+                return width if isinstance(width, int) else None
+        return None
 
 def configure_onnx_providers(precision: Literal[16, 32] = 32) -> list:
     """
