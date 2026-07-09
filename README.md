@@ -79,6 +79,8 @@ The model works for spectra in both positive and negative ionization modes and e
 To compute the similarities between spectra of your choice you can run the code below.
 There is a small example dataset available in the folder "./tests/resources/pesticides_processed.mgf". 
 Alternatively you can of course use your own spectra, most common formats are supported, e.g. msp, mzml, mgf, mzxml, json, usi.
+
+### Pytorch version
 ```python
 from ms2deepscore.models import load_model
 from matchms.Pipeline import Pipeline, create_workflow
@@ -89,7 +91,7 @@ model_file_name = "ms2deepscore_model.pt"
 spectrum_file_name = "pesticides.mgf"
 
 # load in the ms2deepscore model
-model = load_model(model_file_name)
+model = load_model(model_file_name, allow_legacy=True)
 
 pipeline = Pipeline(create_workflow(query_filters=DEFAULT_FILTERS,
                                     score_computations=[[MS2DeepScore, {"model": model}]]))
@@ -98,7 +100,8 @@ similarity_matrix = pipeline.scores.to_array()
 ```
 The resulting similarity matrix, is a numpy array containing all the MS2DeepScore predictions between all spectra.
 
-To use the hardware accelerated version (see Prepare environment):
+### Hardware accelerated version (ONNX)
+To use the hardware accelerated version with .onnx models (see Prepare environment):
 ```python
 from matchms.Pipeline import Pipeline, create_workflow
 from matchms.filtering.default_pipelines import DEFAULT_FILTERS
@@ -123,18 +126,28 @@ similarity_matrix = pipeline.scores.to_array()
 
 To calculate chemical similarity scores, MS2DeepScore first calculates an embedding (vector) representing each spectrum. 
 This intermediate product can also be used to visualize spectra in "chemical space" by using a dimensionality reduction technique, like UMAP.
+You can either use the Pytorch version or the hardware accelerated version (ONNX) to create embeddings.
 
+### Pytorch version
 ```python
-from ms2deepscore import MS2DeepScore, MS2DeepScoreONNX
-from ms2deepscore.models import SiameseSpectralModelONNX
+from ms2deepscore import MS2DeepScore
+from ms2deepscore.models import load_model
 
+model = load_model("ms2deepscore_model.pt", allow_legacy=True)
 cleaned_spectra = pipeline.spectra_queries
 
 ms2ds_model = MS2DeepScore(model)
 ms2ds_embeddings = ms2ds_model.get_embedding_array(cleaned_spectra)
+```
 
-# Hardware accelerated version:
+### Hardware accelerated version (ONNX)
+```python
+from ms2deepscore import MS2DeepScoreONNX
+from ms2deepscore.models import SiameseSpectralModelONNX
+
 model = SiameseSpectralModelONNX("ms2deepscore_model.onnx")
+cleaned_spectra = pipeline.spectra_queries
+
 ms2ds_model = MS2DeepScoreONNX(model)
 ms2ds_embeddings = ms2ds_model.get_embedding_array(cleaned_spectra)
 ```
