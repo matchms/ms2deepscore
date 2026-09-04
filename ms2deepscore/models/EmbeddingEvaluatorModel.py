@@ -6,7 +6,7 @@ from torch import float32, cuda, tensor, cat
 from torch import device as torch_device
 from torch import no_grad
 import torch.nn.functional as F
-from matchms.Spectrum import Spectrum
+from matchms import Spectrum
 from torch import nn, optim
 from ms2deepscore.__version__ import __version__
 from ms2deepscore.models.helper_functions import initialize_device
