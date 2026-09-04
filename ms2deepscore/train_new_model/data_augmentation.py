@@ -1,5 +1,6 @@
 import numpy as np
-from torch import where, rand
+import torch
+from torch import where
 
 from ms2deepscore import SettingsMS2Deepscore
 
@@ -13,24 +14,28 @@ def data_augmentation(spectra_tensors, model_settings: SettingsMS2Deepscore, ran
 
 
 def data_augmentation_spectrum(spectrum_tensor, model_settings: SettingsMS2Deepscore, random_number_generator):
-    """Data augmentation.
-
+    """Apply reproducible peak-removal, intensity, and noise augmentation.
+    
     Parameters
     ----------
-    spectrum_tensor
-        Spectrum in Pytorch tensor form.
+    spectrum_tensor : torch.Tensor
+        A 1D tensor representing the spectrum to be augmented.
+    model_settings : SettingsMS2Deepscore
+        Settings object containing augmentation parameters.
+    random_number_generator : np.random.Generator
+        A random number generator for reproducibility.
     """
-    # Augmentation 1: peak removal (peaks < augment_removal_max)
     peak_removal_for_data_augmentation(
         spectrum_tensor,
         model_settings.augment_removal_max,
         model_settings.augment_removal_intensity,
         random_number_generator,
     )
-
-    # Augmentation 2: Change peak intensities
-    change_peak_intensity_for_data_augmentation(spectrum_tensor, model_settings.augment_intensity)
-
+    change_peak_intensity_for_data_augmentation(
+        spectrum_tensor,
+        model_settings.augment_intensity,
+        random_number_generator,
+    )
     peak_addition_for_data_augmentation(
         spectrum_tensor,
         model_settings.augment_noise_max,
@@ -43,9 +48,10 @@ def data_augmentation_spectrum(spectrum_tensor, model_settings: SettingsMS2Deeps
 def peak_removal_for_data_augmentation(
     spectrum_tensor, augment_removal_max, augment_removal_intensity, random_number_generator
 ):
-    """Removes small peaks at random for data augmentation.
+    """Remove up to ``augment_removal_max`` of eligible low-intensity peaks.
 
     Parameters
+    ----------
     spectrum_tensor:
         Tensorized spectrum
     augment_removal_max
@@ -56,53 +62,74 @@ def peak_removal_for_data_augmentation(
     augment_removal_intensity
         Specifying that only peaks with intensities < max_intensity will be removed.
     random_number_generator
-        Random number generator used to generate random numbers. Can be generated with np.random.default_rng(42)
+        Random number generator used to generate random numbers. 
     """
-    if augment_removal_max or augment_removal_intensity:
-        bin_indices_below_removal_intensity = where(
-            (spectrum_tensor > 0) & (spectrum_tensor < augment_removal_intensity)
-        )[0]
-        fraction_of_noise_to_remove = random_number_generator.random() * augment_removal_max
-        number_of_peaks_to_remove = int(
-            np.ceil((1 - fraction_of_noise_to_remove) * len(bin_indices_below_removal_intensity))
-        )
-        indices = random_number_generator.choice(
-            bin_indices_below_removal_intensity, number_of_peaks_to_remove, replace=False
-        )
-        if len(indices) > 0:
-            spectrum_tensor[indices] = 0
+    if augment_removal_max <= 0:
+        return
+
+    candidate_indices = where(
+        (spectrum_tensor > 0) & (spectrum_tensor < augment_removal_intensity)
+    )[0]
+    if len(candidate_indices) == 0:
+        return
+
+    fraction_to_remove = random_number_generator.random() * augment_removal_max
+    number_of_peaks_to_remove = int(fraction_to_remove * len(candidate_indices))
+    if number_of_peaks_to_remove == 0:
+        return
+
+    indices = random_number_generator.choice(
+        candidate_indices.cpu().numpy(), number_of_peaks_to_remove, replace=False
+    )
+    spectrum_tensor[torch.as_tensor(indices, device=spectrum_tensor.device)] = 0
 
 
-def change_peak_intensity_for_data_augmentation(spectrum_tensor, augment_intensity):
+def change_peak_intensity_for_data_augmentation(
+    spectrum_tensor, augment_intensity, random_number_generator=None
+):
+    if random_number_generator is None:
+        random_number_generator = np.random.default_rng()
     if augment_intensity:
-        spectrum_tensor.mul_(1 - augment_intensity * 2 * (rand(spectrum_tensor.shape) - 0.5))
+        factors = random_number_generator.uniform(
+            1 - augment_intensity,
+            1 + augment_intensity,
+            size=tuple(spectrum_tensor.shape),
+        )
+        spectrum_tensor.mul_(
+            torch.as_tensor(
+                factors,
+                dtype=spectrum_tensor.dtype,
+                device=spectrum_tensor.device,
+            )
+        )
 
 
 def peak_addition_for_data_augmentation(
     spectrum_tensor, augment_noise_max, augment_noise_intensity, random_number_generator
 ):
-    """Adds noise to a spectrum tensor
-    spectrum_tensor:
-        Tensorized spectrum
-    augment_noise_max
-        Max number of 'new' noise peaks to add to the spectrum, between 0 to `augment_noise_max`
-        of peaks are added.
-    augment_noise_intensity
-        maximum intensity of the 'new' noise peaks to add to the spectrum,
-    random_number_generator
-        Random number generator used to generate random numbers. Can be generated with np.random.default_rng(42)
-    """
-    if augment_noise_max and augment_noise_max > 0:
-        bin_indices_zero = where(spectrum_tensor == 0)[0]
-        number_of_noise_peaks_to_add = random_number_generator.integers(0, augment_noise_max)
-        if len(bin_indices_zero) > number_of_noise_peaks_to_add:
-            selected_bin_indices_to_add_noise = random_number_generator.choice(
-                bin_indices_zero,
-                number_of_noise_peaks_to_add,
-                replace=False,
-            )
-        else:
-            selected_bin_indices_to_add_noise = bin_indices_zero
-        spectrum_tensor[selected_bin_indices_to_add_noise] = augment_noise_intensity * rand(
-            len(selected_bin_indices_to_add_noise)
+    """Add between 0 and ``augment_noise_max`` random noise peaks inclusive."""
+    if not augment_noise_max or augment_noise_max <= 0:
+        return
+
+    bin_indices_zero = where(spectrum_tensor == 0)[0]
+    number_of_noise_peaks_to_add = int(
+        random_number_generator.integers(0, int(augment_noise_max) + 1)
+    )
+    if number_of_noise_peaks_to_add == 0 or len(bin_indices_zero) == 0:
+        return
+
+    available = bin_indices_zero.cpu().numpy()
+    if len(available) > number_of_noise_peaks_to_add:
+        selected = random_number_generator.choice(
+            available, number_of_noise_peaks_to_add, replace=False
         )
+    else:
+        selected = available
+
+    noise = random_number_generator.random(len(selected)) * augment_noise_intensity
+    selected_tensor = torch.as_tensor(selected, device=spectrum_tensor.device)
+    spectrum_tensor[selected_tensor] = torch.as_tensor(
+        noise,
+        dtype=spectrum_tensor.dtype,
+        device=spectrum_tensor.device,
+    )
