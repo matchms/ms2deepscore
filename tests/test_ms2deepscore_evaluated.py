@@ -1,6 +1,7 @@
 from pathlib import Path
 import numpy as np
 from ms2deepscore import MS2DeepScoreEvaluated
+from ms2deepscore.matchms_compat import MATCHMS_V1_API
 from ms2deepscore.SettingsMS2Deepscore import SettingsEmbeddingEvaluator
 from ms2deepscore.models import load_model, LinearModel, EmbeddingEvaluationModel
 from tests.create_test_spectra import pesticides_test_spectra
@@ -48,6 +49,8 @@ def test_MS2DeepScore_score_matrix():
     """Test score calculation using *.matrix* method."""
     spectrums, similarity_measure = get_test_ms2deepscore_evaluated_instance()
     scores = similarity_measure.matrix(spectrums[:3], spectrums[:4])
+    if MATCHMS_V1_API:
+        scores = scores.to_array("score")
 
     expected_scores = np.array([
         [1.        , 0.9903664 , 0.9908498 , 0.98811793],

@@ -3,6 +3,7 @@ import numpy as np
 import pytest
 
 from ms2deepscore import MS2DeepScoreONNX
+from ms2deepscore.matchms_compat import MATCHMS_V1_API
 from ms2deepscore.models import SiameseSpectralModelONNX
 from tests.create_test_spectra import pesticides_test_spectra
 
@@ -43,6 +44,8 @@ def test_MS2DeepScoreONNX_score_matrix():
     """Test score calculation using *.matrix* method."""
     spectrums, model, similarity_measure = get_test_ms2deepscore_onnx_instance()
     scores = similarity_measure.matrix(spectrums[:4], spectrums[:3])
+    if MATCHMS_V1_API:
+        scores = scores.to_array("score")
 
     expected_scores = np.array(
         [
@@ -61,7 +64,10 @@ def test_MS2DeepScoreONNX_score_matrix():
 def test_MS2DeepScoreONNX_score_matrix_symmetric():
     """Test score calculation using *.matrix* method with is_symmetric=True."""
     spectrums, model, similarity_measure = get_test_ms2deepscore_onnx_instance()
-    scores = similarity_measure.matrix(spectrums[:4], spectrums[:4], is_symmetric=True)
+    if MATCHMS_V1_API:
+        scores = similarity_measure.matrix(spectrums[:4]).to_array("score")
+    else:
+        scores = similarity_measure.matrix(spectrums[:4], spectrums[:4], is_symmetric=True)
 
     expected_scores = np.array(
         [
@@ -77,10 +83,11 @@ def test_MS2DeepScoreONNX_score_matrix_symmetric():
 
 def test_MS2DeepScoreONNX_score_matrix_symmetric_wrong_use():
     """Test if *.matrix* method gives correct exception when references != queries."""
-    spectrums, _, similarity_measure = get_test_ms2deepscore_onnx_instance()
-    expected_msg = "Expected references to be equal to queries for is_symmetric=True"
+    if not MATCHMS_V1_API:  # test makes no sense for matchms >= 1.0
+        spectrums, _, similarity_measure = get_test_ms2deepscore_onnx_instance()
+        expected_msg = "Expected references to be equal to queries for is_symmetric=True"
 
-    with pytest.raises(AssertionError) as msg:
-        _ = similarity_measure.matrix(spectrums[:4], [spectrums[i] for i in [1, 2, 3, 0]], is_symmetric=True)
+        with pytest.raises(AssertionError) as msg:
+            _ = similarity_measure.matrix(spectrums[:4], [spectrums[i] for i in [1, 2, 3, 0]], is_symmetric=True)
 
-    assert expected_msg in str(msg.value), "Expected different exception message"
+        assert expected_msg in str(msg.value), "Expected different exception message"
