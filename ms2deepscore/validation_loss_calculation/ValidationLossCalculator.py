@@ -19,6 +19,7 @@ class ValidationLossCalculator:
         val_spectrums,
         settings: SettingsMS2Deepscore,
         chunk_size: int = 10_000,
+        tanimoto_scores: pd.DataFrame | None = None,
     ):
         """
         Parameters:
@@ -38,12 +39,15 @@ class ValidationLossCalculator:
         self.inchikeys14 = [spectrum.get("inchikey")[:14] for spectrum in self.val_spectrums]
         self.unique_inchikeys14 = sorted(set(self.inchikeys14))
 
-        self.tanimoto_scores = calculate_tanimoto_scores_unique_inchikey(
-            list_of_spectra_1=self.val_spectrums,
-            list_of_spectra_2=None,
-            fingerprint_type=self.settings.fingerprint_type,
-            nbits=self.settings.fingerprint_nbits
-        )
+        if tanimoto_scores is None:
+            self.tanimoto_scores = calculate_tanimoto_scores_unique_inchikey(
+                list_of_spectra_1=self.val_spectrums,
+                list_of_spectra_2=None,
+                fingerprint_type=self.settings.fingerprint_type,
+                nbits=self.settings.fingerprint_nbits,
+            )
+        else:
+            self.tanimoto_scores = tanimoto_scores
 
     @staticmethod
     def _chunk_indices(n_items: int, chunk_size: int):
@@ -213,6 +217,18 @@ class ValidationLossCalculator:
                         block_sum,
                         block_count,
                     )
+                    # Only upper-triangular chunk pairs are computed. Mirror
+                    # off-diagonal blocks so every directed InChIKey pair is
+                    # represented consistently. Otherwise pairs that happen to
+                    # fall in the same chunk were counted in both directions,
+                    # while cross-chunk pairs were present in only one.
+                    if chunk_idx_i != chunk_idx_j:
+                        self._update_global_pair_accumulators(
+                            loss_sum_per_type[loss_type],
+                            loss_count_per_type[loss_type],
+                            block_sum.T,
+                            block_count.T,
+                        )
 
         average_loss_per_type = {}
         for loss_type in loss_types:
