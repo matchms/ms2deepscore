@@ -15,6 +15,8 @@ from ms2deepscore.train_new_model import TrainingBatchGenerator, create_spectrum
 from ms2deepscore.train_new_model.inchikey_pair_selection_cross_ionmode import create_data_generator_across_ionmodes
 from ms2deepscore.validation_loss_calculation.ValidationLossCalculator import \
     ValidationLossCalculator
+from ms2deepscore.pair_selection_cache import resolve_pair_selection_cache_directory
+from ms2deepscore.models.load_model import load_model
 
 
 def train_ms2ds_model(
@@ -31,7 +33,11 @@ def train_ms2ds_model(
     if settings.balanced_sampling_across_ionmodes:
         train_generator = create_data_generator_across_ionmodes(training_spectra, settings=settings)
     else:
-        spectrum_pair_generator = create_spectrum_pair_generator(training_spectra, settings=settings)
+        spectrum_pair_generator = create_spectrum_pair_generator(
+            training_spectra,
+            settings=settings,
+            cache_directory=resolve_pair_selection_cache_directory(settings, fallback_root=results_folder),
+        )
         train_generator = TrainingBatchGenerator(spectrum_pair_generator=spectrum_pair_generator, settings=settings)
     # Create a validation loss calculator
     validation_loss_calculator = ValidationLossCalculator(validation_spectra,
@@ -49,6 +55,12 @@ def train_ms2ds_model(
                     patience=settings.patience,
                     loss_function=settings.loss_function,
                     checkpoint_filename=output_model_file_name, lambda_l1=0, lambda_l2=0)
+    # ``train`` checkpoints the best validation model, while ``model`` contains
+    # the weights from the final epoch. Downstream consumers (notably the
+    # embedding evaluator) should use the same best weights that were persisted.
+    if os.path.isfile(output_model_file_name):
+        model = load_model(output_model_file_name)
+
     model.export_to_onnx(results_folder)
 
     return model, history

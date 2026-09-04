@@ -1,20 +1,19 @@
 from typing import List
 
 import numpy as np
-import pandas as pd
-from torch import tensor
+from torch import no_grad, tensor
 from matchms import Spectrum
-from matchms.similarity.vector_similarity_functions import jaccard_similarity_matrix
 
 from ms2deepscore.SettingsMS2Deepscore import SettingsEmbeddingEvaluator
 from ms2deepscore.models import SiameseSpectralModel
 from ms2deepscore.tensorize_spectra import tensorize_spectra
 from ms2deepscore.train_new_model.inchikey_pair_selection import compute_fingerprints_for_training
+from ms2deepscore.fingerprint_similarity_computations import compute_fingerprint_similarity_matrix
 from ms2deepscore.vector_operations import cosine_similarity_matrix
 
 
 class DataGeneratorEmbeddingEvaluation:
-    """Generates data for training an embedding evaluation model.
+    """Generate data for training an embedding-evaluation model.
 
     This class provides a data for the training of an embedding evaluation model.
     It follows a simple strategy: iterate through all spectra and randomly pick another
@@ -37,7 +36,6 @@ class DataGeneratorEmbeddingEvaluation:
         device="cpu",
     ):
         """
-
         Parameters
         ----------
         spectrums
@@ -48,21 +46,25 @@ class DataGeneratorEmbeddingEvaluation:
         self.current_index = 0
         self.settings = settings
         self.spectrums = spectrums
-        self.inchikey14s = [s.get("inchikey")[:14] for s in spectrums]  # type: ignore
+        self.inchikey14s = [s.get("inchikey")[:14] for s in spectrums]
         self.ms2ds_model = ms2ds_model
         self.device = device
         self.ms2ds_model.to(self.device)
+        self.ms2ds_model.eval()
         self.indexes = np.arange(len(self.spectrums))
         self.batch_size = self.settings.evaluator_distribution_size
-        self.fingerprint_df = self.compute_fingerprint_dataframe(
+
+        self.fingerprint_type = self.ms2ds_model.model_settings.fingerprint_type
+        self.fingerprints, fingerprint_inchikeys = compute_fingerprints_for_training(
             self.spectrums,
-            fingerprint_type=self.ms2ds_model.model_settings.fingerprint_type,
-            fingerprint_nbits=self.ms2ds_model.model_settings.fingerprint_nbits,
+            self.fingerprint_type,
+            self.ms2ds_model.model_settings.fingerprint_nbits,
         )
+        self.fingerprint_index_by_inchikey = {
+            inchikey: idx for idx, inchikey in enumerate(fingerprint_inchikeys)
+        }
 
-        # Initialize random number generator
         self.rng = np.random.default_rng(self.settings.random_seed)
-
         self.on_epoch_end()
 
     def __len__(self):
@@ -76,9 +78,21 @@ class DataGeneratorEmbeddingEvaluation:
             batch = self.__getitem__(self.current_index)
             self.current_index += 1
             return batch
-        self.current_index = 0  # make generator executable again
+        self.current_index = 0
         self.on_epoch_end()
         raise StopIteration
+
+    def _select_fingerprints(self, inchikeys):
+        try:
+            positions = [self.fingerprint_index_by_inchikey[key] for key in inchikeys]
+        except KeyError as exc:
+            raise ValueError(
+                f"No fingerprint available for InChIKey {exc.args[0]!r}."
+            ) from exc
+
+        if isinstance(self.fingerprints, np.ndarray):
+            return self.fingerprints[positions]
+        return [self.fingerprints[position] for position in positions]
 
     def _compute_embeddings_and_scores(self, batch_index: int):
         batch_size = self.batch_size
@@ -87,43 +101,27 @@ class DataGeneratorEmbeddingEvaluation:
         spec_tensors, meta_tensors = tensorize_spectra(
             [self.spectrums[i] for i in indexes], self.ms2ds_model.model_settings
         )
-        embeddings = self.ms2ds_model.encoder(spec_tensors.to(self.device), meta_tensors.to(self.device))
+        with no_grad():
+            embeddings = self.ms2ds_model.encoder(
+                spec_tensors.to(self.device), meta_tensors.to(self.device)
+            )
+        embeddings_cpu = embeddings.detach().cpu()
 
-        ms2ds_scores = cosine_similarity_matrix(embeddings.cpu().detach().numpy(), embeddings.cpu().detach().numpy())
+        embedding_array = embeddings_cpu.numpy()
+        ms2ds_scores = cosine_similarity_matrix(embedding_array, embedding_array)
 
-        # Compute true scores
         inchikeys = [self.inchikey14s[i] for i in indexes]
-        fingerprints = self.fingerprint_df.loc[inchikeys].to_numpy()
+        fingerprints = self._select_fingerprints(inchikeys)
+        tanimoto_scores = compute_fingerprint_similarity_matrix(
+            fingerprints,
+            fingerprints,
+            fingerprint_type=self.fingerprint_type,
+        )
 
-        tanimoto_scores = jaccard_similarity_matrix(fingerprints, fingerprints)
-
-        return tensor(tanimoto_scores), tensor(ms2ds_scores), embeddings.cpu().detach()
+        return tensor(tanimoto_scores), tensor(ms2ds_scores), embeddings_cpu
 
     def on_epoch_end(self):
-        """Updates indexes after each epoch."""
         self.rng.shuffle(self.indexes)
 
     def __getitem__(self, batch_index: int):
-        """Generate one batch of data."""
         return self._compute_embeddings_and_scores(batch_index)
-
-    def compute_fingerprint_dataframe(
-        self,
-        spectrums: List[Spectrum],
-        fingerprint_type,
-        fingerprint_nbits,
-    ) -> pd.DataFrame:
-        """Returns a dataframe with a fingerprints dataframe
-
-        spectrums:
-            A list of spectra
-        settings:
-            The settings that should be used for selecting the compound pairs wrapper. The settings should be specified as a
-            SettingsMS2Deepscore object.
-        """
-        fingerprints, inchikeys14_unique = compute_fingerprints_for_training(
-            spectrums, fingerprint_type, fingerprint_nbits
-        )
-
-        fingerprints_df = pd.DataFrame(fingerprints, index=inchikeys14_unique)
-        return fingerprints_df

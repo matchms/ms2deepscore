@@ -15,6 +15,9 @@ from ms2deepscore.models.SiameseSpectralModel import (SiameseSpectralModel,
                                                       train)
 from ms2deepscore.SettingsMS2Deepscore import SettingsMS2Deepscore, SettingsEmbeddingEvaluator
 from ms2deepscore.train_new_model import TrainingBatchGenerator, create_spectrum_pair_generator
+from ms2deepscore.train_new_model.inchikey_pair_selection_cross_ionmode import (
+    create_data_generator_across_ionmodes,
+)
 from ms2deepscore.validation_loss_calculation.ValidationLossCalculator import ValidationLossCalculator
 from ms2deepscore.train_new_model.train_ms2deepscore import \
     train_ms2ds_model, plot_history, save_history
@@ -23,6 +26,7 @@ from ms2deepscore.train_new_model.validation_and_test_split import \
 from ms2deepscore.utils import load_spectra_as_list
 from ms2deepscore.wrapper_functions.plotting_wrapper_functions import \
     create_plots_between_ionmodes
+from ms2deepscore.pair_selection_cache import resolve_pair_selection_cache_directory
 
 
 def train_ms2deepscore_wrapper(settings: SettingsMS2Deepscore,
@@ -92,8 +96,6 @@ def parameter_search(
     """
     print("Initialize Stored Data")
     split_data_if_necessary(base_settings)
-    validation_spectra = load_spectra_in_ionmode(base_settings.validation_spectra_file_name, base_settings.ionisation_mode)
-
     print("Load training data")
     # Split training in pos and neg and create val and training split and select for the right ionisation mode.
     training_spectra = load_spectra_in_ionmode(base_settings.training_spectra_file_name, base_settings.ionisation_mode)
@@ -106,7 +108,7 @@ def parameter_search(
     negative_validation_spectra = load_spectra_in_ionmode(base_settings.validation_spectra_file_name, "negative")
 
     results = {}
-    train_generator = None
+    validation_tanimoto_cache = {}
 
     # Generate all combinations of setting variations
     keys, values = zip(*setting_variations.items())
@@ -115,34 +117,45 @@ def parameter_search(
         settings_dict = base_settings.get_dict()
         settings_dict.update(params)
         settings = SettingsMS2Deepscore(**settings_dict)
-        settings.time_stamp = datetime.now().strftime("%Y_%m_%d_%H_%M_%S")
-
+        # base_settings.get_dict() contains the already-derived model directory.
+        # Re-derive it for every combination or parameter sweeps overwrite each
+        # other. Microseconds avoid collisions for fast successive runs.
+        settings.time_stamp = datetime.now().strftime("%Y_%m_%d_%H_%M_%S_%f")
+        settings.model_directory_name = os.path.join(
+            settings.results_folder, settings.create_model_directory_name()
+        )
 
         print(f"Testing combination: {params}")
-        # TODO (mabye): implement smarter way to now always re-initialize the generators
-        #  fields_affecting_generators = [
-        #     "fingerprint_type",
-        #     "fingerprint_nbits",
-        #     "max_pairs_per_bin",
-        #     "same_prob_bins",
-        #     "include_diagonal",
-        #     "mz_bin_width",
-        #  ]
-        #  search_includes_generator_parameters = False
-        #  for field in fields_affecting_generators:
-        #     if field in keys:
-        #         search_includes_generator_parameters = True
-        #  if search_includes_generator_parameters or (train_generator is None):
 
         # Make folder and save settings
         os.makedirs(settings.model_directory_name, exist_ok=True)
         settings.save_to_file(os.path.join(settings.model_directory_name, "settings.json"))
-        # Create a training generator
-        spectrum_pair_generator = create_spectrum_pair_generator(training_spectra, settings=settings)
-        train_generator = TrainingBatchGenerator(spectrum_pair_generator=spectrum_pair_generator, settings=settings)
-        # Create a validation loss calculator
-        validation_loss_calculator = ValidationLossCalculator(validation_spectra,
-                                                              settings=settings)
+        # Create a training generator. The expensive compound-pair preparation
+        # is content-keyed and persisted across parameter combinations/runs.
+        if settings.balanced_sampling_across_ionmodes:
+            train_generator = create_data_generator_across_ionmodes(
+                training_spectra, settings=settings
+            )
+        else:
+            spectrum_pair_generator = create_spectrum_pair_generator(
+                training_spectra,
+                settings=settings,
+                cache_directory=resolve_pair_selection_cache_directory(settings),
+            )
+            train_generator = TrainingBatchGenerator(
+                spectrum_pair_generator=spectrum_pair_generator, settings=settings
+            )
+
+        # Validation Tanimoto targets depend on fingerprint settings, not on the
+        # neural-network hyperparameters. Reuse them within the sweep.
+        validation_key = (settings.fingerprint_type, settings.fingerprint_nbits)
+        cached_tanimoto = validation_tanimoto_cache.get(validation_key)
+        validation_loss_calculator = ValidationLossCalculator(
+            validation_spectra, settings=settings, tanimoto_scores=cached_tanimoto
+        )
+        validation_tanimoto_cache.setdefault(
+            validation_key, validation_loss_calculator.tanimoto_scores
+        )
 
         model = SiameseSpectralModel(settings=settings)
 
@@ -171,7 +184,10 @@ def parameter_search(
         scores_between_all_ionmodes = CalculateScoresBetweenAllIonmodes(
             model_file_name=os.path.join(settings.model_directory_name, settings.model_file_name),
             positive_validation_spectra=positive_validation_spectra,
-            negative_validation_spectra=negative_validation_spectra)
+            negative_validation_spectra=negative_validation_spectra,
+            fingerprint_type=settings.fingerprint_type,
+            n_bits_fingerprint=settings.fingerprint_nbits,
+        )
 
         combination_results = {
             "params": params,
