@@ -3,7 +3,7 @@ from importlib import import_module
 from typing import List, Optional, Tuple, Union
 from torch import zeros, tensor
 from matchms import Metadata
-from matchms.Spectrum import Spectrum
+from matchms import Spectrum
 from tqdm import tqdm
 
 
@@ -118,7 +118,7 @@ class StandardScaler(MetadataFeatureGenerator):
 
     def generate_features(self, metadata: Metadata):
         feature = metadata.get(self.metadata_field, None)
-        if self.metadata_field is None:
+        if feature is None:
             raise ValueError(f"Metadata entry for {self.metadata_field} is missing.")
         if not isinstance(feature, (int, float)):
             raise TypeError(f"Expected float or int, got {feature}, for {self.metadata_field}")
@@ -153,7 +153,7 @@ class OneHotEncoder(MetadataFeatureGenerator):
 
     def generate_features(self, metadata: Metadata):
         feature = metadata.get(self.metadata_field, None)
-        if self.metadata_field is None:
+        if feature is None:
             raise ValueError(f"Metadata entry for {self.metadata_field} is missing.")
         if feature == self.entries_becoming_one:
             return 1
@@ -196,7 +196,7 @@ class CategoricalToBinary(MetadataFeatureGenerator):
 
     def generate_features(self, metadata: Metadata):
         feature = metadata.get(self.metadata_field, None)
-        if self.metadata_field is None:
+        if feature is None:
             raise ValueError(f"Metadata entry for {self.metadata_field} is missing.")
         if feature in self.entries_becoming_one:
             return 1
