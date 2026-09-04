@@ -1,7 +1,7 @@
 import numpy as np
 import pandas as pd
 import pytest
-from matchms.Spectrum import Spectrum
+from matchms import Spectrum
 
 from ms2deepscore import MS2DeepScore
 from ms2deepscore.SettingsMS2Deepscore import SettingsMS2Deepscore

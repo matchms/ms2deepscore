@@ -3,7 +3,7 @@ from importlib import import_module
 from typing import List, Optional, Tuple, Union
 from torch import zeros, tensor
 from matchms import Metadata
-from matchms.Spectrum import Spectrum
+from matchms import Spectrum
 from tqdm import tqdm
 
 
