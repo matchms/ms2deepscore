@@ -1,24 +1,15 @@
 """Compatibility helpers for matchms pre-1.0 and >=1.0 APIs.
-
-The matchms 1.0 refactor renamed the BaseSimilarity module and changed the
-``matrix`` contract from returning a NumPy array to returning ``matchms.Scores``.
-Keep all version-dependent imports/return wrapping in one place so that the
-actual similarity implementations stay readable.
 """
 
 from __future__ import annotations
 from typing import Iterable, Tuple
+import matchms.__version__ as matchms_version
 
-try:  # matchms >= 1.0
+MATCHMS_V1_API = matchms_version.startswith("1.")
+if MATCHMS_V1_API:
     from matchms import Scores
-    from matchms.similarity.base_similarity import BaseSimilarity
-
-    MATCHMS_V1_API = True
-except ImportError:  # matchms <= 0.33.x
-    from matchms.similarity.BaseSimilarity import BaseSimilarity
-
-    Scores = None  # type: ignore[assignment]
-    MATCHMS_V1_API = False
+else:
+    Scores = None
 
 
 def normalize_score_fields(

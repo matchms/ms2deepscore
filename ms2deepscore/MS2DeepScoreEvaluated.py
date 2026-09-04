@@ -5,11 +5,14 @@ from matchms import Spectrum
 
 from ms2deepscore.matchms_compat import (
     MATCHMS_V1_API,
-    BaseSimilarity,
     as_matchms_scores,
     normalize_score_fields,
     assert_legacy_symmetric_inputs,
 )
+if MATCHMS_V1_API:
+    from matchms.similarity.base_similarity import BaseSimilarity
+else:
+    from matchms.similarity.BaseSimilarity import BaseSimilarity
 from ms2deepscore.models.LinearEmbeddingEvaluation import compute_error_predictions
 from ms2deepscore.models.SiameseSpectralModel import SiameseSpectralModel
 from ms2deepscore.vector_operations import cosine_similarity, cosine_similarity_matrix
