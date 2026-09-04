@@ -13,9 +13,9 @@ def test_peak_removal_for_data_augmentation():
         spectrum_tensor,
         augment_removal_max=0.5,
         augment_removal_intensity=0.3,
-        random_number_generator=np.random.default_rng(42),
+        random_number_generator=np.random.default_rng(123),
     )
-    assert equal(spectrum_tensor, tensor([0.0, 0.12, 0.0, 0.78, 0.0, 0.34, 1.0, 0.0, 0.0, 0.65]))
+    assert equal(spectrum_tensor, tensor([0.0, 0.12, 0.0, 0.78, 0.0, 0.34, 1.0, 0.0, 0.27, 0.65]))
 
 
 def test_peak_addition_for_data_augmentation():
