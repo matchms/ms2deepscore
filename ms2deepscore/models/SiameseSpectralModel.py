@@ -330,7 +330,7 @@ class SpectralEncoder(nn.Module):
             self.dense_layers.append(dense_layer(input_dim, output_dim, settings.activation_function))
             input_dim = output_dim
 
-        self.embedding_layer = dense_layer(settings.base_dims[-1], settings.embedding_dim, "tanh")
+        self.embedding_layer = dense_layer(settings.base_dims[-1], settings.embedding_dim, None)  # used to be "tanh"
         self.dropout = nn.Dropout(settings.dropout_rate)
 
     def forward(self, spectra_tensors, metadata_tensors):
@@ -502,6 +502,8 @@ def train(
 
 def dense_layer(input_size, output_size, activation="lrelu"):
     """Combines a densely connected layer and an activation function."""
+    if activation is None:
+        return nn.Linear(input_size, output_size)
     activations = nn.ModuleDict(
         {
             "lrelu": nn.LeakyReLU(),
