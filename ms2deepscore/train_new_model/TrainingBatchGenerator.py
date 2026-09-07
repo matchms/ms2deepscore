@@ -92,8 +92,8 @@ class TrainingBatchGenerator:
         """
         if self.model_settings.use_fixed_set and batch_index in self.fixed_set:
             return self.fixed_set[batch_index]
-        if self.model_settings.random_seed is not None and batch_index == 0:
-            self.rng = np.random.default_rng(self.model_settings.random_seed)
+        # Seed once in __init__. Re-seeding at batch 0 made every epoch use
+        # exactly the same augmentation sequence whenever random_seed was set.
         spectrum_pairs = self._spectrum_pair_generator()
         spectra_1, spectra_2, meta_1, meta_2, targets = self._tensorize_all(spectrum_pairs)
 

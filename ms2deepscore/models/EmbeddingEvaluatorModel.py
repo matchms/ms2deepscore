@@ -152,15 +152,26 @@ class EmbeddingEvaluationModel(nn.Module):
                         with no_grad():
                             self.eval()
                             val_losses = []
+
                             for sample in val_generator:
                                 tanimoto_scores, ms2ds_scores, embeddings = sample
+
                                 outputs = self(embeddings.reshape(-1, 1, embeddings.shape[-1]).to(device))
 
                                 mse_per_embedding = ((tanimoto_scores - ms2ds_scores) ** 2).mean(dim=1)
                                 mse_per_embedding = mse_per_embedding.reshape(-1, 1).clone().detach()
 
-                                loss = criterion(outputs.to(device), mse_per_embedding.to(device, dtype=float32))
-                                val_losses.append(loss_value)
+                                loss = criterion(
+                                    outputs,
+                                    mse_per_embedding.to(
+                                        device,
+                                        dtype=float32,
+                                    ),
+                                )
+
+                                val_loss_value = loss.detach().item()
+                                val_losses.append(val_loss_value)
+
                             print(f">>> Val_loss: {np.mean(val_losses):.6f}")
 
                         self.train()

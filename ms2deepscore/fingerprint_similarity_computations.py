@@ -1,6 +1,6 @@
 from typing import Tuple
 import numpy as np
-from numba import jit, prange
+from numba import jit, njit, prange
 from chemap.metrics import (
     tanimoto_similarity_dense,
     tanimoto_similarity_sparse,
@@ -84,6 +84,15 @@ def compute_fingerprint_similarity_row(
     )[0]
 
 
+@njit
+def _derive_seed(random_seed, row_index, bin_index):
+    return (
+        random_seed
+        + 1_000_003 * row_index
+        + 97 * bin_index
+    ) % 4_294_967_295
+
+
 # Add row based similarity computations
 # -------------------------------------
 
@@ -141,24 +150,50 @@ def _fill_pairs_for_row_same_set(
     max_pairs_per_bin,
     selection_bins,
     include_diagonal,
+    random_seed,
 ):
+    """Reservoir-sample at most ``max_pairs_per_bin`` candidates per bin.
+
+    This avoids allocating/shuffling a potentially O(N) index array for every
+    score bin and row. Each qualifying pair has equal probability of ending up
+    in the bounded reservoir.
+    """
     num_bins = len(selection_bins)
 
     for bin_number in range(num_bins):
         selection_bin = selection_bins[bin_number]
-        indices = np.nonzero(
-            (tanimoto_scores > selection_bin[0]) & (tanimoto_scores <= selection_bin[1])
-        )[0]
+        # Derive an independent deterministic seed for each row/bin pair.
+        # This avoids dependence on prange/thread execution order.
+        if random_seed >= 0:
+            np.random.seed(
+                _derive_seed(
+                    random_seed,
+                    idx_fingerprint_i,
+                    bin_number,
+                )
+            )
 
-        if not include_diagonal and idx_fingerprint_i in indices:
-            indices = indices[indices != idx_fingerprint_i]
+        seen = 0
+        filled = 0
+        for candidate_index in range(len(tanimoto_scores)):
+            if not include_diagonal and candidate_index == idx_fingerprint_i:
+                continue
 
-        np.random.shuffle(indices)
-        indices = indices[:max_pairs_per_bin]
-        num_indices = len(indices)
+            score = tanimoto_scores[candidate_index]
+            if not (score > selection_bin[0] and score <= selection_bin[1]):
+                continue
 
-        selected_pairs_per_bin[bin_number, idx_fingerprint_i, :num_indices] = indices
-        selected_scores_per_bin[bin_number, idx_fingerprint_i, :num_indices] = tanimoto_scores[indices]
+            seen += 1
+            if filled < max_pairs_per_bin:
+                slot = filled
+                filled += 1
+            else:
+                slot = np.random.randint(0, seen)
+                if slot >= max_pairs_per_bin:
+                    continue
+
+            selected_pairs_per_bin[bin_number, idx_fingerprint_i, slot] = candidate_index
+            selected_scores_per_bin[bin_number, idx_fingerprint_i, slot] = score
 
 
 @jit(nopython=True, parallel=True)
@@ -167,6 +202,7 @@ def _compute_tanimoto_similarity_per_bin_dense(
     max_pairs_per_bin,
     selection_bins=np.array([(x / 10, x / 10 + 0.1) for x in range(10)], dtype=np.float32),
     include_diagonal=True,
+    random_seed=-1,
 ) -> Tuple[np.ndarray, np.ndarray]:
     size = fingerprints.shape[0]
     num_bins = len(selection_bins)
@@ -186,6 +222,7 @@ def _compute_tanimoto_similarity_per_bin_dense(
             max_pairs_per_bin,
             selection_bins,
             include_diagonal,
+            random_seed,
         )
 
     return selected_pairs_per_bin, selected_scores_per_bin
@@ -197,6 +234,7 @@ def _compute_tanimoto_similarity_per_bin_sparse_binary(
     max_pairs_per_bin,
     selection_bins=np.array([(x / 10, x / 10 + 0.1) for x in range(10)], dtype=np.float32),
     include_diagonal=True,
+    random_seed=-1,
 ) -> Tuple[np.ndarray, np.ndarray]:
     size = len(fingerprints)
     num_bins = len(selection_bins)
@@ -216,6 +254,7 @@ def _compute_tanimoto_similarity_per_bin_sparse_binary(
             max_pairs_per_bin,
             selection_bins,
             include_diagonal,
+            random_seed,
         )
 
     return selected_pairs_per_bin, selected_scores_per_bin
@@ -228,6 +267,7 @@ def _compute_tanimoto_similarity_per_bin_sparse_count(
     max_pairs_per_bin,
     selection_bins=np.array([(x / 10, x / 10 + 0.1) for x in range(10)], dtype=np.float32),
     include_diagonal=True,
+    random_seed=-1,
 ) -> Tuple[np.ndarray, np.ndarray]:
     size = len(fingerprints_bins)
     num_bins = len(selection_bins)
@@ -250,6 +290,7 @@ def _compute_tanimoto_similarity_per_bin_sparse_count(
             max_pairs_per_bin,
             selection_bins,
             include_diagonal,
+            random_seed,
         )
 
     return selected_pairs_per_bin, selected_scores_per_bin
@@ -267,8 +308,10 @@ def compute_tanimoto_similarity_per_bin(
     fingerprint_type: str,
     selection_bins=np.array([(x / 10, x / 10 + 0.1) for x in range(10)], dtype=np.float32),
     include_diagonal=True,
+    random_seed=None,
 ) -> Tuple[np.ndarray, np.ndarray]:
     """Dispatch to the appropriate pairwise-per-bin Tanimoto implementation."""
+    jit_random_seed = -1 if random_seed is None else int(random_seed)
     if fingerprint_type not in SUPPORTED_FINGERPRINT_TYPES:
         raise ValueError(f"Unsupported fingerprint type: {fingerprint_type}")
 
@@ -278,6 +321,7 @@ def compute_tanimoto_similarity_per_bin(
             max_pairs_per_bin=max_pairs_per_bin,
             selection_bins=selection_bins,
             include_diagonal=include_diagonal,
+            random_seed=jit_random_seed,
         )
 
     if is_unfolded_binary_fingerprint_type(fingerprint_type):
@@ -286,6 +330,7 @@ def compute_tanimoto_similarity_per_bin(
             max_pairs_per_bin=max_pairs_per_bin,
             selection_bins=selection_bins,
             include_diagonal=include_diagonal,
+            random_seed=jit_random_seed,
         )
 
     if is_unfolded_count_fingerprint_type(fingerprint_type):
@@ -296,6 +341,7 @@ def compute_tanimoto_similarity_per_bin(
             max_pairs_per_bin=max_pairs_per_bin,
             selection_bins=selection_bins,
             include_diagonal=include_diagonal,
+            random_seed=jit_random_seed,
         )
 
     raise ValueError(f"Unsupported fingerprint type: {fingerprint_type}")
@@ -310,21 +356,37 @@ def _fill_pairs_for_row_between_sets(
     target_offset,
     max_pairs_per_bin,
     selection_bins,
+    random_seed,
 ):
+    """Reservoir-sample bounded candidates for one cross-set row."""
     num_bins = len(selection_bins)
 
     for bin_number in range(num_bins):
         selection_bin = selection_bins[bin_number]
-        indices = np.nonzero(
-            (tanimoto_scores > selection_bin[0]) & (tanimoto_scores <= selection_bin[1])
-        )[0]
+        if random_seed >= 0:
+            np.random.seed(
+                (random_seed + 1_000_003 * row_index + 97 * bin_number)
+                % 4_294_967_295
+            )
 
-        np.random.shuffle(indices)
-        indices = indices[:max_pairs_per_bin]
-        num_indices = len(indices)
+        seen = 0
+        filled = 0
+        for candidate_index in range(len(tanimoto_scores)):
+            score = tanimoto_scores[candidate_index]
+            if not (score > selection_bin[0] and score <= selection_bin[1]):
+                continue
 
-        selected_pairs_per_bin[bin_number, row_index, :num_indices] = indices + target_offset
-        selected_scores_per_bin[bin_number, row_index, :num_indices] = tanimoto_scores[indices]
+            seen += 1
+            if filled < max_pairs_per_bin:
+                slot = filled
+                filled += 1
+            else:
+                slot = np.random.randint(0, seen)
+                if slot >= max_pairs_per_bin:
+                    continue
+
+            selected_pairs_per_bin[bin_number, row_index, slot] = candidate_index + target_offset
+            selected_scores_per_bin[bin_number, row_index, slot] = score
 
 
 @jit(nopython=True, parallel=True)
@@ -333,6 +395,7 @@ def _compute_tanimoto_similarity_per_bin_between_sets_dense(
     fingerprints_2,
     max_pairs_per_bin,
     selection_bins=np.array([(x / 10, x / 10 + 0.1) for x in range(10)], dtype=np.float32),
+    random_seed=-1,
 ) -> Tuple[np.ndarray, np.ndarray]:
     size_1 = fingerprints_1.shape[0]
     size_2 = fingerprints_2.shape[0]
@@ -353,6 +416,7 @@ def _compute_tanimoto_similarity_per_bin_between_sets_dense(
             size_1,
             max_pairs_per_bin,
             selection_bins,
+            random_seed,
         )
 
     for idx_fingerprint_j in prange(size_2):
@@ -368,6 +432,7 @@ def _compute_tanimoto_similarity_per_bin_between_sets_dense(
             0,
             max_pairs_per_bin,
             selection_bins,
+            random_seed,
         )
 
     return selected_pairs_per_bin, selected_scores_per_bin
@@ -379,6 +444,7 @@ def _compute_tanimoto_similarity_per_bin_between_sets_sparse_binary(
     fingerprints_2,
     max_pairs_per_bin,
     selection_bins=np.array([(x / 10, x / 10 + 0.1) for x in range(10)], dtype=np.float32),
+    random_seed=-1,
 ) -> Tuple[np.ndarray, np.ndarray]:
     size_1 = len(fingerprints_1)
     size_2 = len(fingerprints_2)
@@ -399,6 +465,7 @@ def _compute_tanimoto_similarity_per_bin_between_sets_sparse_binary(
             size_1,
             max_pairs_per_bin,
             selection_bins,
+            random_seed,
         )
 
     for idx_fingerprint_j in prange(size_2):
@@ -414,6 +481,7 @@ def _compute_tanimoto_similarity_per_bin_between_sets_sparse_binary(
             0,
             max_pairs_per_bin,
             selection_bins,
+            random_seed,
         )
 
     return selected_pairs_per_bin, selected_scores_per_bin
@@ -427,6 +495,7 @@ def _compute_tanimoto_similarity_per_bin_between_sets_sparse_count(
     fingerprints_2_counts,
     max_pairs_per_bin,
     selection_bins=np.array([(x / 10, x / 10 + 0.1) for x in range(10)], dtype=np.float32),
+    random_seed=-1,
 ) -> Tuple[np.ndarray, np.ndarray]:
     size_1 = len(fingerprints_1_bins)
     size_2 = len(fingerprints_2_bins)
@@ -453,6 +522,7 @@ def _compute_tanimoto_similarity_per_bin_between_sets_sparse_count(
             size_1,
             max_pairs_per_bin,
             selection_bins,
+            random_seed,
         )
 
     for idx_fingerprint_j in prange(size_2):
@@ -474,6 +544,7 @@ def _compute_tanimoto_similarity_per_bin_between_sets_sparse_count(
             0,
             max_pairs_per_bin,
             selection_bins,
+            random_seed,
         )
 
     return selected_pairs_per_bin, selected_scores_per_bin
@@ -485,8 +556,10 @@ def compute_tanimoto_similarity_per_bin_between_sets(
     max_pairs_per_bin,
     fingerprint_type: str,
     selection_bins=np.array([(x / 10, x / 10 + 0.1) for x in range(10)], dtype=np.float32),
+    random_seed=None,
 ) -> Tuple[np.ndarray, np.ndarray]:
     """Compute cross-set Tanimoto per bin for all supported fingerprint types."""
+    jit_random_seed = -1 if random_seed is None else int(random_seed)
     if fingerprint_type not in SUPPORTED_FINGERPRINT_TYPES:
         raise ValueError(f"Unsupported fingerprint type: {fingerprint_type}")
 
@@ -496,6 +569,7 @@ def compute_tanimoto_similarity_per_bin_between_sets(
             fingerprints_2,
             max_pairs_per_bin=max_pairs_per_bin,
             selection_bins=selection_bins,
+            random_seed=jit_random_seed,
         )
 
     if is_unfolded_binary_fingerprint_type(fingerprint_type):
@@ -504,6 +578,7 @@ def compute_tanimoto_similarity_per_bin_between_sets(
             fingerprints_2,
             max_pairs_per_bin=max_pairs_per_bin,
             selection_bins=selection_bins,
+            random_seed=jit_random_seed,
         )
 
     if is_unfolded_count_fingerprint_type(fingerprint_type):
@@ -516,6 +591,7 @@ def compute_tanimoto_similarity_per_bin_between_sets(
             fingerprints_2_counts,
             max_pairs_per_bin=max_pairs_per_bin,
             selection_bins=selection_bins,
+            random_seed=jit_random_seed,
         )
 
     raise ValueError(f"Unsupported fingerprint type: {fingerprint_type}")

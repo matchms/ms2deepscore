@@ -50,12 +50,15 @@ def test_MS2DeepScore_score_matrix():
     spectrums, similarity_measure = get_test_ms2deepscore_evaluated_instance()
     scores = similarity_measure.matrix(spectrums[:3], spectrums[:4])
     if MATCHMS_V1_API:
+        assert scores.to_array("predicted_absolute_error").shape == (3, 4)
         scores = scores.to_array("score")
+    else:
+        assert scores["predicted_absolute_error"].shape == (3, 4)
+        scores = scores["score"]
 
     expected_scores = np.array([
         [1.        , 0.9903664 , 0.9908498 , 0.98811793],
         [0.9903664 , 1.        , 0.99399304, 0.9643621 ],
         [0.9908498 , 0.99399304, 1.        , 0.97351074]
         ])
-    assert np.allclose(expected_scores, scores["score"], atol=1e-6), "Expected different scores."
-    assert scores["predicted_absolute_error"].shape == (3, 4)
+    assert np.allclose(expected_scores, scores, atol=1e-6), "Expected different scores."

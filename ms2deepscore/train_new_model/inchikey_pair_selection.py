@@ -6,55 +6,108 @@ from matchms import Spectrum
 from tqdm import tqdm
 from ms2deepscore.SettingsMS2Deepscore import SettingsMS2Deepscore
 from ms2deepscore.train_new_model import SpectrumPairGenerator
-from ms2deepscore.fingerprint_utils import derive_fingerprint_from_smiles_or_inchi
+from ms2deepscore.fingerprint_utils import (
+    derive_fingerprint_from_smiles,
+    normalize_to_smiles,
+)
+from ms2deepscore.pair_selection_cache import (
+    PairSelectionCache,
+    resolve_pair_selection_cache_directory,
+)
 from ms2deepscore.fingerprint_similarity_computations import compute_tanimoto_similarity_per_bin
 
 
 def create_spectrum_pair_generator(
         spectra: List[Spectrum],
         settings: SettingsMS2Deepscore,
+        cache_directory=None,
 ) -> SpectrumPairGenerator:
-    """Returns a SpectrumPairGenerator object containing equally balanced pairs over the different bins
+    """Return a balanced SpectrumPairGenerator, optionally using persistent caches.
 
-    spectra:
-        A list of spectra
-    settings:
-        The settings that should be used for selecting the compound pairs wrapper. The settings should be specified as a
-        SettingsMS2Deepscore object.
-
-    Returns
-    -------
-    SpectrumPairGenerator
-        SpectrumPairGenerator containing balanced pairs. The pairs are stored as [(inchikey1, inchikey2, score)]
+    The persistent cache stores both the expensive per-bin candidate pool and
+    the final balanced pair schedule. Cache identity contains only structural
+    spectrum metadata plus the settings that can influence each artifact.
     """
-    if settings.random_seed is not None:
-        np.random.seed(settings.random_seed)
+    if cache_directory is None:
+        cache_directory = resolve_pair_selection_cache_directory(settings)
+    cache = PairSelectionCache(cache_directory) if cache_directory is not None else None
+    candidate_dir = None
 
-    fingerprints, inchikeys14_unique = compute_fingerprints_for_training(
-        spectra,
-        settings.fingerprint_type,
-        settings.fingerprint_nbits
+    if cache is not None:
+        cached = cache.load_candidates((spectra,), settings, mode="same_set")
+    else:
+        cached = None
+
+    if cached is not None:
+        inchikeys14_unique, available_pairs_per_bin_matrix, available_scores_per_bin_matrix, candidate_dir = cached
+        selected_pairs = cache.load_selected_pairs(candidate_dir, settings)
+        if selected_pairs is not None:
+            print(f"Reusing {len(selected_pairs)} cached training compound pairs from {candidate_dir}")
+            return SpectrumPairGenerator(
+                selected_pairs, spectra, settings.shuffle, settings.random_seed
+            )
+        print(f"Reusing cached Tanimoto candidate pairs from {candidate_dir}")
+    else:
+        fingerprints, inchikeys14_unique = compute_fingerprints_for_training(
+            spectra,
+            settings.fingerprint_type,
+            settings.fingerprint_nbits,
         )
+
+        if len(inchikeys14_unique) < settings.batch_size:
+            raise ValueError("The number of unique inchikeys must be larger than the batch size.")
+
+        max_pairs_per_bin = settings.max_pairs_per_bin
+        if max_pairs_per_bin is None:
+            # Honor the documented setting. This can be extremely memory hungry,
+            # so bounded max_pairs_per_bin remains strongly recommended.
+            max_pairs_per_bin = len(inchikeys14_unique)
+
+        available_pairs_per_bin_matrix, available_scores_per_bin_matrix = compute_tanimoto_similarity_per_bin(
+            fingerprints,
+            max_pairs_per_bin,
+            fingerprint_type=settings.fingerprint_type,
+            selection_bins=settings.same_prob_bins,
+            include_diagonal=settings.include_diagonal,
+            random_seed=settings.random_seed,
+        )
+
+        if cache is not None:
+            candidate_dir = cache.save_candidates(
+                (spectra,),
+                settings,
+                mode="same_set",
+                inchikeys=inchikeys14_unique,
+                available_pairs=available_pairs_per_bin_matrix,
+                available_scores=available_scores_per_bin_matrix,
+            )
+            # Re-open as memory maps so the rest of the workflow does not need
+            # another full in-memory copy of the cached arrays.
+            cached = cache.load_candidates((spectra,), settings, mode="same_set")
+            if cached is not None:
+                inchikeys14_unique, available_pairs_per_bin_matrix, available_scores_per_bin_matrix, candidate_dir = cached
 
     if len(inchikeys14_unique) < settings.batch_size:
         raise ValueError("The number of unique inchikeys must be larger than the batch size.")
 
-    available_pairs_per_bin_matrix, available_scores_per_bin_matrix = compute_tanimoto_similarity_per_bin(
-        fingerprints,
-        settings.max_pairs_per_bin,
-        fingerprint_type=settings.fingerprint_type,
-        selection_bins=settings.same_prob_bins,
-        include_diagonal=settings.include_diagonal,
-    )
     pair_frequency_matrixes = balanced_selection_of_pairs_per_bin(
-        available_pairs_per_bin_matrix, settings)
+        available_pairs_per_bin_matrix, settings
+    )
 
     selected_pairs_per_bin = convert_to_selected_pairs_list(
-        pair_frequency_matrixes, available_pairs_per_bin_matrix,
-        available_scores_per_bin_matrix, inchikeys14_unique)
+        pair_frequency_matrixes,
+        available_pairs_per_bin_matrix,
+        available_scores_per_bin_matrix,
+        inchikeys14_unique,
+    )
+    selected_pairs = [pair for pairs in selected_pairs_per_bin for pair in pairs]
 
-    return SpectrumPairGenerator([pair for pairs in selected_pairs_per_bin for pair in pairs],
-                                 spectra, settings.shuffle, settings.random_seed)
+    if cache is not None and candidate_dir is not None:
+        cache.save_selected_pairs(candidate_dir, settings, selected_pairs)
+
+    return SpectrumPairGenerator(
+        selected_pairs, spectra, settings.shuffle, settings.random_seed
+    )
 
 
 def compute_fingerprints_for_training(
@@ -92,21 +145,25 @@ def compute_fingerprints_for_training(
         structure = spectrum.get("smiles")
         if structure is None:
             structure = spectrum.get("inchi")
-
         if structure is None:
             continue
 
-        structure_list.append(structure)
+        # Normalize InChI before appending the matching inchikey.
+        normalized_structure = normalize_to_smiles(structure)
+        if normalized_structure is None:
+            continue
+
+        structure_list.append(normalized_structure)
         valid_inchikeys.append(inchikey14)
 
     if len(structure_list) == 0:
         raise ValueError("No valid SMILES/InChI entries available for fingerprint calculation")
 
-    fingerprints = derive_fingerprint_from_smiles_or_inchi(
+    fingerprints = derive_fingerprint_from_smiles(
         structure_list,
         fingerprint_type=fingerprint_type,
         nbits=nbits,
-        policy_invalid="keep",
+        policy_invalid_smiles="keep",
     )
 
     if len(fingerprints) == 0:
@@ -190,7 +247,14 @@ def convert_to_selected_pairs_list(pair_frequency_matrixes: np.ndarray,
                                    available_pairs_per_bin_matrix: np.ndarray,
                                    scores_matrix: np.ndarray,
                                    inchikeys14_unique: List[str]):
-    """Convert the matrixes denoting the pairs to a list of pairs, encoded as [(inchikey1, inchikey2, score)]
+    """Convert pair frequencies to ``(inchikey1, inchikey2, score)`` lists.
+
+    The previous implementation (version<=0.29) iterated in Python over every slot of the
+    dense ``(bins, compounds, max_pairs_per_bin)`` candidate cube. At large
+    scale that can mean hundreds of millions of Python-loop iterations even
+    though only a small fraction of slots have a non-zero selected frequency.
+    Here NumPy finds non-zero entries in C and canonical pair IDs remove the
+    mirrored duplicates before the much smaller Python expansion step.
 
     Parameters
     ----------
@@ -211,26 +275,53 @@ def convert_to_selected_pairs_list(pair_frequency_matrixes: np.ndarray,
         This is used to map the indexes of inchikeys used in the matrixes, to the corresponding inchikeys.
     """
     selected_pairs_per_bin = []
-    for bin_id, bin_pair_frequency_matrix in enumerate(tqdm(pair_frequency_matrixes)):
+    nr_of_inchikeys = len(inchikeys14_unique)
+
+    for bin_id in tqdm(range(pair_frequency_matrixes.shape[0])):
+        frequency_matrix = pair_frequency_matrixes[bin_id]
+        row_indices, column_indices = np.nonzero(frequency_matrix > 0)
+
+        if len(row_indices) == 0:
+            selected_pairs_per_bin.append([])
+            continue
+
+        partner_indices = available_pairs_per_bin_matrix[
+            bin_id, row_indices, column_indices
+        ]
+        valid = partner_indices >= 0
+        row_indices = row_indices[valid]
+        column_indices = column_indices[valid]
+        partner_indices = partner_indices[valid]
+
+        lower = np.minimum(row_indices, partner_indices).astype(np.int64)
+        upper = np.maximum(row_indices, partner_indices).astype(np.int64)
+        pair_codes = lower * nr_of_inchikeys + upper
+
+        # ``np.unique`` sorts by code; sort the returned first-occurrence
+        # positions to retain the legacy row-major ordering as closely as
+        # possible while dropping mirrored duplicates.
+        _, first_occurrences = np.unique(pair_codes, return_index=True)
+        first_occurrences.sort()
+
         selected_pairs = []
-        for inchikey1_index, pair_frequency_row in enumerate(bin_pair_frequency_matrix):
-            for column_index, pair_frequency in enumerate(pair_frequency_row):
-                if pair_frequency > 0:
-                    inchikey2_index = available_pairs_per_bin_matrix[bin_id][inchikey1_index][column_index]
-                    score = scores_matrix[bin_id][inchikey1_index][column_index]
-                    # This ensures that the order is the same.
-                    # This is important for the cross ionization mode selection.
-                    if inchikey1_index < inchikey2_index:
-                        selected_pairs.extend(
-                            [(inchikeys14_unique[inchikey1_index], inchikeys14_unique[inchikey2_index], score)] * pair_frequency)
-                    else:
-                        selected_pairs.extend(
-                            [(inchikeys14_unique[inchikey2_index], inchikeys14_unique[inchikey1_index], score)] * pair_frequency)
-                    # remove duplicate pairs
-                    position_of_first_inchikey_in_matrix = available_pairs_per_bin_matrix[bin_id][
-                                                               inchikey2_index] == inchikey1_index
-                    bin_pair_frequency_matrix[inchikey2_index][position_of_first_inchikey_in_matrix] = 0
+        for position in first_occurrences:
+            inchikey1_index = int(lower[position])
+            inchikey2_index = int(upper[position])
+            column_index = int(column_indices[position])
+            original_row = int(row_indices[position])
+            pair_frequency = int(frequency_matrix[original_row, column_index])
+            score = float(scores_matrix[bin_id, original_row, column_index])
+
+            selected_pairs.extend(
+                [(
+                    inchikeys14_unique[inchikey1_index],
+                    inchikeys14_unique[inchikey2_index],
+                    score,
+                )] * pair_frequency
+            )
+
         selected_pairs_per_bin.append(selected_pairs)
+
     return selected_pairs_per_bin
 
 
@@ -269,12 +360,20 @@ def select_balanced_pairs(available_pairs_for_bin_matrix: np.ndarray,
     """
     num_inchikeys = available_pairs_for_bin_matrix.shape[0]
 
-    # Initialize pair frequency matrix
-    pair_frequency = np.zeros_like(available_pairs_for_bin_matrix, dtype=int)
+    # Initialize pair frequencies with the smallest safe integer dtype.
+    sentinel_value = 2 * max_resampling
+    frequency_dtype = (
+        np.int32
+        if sentinel_value <= np.iinfo(np.int32).max
+        else np.int64
+    )
+    pair_frequency = np.zeros_like(
+        available_pairs_for_bin_matrix, dtype=frequency_dtype
+    )
 
     # Mask for invalid pairs (where value is -1)
     invalid_mask = (available_pairs_for_bin_matrix == -1)
-    pair_frequency[invalid_mask] = max_resampling * 2  # Ensure these pairs are never selected
+    pair_frequency[invalid_mask] = sentinel_value  # Ensure these pairs are never selected
 
     # Initialize available inchikeys as a min-heap based on inchikey_counts
     available_inchikey_indexes = [(inchikey_counts[i], i) for i in range(num_inchikeys)
@@ -320,11 +419,15 @@ def select_balanced_pairs(available_pairs_for_bin_matrix: np.ndarray,
             if not np.any(valid_pairs_mask & valid_inchikeys_mask):
                 continue  # No valid pairs left for this inchikey
 
-            # Among valid pairs, find those with the lowest pair frequency
-            min_pair_freq = np.min(pair_freq_row[valid_pairs_mask & valid_inchikeys_mask])
-            min_freq_mask = pair_freq_row == min_pair_freq
+            # Among valid pairs, find those with the lowest pair frequency.
+            # Keep the validity mask when resolving ties: the previous code
+            # could re-introduce partners that were already above
+            # max_inchikey_count merely because they had the same pair count.
+            candidate_mask = valid_pairs_mask & valid_inchikeys_mask
+            min_pair_freq = np.min(pair_freq_row[candidate_mask])
+            min_freq_mask = candidate_mask & (pair_freq_row == min_pair_freq)
 
-            # From the least resampled inchikey select the leas sampled inchikey
+            # From the least-resampled pairs select the least-sampled partner.
             min_inchikey_count_idx = np.argmin(second_inchikey_counts[min_freq_mask])
             second_inchikey_with_lowest_count = available_pairs_row[min_freq_mask][min_inchikey_count_idx]
 
@@ -395,6 +498,6 @@ def select_inchi_for_unique_inchikeys(
         # ID of the spectrum with the most frequent inchi
         ID = idx[np.where(inchi_array[idx] == most_common_inchi)[0][0]]
 
-        spectra_selected.append(list_of_spectra[ID].clone())
+        spectra_selected.append(list_of_spectra[ID])
 
     return spectra_selected, inchikeys14_unique

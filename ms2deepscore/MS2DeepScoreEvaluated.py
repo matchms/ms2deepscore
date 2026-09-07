@@ -198,7 +198,6 @@ class MS2DeepScoreEvaluated(BaseSimilarity):
         return result
 
     if MATCHMS_V1_API:
-
         def matrix(
             self,
             spectra_1: List[Spectrum],
@@ -219,7 +218,6 @@ class MS2DeepScoreEvaluated(BaseSimilarity):
             return as_matchms_scores(score_arrays)
 
     else:
-
         def matrix(
             self,
             references: List[Spectrum],
