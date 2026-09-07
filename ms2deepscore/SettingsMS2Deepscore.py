@@ -88,7 +88,7 @@ class SettingsMS2Deepscore:
         embedding_dim:
             The dimension of the final embedding. Default = 400
         ionisation_mode:
-            The ionisation mode that is used for training the model.
+            The ionisation mode that is used for training the model. Default = "both"
         balanced_sampling_across_ionmodes:
             If True the model will do separate pair sampling for training for each ionmode.
             This gives better balance over the ionmodes. Initial results showed a decrease in pos-pos prediction
@@ -185,9 +185,9 @@ class SettingsMS2Deepscore:
         self.train_test_split_fraction = 20
 
         # model structure
-        self.base_dims = (10000,)
+        self.base_dims = (2000, 2000, 2000)
         self.embedding_dim = 500
-        self.ionisation_mode = "positive"
+        self.ionisation_mode = "both"
         self.activation_function = "relu"
         self.balanced_sampling_across_ionmodes = False
 
