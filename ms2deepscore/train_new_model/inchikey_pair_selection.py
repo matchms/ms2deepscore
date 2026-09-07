@@ -1,5 +1,6 @@
 from collections import Counter
-from typing import List, Tuple
+from pathlib import Path
+from typing import List, Tuple, Union
 import heapq
 import numpy as np
 from matchms import Spectrum
@@ -8,53 +9,122 @@ from ms2deepscore.SettingsMS2Deepscore import SettingsMS2Deepscore
 from ms2deepscore.train_new_model import SpectrumPairGenerator
 from ms2deepscore.fingerprint_utils import derive_fingerprint_from_smiles_or_inchi
 from ms2deepscore.fingerprint_similarity_computations import compute_tanimoto_similarity_per_bin
+from ms2deepscore.train_new_model.pair_data_persistence import (
+    SelectedPairSchedule,
+    build_pair_data_manifest,
+    candidate_data_exists,
+    load_candidate_pair_data,
+    load_selected_pair_schedule,
+    prepare_pair_data_folder,
+    save_candidate_pair_data,
+    save_selected_pair_schedule,
+    selected_schedule_exists,
+    spectra_structure_signature,
+)
 
 
 def create_spectrum_pair_generator(
         spectra: List[Spectrum],
         settings: SettingsMS2Deepscore,
+        pair_data_folder: Union[str, Path, None] = None,
 ) -> SpectrumPairGenerator:
-    """Returns a SpectrumPairGenerator object containing equally balanced pairs over the different bins
+    """Create a balanced SpectrumPairGenerator, optionally using explicit persisted pair data.
 
+    Parameters
+    ----------
     spectra:
-        A list of spectra
+        Training spectra.
     settings:
-        The settings that should be used for selecting the compound pairs wrapper. The settings should be specified as a
-        SettingsMS2Deepscore object.
+        Pair-selection/training settings.
+    pair_data_folder:
+        Optional explicit checkpoint folder for pair preparation. If the folder is
+        empty/new, candidate pair/score data and the final selected-pair schedule
+        are stored there. If it already contains a compatible final schedule, that
+        schedule is loaded and all fingerprint/Tanimoto/balancing work is skipped.
 
-    Returns
-    -------
-    SpectrumPairGenerator
-        SpectrumPairGenerator containing balanced pairs. The pairs are stored as [(inchikey1, inchikey2, score)]
+        Existing pair data is validated against the structural inputs and all
+        settings that influence candidate generation/balancing. A mismatch raises
+        an error instead of silently reusing or overwriting data.
     """
     if settings.random_seed is not None:
         np.random.seed(settings.random_seed)
 
-    fingerprints, inchikeys14_unique = compute_fingerprints_for_training(
-        spectra,
-        settings.fingerprint_type,
-        settings.fingerprint_nbits
+    pair_folder = None
+    if pair_data_folder is not None:
+        manifest = build_pair_data_manifest(
+            kind="within_set",
+            settings=settings,
+            spectra_signature_1=spectra_structure_signature(spectra),
         )
+        pair_folder = prepare_pair_data_folder(pair_data_folder, manifest)
+        candidate_available = candidate_data_exists(pair_folder)
+
+        if selected_schedule_exists(pair_folder):
+            print(f"Loading selected training-pair schedule from {pair_folder}")
+            schedule = load_selected_pair_schedule(pair_folder)
+            if len(schedule.inchikeys) < settings.batch_size:
+                raise ValueError("The number of unique inchikeys must be larger than the batch size.")
+            return SpectrumPairGenerator(
+                schedule, spectra, settings.shuffle, settings.random_seed
+            )
+
+    if pair_folder is not None and candidate_available:
+        print(f"Loading candidate pair/score data from {pair_folder}")
+        available_pairs_per_bin_matrix, available_scores_per_bin_matrix, inchikeys14_unique = (
+            load_candidate_pair_data(pair_folder)
+        )
+    else:
+        fingerprints, inchikeys14_unique = compute_fingerprints_for_training(
+            spectra,
+            settings.fingerprint_type,
+            settings.fingerprint_nbits,
+        )
+
+        if len(inchikeys14_unique) < settings.batch_size:
+            raise ValueError("The number of unique inchikeys must be larger than the batch size.")
+
+        available_pairs_per_bin_matrix, available_scores_per_bin_matrix = compute_tanimoto_similarity_per_bin(
+            fingerprints,
+            settings.max_pairs_per_bin,
+            fingerprint_type=settings.fingerprint_type,
+            selection_bins=settings.same_prob_bins,
+            include_diagonal=settings.include_diagonal,
+        )
+        if pair_folder is not None:
+            print(f"Saving candidate pair/score data to {pair_folder}")
+            save_candidate_pair_data(
+                pair_folder,
+                available_pairs_per_bin_matrix,
+                available_scores_per_bin_matrix,
+                inchikeys14_unique,
+            )
 
     if len(inchikeys14_unique) < settings.batch_size:
         raise ValueError("The number of unique inchikeys must be larger than the batch size.")
 
-    available_pairs_per_bin_matrix, available_scores_per_bin_matrix = compute_tanimoto_similarity_per_bin(
-        fingerprints,
-        settings.max_pairs_per_bin,
-        fingerprint_type=settings.fingerprint_type,
-        selection_bins=settings.same_prob_bins,
-        include_diagonal=settings.include_diagonal,
-    )
     pair_frequency_matrixes = balanced_selection_of_pairs_per_bin(
-        available_pairs_per_bin_matrix, settings)
+        available_pairs_per_bin_matrix, settings
+    )
 
     selected_pairs_per_bin = convert_to_selected_pairs_list(
-        pair_frequency_matrixes, available_pairs_per_bin_matrix,
-        available_scores_per_bin_matrix, inchikeys14_unique)
+        pair_frequency_matrixes,
+        available_pairs_per_bin_matrix,
+        available_scores_per_bin_matrix,
+        inchikeys14_unique,
+    )
+    selected_pairs = [pair for pairs in selected_pairs_per_bin for pair in pairs]
 
-    return SpectrumPairGenerator([pair for pairs in selected_pairs_per_bin for pair in pairs],
-                                 spectra, settings.shuffle, settings.random_seed)
+    if pair_folder is not None:
+        schedule = SelectedPairSchedule.from_pairs(selected_pairs, inchikeys14_unique)
+        print(f"Saving selected training-pair schedule to {pair_folder}")
+        save_selected_pair_schedule(pair_folder, schedule)
+        selected_pairs_for_generator = schedule
+    else:
+        selected_pairs_for_generator = selected_pairs
+
+    return SpectrumPairGenerator(
+        selected_pairs_for_generator, spectra, settings.shuffle, settings.random_seed
+    )
 
 
 def compute_fingerprints_for_training(
