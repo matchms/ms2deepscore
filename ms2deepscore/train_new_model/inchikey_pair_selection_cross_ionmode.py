@@ -1,5 +1,6 @@
 import json
-from typing import List, Tuple
+from pathlib import Path
+from typing import List, Tuple, Union
 from collections import Counter
 from collections import defaultdict
 import numpy as np
@@ -18,18 +19,55 @@ from ms2deepscore.fingerprint_similarity_computations import (
     compute_tanimoto_similarity_per_bin_between_sets,
 )
 from ms2deepscore.utils import split_by_ionmode
+from ms2deepscore.train_new_model.pair_data_persistence import (
+    SelectedPairSchedule,
+    build_pair_data_manifest,
+    candidate_data_exists,
+    load_candidate_pair_data,
+    load_selected_pair_schedule,
+    prepare_pair_data_folder,
+    save_candidate_pair_data,
+    save_selected_pair_schedule,
+    selected_schedule_exists,
+    spectra_structure_signature,
+)
 
 
 def create_data_generator_across_ionmodes(
     training_spectra,
     settings: SettingsMS2Deepscore,
+    pair_data_folder: Union[str, Path, None] = None,
 ) -> TrainingBatchGenerator:
+    """Create balanced positive, negative and cross-ionmode training generators.
+
+    When ``pair_data_folder`` is given, explicit subfolders ``positive``,
+    ``negative`` and ``positive_negative`` are used for persisted pair data.
+    """
     pos_spectra, neg_spectra = split_by_ionmode(training_spectra)
 
-    pos_spectrum_pair_generator = create_spectrum_pair_generator(pos_spectra, settings=settings)
-    neg_spectrum_pair_generator = create_spectrum_pair_generator(neg_spectra, settings=settings)
+    base_folder = Path(pair_data_folder) if pair_data_folder is not None else None
+    if base_folder is not None:
+        # A top-level manifest makes the folder layout explicit and prevents accidentally
+        # reusing a folder that was previously prepared for single/within-set training.
+        layout_manifest = build_pair_data_manifest(
+            kind="balanced_across_ionmodes",
+            settings=settings,
+            spectra_signature_1=spectra_structure_signature(training_spectra),
+        )
+        prepare_pair_data_folder(base_folder, layout_manifest)
+
+    pos_folder = base_folder / "positive" if base_folder is not None else None
+    neg_folder = base_folder / "negative" if base_folder is not None else None
+    cross_folder = base_folder / "positive_negative" if base_folder is not None else None
+
+    pos_spectrum_pair_generator = create_spectrum_pair_generator(
+        pos_spectra, settings=settings, pair_data_folder=pos_folder
+    )
+    neg_spectrum_pair_generator = create_spectrum_pair_generator(
+        neg_spectra, settings=settings, pair_data_folder=neg_folder
+    )
     pos_neg_spectrum_pair_generator = select_compound_pairs_wrapper_across_ionmode(
-        pos_spectra, neg_spectra, settings
+        pos_spectra, neg_spectra, settings, pair_data_folder=cross_folder
     )
 
     spectrum_pair_generator = CombinedSpectrumGenerator(
@@ -46,48 +84,79 @@ def select_compound_pairs_wrapper_across_ionmode(
         spectra_1: List[Spectrum],
         spectra_2: List[Spectrum],
         settings: SettingsMS2Deepscore,
+        pair_data_folder: Union[str, Path, None] = None,
 ) -> "SpectrumPairGeneratorAcrossIonmodes":
-    """Returns a SpectrumPairGeneratorAcrossIonmodes object containing equally balanced cross-ionmode pairs.
-
-    Parameters
+    """Create cross-ionmode pairs, optionally using explicit persisted pair data.
+        Parameters
     ----------
-    spectra:
+    spectra_1:
+        A list of spectra
+    spectra_2:
         A list of spectra
     settings:
         The settings that should be used for selecting the compound pairs wrapper. The settings should be specified as a
         SettingsMS2Deepscore object.
-
-    Returns
-    -------
-    SpectrumPairGenerator
-        SpectrumPairGenerator containing balanced pairs. The pairs are stored as [(inchikey1, inchikey2, score)]
+    pair_data_folder:
+        The folder where the pair data should be stored. If None, the pair data will not be stored.
     """
     if settings.random_seed is not None:
         np.random.seed(settings.random_seed)
 
-    fingerprints_1, inchikeys14_unique_1 = compute_fingerprints_for_training(
-        spectra_1,
-        settings.fingerprint_type,
-        settings.fingerprint_nbits,
-    )
-    fingerprints_2, inchikeys14_unique_2 = compute_fingerprints_for_training(
-        spectra_2,
-        settings.fingerprint_type,
-        settings.fingerprint_nbits,
-    )
-
-    if len(inchikeys14_unique_1) < settings.batch_size or len(inchikeys14_unique_2) < settings.batch_size:
-        raise ValueError("The number of unique inchikeys must be larger than the batch size.")
-
-    available_pairs_per_bin_matrix, available_scores_per_bin_matrix = (
-        compute_tanimoto_similarity_per_bin_between_sets(
-            fingerprints_1,
-            fingerprints_2,
-            max_pairs_per_bin=settings.max_pairs_per_bin,
-            fingerprint_type=settings.fingerprint_type,
-            selection_bins=settings.same_prob_bins,
+    pair_folder = None
+    if pair_data_folder is not None:
+        manifest = build_pair_data_manifest(
+            kind="between_sets",
+            settings=settings,
+            spectra_signature_1=spectra_structure_signature(spectra_1),
+            spectra_signature_2=spectra_structure_signature(spectra_2),
         )
-    )
+        pair_folder = prepare_pair_data_folder(pair_data_folder, manifest)
+        candidate_available = candidate_data_exists(pair_folder)
+        if selected_schedule_exists(pair_folder):
+            print(f"Loading selected cross-ionmode pair schedule from {pair_folder}")
+            schedule = load_selected_pair_schedule(pair_folder)
+            return SpectrumPairGeneratorAcrossIonmodes(
+                schedule, spectra_1, spectra_2, settings.shuffle, settings.random_seed
+            )
+
+    if pair_folder is not None and candidate_available:
+        print(f"Loading cross-ionmode candidate pair/score data from {pair_folder}")
+        available_pairs_per_bin_matrix, available_scores_per_bin_matrix, inchikeys14_unique = (
+            load_candidate_pair_data(pair_folder)
+        )
+    else:
+        fingerprints_1, inchikeys14_unique_1 = compute_fingerprints_for_training(
+            spectra_1,
+            settings.fingerprint_type,
+            settings.fingerprint_nbits,
+        )
+        fingerprints_2, inchikeys14_unique_2 = compute_fingerprints_for_training(
+            spectra_2,
+            settings.fingerprint_type,
+            settings.fingerprint_nbits,
+        )
+
+        if len(inchikeys14_unique_1) < settings.batch_size or len(inchikeys14_unique_2) < settings.batch_size:
+            raise ValueError("The number of unique inchikeys must be larger than the batch size.")
+
+        available_pairs_per_bin_matrix, available_scores_per_bin_matrix = (
+            compute_tanimoto_similarity_per_bin_between_sets(
+                fingerprints_1,
+                fingerprints_2,
+                max_pairs_per_bin=settings.max_pairs_per_bin,
+                fingerprint_type=settings.fingerprint_type,
+                selection_bins=settings.same_prob_bins,
+            )
+        )
+        inchikeys14_unique = inchikeys14_unique_1 + inchikeys14_unique_2
+        if pair_folder is not None:
+            print(f"Saving cross-ionmode candidate pair/score data to {pair_folder}")
+            save_candidate_pair_data(
+                pair_folder,
+                available_pairs_per_bin_matrix,
+                available_scores_per_bin_matrix,
+                inchikeys14_unique,
+            )
 
     pair_frequency_matrixes = balanced_selection_of_pairs_per_bin(
         available_pairs_per_bin_matrix, settings
@@ -97,11 +166,20 @@ def select_compound_pairs_wrapper_across_ionmode(
         pair_frequency_matrixes,
         available_pairs_per_bin_matrix,
         available_scores_per_bin_matrix,
-        inchikeys14_unique_1 + inchikeys14_unique_2,
+        inchikeys14_unique,
     )
+    selected_pairs = [pair for pairs in selected_pairs_per_bin for pair in pairs]
+
+    if pair_folder is not None:
+        schedule = SelectedPairSchedule.from_pairs(selected_pairs, inchikeys14_unique)
+        print(f"Saving selected cross-ionmode pair schedule to {pair_folder}")
+        save_selected_pair_schedule(pair_folder, schedule)
+        selected_pairs_for_generator = schedule
+    else:
+        selected_pairs_for_generator = selected_pairs
 
     return SpectrumPairGeneratorAcrossIonmodes(
-        [pair for pairs in selected_pairs_per_bin for pair in pairs],
+        selected_pairs_for_generator,
         spectra_1,
         spectra_2,
         settings.shuffle,
@@ -112,7 +190,7 @@ def select_compound_pairs_wrapper_across_ionmode(
 class SpectrumPairGeneratorAcrossIonmodes:
     def __init__(
         self,
-        selected_inchikey_pairs: List[Tuple[str, str, float]],
+        selected_inchikey_pairs: Union[List[Tuple[str, str, float]], SelectedPairSchedule],
         spectra_pos: List[Spectrum],
         spectra_neg: List[Spectrum],
         shuffle: bool = True,
@@ -128,7 +206,12 @@ class SpectrumPairGeneratorAcrossIonmodes:
         self.shuffle = shuffle
         self.random_nr_generator = np.random.default_rng(random_seed)
         self._idx = 0
-        if self.shuffle:
+        self._compact_schedule = isinstance(self.selected_inchikey_pairs, SelectedPairSchedule)
+        if self._compact_schedule:
+            self._pair_order = np.arange(len(self.selected_inchikey_pairs), dtype=np.int64)
+            if self.shuffle:
+                self.random_nr_generator.shuffle(self._pair_order)
+        elif self.shuffle:
             self.random_nr_generator.shuffle(self.selected_inchikey_pairs)
 
     @staticmethod
@@ -155,9 +238,13 @@ class SpectrumPairGeneratorAcrossIonmodes:
         if self._idx >= len(self.selected_inchikey_pairs):
             self._idx = 0
             if self.shuffle:
-                self.random_nr_generator.shuffle(self.selected_inchikey_pairs)
+                if self._compact_schedule:
+                    self.random_nr_generator.shuffle(self._pair_order)
+                else:
+                    self.random_nr_generator.shuffle(self.selected_inchikey_pairs)
 
-        inchikey1, inchikey2, tanimoto_score = self.selected_inchikey_pairs[self._idx]
+        pair_index = int(self._pair_order[self._idx]) if self._compact_schedule else self._idx
+        inchikey1, inchikey2, tanimoto_score = self.selected_inchikey_pairs[pair_index]
         spectrum1 = self._get_pos_spectrum_with_inchikey(inchikey1, self.random_nr_generator)
         spectrum2 = self._get_neg_spectrum_with_inchikey(inchikey2, self.random_nr_generator)
         self._idx += 1
@@ -170,6 +257,8 @@ class SpectrumPairGeneratorAcrossIonmodes:
         return f"SpectrumPairGenerator with {len(self.selected_inchikey_pairs)} pairs available"
 
     def get_scores(self):
+        if self._compact_schedule:
+            return np.asarray(self.selected_inchikey_pairs.scores).tolist()
         return [score for _, _, score in self.selected_inchikey_pairs]
 
     def get_inchikey_counts(self) -> Counter:

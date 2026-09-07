@@ -3,7 +3,8 @@ This script is not needed for normally running MS2Deepscore, it is only needed t
 """
 import json
 import os
-from typing import Optional
+from pathlib import Path
+from typing import Optional, Union
 
 import numpy as np
 from matplotlib import pyplot as plt
@@ -22,16 +23,25 @@ def train_ms2ds_model(
         validation_spectra,
         results_folder,
         settings: SettingsMS2Deepscore,
+        pair_data_folder: Union[str, Path, None] = None,
         ):
     """Full workflow to train a MS2DeepScore model.
+
+    ``pair_data_folder`` is an explicit persistence/reuse location for the expensive
+    training-pair preparation. Reusing the same folder skips pair preparation only
+    when its manifest matches the current structural data and pair-selection settings.
     """
     # Make folder and save settings
     os.makedirs(results_folder, exist_ok=True)
     settings.save_to_file(os.path.join(results_folder, "settings.json"))
     if settings.balanced_sampling_across_ionmodes:
-        train_generator = create_data_generator_across_ionmodes(training_spectra, settings=settings)
+        train_generator = create_data_generator_across_ionmodes(
+            training_spectra, settings=settings, pair_data_folder=pair_data_folder
+        )
     else:
-        spectrum_pair_generator = create_spectrum_pair_generator(training_spectra, settings=settings)
+        spectrum_pair_generator = create_spectrum_pair_generator(
+            training_spectra, settings=settings, pair_data_folder=pair_data_folder
+        )
         train_generator = TrainingBatchGenerator(spectrum_pair_generator=spectrum_pair_generator, settings=settings)
     # Create a validation loss calculator
     validation_loss_calculator = ValidationLossCalculator(validation_spectra,

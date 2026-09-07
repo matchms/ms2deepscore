@@ -4,6 +4,8 @@ reducing the amount of rerunning that is necessary"""
 import itertools
 import os
 import pickle
+from pathlib import Path
+from typing import Optional, Union
 from datetime import datetime
 from tqdm import tqdm
 from matchms.exporting import save_spectra
@@ -25,9 +27,11 @@ from ms2deepscore.wrapper_functions.plotting_wrapper_functions import \
     create_plots_between_ionmodes
 
 
-def train_ms2deepscore_wrapper(settings: SettingsMS2Deepscore,
-                               settings_embedding_evaluator: SettingsEmbeddingEvaluator = None
-                               ):
+def train_ms2deepscore_wrapper(
+        settings: SettingsMS2Deepscore,
+        settings_embedding_evaluator: SettingsEmbeddingEvaluator = None,
+        pair_data_folder: Optional[Union[str, Path]] = None,
+        ):
     """Splits data, trains a ms2deepscore model, and does benchmarking.
 
     If the data split was already done, the data split will be reused.
@@ -38,6 +42,11 @@ def train_ms2deepscore_wrapper(settings: SettingsMS2Deepscore,
         An object with the MS2Deepscore model settings.
     validation_split_fraction:
         The fraction of the inchikeys that will be used for validation and test.
+    pair_data_folder:
+        Explicit folder for storing/reusing expensive training-pair preparation.
+        On the first run an empty/new folder is populated. On later runs the same
+        folder is reused only if its manifest matches the current structural data
+        and pair-selection settings; otherwise a ValueError is raised.
     """
     split_data_if_necessary(settings)
 
@@ -45,7 +54,13 @@ def train_ms2deepscore_wrapper(settings: SettingsMS2Deepscore,
     validation_spectra = load_spectra_in_ionmode(settings.validation_spectra_file_name, settings.ionisation_mode)
 
     # Train model
-    ms2ds_model, history = train_ms2ds_model(training_spectra, validation_spectra, settings.model_directory_name, settings)
+    ms2ds_model, history = train_ms2ds_model(
+        training_spectra,
+        validation_spectra,
+        settings.model_directory_name,
+        settings,
+        pair_data_folder=pair_data_folder,
+    )
 
     ms2ds_history_plot_file_name = os.path.join(settings.model_directory_name, settings.history_plot_file_name)
     plot_history(history["losses"], history["val_losses"], ms2ds_history_plot_file_name)
@@ -76,7 +91,8 @@ def parameter_search(
         base_settings: SettingsMS2Deepscore,
         setting_variations,
         loss_types=("mse",),
-        path_checkpoint="results_checkpoint.pkl"
+        path_checkpoint="results_checkpoint.pkl",
+        pair_data_folder: Optional[Union[str, Path]] = None,
 ):
     """Runs a grid search.
 
@@ -138,7 +154,9 @@ def parameter_search(
         os.makedirs(settings.model_directory_name, exist_ok=True)
         settings.save_to_file(os.path.join(settings.model_directory_name, "settings.json"))
         # Create a training generator
-        spectrum_pair_generator = create_spectrum_pair_generator(training_spectra, settings=settings)
+        spectrum_pair_generator = create_spectrum_pair_generator(
+            training_spectra, settings=settings, pair_data_folder=pair_data_folder
+        )
         train_generator = TrainingBatchGenerator(spectrum_pair_generator=spectrum_pair_generator, settings=settings)
         # Create a validation loss calculator
         validation_loss_calculator = ValidationLossCalculator(validation_spectra,
