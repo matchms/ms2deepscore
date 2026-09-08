@@ -297,3 +297,304 @@ def test_combined_spectrum_generator_cycles_through_generators():
     assert score == 0.1
 
     assert len(combined) == len(gen1) + len(gen2)
+
+
+# -----------------------------------------------------------------------------
+# Tests for explicit pair-data folders in cross-ionmode training
+# -----------------------------------------------------------------------------
+
+from collections import Counter
+
+import ms2deepscore.train_new_model.inchikey_pair_selection_cross_ionmode as cross_pair_selection_module
+import ms2deepscore.train_new_model.pair_data_persistence as pair_data_persistence
+
+
+def test_create_data_generator_across_ionmodes_uses_explicit_subfolders(
+    tmp_path, monkeypatch, pos_neg_spectra
+):
+    """The top-level folder is only a layout; each pairing mode gets an explicit subfolder."""
+    pos_spectra, neg_spectra = pos_neg_spectra
+    settings = _make_cross_ionmode_settings()
+    recorded_folders = []
+
+    class DummyPairGenerator:
+        def __len__(self):
+            return 1
+
+        def __iter__(self):
+            return self
+
+        def __next__(self):
+            raise StopIteration
+
+    def fake_within(spectra, settings, pair_data_folder=None):
+        recorded_folders.append(pair_data_folder)
+        return DummyPairGenerator()
+
+    def fake_cross(spectra_1, spectra_2, settings, pair_data_folder=None):
+        recorded_folders.append(pair_data_folder)
+        return DummyPairGenerator()
+
+    monkeypatch.setattr(cross_pair_selection_module, "create_spectrum_pair_generator", fake_within)
+    monkeypatch.setattr(
+        cross_pair_selection_module,
+        "select_compound_pairs_wrapper_across_ionmode",
+        fake_cross,
+    )
+    # We only test folder plumbing here; constructing batches is covered elsewhere.
+    monkeypatch.setattr(
+        cross_pair_selection_module,
+        "TrainingBatchGenerator",
+        lambda spectrum_pair_generator, settings: spectrum_pair_generator,
+    )
+
+    create_data_generator_across_ionmodes(
+        pos_spectra + neg_spectra,
+        settings,
+        pair_data_folder=tmp_path,
+    )
+
+    assert recorded_folders == [
+        tmp_path / "positive",
+        tmp_path / "negative",
+        tmp_path / "positive_negative",
+    ]
+    assert (tmp_path / pair_data_persistence.MANIFEST_FILENAME).is_file()
+
+
+def _make_cross_pair_folder_settings():
+    settings = _make_cross_ionmode_settings(
+        bins=[(-0.01, 1.0)],
+        batch_size=2,
+        average_inchikey_sampling_count=2,
+    )
+    settings.max_pairs_per_bin = 2
+    settings.random_seed = 17
+    settings.shuffle = False
+    return settings
+
+
+def _install_fake_cross_pair_preparation(
+    monkeypatch,
+    pos_spectra,
+    neg_spectra,
+    selected_pairs,
+    calls,
+):
+    pos_keys = sorted({s.get("inchikey")[:14] for s in pos_spectra})
+    neg_keys = sorted({s.get("inchikey")[:14] for s in neg_spectra})
+    all_keys = pos_keys + neg_keys
+
+    def fake_fingerprints(spectra, *args, **kwargs):
+        calls["fingerprints"] += 1
+        keys = sorted({s.get("inchikey")[:14] for s in spectra})
+        return np.zeros((len(keys), 8), dtype=np.float32), keys
+
+    candidate_pairs = np.full((1, len(all_keys), 1), -1, dtype=np.int32)
+    candidate_scores = np.zeros_like(candidate_pairs, dtype=np.float32)
+    # The actual contents are irrelevant here because balancing/conversion are mocked,
+    # but use a valid global target index in one row so persistence is non-empty.
+    candidate_pairs[0, 0, 0] = len(pos_keys)
+    candidate_scores[0, 0, 0] = 0.5
+
+    def fake_candidates(*args, **kwargs):
+        calls["candidates"] += 1
+        return candidate_pairs.copy(), candidate_scores.copy()
+
+    def fake_balancing(*args, **kwargs):
+        calls["balancing"] += 1
+        return np.zeros_like(candidate_pairs, dtype=np.int32)
+
+    def fake_conversion(*args, **kwargs):
+        calls["conversion"] += 1
+        return [list(selected_pairs)]
+
+    monkeypatch.setattr(
+        cross_pair_selection_module,
+        "compute_fingerprints_for_training",
+        fake_fingerprints,
+    )
+    monkeypatch.setattr(
+        cross_pair_selection_module,
+        "compute_tanimoto_similarity_per_bin_between_sets",
+        fake_candidates,
+    )
+    monkeypatch.setattr(
+        cross_pair_selection_module,
+        "balanced_selection_of_pairs_per_bin",
+        fake_balancing,
+    )
+    monkeypatch.setattr(
+        cross_pair_selection_module,
+        "convert_to_selected_pairs_list",
+        fake_conversion,
+    )
+
+
+def test_cross_ionmode_pair_folder_second_run_reuses_final_schedule(
+    tmp_path, monkeypatch, pos_neg_spectra
+):
+    pos_spectra, neg_spectra = pos_neg_spectra
+    settings = _make_cross_pair_folder_settings()
+    pos_keys = sorted({s.get("inchikey")[:14] for s in pos_spectra})
+    neg_keys = sorted({s.get("inchikey")[:14] for s in neg_spectra})
+    selected_pairs = [
+        (pos_keys[0], neg_keys[0], 0.2),
+        (pos_keys[1], neg_keys[1], 0.8),
+    ]
+    calls = Counter()
+    _install_fake_cross_pair_preparation(
+        monkeypatch,
+        pos_spectra,
+        neg_spectra,
+        selected_pairs,
+        calls,
+    )
+
+    first = select_compound_pairs_wrapper_across_ionmode(
+        pos_spectra,
+        neg_spectra,
+        settings,
+        pair_data_folder=tmp_path,
+    )
+    first_pairs = list(first.selected_inchikey_pairs)
+
+    def unexpected_call(*args, **kwargs):
+        pytest.fail("Cross-ionmode pair preparation should not run when a final schedule exists.")
+
+    monkeypatch.setattr(cross_pair_selection_module, "compute_fingerprints_for_training", unexpected_call)
+    monkeypatch.setattr(
+        cross_pair_selection_module,
+        "compute_tanimoto_similarity_per_bin_between_sets",
+        unexpected_call,
+    )
+    monkeypatch.setattr(cross_pair_selection_module, "balanced_selection_of_pairs_per_bin", unexpected_call)
+    monkeypatch.setattr(cross_pair_selection_module, "convert_to_selected_pairs_list", unexpected_call)
+
+    second = select_compound_pairs_wrapper_across_ionmode(
+        pos_spectra,
+        neg_spectra,
+        settings,
+        pair_data_folder=tmp_path,
+    )
+    second_pairs = list(second.selected_inchikey_pairs)
+
+    assert [pair[:2] for pair in second_pairs] == [pair[:2] for pair in first_pairs]
+    np.testing.assert_allclose(
+        [pair[2] for pair in second_pairs],
+        [pair[2] for pair in first_pairs],
+    )
+    assert pair_data_persistence.candidate_data_exists(tmp_path)
+    assert pair_data_persistence.selected_schedule_exists(tmp_path)
+
+
+def test_cross_ionmode_pair_folder_reuses_candidate_checkpoint(
+    tmp_path, monkeypatch, pos_neg_spectra
+):
+    pos_spectra, neg_spectra = pos_neg_spectra
+    settings = _make_cross_pair_folder_settings()
+    pos_keys = sorted({s.get("inchikey")[:14] for s in pos_spectra})
+    neg_keys = sorted({s.get("inchikey")[:14] for s in neg_spectra})
+    all_keys = pos_keys + neg_keys
+
+    manifest = pair_data_persistence.build_pair_data_manifest(
+        kind="between_sets",
+        settings=settings,
+        spectra_signature_1=pair_data_persistence.spectra_structure_signature(pos_spectra),
+        spectra_signature_2=pair_data_persistence.spectra_structure_signature(neg_spectra),
+    )
+    pair_data_persistence.prepare_pair_data_folder(tmp_path, manifest)
+
+    candidate_pairs = np.full((1, len(all_keys), 1), -1, dtype=np.int32)
+    candidate_scores = np.zeros_like(candidate_pairs, dtype=np.float32)
+    candidate_pairs[0, 0, 0] = len(pos_keys)
+    candidate_scores[0, 0, 0] = 0.5
+    pair_data_persistence.save_candidate_pair_data(
+        tmp_path,
+        candidate_pairs,
+        candidate_scores,
+        all_keys,
+    )
+
+    selected_pairs = [(pos_keys[0], neg_keys[0], 0.5)]
+    calls = Counter()
+
+    def unexpected_call(*args, **kwargs):
+        pytest.fail("Fingerprint/candidate computation should be skipped when cross candidate data exists.")
+
+    def fake_balancing(*args, **kwargs):
+        calls["balancing"] += 1
+        return np.zeros_like(candidate_pairs, dtype=np.int32)
+
+    def fake_conversion(*args, **kwargs):
+        calls["conversion"] += 1
+        return [selected_pairs]
+
+    monkeypatch.setattr(cross_pair_selection_module, "compute_fingerprints_for_training", unexpected_call)
+    monkeypatch.setattr(
+        cross_pair_selection_module,
+        "compute_tanimoto_similarity_per_bin_between_sets",
+        unexpected_call,
+    )
+    monkeypatch.setattr(cross_pair_selection_module, "balanced_selection_of_pairs_per_bin", fake_balancing)
+    monkeypatch.setattr(cross_pair_selection_module, "convert_to_selected_pairs_list", fake_conversion)
+
+    generator = select_compound_pairs_wrapper_across_ionmode(
+        pos_spectra,
+        neg_spectra,
+        settings,
+        pair_data_folder=tmp_path,
+    )
+
+    assert calls == Counter(balancing=1, conversion=1)
+    assert pair_data_persistence.selected_schedule_exists(tmp_path)
+    assert len(generator) == 1
+
+
+def test_cross_ionmode_top_level_pair_folder_rejects_changed_pair_settings(
+    tmp_path, monkeypatch, pos_neg_spectra
+):
+    pos_spectra, neg_spectra = pos_neg_spectra
+    settings = _make_cross_pair_folder_settings()
+
+    class DummyPairGenerator:
+        def __len__(self):
+            return 1
+
+        def __iter__(self):
+            return self
+
+        def __next__(self):
+            raise StopIteration
+
+    monkeypatch.setattr(
+        cross_pair_selection_module,
+        "create_spectrum_pair_generator",
+        lambda *args, **kwargs: DummyPairGenerator(),
+    )
+    monkeypatch.setattr(
+        cross_pair_selection_module,
+        "select_compound_pairs_wrapper_across_ionmode",
+        lambda *args, **kwargs: DummyPairGenerator(),
+    )
+    monkeypatch.setattr(
+        cross_pair_selection_module,
+        "TrainingBatchGenerator",
+        lambda spectrum_pair_generator, settings: spectrum_pair_generator,
+    )
+
+    create_data_generator_across_ionmodes(
+        pos_spectra + neg_spectra,
+        settings,
+        pair_data_folder=tmp_path,
+    )
+
+    changed_settings = _make_cross_pair_folder_settings()
+    changed_settings.random_seed += 1
+
+    with pytest.raises(ValueError, match="different inputs/settings"):
+        create_data_generator_across_ionmodes(
+            pos_spectra + neg_spectra,
+            changed_settings,
+            pair_data_folder=tmp_path,
+        )
