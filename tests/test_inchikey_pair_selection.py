@@ -1,5 +1,4 @@
 from collections import Counter
-
 import numpy as np
 import pytest
 from matchms import Spectrum
@@ -12,6 +11,8 @@ from ms2deepscore.train_new_model.inchikey_pair_selection import (
 )
 from ms2deepscore.train_new_model import SpectrumPairGenerator
 from tests.create_test_spectra import create_test_spectra
+import ms2deepscore.train_new_model.inchikey_pair_selection as pair_selection_module
+import ms2deepscore.train_new_model.pair_data_persistence as pair_data_persistence
 
 
 def _make_training_settings(
@@ -135,7 +136,7 @@ def test_SelectedInchikeyPairs_generator_without_shuffle():
             Spectrum(mz=np.array([90.]), intensities=np.array([0.4]), metadata={"inchikey": "Inchikey1"}),
             Spectrum(mz=np.array([90.]), intensities=np.array([0.4]), metadata={"inchikey": "Inchikey2"}),
         ],
-        True,
+        False,
         0,
     )
 
@@ -274,3 +275,352 @@ def test_select_compound_pairs_wrapper_maximum_inchikey_count_supported_types(fi
 
     highest_inchikey_count = max(inchikey_pair_generator.get_inchikey_counts().values())
     assert highest_inchikey_count <= max_inchikey_sampling + 1
+
+
+# -----------------------------------------------------------------------------
+# Tests for available-pair counting and explicit pair-data folders
+# -----------------------------------------------------------------------------
+
+
+def test_get_nr_of_available_pairs_in_bin_counts_unique_undirected_pairs():
+    """Mirrored/repeated pairs count once, self-pairs count once, empty bins count zero."""
+    selected_pairs_per_bin_matrix = np.array(
+        [
+            [
+                [1, 1, 2],   # 0-1 twice, 0-2
+                [0, 2, -1],  # mirrored 0-1, plus 1-2
+                [0, 1, 2],   # mirrored 0-2 and 1-2, plus self-pair 2-2
+            ],
+            [
+                [-1, -1, -1],
+                [1, -1, -1],  # self-pair 1-1
+                [-1, -1, -1],
+            ],
+            [
+                [-1, -1, -1],
+                [-1, -1, -1],
+                [-1, -1, -1],
+            ],
+        ],
+        dtype=np.int32,
+    )
+
+    assert pair_selection_module.get_nr_of_available_pairs_in_bin(
+        selected_pairs_per_bin_matrix
+    ) == [4, 1, 0]
+
+
+def test_get_nr_of_available_pairs_in_bin_does_not_require_symmetric_storage():
+    """A pair stored in only one direction is still one available unique pair."""
+    selected_pairs_per_bin_matrix = np.array(
+        [
+            [
+                [2, -1],
+                [-1, -1],
+                [-1, -1],
+            ]
+        ],
+        dtype=np.int32,
+    )
+
+    assert pair_selection_module.get_nr_of_available_pairs_in_bin(
+        selected_pairs_per_bin_matrix
+    ) == [1]
+
+
+def _make_pair_folder_test_settings():
+    return SettingsMS2Deepscore(
+        same_prob_bins=np.array([(-0.01, 1.0)], dtype=np.float32),
+        average_inchikey_sampling_count=2,
+        batch_size=2,
+        max_pair_resampling=5,
+        max_inchikey_sampling=20,
+        max_pairs_per_bin=2,
+        fingerprint_type="rdkit_binary",
+        fingerprint_nbits=64,
+        random_seed=13,
+        shuffle=False,
+    )
+
+
+def _tiny_candidate_data(inchikeys):
+    n = len(inchikeys)
+    pairs = np.full((1, n, 2), -1, dtype=np.int32)
+    scores = np.zeros((1, n, 2), dtype=np.float32)
+    for i in range(n):
+        j = (i + 1) % n
+        pairs[0, i, 0] = j
+        scores[0, i, 0] = 0.5
+    return pairs, scores
+
+
+def _install_fake_pair_preparation(monkeypatch, spectra, selected_pairs, calls):
+    inchikeys = sorted({s.get("inchikey")[:14] for s in spectra})
+    candidate_pairs, candidate_scores = _tiny_candidate_data(inchikeys)
+
+    def fake_fingerprints(*args, **kwargs):
+        calls["fingerprints"] += 1
+        return np.zeros((len(inchikeys), 8), dtype=np.float32), inchikeys
+
+    def fake_candidates(*args, **kwargs):
+        calls["candidates"] += 1
+        return candidate_pairs.copy(), candidate_scores.copy()
+
+    def fake_balancing(*args, **kwargs):
+        calls["balancing"] += 1
+        return np.zeros_like(candidate_pairs, dtype=np.int32)
+
+    def fake_conversion(*args, **kwargs):
+        calls["conversion"] += 1
+        return [list(selected_pairs)]
+
+    monkeypatch.setattr(
+        pair_selection_module,
+        "compute_fingerprints_for_training",
+        fake_fingerprints,
+    )
+    monkeypatch.setattr(
+        pair_selection_module,
+        "compute_tanimoto_similarity_per_bin",
+        fake_candidates,
+    )
+    monkeypatch.setattr(
+        pair_selection_module,
+        "balanced_selection_of_pairs_per_bin",
+        fake_balancing,
+    )
+    monkeypatch.setattr(
+        pair_selection_module,
+        "convert_to_selected_pairs_list",
+        fake_conversion,
+    )
+
+    return inchikeys, candidate_pairs, candidate_scores
+
+
+def test_pair_data_folder_first_run_writes_candidate_data_and_final_schedule(
+    tmp_path, monkeypatch
+):
+    spectra = create_test_spectra(
+        num_of_unique_inchikeys=4,
+        num_of_spectra_per_inchikey=1,
+    )
+    settings = _make_pair_folder_test_settings()
+    inchikeys = sorted({s.get("inchikey")[:14] for s in spectra})
+    selected_pairs = [
+        (inchikeys[0], inchikeys[1], 0.25),
+        (inchikeys[2], inchikeys[3], 0.75),
+    ]
+    calls = Counter()
+    _install_fake_pair_preparation(monkeypatch, spectra, selected_pairs, calls)
+
+    generator = create_spectrum_pair_generator(
+        spectra,
+        settings,
+        pair_data_folder=tmp_path,
+    )
+
+    assert calls == Counter(
+        fingerprints=1,
+        candidates=1,
+        balancing=1,
+        conversion=1,
+    )
+    assert pair_data_persistence.candidate_data_exists(tmp_path)
+    assert pair_data_persistence.selected_schedule_exists(tmp_path)
+    assert (tmp_path / pair_data_persistence.MANIFEST_FILENAME).is_file()
+
+    actual_pairs = list(generator.selected_inchikey_pairs)
+    assert [pair[:2] for pair in actual_pairs] == [pair[:2] for pair in selected_pairs]
+    np.testing.assert_allclose(
+        [pair[2] for pair in actual_pairs],
+        [pair[2] for pair in selected_pairs],
+    )
+
+
+def test_pair_data_folder_second_run_reuses_final_schedule_without_recomputation(
+    tmp_path, monkeypatch
+):
+    spectra = create_test_spectra(4, 1)
+    settings = _make_pair_folder_test_settings()
+    inchikeys = sorted({s.get("inchikey")[:14] for s in spectra})
+    selected_pairs = [
+        (inchikeys[0], inchikeys[1], 0.25),
+        (inchikeys[2], inchikeys[3], 0.75),
+    ]
+    calls = Counter()
+    _install_fake_pair_preparation(monkeypatch, spectra, selected_pairs, calls)
+
+    first_generator = create_spectrum_pair_generator(
+        spectra,
+        settings,
+        pair_data_folder=tmp_path,
+    )
+    first_pairs = list(first_generator.selected_inchikey_pairs)
+
+    def unexpected_call(*args, **kwargs):
+        pytest.fail("Pair preparation should not run when a final schedule exists.")
+
+    monkeypatch.setattr(pair_selection_module, "compute_fingerprints_for_training", unexpected_call)
+    monkeypatch.setattr(pair_selection_module, "compute_tanimoto_similarity_per_bin", unexpected_call)
+    monkeypatch.setattr(pair_selection_module, "balanced_selection_of_pairs_per_bin", unexpected_call)
+    monkeypatch.setattr(pair_selection_module, "convert_to_selected_pairs_list", unexpected_call)
+
+    second_generator = create_spectrum_pair_generator(
+        spectra,
+        settings,
+        pair_data_folder=tmp_path,
+    )
+    second_pairs = list(second_generator.selected_inchikey_pairs)
+
+    assert [pair[:2] for pair in second_pairs] == [pair[:2] for pair in first_pairs]
+    np.testing.assert_allclose(
+        [pair[2] for pair in second_pairs],
+        [pair[2] for pair in first_pairs],
+    )
+
+
+def test_pair_data_folder_reuses_candidate_checkpoint_when_final_schedule_is_missing(
+    tmp_path, monkeypatch
+):
+    spectra = create_test_spectra(4, 1)
+    settings = _make_pair_folder_test_settings()
+    inchikeys = sorted({s.get("inchikey")[:14] for s in spectra})
+    candidate_pairs, candidate_scores = _tiny_candidate_data(inchikeys)
+    selected_pairs = [
+        (inchikeys[0], inchikeys[1], 0.4),
+        (inchikeys[2], inchikeys[3], 0.6),
+    ]
+
+    manifest = pair_data_persistence.build_pair_data_manifest(
+        kind="within_set",
+        settings=settings,
+        spectra_signature_1=pair_data_persistence.spectra_structure_signature(spectra),
+    )
+    pair_data_persistence.prepare_pair_data_folder(tmp_path, manifest)
+    pair_data_persistence.save_candidate_pair_data(
+        tmp_path,
+        candidate_pairs,
+        candidate_scores,
+        inchikeys,
+    )
+
+    def unexpected_call(*args, **kwargs):
+        pytest.fail("Fingerprint/candidate computation should be skipped when candidate data exists.")
+
+    calls = Counter()
+
+    def fake_balancing(*args, **kwargs):
+        calls["balancing"] += 1
+        return np.zeros_like(candidate_pairs, dtype=np.int32)
+
+    def fake_conversion(*args, **kwargs):
+        calls["conversion"] += 1
+        return [selected_pairs]
+
+    monkeypatch.setattr(pair_selection_module, "compute_fingerprints_for_training", unexpected_call)
+    monkeypatch.setattr(pair_selection_module, "compute_tanimoto_similarity_per_bin", unexpected_call)
+    monkeypatch.setattr(pair_selection_module, "balanced_selection_of_pairs_per_bin", fake_balancing)
+    monkeypatch.setattr(pair_selection_module, "convert_to_selected_pairs_list", fake_conversion)
+
+    generator = create_spectrum_pair_generator(
+        spectra,
+        settings,
+        pair_data_folder=tmp_path,
+    )
+
+    assert calls == Counter(balancing=1, conversion=1)
+    assert pair_data_persistence.selected_schedule_exists(tmp_path)
+    assert len(generator) == len(selected_pairs)
+
+
+def test_pair_data_folder_rejects_changed_pair_selection_settings_before_recomputation(
+    tmp_path, monkeypatch
+):
+    spectra = create_test_spectra(4, 1)
+    settings = _make_pair_folder_test_settings()
+
+    manifest = pair_data_persistence.build_pair_data_manifest(
+        kind="within_set",
+        settings=settings,
+        spectra_signature_1=pair_data_persistence.spectra_structure_signature(spectra),
+    )
+    pair_data_persistence.prepare_pair_data_folder(tmp_path, manifest)
+
+    changed_settings = _make_pair_folder_test_settings()
+    changed_settings.fingerprint_nbits = settings.fingerprint_nbits * 2
+
+    def unexpected_call(*args, **kwargs):
+        pytest.fail("Pair preparation should not start before manifest validation.")
+
+    monkeypatch.setattr(pair_selection_module, "compute_fingerprints_for_training", unexpected_call)
+
+    with pytest.raises(ValueError, match="different inputs/settings"):
+        create_spectrum_pair_generator(
+            spectra,
+            changed_settings,
+            pair_data_folder=tmp_path,
+        )
+
+
+def test_pair_data_folder_allows_model_only_setting_changes(
+    tmp_path, monkeypatch
+):
+    spectra = create_test_spectra(4, 1)
+    settings = _make_pair_folder_test_settings()
+    inchikeys = sorted({s.get("inchikey")[:14] for s in spectra})
+    selected_pairs = [(inchikeys[0], inchikeys[1], 0.5)]
+    calls = Counter()
+    _install_fake_pair_preparation(monkeypatch, spectra, selected_pairs, calls)
+
+    create_spectrum_pair_generator(
+        spectra,
+        settings,
+        pair_data_folder=tmp_path,
+    )
+
+    # These settings do not influence pair preparation and therefore must not
+    # invalidate an explicitly persisted pair-data folder.
+    settings.learning_rate *= 2
+    settings.dropout_rate = 0.25
+    settings.embedding_dim += 1
+
+    def unexpected_call(*args, **kwargs):
+        pytest.fail("Model-only setting changes should still reuse the final pair schedule.")
+
+    monkeypatch.setattr(pair_selection_module, "compute_fingerprints_for_training", unexpected_call)
+    monkeypatch.setattr(pair_selection_module, "compute_tanimoto_similarity_per_bin", unexpected_call)
+    monkeypatch.setattr(pair_selection_module, "balanced_selection_of_pairs_per_bin", unexpected_call)
+    monkeypatch.setattr(pair_selection_module, "convert_to_selected_pairs_list", unexpected_call)
+
+    generator = create_spectrum_pair_generator(
+        spectra,
+        settings,
+        pair_data_folder=tmp_path,
+    )
+
+    assert len(generator) == 1
+
+
+def test_pair_data_folder_rejects_incomplete_selected_schedule(tmp_path):
+    spectra = create_test_spectra(4, 1)
+    settings = _make_pair_folder_test_settings()
+    manifest = pair_data_persistence.build_pair_data_manifest(
+        kind="within_set",
+        settings=settings,
+        spectra_signature_1=pair_data_persistence.spectra_structure_signature(spectra),
+    )
+    pair_data_persistence.prepare_pair_data_folder(tmp_path, manifest)
+
+    # Simulate an interrupted/corrupt write: one schedule file exists, the others do not.
+    np.save(
+        tmp_path / pair_data_persistence.SELECTED_PAIR_INDICES_FILENAME,
+        np.zeros((1, 2), dtype=np.int32),
+    )
+
+    with pytest.raises(ValueError, match="Incomplete selected-pair schedule"):
+        create_spectrum_pair_generator(
+            spectra,
+            settings,
+            pair_data_folder=tmp_path,
+        )

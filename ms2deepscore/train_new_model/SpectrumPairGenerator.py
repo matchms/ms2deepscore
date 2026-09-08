@@ -1,13 +1,14 @@
 import json
 from collections import Counter
-from typing import List, Tuple
+from typing import List, Tuple, Union
 from collections import defaultdict
 import numpy as np
 from matchms import Spectrum
+from ms2deepscore.train_new_model.pair_data_persistence import SelectedPairSchedule
 
 
 class SpectrumPairGenerator:
-    def __init__(self, selected_inchikey_pairs: List[Tuple[str, str, float]], spectra,
+    def __init__(self, selected_inchikey_pairs: Union[List[Tuple[str, str, float]], SelectedPairSchedule], spectra,
                  shuffle: bool = True, random_seed: int = 0):
         """
         Parameters
@@ -21,7 +22,13 @@ class SpectrumPairGenerator:
         self.shuffle = shuffle
         self.random_nr_generator = np.random.default_rng(random_seed)
         self._idx = 0
-        if self.shuffle:
+        self._compact_schedule = isinstance(self.selected_inchikey_pairs, SelectedPairSchedule)
+        if self._compact_schedule:
+            self._pair_order = np.arange(len(self.selected_inchikey_pairs), dtype=np.int64)
+            if self.shuffle:
+                self.random_nr_generator.shuffle(self._pair_order)
+        elif self.shuffle:
+            # Preserve the historical behaviour for the legacy list representation.
             self.random_nr_generator.shuffle(self.selected_inchikey_pairs)
         
         # create a mapping from inchikey to spectrum indices for efficient retrieval
@@ -39,9 +46,13 @@ class SpectrumPairGenerator:
         if self._idx >= len(self.selected_inchikey_pairs):
             self._idx = 0
             if self.shuffle:
-                self.random_nr_generator.shuffle(self.selected_inchikey_pairs)
+                if self._compact_schedule:
+                    self.random_nr_generator.shuffle(self._pair_order)
+                else:
+                    self.random_nr_generator.shuffle(self.selected_inchikey_pairs)
 
-        inchikey1, inchikey2, tanimoto_score = self.selected_inchikey_pairs[self._idx]
+        pair_index = int(self._pair_order[self._idx]) if self._compact_schedule else self._idx
+        inchikey1, inchikey2, tanimoto_score = self.selected_inchikey_pairs[pair_index]
         spectrum1 = self._get_spectrum_with_inchikey(inchikey1, self.random_nr_generator)
         spectrum2 = self._get_spectrum_with_inchikey(inchikey2, self.random_nr_generator)
         self._idx += 1
@@ -54,6 +65,8 @@ class SpectrumPairGenerator:
         return f"SpectrumPairGenerator with {len(self.selected_inchikey_pairs)} pairs available"
 
     def get_scores(self):
+        if self._compact_schedule:
+            return np.asarray(self.selected_inchikey_pairs.scores).tolist()
         return [score for _, _, score in self.selected_inchikey_pairs]
 
     def get_inchikey_counts(self) -> Counter:
