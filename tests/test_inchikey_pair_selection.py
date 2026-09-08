@@ -1,5 +1,4 @@
 from collections import Counter
-
 import numpy as np
 import pytest
 from matchms import Spectrum
@@ -12,6 +11,8 @@ from ms2deepscore.train_new_model.inchikey_pair_selection import (
 )
 from ms2deepscore.train_new_model import SpectrumPairGenerator
 from tests.create_test_spectra import create_test_spectra
+import ms2deepscore.train_new_model.inchikey_pair_selection as pair_selection_module
+import ms2deepscore.train_new_model.pair_data_persistence as pair_data_persistence
 
 
 def _make_training_settings(
@@ -279,9 +280,6 @@ def test_select_compound_pairs_wrapper_maximum_inchikey_count_supported_types(fi
 # -----------------------------------------------------------------------------
 # Tests for available-pair counting and explicit pair-data folders
 # -----------------------------------------------------------------------------
-
-import ms2deepscore.train_new_model.inchikey_pair_selection as pair_selection_module
-import ms2deepscore.train_new_model.pair_data_persistence as pair_data_persistence
 
 
 def test_get_nr_of_available_pairs_in_bin_counts_unique_undirected_pairs():

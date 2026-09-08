@@ -1,3 +1,4 @@
+from collections import Counter
 import numpy as np
 import pytest
 from matchms import Spectrum
@@ -11,6 +12,8 @@ from ms2deepscore.train_new_model.inchikey_pair_selection_cross_ionmode import (
 )
 from ms2deepscore.train_new_model import SpectrumPairGenerator
 from tests.create_test_spectra import create_test_spectra
+import ms2deepscore.train_new_model.inchikey_pair_selection_cross_ionmode as cross_pair_selection_module
+import ms2deepscore.train_new_model.pair_data_persistence as pair_data_persistence
 
 
 def _make_cross_ionmode_settings(
@@ -302,11 +305,6 @@ def test_combined_spectrum_generator_cycles_through_generators():
 # -----------------------------------------------------------------------------
 # Tests for explicit pair-data folders in cross-ionmode training
 # -----------------------------------------------------------------------------
-
-from collections import Counter
-
-import ms2deepscore.train_new_model.inchikey_pair_selection_cross_ionmode as cross_pair_selection_module
-import ms2deepscore.train_new_model.pair_data_persistence as pair_data_persistence
 
 
 def test_create_data_generator_across_ionmodes_uses_explicit_subfolders(
