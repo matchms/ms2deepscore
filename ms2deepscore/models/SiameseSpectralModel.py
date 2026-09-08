@@ -354,6 +354,7 @@ def train(
     data_generator,
     num_epochs: int,
     learning_rate: float,
+    weight_decay: float = 0.0,
     validation_loss_calculator=None,
     early_stopping=True,
     patience: int = 10,
@@ -379,8 +380,10 @@ def train(
         Number of epochs for training.
     learning_rate
         Learning rate for the optimizer.
-    val_generator (iterator, optional)
-        An iterator for validation data batches.
+    weight_decay
+        Weight decay for the optimizer (AdamW optimizer). Default is 0.0.
+    validation_loss_calculator
+        An object that calculates validation loss. If None, no validation is performed.
     early_stopping
         Whether to use early stopping.
     patience
@@ -410,7 +413,7 @@ def train(
     optimizer = AdamW(
         model.parameters(),
         lr=learning_rate,
-        weight_decay=0,  # TODO: add weight decay as parameter
+        weight_decay=weight_decay,
         foreach=False,
         fused=False,
         )
