@@ -10,7 +10,7 @@ from torch import cat, nn, no_grad, randn, save
 from torch.export.dynamic_shapes import Dim
 from torch.nn.functional import relu
 from torch.onnx import export
-from torch.optim import Adam
+from torch.optim import AdamW
 from torch.utils.tensorboard import SummaryWriter
 from tqdm import tqdm
 from ms2deepscore.__version__ import __version__
@@ -407,7 +407,13 @@ def train(
         raise ValueError(f"Unknown loss function. Must be one of: {LOSS_FUNCTIONS.keys()}")
     criterion = LOSS_FUNCTIONS[loss_function.lower()]
 
-    optimizer = Adam(model.parameters(), lr=learning_rate)
+    optimizer = AdamW(
+        model.parameters(),
+        lr=learning_rate,
+        weight_decay=0,  # TODO: add weight decay as parameter
+        foreach=False,
+        fused=False,
+        )
 
     # Initialize TensorBoard writer
     if checkpoint_filename:
