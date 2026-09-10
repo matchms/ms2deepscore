@@ -80,7 +80,7 @@ def test_save_settings(tmp_path):
         result = json.load(file)
     assert result["epochs"] == 200
     assert result["base_dims"] == [200, 200]
-    assert result["embedding_dim"] == 500
+    assert result["embedding_dim"] == 300
 
 
 def test_get_dict():
@@ -89,7 +89,7 @@ def test_get_dict():
     settings_dict = settings.get_dict()
     assert settings_dict["epochs"] == 200
     assert settings_dict["base_dims"] == (200, 200)
-    assert settings_dict["embedding_dim"] == 500
+    assert settings_dict["embedding_dim"] == 300
 
 
 def test_get_dict_with_coerced_types():

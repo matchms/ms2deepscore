@@ -10,7 +10,7 @@ from torch import cat, nn, no_grad, randn, save
 from torch.export.dynamic_shapes import Dim
 from torch.nn.functional import relu
 from torch.onnx import export
-from torch.optim import Adam
+from torch.optim import AdamW
 from torch.utils.tensorboard import SummaryWriter
 from tqdm import tqdm
 from ms2deepscore.__version__ import __version__
@@ -354,6 +354,7 @@ def train(
     data_generator,
     num_epochs: int,
     learning_rate: float,
+    weight_decay: float = 0.0,
     validation_loss_calculator=None,
     early_stopping=True,
     patience: int = 10,
@@ -379,8 +380,10 @@ def train(
         Number of epochs for training.
     learning_rate
         Learning rate for the optimizer.
-    val_generator (iterator, optional)
-        An iterator for validation data batches.
+    weight_decay
+        Weight decay for the optimizer (AdamW optimizer). Default is 0.0.
+    validation_loss_calculator
+        An object that calculates validation loss. If None, no validation is performed.
     early_stopping
         Whether to use early stopping.
     patience
@@ -407,7 +410,13 @@ def train(
         raise ValueError(f"Unknown loss function. Must be one of: {LOSS_FUNCTIONS.keys()}")
     criterion = LOSS_FUNCTIONS[loss_function.lower()]
 
-    optimizer = Adam(model.parameters(), lr=learning_rate)
+    optimizer = AdamW(
+        model.parameters(),
+        lr=learning_rate,
+        weight_decay=weight_decay,
+        foreach=False,
+        fused=False,
+        )
 
     # Initialize TensorBoard writer
     if checkpoint_filename:
