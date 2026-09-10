@@ -99,6 +99,7 @@ class SettingsMS2Deepscore:
             The learning rate that should be used during training.
         weight_decay:
             The weight decay that should be used during training (optimizer is AdamW).
+            Default is 0.01, which is a common value for AdamW. If you want to use Adam, set weight_decay=0.0.
         epochs:
             The number of epochs that should be used during training.
         patience:
@@ -201,7 +202,7 @@ class SettingsMS2Deepscore:
         # training settings
         self.dropout_rate = 0.0
         self.learning_rate = 0.00025
-        self.weight_decay = 0.0  # todo: add weight decay as parameter
+        self.weight_decay = 0.01
         self.epochs = 250
         self.patience = 10
         self.loss_function = "mse"
