@@ -86,7 +86,7 @@ class SettingsMS2Deepscore:
         base_dims:
             The in between layers to be used. Default = (2000, 2000, 2000)
         embedding_dim:
-            The dimension of the final embedding. Default = 400
+            The dimension of the final embedding. Default = 300
         ionisation_mode:
             The ionisation mode that is used for training the model.
         balanced_sampling_across_ionmodes:
@@ -97,6 +97,9 @@ class SettingsMS2Deepscore:
             The dropout rate that should be used during training
         learning_rate:
             The learning rate that should be used during training.
+        weight_decay:
+            The weight decay that should be used during training (optimizer is AdamW).
+            Default is 0.01, which is a common value for AdamW. If you want to use Adam, set weight_decay=0.0.
         epochs:
             The number of epochs that should be used during training.
         patience:
@@ -185,8 +188,8 @@ class SettingsMS2Deepscore:
         self.train_test_split_fraction = 20
 
         # model structure
-        self.base_dims = (10000,)
-        self.embedding_dim = 500
+        self.base_dims = (2000, 2000, 2000)
+        self.embedding_dim = 300
         self.ionisation_mode = "positive"
         self.activation_function = "relu"
         self.balanced_sampling_across_ionmodes = False
@@ -199,8 +202,9 @@ class SettingsMS2Deepscore:
         # training settings
         self.dropout_rate = 0.0
         self.learning_rate = 0.00025
+        self.weight_decay = 0.01
         self.epochs = 250
-        self.patience = 20
+        self.patience = 10
         self.loss_function = "mse"
         self.weighting_factor = 0
 
