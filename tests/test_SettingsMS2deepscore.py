@@ -49,9 +49,14 @@ def test_coerce_string_to_int():
 
 def test_coerce_string_to_float():
     """Test if strings that represent floats are correctly coerced to float."""
-    settings = SettingsMS2Deepscore(**{"learning_rate": "0.001"})
+    settings = SettingsMS2Deepscore(**{
+        "learning_rate": "0.001",
+        "weight_decay": "0.002",
+        })
     assert isinstance(settings.learning_rate, float)
     assert settings.learning_rate == 0.001
+    assert isinstance(settings.weight_decay, float)
+    assert settings.weight_decay == 0.002
 
 
 def test_coerce_string_to_bool():
