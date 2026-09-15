@@ -1,6 +1,8 @@
 import os
+from ms2deepscore.train_new_model.DataGeneratorEmbeddingEvaluation import DataGeneratorEmbeddingEvaluation
 import pytest
 import numpy as np
+import torch
 from sklearn.datasets import make_regression
 from torch import randn
 from ms2deepscore.models import EmbeddingEvaluationModel, LinearModel
@@ -131,3 +133,49 @@ def test_linear_model_save_load(tmp_path):
     assert np.array_equal(model.model.coef_, loaded_model.model.coef_), "Coefficients do not match."
     assert model.model.intercept_ == loaded_model.model.intercept_, "Intercepts do not match."
     assert model.degree == loaded_model.degree == 3, "Degree does not match."
+
+
+@pytest.mark.parametrize(
+    "fingerprint_type",
+    [
+        "rdkit_binary",
+        "rdkit_count",
+        "rdkit_logcount",
+        "rdkit_binary_unfolded",
+        "rdkit_count_unfolded",
+        "rdkit_logcount_unfolded",
+    ],
+)
+def test_embedding_evaluator_generator_supports_fingerprint_types(
+    fingerprint_type,
+):
+    spectra = create_test_spectra(
+        num_of_unique_inchikeys=10,
+        num_of_spectra_per_inchikey=1,
+    )
+
+    model = MockMS2DSModel()
+    model.model_settings.fingerprint_type = fingerprint_type
+    model.model_settings.fingerprint_nbits = 256
+
+    generator = DataGeneratorEmbeddingEvaluation(
+        spectrums=spectra,
+        ms2ds_model=model,
+        settings=SettingsEmbeddingEvaluator(
+            evaluator_distribution_size=5,
+        ),
+        device="cpu",
+    )
+
+    tanimoto_scores, ms2ds_scores, embeddings = next(generator)
+
+    assert tanimoto_scores.shape == (5, 5)
+    assert ms2ds_scores.shape == (5, 5)
+    assert embeddings.shape[0] == 5
+
+    assert torch.isfinite(tanimoto_scores).all()
+
+    torch.testing.assert_close(
+        torch.diag(tanimoto_scores),
+        torch.ones(5),
+    )

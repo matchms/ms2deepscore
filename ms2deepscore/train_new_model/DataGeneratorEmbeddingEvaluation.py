@@ -2,10 +2,12 @@ from typing import List
 
 import numpy as np
 import pandas as pd
-from torch import tensor
+import torch
 from matchms import Spectrum
-from matchms.similarity.vector_similarity_functions import jaccard_similarity_matrix
-
+from ms2deepscore.fingerprint_similarity_computations import (
+    compute_fingerprint_similarity_matrix,
+    is_dense_fingerprint_type,
+)
 from ms2deepscore.SettingsMS2Deepscore import SettingsEmbeddingEvaluator
 from ms2deepscore.models import SiameseSpectralModel
 from ms2deepscore.tensorize_spectra import tensorize_spectra
@@ -54,11 +56,16 @@ class DataGeneratorEmbeddingEvaluation:
         self.ms2ds_model.to(self.device)
         self.indexes = np.arange(len(self.spectrums))
         self.batch_size = self.settings.evaluator_distribution_size
-        self.fingerprint_df = self.compute_fingerprint_dataframe(
+        self.fingerprints, fingerprint_inchikeys = compute_fingerprints_for_training(
             self.spectrums,
             fingerprint_type=self.ms2ds_model.model_settings.fingerprint_type,
-            fingerprint_nbits=self.ms2ds_model.model_settings.fingerprint_nbits,
+            nbits=self.ms2ds_model.model_settings.fingerprint_nbits,
         )
+
+        self.fingerprint_index = {
+            inchikey: idx
+            for idx, inchikey in enumerate(fingerprint_inchikeys)
+        }
 
         # Initialize random number generator
         self.rng = np.random.default_rng(self.settings.random_seed)
@@ -87,17 +94,44 @@ class DataGeneratorEmbeddingEvaluation:
         spec_tensors, meta_tensors = tensorize_spectra(
             [self.spectrums[i] for i in indexes], self.ms2ds_model.model_settings
         )
-        embeddings = self.ms2ds_model.encoder(spec_tensors.to(self.device), meta_tensors.to(self.device))
+        with torch.no_grad():
+            embeddings = self.ms2ds_model.encoder(
+                spec_tensors.to(self.device),
+                meta_tensors.to(self.device),
+            )
 
-        ms2ds_scores = cosine_similarity_matrix(embeddings.cpu().detach().numpy(), embeddings.cpu().detach().numpy())
+        embeddings_numpy = embeddings.cpu().numpy()
+
+        ms2ds_scores = cosine_similarity_matrix(embeddings_numpy, embeddings_numpy)
 
         # Compute true scores
+        fingerprint_type = self.ms2ds_model.model_settings.fingerprint_type
+
         inchikeys = [self.inchikey14s[i] for i in indexes]
-        fingerprints = self.fingerprint_df.loc[inchikeys].to_numpy()
+        fingerprint_indexes = [
+            self.fingerprint_index[inchikey]
+            for inchikey in inchikeys
+        ]
 
-        tanimoto_scores = jaccard_similarity_matrix(fingerprints, fingerprints)
+        if is_dense_fingerprint_type(fingerprint_type):
+            batch_fingerprints = self.fingerprints[fingerprint_indexes]
+        else:
+            batch_fingerprints = [
+                self.fingerprints[i]
+                for i in fingerprint_indexes
+            ]
 
-        return tensor(tanimoto_scores), tensor(ms2ds_scores), embeddings.cpu().detach()
+        tanimoto_scores = compute_fingerprint_similarity_matrix(
+            batch_fingerprints,
+            batch_fingerprints,
+            fingerprint_type=fingerprint_type,
+        )
+
+        return (
+            torch.as_tensor(tanimoto_scores),
+            torch.as_tensor(ms2ds_scores),
+            embeddings.cpu(),
+        )
 
     def on_epoch_end(self):
         """Updates indexes after each epoch."""
