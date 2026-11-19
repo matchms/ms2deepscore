@@ -35,9 +35,6 @@ Nature Communications, 17, 2483 (2026). [doi: https://doi.org/10.1101/2024.03.25
 
 Python 3.11, 3.12, 3.13 (higher will likely work, but is not tested systematically).
 
-### Installation
-Installation is expected to take 10-20 minutes.
-
 ### Prepare environment
 We recommend creating an Anaconda environment with
 
