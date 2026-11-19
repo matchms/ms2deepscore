@@ -5,6 +5,47 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+
+## [2.11.0] - 2026-09-08
+### What's Changed
+* Persist pairs to save large overhead when training models on large datasets by @florian-huber in https://github.com/matchms/ms2deepscore/pull/304
+
+
+## [2.10.0] - 2026-09-04
+
+### Main changes:
+- Key steps to make MS2DeepScore ready for `matchms 1.0` release.
+- Much faster embedding computation due to proper batching
+- ONNX support
+
+### What's Changed
+* Refactoring 2026 by @florian-huber in https://github.com/matchms/ms2deepscore/pull/293
+* Refactor embedding computation method(s) by @florian-huber in https://github.com/matchms/ms2deepscore/pull/296
+* Fix deprecated Node20 for checkout and setup-python by @julianpollmann in https://github.com/matchms/ms2deepscore/pull/298
+* Add onnx export by @julianpollmann in https://github.com/matchms/ms2deepscore/pull/294
+* Refactor for compatibility with upcoming matchms 1.0 by @florian-huber in https://github.com/matchms/ms2deepscore/pull/299
+* Fix data augmentation by @florian-huber in https://github.com/matchms/ms2deepscore/pull/301
+
+### New Contributors
+* @julianpollmann made their first contribution in https://github.com/matchms/ms2deepscore/pull/298
+
+
+## [2.9.0] - 2026-03-31
+
+### Added
+- Add more fingerprints (now including rdkit unfolded variants, count and log-count)
+
+### Changed
+- lower memory footprint of validation loss calculations
+- Central implementation of fingerprint based similarities in `fingerprint_similarity_computations.py`
+- Expand testing
+- Address a few deprecated/warning issues
+- Set pandas to `pandas<3` since very recent changes to Pandas 3 seem to break a few things.
+
+### Fixed
+- Fix sampling issue during training [#291](https://github.com/matchms/ms2deepscore/pull/291)
+
+
 ## 2.8.0
 
 ### Fixed
