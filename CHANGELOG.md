@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.11.1] - 2026-11-19
+
+### Changes
+- switch workflows and package structure to uv (setup.py --> pyproject.toml) [#308](https://github.com/matchms/ms2deepscore/pull/308)
+- add explicit test runs for matchms < 1.0 and matchms >= 1.0 [#308](https://github.com/matchms/ms2deepscore/pull/308)
+
 
 ## [2.11.0] - 2026-09-08
 ### What's Changed
