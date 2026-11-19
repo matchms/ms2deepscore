@@ -2,14 +2,10 @@ name: CI Build
 
 on:
   push:
+    branches: [main]
   pull_request:
     types: [opened, reopened, synchronize, ready_for_review]
 
-# Cancel previous CI runs for the same branch,
-# including runs triggered by push and pull_request.
-concurrency:
-  group: ${{ github.workflow }}-${{ github.event.pull_request.head.repo.full_name || github.repository }}-${{ github.head_ref || github.ref_name }}
-  cancel-in-progress: true
 
 jobs:
   thorough_check:
